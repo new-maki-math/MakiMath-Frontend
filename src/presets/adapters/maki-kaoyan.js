@@ -2,7 +2,7 @@
  * 考研数学讲义适配器 (Kaoyan Doc Adapter)
  * 负责将考研数学的 Typst 方言宏映射为 MakiTheme 前端视图模型
  */
-import { transformDefaultNode } from './default-adapter.js';
+import { transformDefaultNode } from './default.js';
 
 // 盒子家族映射
 const KAOYAN_BOXES = {

@@ -1,0 +1,63 @@
+/* ==========================================================================
+   默认通用讲义样式 (Default Typst Preset Styles)
+   为没有自定义样式的通用讲义提供极简排版保障
+   ========================================================================== */
+
+.typst-doc {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25em;
+  color: var(--text-primary);
+  line-height: 1.75;
+}
+
+.td-heading {
+  color: var(--text-primary);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.35;
+  margin: 1.2em 0 0.4em;
+  scroll-margin-top: 72px;
+}
+
+.td-heading-1 { font-size: calc(var(--font-size) * 1.6); }
+.td-heading-2 { font-size: calc(var(--font-size) * 1.35); }
+.td-heading-3 { font-size: calc(var(--font-size) * 1.15); }
+.td-heading-4, .td-heading-5, .td-heading-6 { font-size: var(--font-size); }
+
+.td-para {
+  margin: 0;
+  color: var(--text-primary);
+  line-height: 1.8;
+  word-break: break-word;
+}
+
+.td-box {
+  margin: 1.4em 0;
+  padding: 14px 18px;
+  border-radius: var(--radius-md);
+  background-color: var(--bg-surface);
+}
+
+.td-box-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.td-box-label {
+  color: var(--accent-primary, #60a5fa);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-smallest);
+  font-weight: var(--font-weight-bold);
+}
+
+.td-box-label::before {
+  content: attr(data-kind);
+}
+
+.td-box-title {
+  color: var(--text-primary);
+  font-weight: var(--font-weight-bold);
+}

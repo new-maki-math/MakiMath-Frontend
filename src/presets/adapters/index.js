@@ -2,8 +2,8 @@
  * 讲义 AST 适配器分发入口 (Doc Adapters)
  * 将后端返回的语法 AST 或历史 AST 统一转换为前端 View Model
  */
-import { transformKaoyanDoc } from './kaoyan-adapter.js';
-import { transformDefaultDoc } from './default-adapter.js';
+import { transformKaoyanDoc } from './maki-kaoyan.js';
+import { transformDefaultDoc } from './default.js';
 
 const ADAPTERS = {
   kaoyan: transformKaoyanDoc,

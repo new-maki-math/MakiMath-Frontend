@@ -6,8 +6,8 @@ import '@fontsource/noto-sans-sc/500.css'
 import '@fontsource/noto-sans-sc/600.css'
 import '@fontsource/noto-sans-sc/700.css'
 import './style.css'
-// 讲义渲染样式（TypstDoc 的样式已从组件里抽出，卡片文案也在其中）
-import './styles/MakiTheme.css'
+// 讲义专属预设样式
+import './presets/styles/maki-kaoyan.css'
 import App from './App.vue'
 import router from './router'
 import globalComponents from './components'
