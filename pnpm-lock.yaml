@@ -26,6 +26,9 @@ importers:
       markdown-it-cjk-friendly:
         specifier: ^3.0.0
         version: 3.0.0(markdown-it@15.0.3)
+      typlet:
+        specifier: ^0.1.1
+        version: 0.1.1
       vue:
         specifier: ^3.5.42
         version: 3.5.44
@@ -537,6 +540,11 @@ packages:
     resolution: {integrity: sha512-wXR/dYpcqKmfWpEdZjiKJOwCNFndD0DMnrW/cYjVGttEkBfVgcLFHoNrlj47mjOVic9yyNu65alsgF4NQyTa2g==}
     engines: {node: '>=12.0.0'}
 
+  typlet@0.1.1:
+    resolution: {integrity: sha512-2NxXUNwCJsa/LnMS+iZhy+DnkWJxkh+8j3OQgWXxW4mkE98pkxVQ48TELMy9LTviUm/I9eOsdtxuDgioOh5Qmw==}
+    engines: {node: '>=22'}
+    hasBin: true
+
   uc.micro@3.0.0:
     resolution: {integrity: sha512-U3PppEkleoTnIfi8BozMx3yju3qc/L6SwqWo2Sw+54PX+PX0q9I+r1Um5HCmqD7n9VDX5/v3vQH/AjA6deDdtw==}
 
@@ -1041,6 +1049,8 @@ snapshots:
     dependencies:
       fdir: 6.5.0(picomatch@4.0.7)
       picomatch: 4.0.7
+
+  typlet@0.1.1: {}
 
   uc.micro@3.0.0: {}
 
