@@ -13,6 +13,7 @@ import MTextarea from '../../components/MTextarea.vue';
 import MCodeEditor from '../../components/MCodeEditor.vue';
 import MModal from '../../components/MModal.vue';
 import MButton from '../../components/MButton.vue';
+import MSelect from '../../components/MSelect.vue';
 import MTag from '../../components/MTag.vue';
 import { Upload, PagePlus, Xmark } from '@iconoir/vue';
 
@@ -33,6 +34,157 @@ const sections = ref([]);
 const loading = ref(true);
 const saving = ref(false);
 
+// 多选状态
+const selectedIds = ref(new Set());
+const batchDeleteOpen = ref(false);
+const batchDeleting = ref(false);
+
+const isAllSelected = computed(() => {
+  if (sections.value.length === 0) return false;
+  return selectedIds.value.size === sections.value.length;
+});
+
+const isIndeterminate = computed(() => {
+  return selectedIds.value.size > 0 && selectedIds.value.size < sections.value.length;
+});
+
+const toggleSelect = (id) => {
+  const next = new Set(selectedIds.value);
+  if (next.has(id)) next.delete(id);
+  else next.add(id);
+  selectedIds.value = next;
+};
+
+const handleRowClick = (sec) => {
+  if (selectedIds.value.size > 0) {
+    toggleSelect(sec.id);
+  } else {
+    emit('navigate', {
+      type: 'section',
+      id: sec.id,
+      label: sec.title,
+      courseId: record.value?.course_id,
+      chapterId: props.node.id
+    });
+  }
+};
+
+const toggleSelectAll = () => {
+  if (isAllSelected.value) {
+    selectedIds.value = new Set();
+  } else {
+    selectedIds.value = new Set(sections.value.map((s) => s.id));
+  }
+};
+
+const clearSelection = () => {
+  selectedIds.value = new Set();
+};
+
+const askBatchDelete = () => {
+  if (selectedIds.value.size === 0) return;
+  batchDeleteOpen.value = true;
+};
+
+const runBatchDelete = async () => {
+  const ids = Array.from(selectedIds.value);
+  if (ids.length === 0) return;
+
+  batchDeleting.value = true;
+  try {
+    await adminApi.sections.batchRemove(ids);
+    selectedIds.value = new Set();
+    batchDeleteOpen.value = false;
+    await load();
+    emit('saved', `已批量删除 ${ids.length} 个小节`);
+    emit('changed', {
+      scope: 'chapter',
+      courseId: record.value?.course_id,
+      chapterId: props.node.id
+    });
+  } catch (err) {
+    emit('error', err);
+  } finally {
+    batchDeleting.value = false;
+  }
+};
+
+// 批量复制（在当前章生成副本）
+const copying = ref(false);
+const runBatchCopy = async () => {
+  const ids = Array.from(selectedIds.value);
+  if (ids.length === 0) return;
+
+  copying.value = true;
+  try {
+    const res = await adminApi.sections.batchCopy(ids, props.node.id);
+    selectedIds.value = new Set();
+    await load();
+    emit('saved', `已成功创建 ${res.count} 个小节副本`);
+    emit('changed', {
+      scope: 'chapter',
+      courseId: record.value?.course_id,
+      chapterId: props.node.id
+    });
+  } catch (err) {
+    emit('error', err);
+  } finally {
+    copying.value = false;
+  }
+};
+
+// 批量移动到指定章节
+const moveModalOpen = ref(false);
+const moving = ref(false);
+const targetChapterId = ref('');
+const availableChapters = ref([]);
+
+const chapterOptions = computed(() =>
+  availableChapters.value.map((ch) => ({
+    value: String(ch.id),
+    label: `${ch.tag ? ch.tag + ' · ' : ''}${ch.title}`
+  }))
+);
+
+const openBatchMove = async () => {
+  if (selectedIds.value.size === 0) return;
+  try {
+    const list = await adminApi.chapters.list(record.value.course_id);
+    availableChapters.value = list.filter((ch) => ch.id !== props.node.id);
+    if (availableChapters.value.length === 0) {
+      emit('error', new Error('当前课程没有其他可供移动的章节'));
+      return;
+    }
+    targetChapterId.value = String(availableChapters.value[0].id);
+    moveModalOpen.value = true;
+  } catch (err) {
+    emit('error', err);
+  }
+};
+
+const runBatchMove = async () => {
+  if (!targetChapterId.value) return;
+  const ids = Array.from(selectedIds.value);
+
+  moving.value = true;
+  try {
+    await adminApi.sections.batchMove(ids, Number(targetChapterId.value));
+    selectedIds.value = new Set();
+    moveModalOpen.value = false;
+    await load();
+    emit('saved', `已移动 ${ids.length} 个小节到目标章节`);
+    emit('changed', {
+      scope: 'chapter',
+      courseId: record.value?.course_id,
+      chapterId: props.node.id
+    });
+  } catch (err) {
+    emit('error', err);
+  } finally {
+    moving.value = false;
+  }
+};
+
 const fileInput = ref(null);
 const dragOver = ref(false);
 const importOpen = ref(false);
@@ -44,6 +196,7 @@ const meta = computed(() => (record.value ? `${sections.value.length} 个小节`
 
 const load = async () => {
   loading.value = true;
+  clearSelection();
   try {
     const [rec, list] = await Promise.all([
       adminApi.chapters.get(props.node.id),
@@ -271,29 +424,85 @@ watch(() => props.node.id, load, { immediate: true });
           本章还没有小节。导入 .typ 文件，或在左侧树中把鼠标移到本章行上点 + 手动新建。
         </div>
 
-        <div
-          v-else
-          class="adm-list"
-        >
+        <template v-else>
           <div
-            v-for="(sec, idx) in sections"
-            :key="sec.id"
-            class="adm-list-item"
-            @click="emit('navigate', { type: 'section', id: sec.id, label: sec.title, courseId: record?.course_id, chapterId: node.id })"
+            v-if="selectedIds.size > 0"
+            class="adm-batch-bar"
           >
-            <span class="adm-list-index">{{ String(idx + 1).padStart(2, '0') }}</span>
-            <span class="adm-list-label">{{ sec.title }}</span>
-            <MTag
-              v-if="!sec.has_source"
-              variant="amber"
-              size="sm"
-            >
-              空
-            </MTag>
-            <span class="adm-list-meta">{{ sec.slug }}</span>
-            <span class="adm-list-meta">{{ sec.source_len }} 字</span>
+            <div class="adm-batch-info">
+              <input
+                type="checkbox"
+                class="adm-checkbox"
+                :checked="isAllSelected"
+                :indeterminate="isIndeterminate"
+                title="全选 / 取消全选"
+                @change="toggleSelectAll"
+              />
+              <span>已选择 <span class="adm-batch-count">{{ selectedIds.size }}</span> / {{ sections.length }} 项</span>
+            </div>
+            <div class="adm-batch-actions">
+              <MButton
+                variant="secondary"
+                size="sm"
+                :busy="copying"
+                title="在当前章快速建立选中项的副本"
+                @click="runBatchCopy"
+              >
+                批量复制
+              </MButton>
+              <MButton
+                variant="secondary"
+                size="sm"
+                title="移动选中项到当前课程的其他章节"
+                @click="openBatchMove"
+              >
+                批量移动
+              </MButton>
+              <MButton
+                variant="danger"
+                size="sm"
+                @click="askBatchDelete"
+              >
+                批量删除
+              </MButton>
+              <MButton
+                variant="secondary"
+                size="sm"
+                @click="clearSelection"
+              >
+                取消
+              </MButton>
+            </div>
           </div>
-        </div>
+
+          <div class="adm-list">
+            <div
+              v-for="(sec, idx) in sections"
+              :key="sec.id"
+              class="adm-list-item"
+              :class="{ 'is-selected': selectedIds.has(sec.id) }"
+              @click="handleRowClick(sec)"
+            >
+              <input
+                type="checkbox"
+                class="adm-checkbox"
+                :checked="selectedIds.has(sec.id)"
+                @click.stop="toggleSelect(sec.id)"
+              />
+              <span class="adm-list-index">{{ String(idx + 1).padStart(2, '0') }}</span>
+              <span class="adm-list-label">{{ sec.title }}</span>
+              <MTag
+                v-if="!sec.has_source"
+                variant="amber"
+                size="sm"
+              >
+                空
+              </MTag>
+              <span class="adm-list-meta">{{ sec.slug }}</span>
+              <span class="adm-list-meta">{{ sec.source_len }} 字</span>
+            </div>
+          </div>
+        </template>
       </div>
     </template>
 
@@ -335,6 +544,43 @@ watch(() => props.node.id, load, { immediate: true });
       <p class="import-name font-mono">
         原始文件名：{{ importRows.map((r) => r.name).join(' / ') }}
       </p>
+    </MModal>
+
+    <MModal
+      :open="batchDeleteOpen"
+      title="批量删除小节"
+      :desc="`即将永久删除已选中的 ${selectedIds.size} 个小节`"
+      confirm-text="确认批量删除"
+      confirm-variant="danger"
+      :busy="batchDeleting"
+      @close="batchDeleteOpen = false"
+      @confirm="runBatchDelete"
+    >
+      <div class="adm-note" style="color: #e07070; border-color: rgba(224, 112, 112, 0.4);">
+        警告：选中的小节及其对应的 Typst 源码会一并彻底删除，且不可撤销。
+      </div>
+    </MModal>
+
+    <MModal
+      :open="moveModalOpen"
+      title="批量移动小节"
+      :desc="`将选中的 ${selectedIds.size} 个小节移动至其他章节`"
+      confirm-text="确认移动"
+      :busy="moving"
+      @close="moveModalOpen = false"
+      @confirm="runBatchMove"
+    >
+      <div class="adm-block">
+        <MSelect
+          v-model="targetChapterId"
+          label="目标章节"
+          :options="chapterOptions"
+          placeholder="请选择目标章节"
+        />
+        <div class="adm-note" style="margin-top: 10px;">
+          选中的小节将被追加至目标章节末尾。若目标章节已存在相同 slug，系统会自动平滑重命名避免键位冲突。
+        </div>
+      </div>
     </MModal>
   </AdminPanel>
 </template>

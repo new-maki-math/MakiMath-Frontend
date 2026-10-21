@@ -36,6 +36,7 @@ export const adminApi = {
     setPreamble: (id, preamble) => put(`/api/courses/${id}/preamble`, { preamble }),
     setPrereqs: (id, prereqs) => put(`/api/courses/${id}/prereqs`, { prereqs }),
     remove: (id) => del(`/api/courses/${id}`),
+    batchRemove: (ids) => post('/api/courses/batch-delete', { ids }),
     order: (categoryId, ids) => put('/api/courses/order', { category_id: categoryId, ids })
   },
 
@@ -46,6 +47,7 @@ export const adminApi = {
     update: (id, body) => patch(`/api/chapters/${id}`, body),
     setIntro: (id, intro_source) => put(`/api/chapters/${id}/intro`, { intro_source }),
     remove: (id) => del(`/api/chapters/${id}`),
+    batchRemove: (ids) => post('/api/chapters/batch-delete', { ids }),
     order: (courseId, ids) => put('/api/chapters/order', { course_id: courseId, ids })
   },
 
@@ -57,6 +59,10 @@ export const adminApi = {
     setSource: (id, source) => put(`/api/sections/${id}/source`, { source }),
     setPrereqs: (id, prereqs) => put(`/api/sections/${id}/prereqs`, { prereqs }),
     remove: (id) => del(`/api/sections/${id}`),
+    batchRemove: (ids) => post('/api/sections/batch-delete', { ids }),
+    batchMove: (ids, targetChapterId) => post('/api/sections/batch-move', { ids, target_chapter_id: targetChapterId }),
+    batchCopy: (ids, targetChapterId = null) =>
+      post('/api/sections/batch-copy', { ids, target_chapter_id: targetChapterId }),
     order: (chapterId, ids) => put('/api/sections/order', { chapter_id: chapterId, ids })
   },
 
