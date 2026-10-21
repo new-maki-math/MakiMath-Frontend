@@ -299,7 +299,6 @@ function warningText(item) {
       >
         <header class="td-lec-head">
           <span v-if="lecBadge(node.num)" class="td-lec-num">{{ lecBadge(node.num) }}</span>
-          <span class="td-lec-title">{{ node.title }}</span>
           <span v-if="Array.isArray(node.tags) && node.tags.length" class="td-lec-tags">
             <span
               v-for="(tag, tagIndex) in node.tags"
@@ -310,6 +309,7 @@ function warningText(item) {
               :data-tag="tag && tag.text"
             >{{ tag && tag.text }}</span>
           </span>
+          <span class="td-lec-title">{{ node.title }}</span>
         </header>
         <div class="td-lec-body">
           <TypstDoc :nodes="childrenOf(node)" flow />

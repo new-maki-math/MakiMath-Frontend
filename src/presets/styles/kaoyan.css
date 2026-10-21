@@ -233,3 +233,55 @@
   font-size: var(--font-size-smallest);
   color: var(--text-muted);
 }
+
+/* ==========================================================================
+   7. 讲次大卡片 (#lec)
+   ========================================================================== */
+.td-lec {
+  margin: 1.8em 0 1.4em 0;
+  padding: 16px 20px;
+  border-radius: var(--radius-md);
+  background-color: color-mix(in srgb, var(--maki-blue-lit) 5%, var(--bg-surface));
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.td-lec-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.td-lec-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono, monospace);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-smaller);
+  padding: 2px 7px;
+  border-radius: var(--radius-xs);
+  color: #fff;
+  background-color: var(--maki-blue-lit);
+  line-height: 1.2;
+}
+
+.td-lec-tags {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.td-lec-title {
+  font-size: 1.125rem;
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  line-height: 1.35;
+}
+
+.td-lec-body {
+  font-size: var(--font-size-body);
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
