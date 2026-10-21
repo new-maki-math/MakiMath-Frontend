@@ -1,8 +1,17 @@
 // 考研讲义适配器
 import { transformDefaultNode } from './default.js';
 
-// 盒子宏映射
-const KAOYAN_BOXES = Object.freeze({ defbox: 'def', thmbox: 'thm', warnbox: 'warn', exbox: 'ex', jielun: 'concl', note: 'note' });
+// 盒子宏映射 (考频与作业直接复用盒子色块体系)
+const KAOYAN_BOXES = Object.freeze({
+  defbox: 'def',
+  thmbox: 'thm',
+  warnbox: 'warn',
+  exbox: 'ex',
+  jielun: 'concl',
+  note: 'note',
+  kaopin: 'kaopin',
+  zuoye: 'zuoye'
+});
 
 // 面板宏映射
 const KAOYAN_PANELS = Object.freeze({ kaopin: 'kaopin', zuoye: 'zuoye' });
@@ -106,10 +115,10 @@ export function transformKaoyanNode(node) {
     const title = extractPlainText(positional[1] || '');
     const id = extractPlainText(positional[2] || '');
     const main = [];
-    if (title || source) main.push({ type: 'container', tag: 'div', class: 'td-zt-title', children: [{ type: 'text', value: title || source || '未命名真题' }] });
-    if (source && title) main.push({ type: 'container', tag: 'div', class: 'td-zt-source', children: [{ type: 'text', value: source }] });
+    if (source) main.push({ type: 'container', tag: 'span', class: 'td-zt-source', children: [{ type: 'text', value: source }] });
+    if (title) main.push({ type: 'container', tag: 'span', class: 'td-zt-title', children: [{ type: 'text', value: title }] });
     const zt = [
-      { type: 'container', tag: 'span', class: 'td-zt-badge', children: [{ type: 'text', value: '真题' }] },
+      { type: 'tag', color: 'orange', text: '真题' },
       { type: 'container', tag: 'div', class: 'td-zt-main', children: main }
     ];
     if (id) zt.push({ type: 'container', tag: 'span', class: 'td-zt-id', children: [{ type: 'text', value: id }] });
@@ -124,9 +133,15 @@ export function transformKaoyanNode(node) {
     const content = bodies[bodies.length - 1] || [];
     const head = [];
 
-    if (num) head.push({ type: 'container', tag: 'span', class: 'td-lec-num', children: [{ type: 'text', value: /^[Ll]/.test(num) ? num : `L${num}` }] });
+    if (num) {
+      head.push({
+        type: 'tag',
+        color: 'blue',
+        text: /^[Ll]/.test(num) ? num : `L${num}`
+      });
+    }
     const tags = extractTags(rawTags);
-    if (tags.length) head.push({ type: 'container', tag: 'span', class: 'td-lec-tags', children: tags });
+    for (const t of tags) head.push(t);
     const title = extractPlainText(rawTitle);
     if (title) head.push({ type: 'container', tag: 'span', class: 'td-lec-title', children: [{ type: 'text', value: title }] });
 

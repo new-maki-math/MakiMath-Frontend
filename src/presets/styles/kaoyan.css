@@ -1,125 +1,211 @@
+/* 考研数学专属预设主题 (严格遵循 docs/Design.md 规范) */
+
 :root {
-  /* 讲义语义色：高饱和、色彩纯正、不发白冲淡 */
-  --maki-blue-lit: #258cfb;   /* 纯正浓郁鲜天蓝 (一三 / 定义) */
-  --maki-red-lit: #f43f5e;    /* 鲜艳玫瑰红 (仅一 / 重点讲 / 定理) */
-  --maki-green-lit: #10b981;  /* 鲜翠绿 (仅三 / 例题 / 结论) */
-  --maki-orange-lit: #f97316; /* 鲜明暖橙 (二重 / 易错 / 提醒) */
-  --maki-gray-lit: #94a3b8;   /* 质感岩灰 (统 / 压缩讲 / 兜底) */
+  /* 讲义核心色相 */
+  --maki-blue-lit:   #38bdf8; /* 核心交互引导亮蓝 (定义 / 一三) */
+  --maki-red-lit:    #fb7185; /* 醒目玫瑰红 (定理 / 重点讲 / 仅一) */
+  --maki-green-lit:  #34d399; /* 鲜翠绿 (结论 / 例题 / 仅三) */
+  --maki-orange-lit: #fb923c; /* 清透暖橙 (易错 / 提醒 / 二重) */
+  --maki-gray-lit:   #94a3b8; /* 质感冷灰 (统 / 压缩讲 / 兜底) */
 }
 
-/* ==========================================================================
-   1. Tag 标签 (无边框、适度纯色底)
-   ========================================================================== */
-.td-tag {
-  --tag-color: var(--maki-gray-lit);
-
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  height: 24px;
-  padding: 0 8px;
-  margin-right: 4px;
-  border-radius: var(--radius-xs);
-  color: var(--tag-color);
-  background-color: color-mix(in srgb, var(--tag-color) 16%, transparent);
-  font-family: var(--font-ui);
-  font-size: var(--font-size-smaller);
-  font-weight: var(--font-weight-medium);
-  line-height: 1;
-  white-space: nowrap;
+/* 1. 标签系统 (Tags) */
+.td-para .m-tag {
+  margin: 0 4px;
   vertical-align: middle;
-  user-select: none;
+  position: relative;
+  top: -0.14em;
 }
 
-/* 基础宏兜底色位 (#tgblue, #tgred 等) */
-.td-tag-gray   { --tag-color: var(--maki-gray-lit); }
-.td-tag-blue   { --tag-color: var(--maki-blue-lit); }
-.td-tag-red    { --tag-color: var(--maki-red-lit); }
-.td-tag-green  { --tag-color: var(--maki-green-lit); }
-.td-tag-orange { --tag-color: var(--maki-orange-lit); }
-
-/* ==========================================================================
-   2. 盒子 (完全无边框、纯靠浓郁色相+灰度划分)
-   ========================================================================== */
+/* 2. 盒子系统 (Box) */
 .td-box {
   --td-accent: var(--maki-gray-lit);
 
-  margin: 1.4em 0;
-  padding: 14px 18px;
-  border-radius: var(--radius-md);
-  /* 无边框：在深灰底上混入 14% 的高饱和纯色，既有鲜明色彩又沉稳深邃，绝不发白发灰 */
-  background-color: color-mix(in srgb, var(--td-accent) 14%, var(--bg-surface));
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm, 4px);
+  background-color: color-mix(in srgb, var(--td-accent) 11%, var(--bg-surface, #202020));
 }
 
-/* 语义色位 */
-.td-box-def   { --td-accent: var(--maki-blue-lit); }
-.td-box-thm   { --td-accent: var(--maki-red-lit); }
-.td-box-ex    { --td-accent: var(--maki-green-lit); }
-.td-box-warn  { --td-accent: var(--maki-orange-lit); }
-.td-box-concl { --td-accent: var(--maki-green-lit); }
+/* 语义色位分发 */
+.td-box-def    { --td-accent: var(--maki-blue-lit); }
+.td-box-thm    { --td-accent: var(--maki-red-lit); }
+.td-box-ex     { --td-accent: var(--maki-green-lit); }
+.td-box-warn   { --td-accent: var(--maki-orange-lit); }
+.td-box-concl  { --td-accent: var(--maki-green-lit); }
+.td-box-kaopin { --td-accent: var(--maki-blue-lit); }
+.td-box-zuoye  { --td-accent: var(--maki-orange-lit); }
 
-/* 盒头 */
 .td-box-head {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 10px;
+  gap: 8px;
   margin-bottom: 8px;
 }
 
 .td-box-label {
   flex: none;
   color: var(--td-accent);
-  font-family: var(--font-ui);
-  font-size: var(--font-size-smallest);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: 0.05em;
-  line-height: 1.4;
+  font-family: var(--font-mono, monospace);
+  font-size: var(--font-size-smallest, 12px);
+  font-weight: var(--font-weight-bold, 600);
+  letter-spacing: 0.04em;
+  line-height: 1.3;
 }
 
-/* 兜底直接取 data-kind，常用类型映射中文 */
 .td-box-label::before                   { content: attr(data-kind); }
 .td-box-label[data-kind='def']::before   { content: '定义'; }
 .td-box-label[data-kind='thm']::before   { content: '定理 / 公式'; }
 .td-box-label[data-kind='ex']::before    { content: '例题'; }
 .td-box-label[data-kind='warn']::before  { content: '易错 / 提醒'; }
 .td-box-label[data-kind='concl']::before { content: '结论'; }
+.td-box-label[data-kind='kaopin']::before { content: '真题考频'; }
+.td-box-label[data-kind='zuoye']::before  { content: '真题作业'; }
 
 .td-box-title {
-  color: var(--text-primary);
-  font-size: var(--font-size);
-  font-weight: var(--font-weight-bold);
-  line-height: 1.6;
+  color: var(--text-primary, #e0e0e0);
+  font-size: var(--font-size, 14px);
+  font-weight: var(--font-weight-semibold, 550);
+  line-height: 1.5;
 }
 
-/* 盒身去除首尾多余外边距 */
 .td-box-body > :first-child { margin-top: 0; }
 .td-box-body > :last-child  { margin-bottom: 0; }
 
-/* ==========================================================================
-   3. 基础排版：标题、段落、列表、表格与文本行内
-   ========================================================================== */
+/* 3. 侧栏面板 (Panel，直接复用盒子色块体系) */
+.td-panel {
+  --td-accent: var(--maki-blue-lit);
+
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm, 4px);
+  background-color: color-mix(in srgb, var(--td-accent) 11%, var(--bg-surface, #202020));
+}
+
+.td-panel-kaopin { --td-accent: var(--maki-blue-lit); }
+.td-panel-zuoye  { --td-accent: var(--maki-orange-lit); }
+
+.td-panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.td-panel-label {
+  flex: none;
+  font-family: var(--font-mono, monospace);
+  font-size: var(--font-size-smallest, 12px);
+  font-weight: var(--font-weight-bold, 600);
+  color: var(--td-accent);
+  letter-spacing: 0.04em;
+  line-height: 1.3;
+}
+
+.td-panel-label[data-kind='kaopin']::before { content: '真题考频'; }
+.td-panel-label[data-kind='zuoye']::before  { content: '真题作业'; }
+
+.td-panel-body > :first-child { margin-top: 0; }
+.td-panel-body > :last-child  { margin-bottom: 0; }
+
+/* 4. 讲次大卡片 (#lec) */
+.td-lec {
+  margin: 0;
+  padding: 14px 18px;
+  border-radius: var(--radius-sm, 4px);
+  background-color: color-mix(in srgb, var(--maki-blue-lit) 4%, var(--bg-surface, #202020));
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.07));
+}
+
+.td-lec-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.td-lec-title {
+  font-size: var(--font-size-larger, 16px);
+  font-weight: var(--font-weight-bold, 600);
+  color: var(--text-primary, #e0e0e0);
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+
+.td-lec-body {
+  font-size: var(--font-size, 14px);
+  color: var(--text-secondary, #aaaaaa);
+  line-height: 1.75;
+}
+
+.td-lec-body > :first-child { margin-top: 0; }
+.td-lec-body > :last-child  { margin-bottom: 0; }
+
+/* 5. 真题引证卡 (#zt，直接复用盒子色块体系) */
+.td-zt {
+  --td-accent: var(--maki-orange-lit);
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm, 4px);
+  background-color: color-mix(in srgb, var(--td-accent) 11%, var(--bg-surface, #202020));
+}
+
+.td-zt-main {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.td-zt-source {
+  font-family: var(--font-mono, monospace);
+  font-size: var(--font-size-smallest, 12px);
+  font-weight: var(--font-weight-medium, 500);
+  color: var(--td-accent);
+}
+
+.td-zt-title {
+  font-weight: var(--font-weight-semibold, 550);
+  color: var(--text-primary, #e0e0e0);
+  font-size: var(--font-size, 14px);
+}
+
+.td-zt-id {
+  margin-left: auto;
+  font-family: var(--font-mono, monospace);
+  font-size: var(--font-size-smallest, 12px);
+  color: var(--text-muted, #808080);
+}
+
+/* 6. 基础排版 */
 .typst-doc {
   display: flex;
   flex-direction: column;
-  gap: 1.25em;
-  color: var(--text-primary);
+  gap: 12px;
+  color: var(--text-primary, #e0e0e0);
   line-height: 1.75;
 }
 
 .td-heading {
-  color: var(--text-primary);
-  font-weight: var(--font-weight-bold);
+  color: var(--text-primary, #e0e0e0);
+  font-weight: var(--font-weight-bold, 600);
   line-height: 1.35;
-  margin: 1.2em 0 0.4em;
+  margin: 1.2em 0 0.25em;
   scroll-margin-top: 72px;
+  letter-spacing: -0.015em;
 }
 
-.td-heading-1 { font-size: calc(var(--font-size) * 1.6); }
-.td-heading-2 { font-size: calc(var(--font-size) * 1.35); }
-.td-heading-3 { font-size: calc(var(--font-size) * 1.15); }
-.td-heading-4, .td-heading-5, .td-heading-6 { font-size: var(--font-size); }
+.td-heading-1 { font-size: 22px; }
+.td-heading-2 { font-size: 18px; border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.06)); padding-bottom: 6px; }
+.td-heading-3 { font-size: 16px; }
+.td-heading-4, .td-heading-5, .td-heading-6 { font-size: 14px; }
 
 .td-heading-tags {
   margin-left: 8px;
@@ -128,160 +214,79 @@
 
 .td-para {
   margin: 0;
-  color: var(--text-primary);
+  color: var(--text-primary, #e0e0e0);
   line-height: 1.8;
   word-break: break-word;
 }
 
+/* 强调文字 */
 .td-strong {
-  font-weight: var(--font-weight-bold);
-  color: #fff;
+  font-weight: var(--font-weight-bold, 600);
+  color: #f1f5f9;
 }
 
 .td-emph {
   font-style: italic;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #aaaaaa);
 }
 
 .td-list {
-  margin: 0.4em 0;
-  padding-left: 1.4em;
+  margin: 0.3em 0;
+  padding-left: 1.3em;
   line-height: 1.75;
 }
 
 .td-list-item {
-  margin-bottom: 0.35em;
+  margin-bottom: 0.3em;
+  color: var(--text-primary, #e0e0e0);
 }
 
-/* ==========================================================================
-   4. 数学公式源码占位 (等前端 Typst 数学渲染器接管)
-   ========================================================================== */
+/* 7. 数学公式源码占位 */
 .td-math-typst {
   font-family: var(--font-mono, monospace);
-  color: var(--accent-primary, #60a5fa);
-  background-color: rgba(255, 255, 255, 0.04);
-  padding: 2px 6px;
-  border-radius: var(--radius-xs);
-  font-size: 0.95em;
+  color: var(--maki-blue-lit);
+  background-color: var(--bg-surface, #202020);
+  padding: 1px 5px;
+  border-radius: var(--radius-xs, 2px);
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.05));
+  font-size: 0.9em;
 }
 
 .td-math-typst.is-display {
   display: block;
-  margin: 1em 0;
-  padding: 12px 18px;
-  border-radius: var(--radius-md);
-  background-color: rgba(255, 255, 255, 0.03);
+  margin: 0.8em 0;
+  padding: 12px 16px;
+  border-radius: var(--radius-xs, 2px);
+  background-color: var(--bg-surface, #202020);
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.06));
   overflow-x: auto;
   text-align: center;
 }
 
-/* ==========================================================================
-   5. 表格、真题卡与通用面板
-   ========================================================================== */
+/* 8. 表格排版 (Table) */
 .td-table-wrap {
   width: 100%;
   overflow-x: auto;
-  margin: 1.2em 0;
+  margin: 1em 0;
 }
 
 .td-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: var(--font-size-smaller);
-  background-color: var(--bg-surface);
-  border-radius: var(--radius-md);
+  font-size: var(--font-size-smaller, 13px);
+  background-color: var(--bg-surface, #202020);
+  border-radius: var(--radius-sm, 4px);
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.06));
   overflow: hidden;
 }
 
 .td-cell {
-  padding: 10px 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.05));
   line-height: 1.5;
+  color: var(--text-primary, #e0e0e0);
 }
 
 .td-align-left   { text-align: left; }
 .td-align-center { text-align: center; }
 .td-align-right  { text-align: right; }
-
-.td-zt {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  padding: 10px 16px;
-  margin: 1em 0;
-  border-radius: var(--radius-sm);
-  background-color: rgba(255, 255, 255, 0.04);
-}
-
-.td-zt-badge {
-  font-size: var(--font-size-smallest);
-  font-weight: var(--font-weight-bold);
-  color: var(--maki-orange-lit);
-  background-color: color-mix(in srgb, var(--maki-orange-lit) 16%, transparent);
-  padding: 2px 6px;
-  border-radius: var(--radius-xs);
-}
-
-.td-zt-title {
-  font-weight: var(--font-weight-medium);
-  color: var(--text-primary);
-}
-
-.td-zt-id {
-  margin-left: auto;
-  font-family: var(--font-mono, monospace);
-  font-size: var(--font-size-smallest);
-  color: var(--text-muted);
-}
-
-/* ==========================================================================
-   7. 讲次大卡片 (#lec)
-   ========================================================================== */
-.td-lec {
-  margin: 1.8em 0 1.4em 0;
-  padding: 16px 20px;
-  border-radius: var(--radius-md);
-  background-color: color-mix(in srgb, var(--maki-blue-lit) 5%, var(--bg-surface));
-  border: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.td-lec-head {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-
-.td-lec-num {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-mono, monospace);
-  font-weight: var(--font-weight-bold);
-  font-size: var(--font-size-smaller);
-  padding: 2px 7px;
-  border-radius: var(--radius-xs);
-  color: #fff;
-  background-color: var(--maki-blue-lit);
-  line-height: 1.2;
-}
-
-.td-lec-tags {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.td-lec-title {
-  font-size: 1.125rem;
-  font-weight: var(--font-weight-bold);
-  color: var(--text-primary);
-  line-height: 1.35;
-}
-
-.td-lec-body {
-  font-size: var(--font-size-body);
-  color: var(--text-secondary);
-  line-height: 1.7;
-}

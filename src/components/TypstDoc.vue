@@ -75,14 +75,32 @@ function anchorOf(node) {
   return trimmed ? trimmed : null;
 }
 
-// 标签原生色彩样式绑定 (Hex / rgb 优先直接挂载 CSS 变量)
-function tagStyle(color) {
-  if (!color) return null;
+// 标签变体映射 (供全局 MTag 组件使用)
+const TAG_VARIANTS = Object.freeze({
+  red: 'red',
+  blue: 'blue',
+  green: 'green',
+  orange: 'orange',
+  amber: 'amber',
+  gray: 'gray',
+  grey: 'gray',
+  muted: 'muted',
+  purple: 'purple',
+  cyan: 'cyan',
+  teal: 'teal',
+  lime: 'lime'
+});
+
+function tagVariant(color) {
+  if (!color) return 'gray';
+  const token = kindToken(color);
+  return TAG_VARIANTS[token] || (String(color).trim().startsWith('#') || String(color).trim().startsWith('rgb') ? null : 'gray');
+}
+
+function tagCustomColor(color) {
+  if (!color) return '';
   const c = String(color).trim();
-  if (c.startsWith('#') || c.startsWith('rgb') || c.startsWith('hsl')) {
-    return { '--tag-color': c };
-  }
-  return null;
+  return (c.startsWith('#') || c.startsWith('rgb') || c.startsWith('hsl')) ? c : '';
 }
 
 function listItems(node) {
@@ -178,14 +196,13 @@ function warningText(item) {
         <TypstDoc :nodes="childrenOf(node)" flow />
       </em>
 
-      <!-- 彩色标签 -->
-      <span
+      <!-- 彩色标签 (使用全局 MTag 组件) -->
+      <MTag
         v-else-if="isType(node, 'tag')"
-        class="td-tag"
-        :class="tagStyle(node.color) ? null : `td-tag-${kindToken(node.color)}`"
-        :style="tagStyle(node.color)"
-        :data-tag="node.text"
-      >{{ node.text }}</span>
+        size="sm"
+        :variant="tagVariant(node.color)"
+        :color="tagCustomColor(node.color)"
+      >{{ node.text }}</MTag>
 
       <!-- 数学公式：直接透传 Typst 原文 -->
       <component
@@ -206,14 +223,13 @@ function warningText(item) {
         <TypstDoc v-if="childrenOf(node).length" :nodes="childrenOf(node)" flow />
         <template v-else>{{ node.text }}</template>
         <span v-if="Array.isArray(node.tags) && node.tags.length" class="td-heading-tags">
-          <span
+          <MTag
             v-for="(tag, tagIndex) in node.tags"
             :key="tagIndex"
-            class="td-tag"
-            :class="tagStyle(tag && tag.color) ? null : `td-tag-${kindToken(tag && tag.color)}`"
-            :style="tagStyle(tag && tag.color)"
-            :data-tag="tag && tag.text"
-          >{{ tag && tag.text }}</span>
+            size="sm"
+            :variant="tagVariant(tag && tag.color)"
+            :color="tagCustomColor(tag && tag.color)"
+          >{{ tag && tag.text }}</MTag>
         </span>
       </component>
 

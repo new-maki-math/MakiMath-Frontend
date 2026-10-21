@@ -1,12 +1,9 @@
-/* ==========================================================================
-   默认通用讲义样式 (Default Typst Preset Styles)
-   为没有自定义样式的通用讲义提供极简排版保障
-   ========================================================================== */
+/* 默认通用讲义样式 */
 
 .typst-doc {
   display: flex;
   flex-direction: column;
-  gap: 1.25em;
+  gap: 12px;
   color: var(--text-primary);
   line-height: 1.75;
 }
@@ -31,8 +28,15 @@
   word-break: break-word;
 }
 
+.td-para .m-tag {
+  margin: 0 4px;
+  vertical-align: middle;
+  position: relative;
+  top: -0.14em;
+}
+
 .td-box {
-  margin: 1.4em 0;
+  margin: 0;
   padding: 14px 18px;
   border-radius: var(--radius-md);
   background-color: var(--bg-surface);
