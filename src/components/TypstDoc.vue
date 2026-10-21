@@ -118,15 +118,6 @@ function statementText(node) {
 }
 
 /* ------------------------------------------------------------------
-   数学公式：直接展示 Typst 原文（后续由前端 Typst 数学渲染器接管）
-   ------------------------------------------------------------------ */
-
-function renderMathNode(node) {
-  const typst = (node && typeof node.typst === 'string') ? node.typst : '';
-  return { text: typst };
-}
-
-/* ------------------------------------------------------------------
    根节点与告警
    ------------------------------------------------------------------ */
 
@@ -205,7 +196,7 @@ function warningText(item) {
         :is="node.display ? 'div' : 'span'"
         class="td-math-typst"
         :class="{ 'is-display': !!node.display }"
-      >{{ renderMathNode(node).text }}</component>
+      >{{ node.typst }}</component>
 
       <!-- 标题（anchor 存在时作为 DOM id，供右侧大纲定位） -->
       <component
