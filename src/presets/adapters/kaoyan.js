@@ -45,86 +45,28 @@ function extractColorValue(raw) {
   return 'gray';
 }
 
-// 规范化标签文本（清理引号与前后空格）
-function normalizeTagText(raw) {
-  if (raw === null || raw === undefined) return '';
-  return String(raw).trim().replace(/^["']|["']$/g, '').trim();
-}
-
-// 剥除外层方括号与引号
-function unwrapBracketAndQuote(raw) {
-  if (raw === null || raw === undefined) return '';
-  let str = String(raw).trim();
-  if (str.startsWith('"') && str.endsWith('"')) {
-    str = str.slice(1, -1);
-  } else if (str.startsWith('[') && str.endsWith(']')) {
-    str = str.slice(1, -1);
-  }
-  return str.trim();
-}
-
-// 清理标题中的宏与多余方括号
-function cleanTitleString(str) {
-  let s = unwrapBracketAndQuote(str);
-  s = s.replace(/#makitag\s*\((?:[^,()]|\([^()]*\))*,\s*(?:["']([^"'\\]*(?:\\.[^"'\\]*)*)["']|\[([^\]]*)\])\s*\)/g, ' $1$2 ');
-  s = s.replace(/#(?:tgblue|tgred|tggreen|tgorange|tggray)\s*(?:\(\s*["']([^"'\\]*(?:\\.[^"'\\]*)*)["']\s*\)|\[([^\]]*)\])/g, ' $2$3 ');
-  return s.replace(/\s+/g, ' ').trim();
-}
-
-// 从原始字符串中提取一个或多个标签 (例如 [#makitag(rgb(...), "统") #makitag(rgb(...), "二重")])
-function parseTagsFromRaw(raw) {
-  if (!raw) return [];
-  if (Array.isArray(raw)) return extractTags(raw);
-  if (typeof raw !== 'string') return [];
-
-  const text = raw.trim();
-  const tags = [];
-
-  // 1. 匹配 #makitag(color, "text") 或 #makitag(color, [text])，直接提取原生色值
-  const makitagRegex = /#makitag\s*\(((?:[^,()]|\([^()]*\))*),\s*(?:["']([^"'\\]*(?:\\.[^"'\\]*)*)["']|\[([^\]]*)\])\s*\)/g;
-  let m;
-  while ((m = makitagRegex.exec(text)) !== null) {
-    const rawColor = m[1];
-    const rawVal = m[2] !== undefined ? m[2] : m[3];
-    const tagText = normalizeTagText(rawVal);
-    if (tagText) {
-      const color = extractColorValue(rawColor);
-      tags.push({ type: 'tag', color, text: tagText });
-    }
-  }
-
-  // 2. 匹配 #tgblue("text") 或 #tgblue[text]
-  const tgRegex = /#(tgblue|tgred|tggreen|tgorange|tggray)\s*(?:\(\s*["']([^"'\\]*(?:\\.[^"'\\]*)*)["']\s*\)|\[([^\]]*)\])/g;
-  while ((m = tgRegex.exec(text)) !== null) {
-    const macroName = m[1];
-    const rawVal = m[2] !== undefined ? m[2] : m[3];
-    const tagText = normalizeTagText(rawVal);
-    if (tagText) {
-      const color = KAOYAN_TAGS[macroName] || 'gray';
-      tags.push({ type: 'tag', color, text: tagText });
-    }
-  }
-
-  return tags;
-}
-
 // 递归提取节点列表中的纯文本
 function extractPlainText(nodes) {
   if (!nodes) return '';
-  if (typeof nodes === 'string') return nodes;
+  if (typeof nodes === 'string') return nodes.trim();
   if (!Array.isArray(nodes)) return '';
   let out = '';
   for (const n of nodes) {
     if (n.type === 'text') out += n.value;
-    else if (n.type === 'tag') out += n.text;
+    else if (n.type === 'tag') out += ` ${n.text} `;
     else if (n.type === 'math') out += n.typst;
+    else if (n.type === 'call') {
+      const p = n.args?.positional || [];
+      const innerText = n.bodies?.[0] ? extractPlainText(n.bodies[0]) : (p[1] || p[0] || '');
+      out += ` ${extractPlainText(innerText)} `;
+    }
     else if (n.children) out += extractPlainText(n.children);
     else if (n.bodies) for (const b of n.bodies) out += extractPlainText(b);
   }
-  return out.trim();
+  return out.replace(/\s+/g, ' ').trim();
 }
 
-// 收集标签
+// 递归收集标签节点
 function extractTags(nodes) {
   if (!Array.isArray(nodes)) return [];
   const tags = [];
@@ -133,15 +75,13 @@ function extractTags(nodes) {
       tags.push(n);
     } else if (n.type === 'call') {
       if (KAOYAN_TAGS[n.name]) {
-        const text = n.bodies?.[0] ? extractPlainText(n.bodies[0]) : (n.args?.positional?.[0] || '');
-        const clean = normalizeTagText(text);
-        tags.push({ type: 'tag', color: KAOYAN_TAGS[n.name], text: clean });
+        const text = n.bodies?.[0] ? extractPlainText(n.bodies[0]) : extractPlainText(n.args?.positional?.[0] || '');
+        tags.push({ type: 'tag', color: KAOYAN_TAGS[n.name], text });
       } else if (n.name === 'makitag') {
         const p = n.args?.positional || [];
         const color = extractColorValue(p[0]);
-        const text = n.bodies?.[0] ? extractPlainText(n.bodies[0]) : (p[1] || p[0] || '');
-        const clean = normalizeTagText(text);
-        tags.push({ type: 'tag', color, text: clean });
+        const text = n.bodies?.[0] ? extractPlainText(n.bodies[0]) : extractPlainText(p[1] || p[0] || '');
+        tags.push({ type: 'tag', color, text });
       }
     } else if (n.children) {
       tags.push(...extractTags(n.children));
@@ -214,49 +154,23 @@ export function transformKaoyanNode(node) {
 
   // 4. 讲次大标题 (#lec("01", [#makitag(...)], [标题])[正文])
   if (name === 'lec') {
-    const num = normalizeTagText(positional[0] || named.num || '');
-
-    let rawTags = null;
-    let rawTitle = null;
-    let rawContent = null;
-
-    if (bodies.length >= 3) {
-      // 罕见旧多方括号写法：#lec("01")[tags][title][content]
-      rawTags = bodies[0];
-      rawTitle = bodies[1];
-      rawContent = bodies[2];
-    } else if (bodies.length === 2) {
-      // #lec("01", [tags])[title][content]
-      rawTags = positional[1] || bodies[0];
-      rawTitle = bodies[0] === rawTags ? bodies[1] : bodies[0];
-      rawContent = bodies[1];
-    } else if (bodies.length === 1) {
-      // 标准标准写法：#lec("01", [tags], [title])[content]
-      rawTags = positional[1] !== undefined ? positional[1] : (named.tags || '');
-      rawTitle = positional[2] !== undefined ? positional[2] : (named.title || '');
-      rawContent = bodies[0];
-    } else {
-      rawTags = positional[1] !== undefined ? positional[1] : (named.tags || '');
-      rawTitle = positional[2] !== undefined ? positional[2] : (named.title || '');
-      rawContent = [];
-    }
-
-    const tagList = Array.isArray(rawTags) ? extractTags(rawTags) : parseTagsFromRaw(rawTags);
-    const titleText = typeof rawTitle === 'string' ? cleanTitleString(rawTitle) : extractPlainText(rawTitle);
+    const num = String(positional[0] ?? named.num ?? '').trim();
+    const rawTags = positional[1] ?? (bodies.length >= 3 ? bodies[0] : (named.tags || []));
+    const rawTitle = positional[2] ?? (bodies.length >= 2 ? bodies[0] : (named.title || ''));
+    const content = bodies[bodies.length - 1] || [];
 
     return {
       type: 'lec',
       num,
-      title: titleText,
-      tags: tagList,
-      children: (Array.isArray(rawContent) ? rawContent : [rawContent]).map(transformKaoyanNode).filter(Boolean),
+      title: extractPlainText(rawTitle),
+      tags: extractTags(rawTags),
+      children: (Array.isArray(content) ? content : [content]).map(transformKaoyanNode).filter(Boolean),
     };
   }
 
   // 5. 彩色标签 (#tgblue[高数], #tgred("必考"), #makitag(rgb(...), "统"))
   if (KAOYAN_TAGS[name]) {
-    const raw = bodies[0] ? extractPlainText(bodies[0]) : (positional[0] || '');
-    const text = normalizeTagText(raw);
+    const text = extractPlainText(bodies[0] ?? (positional[0] || ''));
     return {
       type: 'tag',
       color: KAOYAN_TAGS[name] || 'gray',
@@ -266,8 +180,7 @@ export function transformKaoyanNode(node) {
 
   if (name === 'makitag') {
     const color = extractColorValue(positional[0]);
-    const raw = bodies[0] ? extractPlainText(bodies[0]) : (positional[1] || positional[0] || '');
-    const text = normalizeTagText(raw);
+    const text = extractPlainText(bodies[0] ?? (positional[1] || positional[0] || ''));
     return {
       type: 'tag',
       color,
