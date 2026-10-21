@@ -8,7 +8,6 @@ import MCodeEditor from './MCodeEditor.vue';
 import ProgressBar from './ProgressBar.vue';
 import SearchBar from './SearchBar.vue';
 import ViewportHeader from './ViewportHeader.vue';
-import MarkdownView from './MarkdownView.vue';
 import TypstDoc from './TypstDoc.vue';
 import MCollapse from './MCollapse.vue';
 import RoadmapGraph from './RoadmapGraph.vue';
@@ -26,7 +25,6 @@ export {
   ProgressBar,
   SearchBar,
   ViewportHeader,
-  MarkdownView,
   TypstDoc,
   MCollapse,
   RoadmapGraph,
@@ -46,7 +44,6 @@ export default {
     app.component('ProgressBar', ProgressBar);
     app.component('SearchBar', SearchBar);
     app.component('ViewportHeader', ViewportHeader);
-    app.component('MarkdownView', MarkdownView);
     app.component('TypstDoc', TypstDoc);
     app.component('MCollapse', MCollapse);
     app.component('RoadmapGraph', RoadmapGraph);

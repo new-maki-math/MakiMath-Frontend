@@ -12,9 +12,6 @@
     "@fontsource/noto-sans-sc": "^5.3.1",
     "@iconoir/vue": "^7.12.1",
     "d3": "^7.9.0",
-    "katex": "^0.19.0",
-    "markdown-it": "^15.0.3",
-    "markdown-it-cjk-friendly": "^3.0.0",
     "typlet": "^0.1.1",
     "vue": "^3.5.42",
     "vue-router": "^4.6.4"
