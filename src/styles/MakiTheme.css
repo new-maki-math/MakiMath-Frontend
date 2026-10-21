@@ -96,3 +96,140 @@
 /* 盒身去除首尾多余外边距 */
 .td-box-body > :first-child { margin-top: 0; }
 .td-box-body > :last-child  { margin-bottom: 0; }
+
+/* ==========================================================================
+   3. 基础排版：标题、段落、列表、表格与文本行内
+   ========================================================================== */
+.typst-doc {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25em;
+  color: var(--text-primary);
+  line-height: 1.75;
+}
+
+.td-heading {
+  color: var(--text-primary);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.35;
+  margin: 1.2em 0 0.4em;
+  scroll-margin-top: 72px;
+}
+
+.td-heading-1 { font-size: calc(var(--font-size) * 1.6); }
+.td-heading-2 { font-size: calc(var(--font-size) * 1.35); }
+.td-heading-3 { font-size: calc(var(--font-size) * 1.15); }
+.td-heading-4, .td-heading-5, .td-heading-6 { font-size: var(--font-size); }
+
+.td-heading-tags {
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.td-para {
+  margin: 0;
+  color: var(--text-primary);
+  line-height: 1.8;
+  word-break: break-word;
+}
+
+.td-strong {
+  font-weight: var(--font-weight-bold);
+  color: #fff;
+}
+
+.td-emph {
+  font-style: italic;
+  color: var(--text-secondary);
+}
+
+.td-list {
+  margin: 0.4em 0;
+  padding-left: 1.4em;
+  line-height: 1.75;
+}
+
+.td-list-item {
+  margin-bottom: 0.35em;
+}
+
+/* ==========================================================================
+   4. 数学公式源码占位 (等前端 Typst 数学渲染器接管)
+   ========================================================================== */
+.td-math-typst {
+  font-family: var(--font-mono, monospace);
+  color: var(--accent-primary, #60a5fa);
+  background-color: rgba(255, 255, 255, 0.04);
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+  font-size: 0.95em;
+}
+
+.td-math-typst.is-display {
+  display: block;
+  margin: 1em 0;
+  padding: 12px 18px;
+  border-radius: var(--radius-md);
+  background-color: rgba(255, 255, 255, 0.03);
+  overflow-x: auto;
+  text-align: center;
+}
+
+/* ==========================================================================
+   5. 表格、真题卡与通用面板
+   ========================================================================== */
+.td-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  margin: 1.2em 0;
+}
+
+.td-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-smaller);
+  background-color: var(--bg-surface);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.td-cell {
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  line-height: 1.5;
+}
+
+.td-align-left   { text-align: left; }
+.td-align-center { text-align: center; }
+.td-align-right  { text-align: right; }
+
+.td-zt {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 10px 16px;
+  margin: 1em 0;
+  border-radius: var(--radius-sm);
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+.td-zt-badge {
+  font-size: var(--font-size-smallest);
+  font-weight: var(--font-weight-bold);
+  color: var(--maki-orange-lit);
+  background-color: color-mix(in srgb, var(--maki-orange-lit) 16%, transparent);
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+}
+
+.td-zt-title {
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+}
+
+.td-zt-id {
+  margin-left: auto;
+  font-family: var(--font-mono, monospace);
+  font-size: var(--font-size-smallest);
+  color: var(--text-muted);
+}
