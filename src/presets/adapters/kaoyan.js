@@ -23,17 +23,6 @@ const KAOYAN_PANELS = {
   zuoye: 'zuoye',
 };
 
-// 标签内容到语义颜色的严格内置白名单映射
-const EXACT_TAG_COLORS = Object.freeze({
-  '统': 'gray',
-  '压缩讲': 'gray',
-  '一三': 'blue',
-  '仅一': 'red',
-  '重点讲': 'red',
-  '仅三': 'green',
-  '二重': 'orange',
-});
-
 // 标签宏颜色映射
 const KAOYAN_TAGS = {
   tgblue: 'blue',
@@ -42,6 +31,19 @@ const KAOYAN_TAGS = {
   tgorange: 'orange',
   tggray: 'gray',
 };
+
+// 从 Typst 颜色参数中直接提取 Hex 或颜色名 (如 rgb("#B22234") -> #B22234)
+function extractColorValue(raw) {
+  if (!raw) return 'gray';
+  const str = String(raw).trim();
+  const rgbMatch = /rgb\(\s*["']?(#[0-9a-fA-F]{3,8})["']?\s*\)/.exec(str);
+  if (rgbMatch) return rgbMatch[1];
+  const hexMatch = /["']?(#[0-9a-fA-F]{3,8})["']?/.exec(str);
+  if (hexMatch) return hexMatch[1];
+  const namedMatch = /["']?([a-zA-Z]+)["']?/.exec(str);
+  if (namedMatch) return namedMatch[1];
+  return 'gray';
+}
 
 // 规范化标签文本（清理引号与前后空格）
 function normalizeTagText(raw) {
@@ -78,14 +80,15 @@ function parseTagsFromRaw(raw) {
   const text = raw.trim();
   const tags = [];
 
-  // 1. 匹配 #makitag(..., "text") 或 #makitag(..., [text])，支持首参嵌套括号如 rgb(...)
-  const makitagRegex = /#makitag\s*\((?:[^,()]|\([^()]*\))*,\s*(?:["']([^"'\\]*(?:\\.[^"'\\]*)*)["']|\[([^\]]*)\])\s*\)/g;
+  // 1. 匹配 #makitag(color, "text") 或 #makitag(color, [text])，直接提取原生色值
+  const makitagRegex = /#makitag\s*\(((?:[^,()]|\([^()]*\))*),\s*(?:["']([^"'\\]*(?:\\.[^"'\\]*)*)["']|\[([^\]]*)\])\s*\)/g;
   let m;
   while ((m = makitagRegex.exec(text)) !== null) {
-    const rawVal = m[1] !== undefined ? m[1] : m[2];
+    const rawColor = m[1];
+    const rawVal = m[2] !== undefined ? m[2] : m[3];
     const tagText = normalizeTagText(rawVal);
     if (tagText) {
-      const color = matchTagColor(tagText, 'gray');
+      const color = extractColorValue(rawColor);
       tags.push({ type: 'tag', color, text: tagText });
     }
   }
@@ -97,21 +100,12 @@ function parseTagsFromRaw(raw) {
     const rawVal = m[2] !== undefined ? m[2] : m[3];
     const tagText = normalizeTagText(rawVal);
     if (tagText) {
-      const color = matchTagColor(tagText, KAOYAN_TAGS[macroName]);
+      const color = KAOYAN_TAGS[macroName] || 'gray';
       tags.push({ type: 'tag', color, text: tagText });
     }
   }
 
   return tags;
-}
-
-// 严格匹配标签颜色
-function matchTagColor(text, fallbackColor = 'gray') {
-  const clean = normalizeTagText(text);
-  if (Object.prototype.hasOwnProperty.call(EXACT_TAG_COLORS, clean)) {
-    return EXACT_TAG_COLORS[clean];
-  }
-  return fallbackColor;
 }
 
 // 递归提取节点列表中的纯文本
@@ -141,13 +135,12 @@ function extractTags(nodes) {
       if (KAOYAN_TAGS[n.name]) {
         const text = n.bodies?.[0] ? extractPlainText(n.bodies[0]) : (n.args?.positional?.[0] || '');
         const clean = normalizeTagText(text);
-        const color = matchTagColor(clean, KAOYAN_TAGS[n.name]);
-        tags.push({ type: 'tag', color, text: clean });
+        tags.push({ type: 'tag', color: KAOYAN_TAGS[n.name], text: clean });
       } else if (n.name === 'makitag') {
         const p = n.args?.positional || [];
+        const color = extractColorValue(p[0]);
         const text = n.bodies?.[0] ? extractPlainText(n.bodies[0]) : (p[1] || p[0] || '');
         const clean = normalizeTagText(text);
-        const color = matchTagColor(clean, 'gray');
         tags.push({ type: 'tag', color, text: clean });
       }
     } else if (n.children) {
@@ -264,18 +257,17 @@ export function transformKaoyanNode(node) {
   if (KAOYAN_TAGS[name]) {
     const raw = bodies[0] ? extractPlainText(bodies[0]) : (positional[0] || '');
     const text = normalizeTagText(raw);
-    const color = matchTagColor(text, KAOYAN_TAGS[name]);
     return {
       type: 'tag',
-      color,
+      color: KAOYAN_TAGS[name] || 'gray',
       text,
     };
   }
 
   if (name === 'makitag') {
+    const color = extractColorValue(positional[0]);
     const raw = bodies[0] ? extractPlainText(bodies[0]) : (positional[1] || positional[0] || '');
     const text = normalizeTagText(raw);
-    const color = matchTagColor(text, 'gray');
     return {
       type: 'tag',
       color,

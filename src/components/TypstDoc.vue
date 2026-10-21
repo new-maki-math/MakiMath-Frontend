@@ -83,6 +83,16 @@ function lecBadge(num) {
   return /^[Ll]/.test(text) ? text : `L${text}`;
 }
 
+// 标签原生色彩样式绑定 (Hex / rgb 优先直接挂载 CSS 变量)
+function tagStyle(color) {
+  if (!color) return null;
+  const c = String(color).trim();
+  if (c.startsWith('#') || c.startsWith('rgb') || c.startsWith('hsl')) {
+    return { '--tag-color': c };
+  }
+  return null;
+}
+
 function listItems(node) {
   return node && Array.isArray(node.items) ? node.items : EMPTY;
 }
@@ -187,7 +197,8 @@ function warningText(item) {
       <span
         v-else-if="isType(node, 'tag')"
         class="td-tag"
-        :class="`td-tag-${kindToken(node.color)}`"
+        :class="tagStyle(node.color) ? null : `td-tag-${kindToken(node.color)}`"
+        :style="tagStyle(node.color)"
         :data-tag="node.text"
       >{{ node.text }}</span>
 
@@ -214,7 +225,8 @@ function warningText(item) {
             v-for="(tag, tagIndex) in node.tags"
             :key="tagIndex"
             class="td-tag"
-            :class="`td-tag-${kindToken(tag && tag.color)}`"
+            :class="tagStyle(tag && tag.color) ? null : `td-tag-${kindToken(tag && tag.color)}`"
+            :style="tagStyle(tag && tag.color)"
             :data-tag="tag && tag.text"
           >{{ tag && tag.text }}</span>
         </span>
@@ -293,7 +305,8 @@ function warningText(item) {
               v-for="(tag, tagIndex) in node.tags"
               :key="tagIndex"
               class="td-tag"
-              :class="`td-tag-${kindToken(tag && tag.color)}`"
+              :class="tagStyle(tag && tag.color) ? null : `td-tag-${kindToken(tag && tag.color)}`"
+              :style="tagStyle(tag && tag.color)"
               :data-tag="tag && tag.text"
             >{{ tag && tag.text }}</span>
           </span>
