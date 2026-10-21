@@ -22,7 +22,7 @@
   --td-accent: var(--maki-gray-lit);
 
   margin: 0;
-  padding: 12px 16px;
+  padding: 16px 20px;
   border-radius: var(--radius-sm, 4px);
   background-color: color-mix(in srgb, var(--td-accent) 11%, var(--bg-surface, #202020));
 }
@@ -40,8 +40,8 @@
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: 10px;
+  margin-bottom: 12px;
 }
 
 .td-box-label {
@@ -66,6 +66,12 @@
   font-size: var(--font-size, 14px);
   font-weight: var(--font-weight-semibold, 550);
   line-height: 1.5;
+}
+
+.td-box-body {
+  font-size: var(--font-size, 14px);
+  line-height: 2.35;
+  color: var(--text-primary, #e0e0e0);
 }
 
 .td-box-body > :first-child { margin-top: 0; }
@@ -113,7 +119,7 @@
 .td-lec-body {
   font-size: var(--font-size, 14px);
   color: var(--text-secondary, #aaaaaa);
-  line-height: 1.75;
+  line-height: 2.2;
 }
 
 .td-lec-body > :first-child { margin-top: 0; }
@@ -128,7 +134,7 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 10px 14px;
-  margin: 1em 0;
+  margin: 0;
   padding: 10px 16px;
   border-radius: var(--radius-sm, 4px);
   background-color: var(--bg-surface, #202020);
@@ -180,16 +186,6 @@
   line-height: 1.5;
 }
 
-/* 标题内嵌行内数学公式样式 */
-.td-zt-title .td-math-typst {
-  color: var(--maki-blue-lit, #38bdf8);
-  background-color: var(--bg-elevated, #282828);
-  padding: 1px 6px;
-  border-radius: var(--radius-xs, 2px);
-  font-size: 0.9em;
-  vertical-align: baseline;
-}
-
 .td-zt-id {
   margin-left: auto;
   font-family: var(--font-mono, monospace);
@@ -232,7 +228,7 @@
 .td-para {
   margin: 0;
   color: var(--text-primary, #e0e0e0);
-  line-height: 1.8;
+  line-height: 2.35;
   word-break: break-word;
 }
 
@@ -248,9 +244,9 @@
 }
 
 .td-list {
-  margin: 0.3em 0;
-  padding-left: 1.3em;
-  line-height: 1.75;
+  margin: 0.4em 0;
+  padding-left: 1.4em;
+  line-height: 2;
 }
 
 .td-list-item {
@@ -258,26 +254,42 @@
   color: var(--text-primary, #e0e0e0);
 }
 
-/* 7. 数学公式源码占位 */
-.td-math-typst {
-  font-family: var(--font-mono, monospace);
-  color: var(--maki-blue-lit);
-  background-color: var(--bg-surface, #202020);
-  padding: 1px 5px;
-  border-radius: var(--radius-xs, 2px);
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.05));
-  font-size: 0.9em;
+/* 7. 数学公式排版 (typlet 数学引擎渲染与自适应缩放) */
+.td-math {
+  display: inline;
+  font-size: 1.22em;
+  line-height: 1;
+  vertical-align: -0.05em;
+  margin: 0 0.22em;
+  color: #f3f4f6;
+  text-rendering: optimizeLegibility;
 }
 
-.td-math-typst.is-display {
+.td-math.is-display {
   display: block;
-  margin: 0.8em 0;
-  padding: 12px 16px;
-  border-radius: var(--radius-xs, 2px);
-  background-color: var(--bg-surface, #202020);
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.06));
+  font-size: 1.3em;
+  margin: 1.4em 0;
+  padding: 8px 0;
   overflow-x: auto;
+  overflow-y: hidden;
   text-align: center;
+}
+
+/* 提高公式在深色背景下的对比与清晰度 */
+.td-math .typlet {
+  text-rendering: optimizeLegibility;
+}
+
+/* 强化分式线与根号横线厚度，消除低于 1px 导致的亚像素发虚与模糊 */
+.td-math .typlet .r {
+  min-height: 1.25px;
+}
+
+.td-math-error {
+  color: var(--tag-amber, #ce9178);
+  font-family: var(--font-mono, monospace);
+  font-size: 0.9em;
+  padding: 0 4px;
 }
 
 /* 8. 表格排版 (Table，学术三线风格，线条色系融入当前色块) */
