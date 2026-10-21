@@ -1,5 +1,4 @@
 // 考研讲义适配器
-import { transformDefaultNode } from './default.js';
 
 // 盒子宏映射 (考频与作业直接复用盒子色块体系)
 const KAOYAN_BOXES = Object.freeze({
@@ -12,9 +11,6 @@ const KAOYAN_BOXES = Object.freeze({
   kaopin: 'kaopin',
   zuoye: 'zuoye'
 });
-
-// 面板宏映射
-const KAOYAN_PANELS = Object.freeze({ kaopin: 'kaopin', zuoye: 'zuoye' });
 
 // 快捷标签映射
 const KAOYAN_TAGS = Object.freeze({ tgblue: 'blue', tgred: 'red', tggreen: 'green', tgorange: 'orange', tggray: 'gray' });
@@ -67,10 +63,38 @@ function extractTags(nodes) {
   return tags;
 }
 
+// 递归处理包含子节点的 AST 结构 (children, items, rows)
+function transformChildren(node) {
+  if (!node || typeof node !== 'object') return node;
+  const next = { ...node };
+
+  if (Array.isArray(next.children)) {
+    next.children = next.children.map(transformKaoyanNode).filter(Boolean);
+  }
+  if (Array.isArray(next.items)) {
+    next.items = next.items.map(it => ({
+      ...it,
+      children: Array.isArray(it.children) ? it.children.map(transformKaoyanNode).filter(Boolean) : []
+    }));
+  }
+  if (Array.isArray(next.rows)) {
+    next.rows = next.rows.map(row =>
+      Array.isArray(row)
+        ? row.map(cell => ({
+            ...cell,
+            children: Array.isArray(cell.children) ? cell.children.map(transformKaoyanNode).filter(Boolean) : []
+          }))
+        : row
+    );
+  }
+
+  return next;
+}
+
 // 节点转换核心
 export function transformKaoyanNode(node) {
   if (!node || typeof node !== 'object') return node;
-  if (node.type !== 'call') return transformDefaultNode(node, transformKaoyanNode);
+  if (node.type !== 'call') return transformChildren(node);
 
   const { name, args = {}, bodies = [] } = node;
   const named = args.named || {};
@@ -104,25 +128,80 @@ export function transformKaoyanNode(node) {
     return boxNode;
   }
 
-  // 2. 侧栏面板 (kaopin, zuoye)
-  if (KAOYAN_PANELS[name]) {
-    return { type: 'panel', kind: KAOYAN_PANELS[name], children: (bodies[0] || []).map(transformKaoyanNode).filter(Boolean) };
-  }
-
-  // 3. 真题卡 (#zt)
+  // 2. 真题引证卡 (#zt，前端仅负责语义结构映射)
   if (name === 'zt') {
-    const source = extractPlainText(positional[0] || '');
-    const title = extractPlainText(positional[1] || '');
-    const id = extractPlainText(positional[2] || '');
-    const main = [];
-    if (source) main.push({ type: 'container', tag: 'span', class: 'td-zt-source', children: [{ type: 'text', value: source }] });
-    if (title) main.push({ type: 'container', tag: 'span', class: 'td-zt-title', children: [{ type: 'text', value: title }] });
-    const zt = [
-      { type: 'tag', color: 'orange', text: '真题' },
-      { type: 'container', tag: 'div', class: 'td-zt-main', children: main }
+    const rawSource = extractPlainText(positional[0] ?? named.source ?? '');
+    const rawTitle = positional[1] ?? named.title ?? (bodies[0] || '');
+    const rawId = extractPlainText(positional[2] ?? named.id ?? '');
+
+    const children = [];
+
+    // 头部区域：琥珀暖橙「真题」徽标 + 来源出处
+    const headChildren = [
+      { type: 'tag', color: 'amber', text: '真题' }
     ];
-    if (id) zt.push({ type: 'container', tag: 'span', class: 'td-zt-id', children: [{ type: 'text', value: id }] });
-    return { type: 'container', tag: 'div', class: 'td-zt', children: zt };
+    if (rawSource) {
+      headChildren.push({
+        type: 'container',
+        tag: 'span',
+        class: 'td-zt-source',
+        children: [{ type: 'text', value: rawSource }]
+      });
+    }
+    children.push({
+      type: 'container',
+      tag: 'div',
+      class: 'td-zt-head',
+      children: headChildren
+    });
+
+    // 终端风格极简分隔符 //
+    children.push({
+      type: 'container',
+      tag: 'span',
+      class: 'td-zt-sep font-mono',
+      children: [{ type: 'text', value: '//' }]
+    });
+
+    // 考查要旨/题干核心描述 (由后端完成语法解析，前端按节点流或纯文本承接)
+    let titleChildren = [];
+    if (Array.isArray(rawTitle)) {
+      titleChildren = rawTitle.map(transformKaoyanNode).filter(Boolean);
+    } else if (rawTitle && typeof rawTitle === 'object') {
+      titleChildren = [transformKaoyanNode(rawTitle)].filter(Boolean);
+    } else {
+      const text = String(rawTitle || '').trim();
+      if (text) {
+        titleChildren = [{ type: 'text', value: text }];
+      }
+    }
+
+    if (titleChildren.length > 0) {
+      children.push({
+        type: 'container',
+        tag: 'div',
+        class: 'td-zt-title',
+        children: titleChildren
+      });
+    }
+
+    // 尾部右侧唯一真题编号 (#2022-1-3)
+    if (rawId) {
+      const formattedId = rawId.startsWith('#') ? rawId : `#${rawId}`;
+      children.push({
+        type: 'container',
+        tag: 'span',
+        class: 'td-zt-id font-mono',
+        children: [{ type: 'text', value: formattedId }]
+      });
+    }
+
+    return {
+      type: 'container',
+      tag: 'div',
+      class: 'td-zt',
+      children
+    };
   }
 
   // 4. 讲次大卡片 (#lec)
@@ -171,8 +250,18 @@ export function transformKaoyanNode(node) {
     return { type: 'container', align: name === 'makicenter' ? 'center' : (positional[0] || 'left'), children: (bodies[0] || []).map(transformKaoyanNode).filter(Boolean) };
   }
 
-  // 兜底其它宏
-  return transformDefaultNode(node);
+  // 兜底其它未知宏：若带内容块则包装并递归其内容，否则透传
+  if (bodies.length > 0) {
+    const content = bodies[bodies.length - 1] || [];
+    return {
+      type: 'box',
+      kind: name,
+      title: named.title || null,
+      children: (Array.isArray(content) ? content : [content]).map(transformKaoyanNode).filter(Boolean)
+    };
+  }
+
+  return transformChildren(node);
 }
 
 // 文档转换入口

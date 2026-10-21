@@ -47,11 +47,9 @@
 .td-box-label {
   flex: none;
   color: var(--td-accent);
-  font-family: var(--font-mono, monospace);
-  font-size: var(--font-size-smallest, 12px);
+  font-size: var(--font-size, 14px);
   font-weight: var(--font-weight-bold, 600);
-  letter-spacing: 0.04em;
-  line-height: 1.3;
+  line-height: 1.5;
 }
 
 .td-box-label::before                   { content: attr(data-kind); }
@@ -73,44 +71,21 @@
 .td-box-body > :first-child { margin-top: 0; }
 .td-box-body > :last-child  { margin-bottom: 0; }
 
-/* 3. 侧栏面板 (Panel，直接复用盒子色块体系) */
-.td-panel {
-  --td-accent: var(--maki-blue-lit);
-
-  margin: 0;
-  padding: 12px 16px;
-  border-radius: var(--radius-sm, 4px);
-  background-color: color-mix(in srgb, var(--td-accent) 11%, var(--bg-surface, #202020));
+/* 考频盒子专属：左侧实线极客终端样式 (遵循 docs/Design.md 规范) */
+.td-box-kaopin {
+  background-color: var(--bg-surface, #202020);
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  border-left: 3px solid var(--td-accent);
+  transition: background-color 140ms ease, border-color 140ms ease;
 }
 
-.td-panel-kaopin { --td-accent: var(--maki-blue-lit); }
-.td-panel-zuoye  { --td-accent: var(--maki-orange-lit); }
-
-.td-panel-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 8px;
-  margin-bottom: 8px;
+.td-box-kaopin:hover {
+  background-color: var(--bg-elevated, #282828);
+  border-color: rgba(255, 255, 255, 0.14);
+  border-left-color: var(--td-accent);
 }
 
-.td-panel-label {
-  flex: none;
-  font-family: var(--font-mono, monospace);
-  font-size: var(--font-size-smallest, 12px);
-  font-weight: var(--font-weight-bold, 600);
-  color: var(--td-accent);
-  letter-spacing: 0.04em;
-  line-height: 1.3;
-}
-
-.td-panel-label[data-kind='kaopin']::before { content: '真题考频'; }
-.td-panel-label[data-kind='zuoye']::before  { content: '真题作业'; }
-
-.td-panel-body > :first-child { margin-top: 0; }
-.td-panel-body > :last-child  { margin-bottom: 0; }
-
-/* 4. 讲次大卡片 (#lec) */
+/* 3. 讲次大卡片 (#lec) */
 .td-lec {
   margin: 0;
   padding: 14px 18px;
@@ -144,37 +119,75 @@
 .td-lec-body > :first-child { margin-top: 0; }
 .td-lec-body > :last-child  { margin-bottom: 0; }
 
-/* 5. 真题引证卡 (#zt，直接复用盒子色块体系) */
+/* 5. 真题引证卡 (#zt，严格遵循 docs/Design.md 极客终端设计规范) */
 .td-zt {
-  --td-accent: var(--maki-orange-lit);
+  --zt-accent: var(--tag-amber, #ce9178);
+  --zt-accent-lit: var(--maki-orange-lit, #fb923c);
 
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin: 0;
-  padding: 12px 16px;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  margin: 1em 0;
+  padding: 10px 16px;
   border-radius: var(--radius-sm, 4px);
-  background-color: color-mix(in srgb, var(--td-accent) 11%, var(--bg-surface, #202020));
+  background-color: var(--bg-surface, #202020);
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  border-left: 3px solid var(--zt-accent-lit);
+  box-shadow: none;
+  position: relative;
+  transition: background-color 140ms ease, border-color 140ms ease;
 }
 
-.td-zt-main {
+.td-zt:hover {
+  background-color: var(--bg-elevated, #282828);
+  border-color: rgba(255, 255, 255, 0.14);
+  border-left-color: var(--zt-accent-lit);
+}
+
+.td-zt-head {
   display: inline-flex;
-  align-items: baseline;
+  align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
 .td-zt-source {
-  font-family: var(--font-mono, monospace);
-  font-size: var(--font-size-smallest, 12px);
+  font-size: var(--font-size-smaller, 13px);
   font-weight: var(--font-weight-medium, 500);
-  color: var(--td-accent);
+  color: var(--zt-accent-lit);
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
+.td-zt-sep {
+  color: var(--text-muted, #808080);
+  font-size: var(--font-size-smallest, 12px);
+  user-select: none;
+  opacity: 0.6;
+  flex-shrink: 0;
 }
 
 .td-zt-title {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--font-size, 14px);
   font-weight: var(--font-weight-semibold, 550);
   color: var(--text-primary, #e0e0e0);
-  font-size: var(--font-size, 14px);
+  line-height: 1.5;
+}
+
+/* 标题内嵌行内数学公式样式 */
+.td-zt-title .td-math-typst {
+  color: var(--maki-blue-lit, #38bdf8);
+  background-color: var(--bg-elevated, #282828);
+  padding: 1px 6px;
+  border-radius: var(--radius-xs, 2px);
+  font-size: 0.9em;
+  vertical-align: baseline;
 }
 
 .td-zt-id {
@@ -182,6 +195,10 @@
   font-family: var(--font-mono, monospace);
   font-size: var(--font-size-smallest, 12px);
   color: var(--text-muted, #808080);
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  opacity: 0.85;
 }
 
 /* 6. 基础排版 */
@@ -222,7 +239,7 @@
 /* 强调文字 */
 .td-strong {
   font-weight: var(--font-weight-bold, 600);
-  color: #f1f5f9;
+  color: var(--text-primary, #e0e0e0);
 }
 
 .td-emph {
@@ -263,30 +280,63 @@
   text-align: center;
 }
 
-/* 8. 表格排版 (Table) */
+/* 8. 表格排版 (Table，学术三线风格，线条色系融入当前色块) */
 .td-table-wrap {
   width: 100%;
   overflow-x: auto;
-  margin: 1em 0;
+  margin: 0.8em 0;
 }
 
 .td-table {
+  --table-rule-strong: color-mix(in srgb, var(--td-accent, #94a3b8) 30%, transparent);
+  --table-rule-soft:   color-mix(in srgb, var(--td-accent, #94a3b8) 14%, transparent);
+
   width: 100%;
   border-collapse: collapse;
   font-size: var(--font-size-smaller, 13px);
-  background-color: var(--bg-surface, #202020);
-  border-radius: var(--radius-sm, 4px);
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.06));
-  overflow: hidden;
+  background-color: transparent;
+  border-top: 1.5px solid var(--table-rule-strong);
+  border-bottom: 1.5px solid var(--table-rule-strong);
 }
 
 .td-cell {
-  padding: 9px 12px;
-  border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.05));
+  padding: 8px 14px;
+  border-top: 1px solid var(--table-rule-soft);
   line-height: 1.5;
+  color: var(--text-primary, #e0e0e0);
+}
+
+.td-table tr:first-child .td-cell {
+  border-top: none;
+  border-bottom: 1.5px solid var(--table-rule-strong);
+  font-weight: var(--font-weight-semibold, 550);
   color: var(--text-primary, #e0e0e0);
 }
 
 .td-align-left   { text-align: left; }
 .td-align-center { text-align: center; }
 .td-align-right  { text-align: right; }
+
+/* 9. 文档解析告警提示 */
+.td-warnings {
+  margin: 1.5em 0 0;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm, 4px);
+  background-color: var(--bg-surface, #202020);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-left: 3px solid var(--tag-amber, #ce9178);
+  font-size: var(--font-size-smaller, 13px);
+}
+
+.td-warnings-title {
+  font-weight: var(--font-weight-semibold, 550);
+  color: var(--tag-amber, #ce9178);
+  margin-bottom: 6px;
+}
+
+.td-warnings-list {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--text-secondary, #aaaaaa);
+  line-height: 1.6;
+}
