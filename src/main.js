@@ -5,9 +5,6 @@ import '@fontsource/noto-sans-sc/400.css'
 import '@fontsource/noto-sans-sc/500.css'
 import '@fontsource/noto-sans-sc/600.css'
 import '@fontsource/noto-sans-sc/700.css'
-import 'katex/dist/katex.min.css'
-import 'katex/dist/contrib/copy-tex.mjs'
-
 import './style.css'
 // 讲义渲染样式（TypstDoc 的样式已从组件里抽出，卡片文案也在其中）
 import './styles/MakiTheme.css'

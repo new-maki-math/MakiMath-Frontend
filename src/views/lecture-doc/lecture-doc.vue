@@ -428,51 +428,11 @@ const scrollToOutline = (id) => {
   line-height: 1.6;
 }
 
-/* 分节排版 */
-.doc-section {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  scroll-margin-top: 60px;
-}
-
-.doc-h2 {
-  font-size: var(--font-size-larger);
-  font-weight: var(--font-weight-bold);
-  color: var(--text-primary);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  padding-bottom: 8px;
-  letter-spacing: 0.3px;
-  margin: 0;
-}
-
-/* ========================================================
-   按键 ` 切换选择模式（方案 B 开关模式）
-   ======================================================== */
-
-/* 常规阅读模式：视口内默认禁止划选，光标保持默认阅读状态，防误拖抖动 */
-.lecture-doc-view:not(.is-selection-mode) .reading-viewport,
-.lecture-doc-view:not(.is-selection-mode) .reading-viewport * {
-  user-select: none !important;
-  -webkit-user-select: none !important;
-}
-
-.lecture-doc-view:not(.is-selection-mode) .reading-viewport {
-  cursor: default;
-}
-
-.reading-viewport a,
-.reading-viewport button {
-  cursor: pointer;
-}
-
 /* 开启选择模式：仅讲义正文文章区域（标题、段落、公式）放行文本划选 */
 .lecture-doc-view.is-selection-mode .markdown-article,
 .lecture-doc-view.is-selection-mode .markdown-article *,
-.lecture-doc-view.is-selection-mode :deep(.markdown-view),
-.lecture-doc-view.is-selection-mode :deep(.markdown-view *),
-.lecture-doc-view.is-selection-mode :deep(math),
-.lecture-doc-view.is-selection-mode :deep(math *) {
+.lecture-doc-view.is-selection-mode :deep(.typst-doc),
+.lecture-doc-view.is-selection-mode :deep(.typst-doc *) {
   user-select: text !important;
   -webkit-user-select: text !important;
 }
@@ -486,15 +446,8 @@ const scrollToOutline = (id) => {
   -webkit-user-select: none !important;
 }
 
-/* 隐藏的 1px KaTeX 语义标签禁止参与鼠标选区计算，避免拖拽跳跃与断裂 */
-.lecture-doc-view.is-selection-mode :deep(.katex-mathml),
-.lecture-doc-view.is-selection-mode :deep(.katex-mathml *) {
-  user-select: none !important;
-  -webkit-user-select: none !important;
-}
-
 .lecture-doc-view.is-selection-mode .markdown-article,
-.lecture-doc-view.is-selection-mode :deep(.markdown-view) {
+.lecture-doc-view.is-selection-mode :deep(.typst-doc) {
   cursor: text;
 }
 
