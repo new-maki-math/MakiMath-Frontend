@@ -3,8 +3,10 @@
  * 核心原则：内容 0 丢失。将任何未知的语法节点映射为合法的 UI 节点
  */
 
-export function transformDefaultNode(node) {
+export function transformDefaultNode(node, customTransform = null) {
   if (!node || typeof node !== 'object') return node;
+
+  const transform = typeof customTransform === 'function' ? customTransform : (n => transformDefaultNode(n, customTransform));
 
   // 1. 如果是 call 节点（后端纯语法 AST）
   if (node.type === 'call') {
@@ -21,16 +23,17 @@ export function transformDefaultNode(node) {
         type: 'box',
         kind: name,
         title: typeof title === 'string' ? title : null,
-        children: contentNodes.map(transformDefaultNode),
+        children: contentNodes.map(transform).filter(Boolean),
       };
     }
 
     // 若没有内容块，但有位置参数或命名参数，作为标签 tag 或文本展示
-    const text = positional[0] || named.text || name;
+    const raw = positional[0] || named.text || name;
+    const text = String(raw).replace(/^["']|["']$/g, '').trim();
     return {
       type: 'tag',
       color: named.color || 'gray',
-      text: String(text),
+      text,
     };
   }
 
@@ -38,12 +41,12 @@ export function transformDefaultNode(node) {
   const next = { ...node };
 
   if (Array.isArray(next.children)) {
-    next.children = next.children.map(transformDefaultNode);
+    next.children = next.children.map(transform).filter(Boolean);
   }
   if (Array.isArray(next.items)) {
     next.items = next.items.map(it => ({
       ...it,
-      children: Array.isArray(it.children) ? it.children.map(transformDefaultNode) : []
+      children: Array.isArray(it.children) ? it.children.map(transform).filter(Boolean) : []
     }));
   }
   if (Array.isArray(next.rows)) {
@@ -51,7 +54,7 @@ export function transformDefaultNode(node) {
       Array.isArray(row)
         ? row.map(cell => ({
             ...cell,
-            children: Array.isArray(cell.children) ? cell.children.map(transformDefaultNode) : []
+            children: Array.isArray(cell.children) ? cell.children.map(transform).filter(Boolean) : []
           }))
         : row
     );

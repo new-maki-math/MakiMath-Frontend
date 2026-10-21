@@ -20,6 +20,17 @@ const KAOYAN_PANELS = {
   zuoye: 'zuoye',
 };
 
+// 标签内容到语义颜色的内置映射字典
+const CONTENT_TAG_COLORS = {
+  '统': 'gray',
+  '压缩讲': 'gray',
+  '一三': 'blue',
+  '仅一': 'red',
+  '重点讲': 'red',
+  '仅三': 'green',
+  '二重': 'orange',
+};
+
 // 标签颜色映射
 const KAOYAN_TAGS = {
   tgblue: 'blue',
@@ -50,10 +61,21 @@ function extractTags(nodes) {
   if (!Array.isArray(nodes)) return [];
   const tags = [];
   for (const n of nodes) {
-    if (n.type === 'tag') tags.push(n);
-    else if (n.type === 'call' && KAOYAN_TAGS[n.name]) {
-      const text = n.bodies?.[0] ? extractPlainText(n.bodies[0]) : (n.args?.positional?.[0] || '');
-      tags.push({ type: 'tag', color: KAOYAN_TAGS[n.name], text: String(text) });
+    if (n.type === 'tag') {
+      tags.push(n);
+    } else if (n.type === 'call') {
+      if (KAOYAN_TAGS[n.name]) {
+        const text = n.bodies?.[0] ? extractPlainText(n.bodies[0]) : (n.args?.positional?.[0] || '');
+        const clean = String(text).replace(/^["']|["']$/g, '').trim();
+        const color = CONTENT_TAG_COLORS[clean] || KAOYAN_TAGS[n.name];
+        tags.push({ type: 'tag', color, text: clean });
+      } else if (n.name === 'makitag') {
+        const p = n.args?.positional || [];
+        const text = n.bodies?.[0] ? extractPlainText(n.bodies[0]) : (p[1] || p[0] || '');
+        const clean = String(text).replace(/^["']|["']$/g, '').trim();
+        const color = CONTENT_TAG_COLORS[clean] || 'gray';
+        tags.push({ type: 'tag', color, text: clean });
+      }
     } else if (n.children) {
       tags.push(...extractTags(n.children));
     }
@@ -64,9 +86,9 @@ function extractTags(nodes) {
 export function transformKaoyanNode(node) {
   if (!node || typeof node !== 'object') return node;
 
-  // 兼容已有的旧版结构（如果不是 call 节点）
+  // 兼容已有的旧版结构（如果不是 call 节点，递归下探）
   if (node.type !== 'call') {
-    return transformDefaultNode(node);
+    return transformDefaultNode(node, transformKaoyanNode);
   }
 
   const { name, args = {}, bodies = [] } = node;
@@ -142,13 +164,27 @@ export function transformKaoyanNode(node) {
     };
   }
 
-  // 5. 彩色标签 (#tgblue[高数], #tgred("必考"))
+  // 5. 彩色标签 (#tgblue[高数], #tgred("必考"), #makitag(rgb(...), "统"))
   if (KAOYAN_TAGS[name]) {
-    const text = bodies[0] ? extractPlainText(bodies[0]) : (positional[0] || '');
+    const raw = bodies[0] ? extractPlainText(bodies[0]) : (positional[0] || '');
+    const text = String(raw).replace(/^["']|["']$/g, '').trim();
+    const color = CONTENT_TAG_COLORS[text] || KAOYAN_TAGS[name];
     return {
       type: 'tag',
-      color: KAOYAN_TAGS[name],
-      text: String(text),
+      color,
+      text,
+    };
+  }
+
+  if (name === 'makitag') {
+    // #makitag(rgb("#6E6E6E"), "统") -> positional[1] 是文本，或者 bodies[0]
+    const raw = bodies[0] ? extractPlainText(bodies[0]) : (positional[1] || positional[0] || '');
+    const text = String(raw).replace(/^["']|["']$/g, '').trim();
+    const color = CONTENT_TAG_COLORS[text] || 'gray';
+    return {
+      type: 'tag',
+      color,
+      text,
     };
   }
 

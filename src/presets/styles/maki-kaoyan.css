@@ -1,10 +1,10 @@
 :root {
   /* 讲义语义色：高饱和、色彩纯正、不发白冲淡 */
-  --maki-blue-lit: #258cfb;   /* 纯正浓郁鲜天蓝 (定义) */
-  --maki-red-lit: #f43f5e;    /* 鲜艳玫瑰红 (定理/公式) */
-  --maki-green-lit: #10b981;  /* 鲜翠绿 (例题/结论) */
-  --maki-orange-lit: #f97316; /* 鲜明暖橙 (易错/提醒) */
-  --maki-gray-lit: #94a3b8;   /* 质感岩灰 (兜底) */
+  --maki-blue-lit: #258cfb;   /* 纯正浓郁鲜天蓝 (一三 / 定义) */
+  --maki-red-lit: #f43f5e;    /* 鲜艳玫瑰红 (仅一 / 重点讲 / 定理) */
+  --maki-green-lit: #10b981;  /* 鲜翠绿 (仅三 / 例题 / 结论) */
+  --maki-orange-lit: #f97316; /* 鲜明暖橙 (二重 / 易错 / 提醒) */
+  --maki-gray-lit: #94a3b8;   /* 质感岩灰 (统 / 压缩讲 / 兜底) */
 }
 
 /* ==========================================================================
@@ -32,12 +32,35 @@
   user-select: none;
 }
 
-/* 标签色位 */
+/* 基础色位 */
 .td-tag-gray   { --tag-color: var(--maki-gray-lit); }
 .td-tag-blue   { --tag-color: var(--maki-blue-lit); }
 .td-tag-red    { --tag-color: var(--maki-red-lit); }
 .td-tag-green  { --tag-color: var(--maki-green-lit); }
 .td-tag-orange { --tag-color: var(--maki-orange-lit); }
+
+/* 根据内容语义映射的高级标签色 */
+.td-tag[data-tag='统'],
+.td-tag[data-tag='压缩讲'] {
+  --tag-color: var(--maki-gray-lit);
+}
+
+.td-tag[data-tag='一三'] {
+  --tag-color: var(--maki-blue-lit);
+}
+
+.td-tag[data-tag='仅一'],
+.td-tag[data-tag='重点讲'] {
+  --tag-color: var(--maki-red-lit);
+}
+
+.td-tag[data-tag='仅三'] {
+  --tag-color: var(--maki-green-lit);
+}
+
+.td-tag[data-tag='二重'] {
+  --tag-color: var(--maki-orange-lit);
+}
 
 /* ==========================================================================
    2. 盒子 (完全无边框、纯靠浓郁色相+灰度划分)

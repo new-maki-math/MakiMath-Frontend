@@ -188,6 +188,7 @@ function warningText(item) {
         v-else-if="isType(node, 'tag')"
         class="td-tag"
         :class="`td-tag-${kindToken(node.color)}`"
+        :data-tag="node.text"
       >{{ node.text }}</span>
 
       <!-- 数学公式：直接透传 Typst 原文 -->
@@ -214,6 +215,7 @@ function warningText(item) {
             :key="tagIndex"
             class="td-tag"
             :class="`td-tag-${kindToken(tag && tag.color)}`"
+            :data-tag="tag && tag.text"
           >{{ tag && tag.text }}</span>
         </span>
       </component>
@@ -292,6 +294,7 @@ function warningText(item) {
               :key="tagIndex"
               class="td-tag"
               :class="`td-tag-${kindToken(tag && tag.color)}`"
+              :data-tag="tag && tag.text"
             >{{ tag && tag.text }}</span>
           </span>
         </header>
