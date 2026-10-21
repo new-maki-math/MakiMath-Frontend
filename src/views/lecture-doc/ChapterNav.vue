@@ -23,23 +23,39 @@ const props = defineProps({
 const emit = defineEmits(['select-section', 'toggle-collapse']);
 
 // 默认展开所有大编/大章
-const expandedChapters = ref(new Set(props.chapters.map(c => c.id)));
+const expandedChapters = ref(new Set());
 
 watch(
-  () => props.chapters,
-  (newChaps) => {
+  () => [props.chapters, props.currentSectionId],
+  ([newChaps, secId]) => {
     if (newChaps && newChaps.length > 0) {
-      newChaps.forEach(c => expandedChapters.value.add(c.id));
+      newChaps.forEach(c => {
+        expandedChapters.value.add(c.id);
+        expandedChapters.value.add(String(c.id));
+      });
+      if (secId) {
+        const target = String(secId).trim();
+        for (const chap of newChaps) {
+          if (chap.sections?.some(s => String(s.id) === target || (s.slug && String(s.slug) === target))) {
+            expandedChapters.value.add(chap.id);
+            expandedChapters.value.add(String(chap.id));
+            break;
+          }
+        }
+      }
     }
   },
-  { immediate: true }
+  { immediate: true, deep: true }
 );
 
 const toggleChapter = (chapterId) => {
-  if (expandedChapters.value.has(chapterId)) {
+  const strId = String(chapterId);
+  if (expandedChapters.value.has(chapterId) || expandedChapters.value.has(strId)) {
     expandedChapters.value.delete(chapterId);
+    expandedChapters.value.delete(strId);
   } else {
     expandedChapters.value.add(chapterId);
+    expandedChapters.value.add(strId);
   }
 };
 
@@ -102,7 +118,7 @@ const handleSelect = (section) => {
                 v-for="sec in chap.sections"
                 :key="sec.id"
                 class="section-row"
-                :class="{ active: currentSectionId === sec.id }"
+                :class="{ active: String(currentSectionId) === String(sec.id) || (sec.slug && String(currentSectionId) === String(sec.slug)) }"
                 @click="handleSelect(sec)"
               >
                 <span class="section-title" :title="sec.desc || sec.title">{{ sec.title }}</span>

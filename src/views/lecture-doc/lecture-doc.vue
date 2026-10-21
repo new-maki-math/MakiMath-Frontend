@@ -85,9 +85,7 @@ const currentCourseId = computed(() => {
 });
 
 const currentSectionId = computed(() => {
-  // URL 可以不带 sectionId（/course/:id/doc 是合法路由）。这里留空，
-  // 让下面的加载逻辑退到第一节；填一个旧版假 id 会去请求不存在的讲义。
-  return route.params.sectionId || '';
+  return route.params.sectionId ? String(route.params.sectionId).trim() : '';
 });
 
 // 从服务器异步拉取的章节目录树与节点正文
@@ -113,7 +111,7 @@ watch(
       courseChapters.value = chaps;
 
       // 2. 获取该讲次/小节的真实正文与大纲模型；URL 没带 sectionId 就退到第一节
-      const secId = sectionId || chaps[0]?.sections?.[0]?.id;
+      const secId = sectionId || (chaps[0]?.sections?.[0]?.id ? String(chaps[0].sections[0].id) : '');
       if (!secId) {
         // 课程还没建小节，别去请求一个不存在的 id
         currentContent.value = { id: '', title: '暂无讲义', lead: '', outlines: [], doc: null };
@@ -136,12 +134,13 @@ watch(
 
 // 计算当前小节对象及所属大编
 const currentSection = computed(() => {
+  const targetId = currentSectionId.value;
   for (const chap of courseChapters.value) {
-    const sec = chap.sections?.find(s => s.id === currentSectionId.value);
+    const sec = chap.sections?.find(s => String(s.id) === targetId || (s.slug && String(s.slug) === targetId));
     if (sec) {
       return {
         ...sec,
-        chapterId: chap.id,
+        chapterId: String(chap.id),
         chapterTag: chap.tag,
         chapterTitle: chap.title
       };
@@ -150,9 +149,9 @@ const currentSection = computed(() => {
   const firstChap = courseChapters.value[0];
   const firstSec = firstChap?.sections?.[0];
   return {
-    id: firstSec?.id || currentSectionId.value,
+    id: firstSec ? String(firstSec.id) : targetId,
     title: currentContent.value?.title || firstSec?.title || '讲义阅读',
-    chapterId: firstChap?.id || '',
+    chapterId: firstChap ? String(firstChap.id) : '',
     chapterTag: firstChap?.tag || '',
     chapterTitle: firstChap?.title || ''
   };
@@ -171,7 +170,7 @@ const allSections = computed(() => {
       for (const sec of chap.sections) {
         list.push({
           ...sec,
-          chapterId: chap.id,
+          chapterId: String(chap.id),
           chapterTag: chap.tag,
           chapterTitle: chap.title
         });
@@ -183,7 +182,8 @@ const allSections = computed(() => {
 
 // 当前小节在全局大纲中的索引
 const currentSectionIndex = computed(() => {
-  return allSections.value.findIndex(s => s.id === currentSection.value.id);
+  const curId = String(currentSection.value.id);
+  return allSections.value.findIndex(s => String(s.id) === curId || (s.slug && String(s.slug) === curId));
 });
 
 // 上一小节
@@ -203,12 +203,13 @@ const nextSection = computed(() => {
 // 切换章节
 const handleSelectSection = (section) => {
   closeDrawer(); // 点击选择小节后自动平滑收起抽屉
-  if (section.id === currentSectionId.value) return;
+  const targetId = String(section.id);
+  if (targetId === currentSectionId.value) return;
   router.push({
     name: 'lecture-doc',
     params: {
       courseId: route.params.courseId || 'kaoyan',
-      sectionId: section.id
+      sectionId: targetId
     }
   });
 };

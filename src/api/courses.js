@@ -85,15 +85,15 @@ function toChapters(tree) {
     });
 
     return {
-      id: ch.id,
+      id: String(ch.id),
       slug: ch.slug,
       tag: ch.tag || '',
       title: ch.title,
       summary: ch.summary || '',
       hasIntro: Boolean(ch.has_intro),
       sections: (ch.sections ?? []).map((s) => ({
-        id: s.id,
-        slug: s.slug,
+        id: String(s.id),
+        slug: s.slug ? String(s.slug) : '',
         tag: s.tag || '',
         title: s.title,
         desc: s.summary || '',

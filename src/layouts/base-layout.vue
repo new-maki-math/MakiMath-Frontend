@@ -1,8 +1,8 @@
 <script setup>
-import { computed, ref, onMounted } from 'vue';
+import { computed, ref, watch, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import ProgressBar from '../components/ProgressBar.vue';
-import { getCourseCategories, getCachedCourseChapters } from '../api';
+import { getCourseCategories, getCourseChapters, getCachedCourseChapters } from '../api';
 import {
   transformCourseCategories,
   registerProgressBar,
@@ -80,20 +80,37 @@ const currentCourse = computed(() => {
   return null;
 });
 
+// 响应式跟踪当前课程的章节树，确保路径栏能实时精准匹配
+const layoutChapters = ref([]);
+
+watch(
+  () => [route.params.courseId, route.name],
+  async ([courseId, name]) => {
+    if (name === 'lecture-doc' || name === 'course-home' || courseId) {
+      const cid = courseId || 'kaoyan';
+      try {
+        layoutChapters.value = await getCourseChapters(cid);
+      } catch (e) {
+        layoutChapters.value = [];
+      }
+    }
+  },
+  { immediate: true }
+);
+
 // 计算面包屑路径：课程页固定为 APP / 知识库 / XXXX，讲义篇章页为多级链路，其他页面为 APP / 页面名
 const currentBreadcrumbs = computed(() => {
   if (route.name === 'lecture-doc') {
     const courseId = route.params.courseId || 'kaoyan';
     const courseTitle = currentCourse.value?.title || (courseId === 'kaoyan' ? '考研数学' : courseId);
-    const chapters = getCachedCourseChapters(courseId);
-    // 没带 sectionId 时留空，下面匹配不到会退到第一节，不要填旧版假 id
-    const sectionId = route.params.sectionId || '';
+    const chapters = layoutChapters.value.length ? layoutChapters.value : getCachedCourseChapters(courseId);
+    const sectionId = String(route.params.sectionId || '').trim();
 
     let chapterName = '';
     let sectionName = '';
 
     for (const chap of chapters) {
-      const sec = chap.sections?.find(s => s.id === sectionId);
+      const sec = chap.sections?.find(s => String(s.id) === sectionId || (s.slug && String(s.slug) === sectionId));
       if (sec) {
         chapterName = chap.tag ? `${chap.tag} ${chap.title}` : chap.title;
         sectionName = sec.title;
