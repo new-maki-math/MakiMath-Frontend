@@ -211,7 +211,7 @@ function withOutlines(doc) {
   const outlines = [];
   let i = 0;
   for (const node of doc?.children ?? []) {
-    if (node.type !== 'heading') continue;
+    if (!node || node.type !== 'heading') continue;
     const title = headingText(node);
     if (!title) continue;
     node.anchor = `doc-h${i++}`;
