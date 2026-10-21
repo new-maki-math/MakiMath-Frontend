@@ -183,7 +183,7 @@ const sanitizeAndSnapRange = (range) => {
 const getFormulaAncestor = (node) => {
   if (!node) return null;
   const el = node.nodeType === Node.TEXT_NODE ? node.parentElement : node;
-  return el?.closest?.('math, .dm, .katex');
+  return el?.closest?.('math, .dm, .katex, .typlet, .td-math');
 };
 
 const trimRangeWhitespace = (range) => {

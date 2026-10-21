@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue';
+import { renderToString } from 'typlet';
 
 // 组件自引用递归渲染依赖组件名，显式声明 name 以保证递归稳健
 defineOptions({ name: 'TypstDoc' });
@@ -32,6 +33,23 @@ const EMPTY = Object.freeze([]);
 
 // 表格单元格对齐取值白名单
 const CELL_ALIGNS = ['left', 'center', 'right'];
+
+// 使用 typlet 渲染数学公式 HTML + MathML
+function renderMath(node) {
+  if (!node) return '';
+  const typst = typeof node.typst === 'string'
+    ? node.typst
+    : (typeof node.value === 'string' ? node.value : (typeof node.text === 'string' ? node.text : ''));
+  if (!typst.trim()) return '';
+
+  try {
+    return renderToString(typst, { displayMode: Boolean(node.display) });
+  } catch (err) {
+    console.warn('[TypstDoc] typlet 数学公式渲染失败:', typst, err);
+    const escaped = typst.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return `<span class="td-math-error" title="${err.message}">${escaped}</span>`;
+  }
+}
 
 /* 卡片 / 标签的类型刻意不写死在组件里：不同讲义会不断引入新的框、面板与标签色。
    组件只把原始字段规范化成一个安全 token 透出去（class 与 data-kind 都用它），
@@ -204,13 +222,14 @@ function warningText(item) {
         :color="tagCustomColor(node.color)"
       >{{ node.text }}</MTag>
 
-      <!-- 数学公式：直接透传 Typst 原文 -->
+      <!-- 数学公式：使用 typlet 渲染 -->
       <component
         v-else-if="isType(node, 'math')"
         :is="node.display ? 'div' : 'span'"
-        class="td-math-typst"
+        class="td-math"
         :class="{ 'is-display': !!node.display }"
-      >{{ node.typst }}</component>
+        v-html="renderMath(node)"
+      />
 
       <!-- 标题（anchor 存在时作为 DOM id，供右侧大纲定位） -->
       <component
