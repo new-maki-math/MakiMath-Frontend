@@ -5,7 +5,6 @@ const StartView = () => import('../views/start/start.vue');
 const HowToUseView = () => import('../views/how-to-use/how-to-use.vue');
 const RecomLectureView = () => import('../views/recom-lecture/recom-lecture.vue');
 const MyLectureView = () => import('../views/my-lecture/my-lecture.vue');
-const ThemeDemoView = () => import('../views/theme-demo/theme-demo.vue');
 const CourseHomeView = () => import('../views/course-home/course-home.vue');
 const LectureDocView = () => import('../views/lecture-doc/lecture-doc.vue');
 const AdminView = () => import('../views/admin/admin.vue');
@@ -65,13 +64,6 @@ export const routes = [
   {
     path: '/notes',
     redirect: '/my-lecture'
-  },
-  // 保留设计规范与主题展示路由
-  {
-    path: '/theme-demo',
-    name: 'theme-demo',
-    component: ThemeDemoView,
-    meta: { title: '主题规范', tag: 'THEME' }
   }
 ];
 
