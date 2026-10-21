@@ -6,8 +6,6 @@ import '@fontsource/noto-sans-sc/500.css'
 import '@fontsource/noto-sans-sc/600.css'
 import '@fontsource/noto-sans-sc/700.css'
 import './style.css'
-// 讲义专属预设样式
-import './presets/styles/maki-kaoyan.css'
 import App from './App.vue'
 import router from './router'
 import globalComponents from './components'

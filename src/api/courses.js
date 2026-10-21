@@ -1,5 +1,5 @@
 import { request } from './client.js';
-import { transformCourseCategories, adaptDoc } from '../utils/index.js';
+import { transformCourseCategories, adaptDocWithPreset } from '../utils/index.js';
 
 // 内存单例缓存：课程树 / 小节正文 / 图谱，避免同一门课反复解析几十 KB 的讲义
 const treeCache = new Map();
@@ -226,7 +226,7 @@ function withOutlines(doc) {
 export async function getCourseSectionContent(slug, sectionId) {
   const data = await getCourseSectionDoc(sectionId);
   const rawDoc = data.doc ?? { type: 'doc', children: [] };
-  const doc = adaptDoc(rawDoc, slug);
+  const doc = await adaptDocWithPreset(rawDoc, slug);
 
   return {
     id: data.id,

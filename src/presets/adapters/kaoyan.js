@@ -1,6 +1,9 @@
 /**
  * 考研数学讲义适配器 (Kaoyan Doc Adapter)
  * 负责将考研数学的 Typst 方言宏映射为 MakiTheme 前端视图模型
+ * 
+ * @license AGPL-3.0-or-later
+ * @author Jason <kxjasonteo@gmail.com>
  */
 import { transformDefaultNode } from './default.js';
 
@@ -20,8 +23,8 @@ const KAOYAN_PANELS = {
   zuoye: 'zuoye',
 };
 
-// 标签内容到语义颜色的内置映射字典
-const CONTENT_TAG_COLORS = {
+// 标签内容到语义颜色的严格内置白名单映射
+const EXACT_TAG_COLORS = Object.freeze({
   '统': 'gray',
   '压缩讲': 'gray',
   '一三': 'blue',
@@ -29,9 +32,9 @@ const CONTENT_TAG_COLORS = {
   '重点讲': 'red',
   '仅三': 'green',
   '二重': 'orange',
-};
+});
 
-// 标签颜色映射
+// 标签宏颜色映射
 const KAOYAN_TAGS = {
   tgblue: 'blue',
   tgred: 'red',
@@ -39,6 +42,21 @@ const KAOYAN_TAGS = {
   tgorange: 'orange',
   tggray: 'gray',
 };
+
+// 规范化标签文本（清理引号与前后空格）
+function normalizeTagText(raw) {
+  if (raw === null || raw === undefined) return '';
+  return String(raw).trim().replace(/^["']|["']$/g, '').trim();
+}
+
+// 严格匹配标签颜色
+function matchTagColor(text, fallbackColor = 'gray') {
+  const clean = normalizeTagText(text);
+  if (Object.prototype.hasOwnProperty.call(EXACT_TAG_COLORS, clean)) {
+    return EXACT_TAG_COLORS[clean];
+  }
+  return fallbackColor;
+}
 
 // 递归提取节点列表中的纯文本
 function extractPlainText(nodes) {
@@ -66,14 +84,14 @@ function extractTags(nodes) {
     } else if (n.type === 'call') {
       if (KAOYAN_TAGS[n.name]) {
         const text = n.bodies?.[0] ? extractPlainText(n.bodies[0]) : (n.args?.positional?.[0] || '');
-        const clean = String(text).replace(/^["']|["']$/g, '').trim();
-        const color = CONTENT_TAG_COLORS[clean] || KAOYAN_TAGS[n.name];
+        const clean = normalizeTagText(text);
+        const color = matchTagColor(clean, KAOYAN_TAGS[n.name]);
         tags.push({ type: 'tag', color, text: clean });
       } else if (n.name === 'makitag') {
         const p = n.args?.positional || [];
         const text = n.bodies?.[0] ? extractPlainText(n.bodies[0]) : (p[1] || p[0] || '');
-        const clean = String(text).replace(/^["']|["']$/g, '').trim();
-        const color = CONTENT_TAG_COLORS[clean] || 'gray';
+        const clean = normalizeTagText(text);
+        const color = matchTagColor(clean, 'gray');
         tags.push({ type: 'tag', color, text: clean });
       }
     } else if (n.children) {
@@ -102,7 +120,6 @@ export function transformKaoyanNode(node) {
     let content = [];
 
     if (bodies.length >= 2) {
-      // 位置参数写法：#defbox[标题][正文]
       titleChildren = bodies[0].map(transformKaoyanNode).filter(Boolean);
       title = extractPlainText(titleChildren);
       content = bodies[1];
@@ -167,8 +184,8 @@ export function transformKaoyanNode(node) {
   // 5. 彩色标签 (#tgblue[高数], #tgred("必考"), #makitag(rgb(...), "统"))
   if (KAOYAN_TAGS[name]) {
     const raw = bodies[0] ? extractPlainText(bodies[0]) : (positional[0] || '');
-    const text = String(raw).replace(/^["']|["']$/g, '').trim();
-    const color = CONTENT_TAG_COLORS[text] || KAOYAN_TAGS[name];
+    const text = normalizeTagText(raw);
+    const color = matchTagColor(text, KAOYAN_TAGS[name]);
     return {
       type: 'tag',
       color,
@@ -177,10 +194,9 @@ export function transformKaoyanNode(node) {
   }
 
   if (name === 'makitag') {
-    // #makitag(rgb("#6E6E6E"), "统") -> positional[1] 是文本，或者 bodies[0]
     const raw = bodies[0] ? extractPlainText(bodies[0]) : (positional[1] || positional[0] || '');
-    const text = String(raw).replace(/^["']|["']$/g, '').trim();
-    const color = CONTENT_TAG_COLORS[text] || 'gray';
+    const text = normalizeTagText(raw);
+    const color = matchTagColor(text, 'gray');
     return {
       type: 'tag',
       color,
@@ -196,7 +212,6 @@ export function transformKaoyanNode(node) {
     return { type: 'text', value: ' ' };
   }
   if (name === 'makicenter' || name === 'makialign') {
-    // 提升容器内元素
     const inner = bodies[0] || [];
     return {
       type: 'container',
@@ -216,3 +231,5 @@ export function transformKaoyanDoc(doc) {
     children: doc.children.map(transformKaoyanNode).filter(Boolean),
   };
 }
+
+export default transformKaoyanDoc;

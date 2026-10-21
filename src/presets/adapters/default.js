@@ -1,8 +1,12 @@
 /**
- * 默认通用适配器 (Default / Fallback Adapter)
- * 核心原则：内容 0 丢失。将任何未知的语法节点映射为合法的 UI 节点
+ * 讲义 AST 默认适配器 (Default Fallback Adapter)
+ * 
+ * 作用：内容 0 丢失，通用兜底转换。
+ * @license AGPL-3.0-or-later
+ * @author Jason <kxjasonteo@gmail.com>
  */
 
+// 默认通用节点转换：内容 0 丢失，未知宏包装为通用 box/tag
 export function transformDefaultNode(node, customTransform = null) {
   if (!node || typeof node !== 'object') return node;
 
@@ -63,10 +67,13 @@ export function transformDefaultNode(node, customTransform = null) {
   return next;
 }
 
+// 默认通用文档转换
 export function transformDefaultDoc(doc) {
   if (!doc || !Array.isArray(doc.children)) return doc;
   return {
     ...doc,
-    children: doc.children.map(transformDefaultNode)
+    children: doc.children.map(transformDefaultNode).filter(Boolean),
   };
 }
+
+export default transformDefaultDoc;
