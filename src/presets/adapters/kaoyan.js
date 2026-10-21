@@ -49,6 +49,62 @@ function normalizeTagText(raw) {
   return String(raw).trim().replace(/^["']|["']$/g, '').trim();
 }
 
+// 剥除外层方括号与引号
+function unwrapBracketAndQuote(raw) {
+  if (raw === null || raw === undefined) return '';
+  let str = String(raw).trim();
+  if (str.startsWith('"') && str.endsWith('"')) {
+    str = str.slice(1, -1);
+  } else if (str.startsWith('[') && str.endsWith(']')) {
+    str = str.slice(1, -1);
+  }
+  return str.trim();
+}
+
+// 清理标题中的宏与多余方括号
+function cleanTitleString(str) {
+  let s = unwrapBracketAndQuote(str);
+  s = s.replace(/#makitag\s*\((?:[^,()]|\([^()]*\))*,\s*(?:["']([^"'\\]*(?:\\.[^"'\\]*)*)["']|\[([^\]]*)\])\s*\)/g, ' $1$2 ');
+  s = s.replace(/#(?:tgblue|tgred|tggreen|tgorange|tggray)\s*(?:\(\s*["']([^"'\\]*(?:\\.[^"'\\]*)*)["']\s*\)|\[([^\]]*)\])/g, ' $2$3 ');
+  return s.replace(/\s+/g, ' ').trim();
+}
+
+// 从原始字符串中提取一个或多个标签 (例如 [#makitag(rgb(...), "统") #makitag(rgb(...), "二重")])
+function parseTagsFromRaw(raw) {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return extractTags(raw);
+  if (typeof raw !== 'string') return [];
+
+  const text = raw.trim();
+  const tags = [];
+
+  // 1. 匹配 #makitag(..., "text") 或 #makitag(..., [text])，支持首参嵌套括号如 rgb(...)
+  const makitagRegex = /#makitag\s*\((?:[^,()]|\([^()]*\))*,\s*(?:["']([^"'\\]*(?:\\.[^"'\\]*)*)["']|\[([^\]]*)\])\s*\)/g;
+  let m;
+  while ((m = makitagRegex.exec(text)) !== null) {
+    const rawVal = m[1] !== undefined ? m[1] : m[2];
+    const tagText = normalizeTagText(rawVal);
+    if (tagText) {
+      const color = matchTagColor(tagText, 'gray');
+      tags.push({ type: 'tag', color, text: tagText });
+    }
+  }
+
+  // 2. 匹配 #tgblue("text") 或 #tgblue[text]
+  const tgRegex = /#(tgblue|tgred|tggreen|tgorange|tggray)\s*(?:\(\s*["']([^"'\\]*(?:\\.[^"'\\]*)*)["']\s*\)|\[([^\]]*)\])/g;
+  while ((m = tgRegex.exec(text)) !== null) {
+    const macroName = m[1];
+    const rawVal = m[2] !== undefined ? m[2] : m[3];
+    const tagText = normalizeTagText(rawVal);
+    if (tagText) {
+      const color = matchTagColor(tagText, KAOYAN_TAGS[macroName]);
+      tags.push({ type: 'tag', color, text: tagText });
+    }
+  }
+
+  return tags;
+}
+
 // 严格匹配标签颜色
 function matchTagColor(text, fallbackColor = 'gray') {
   const clean = normalizeTagText(text);
@@ -163,21 +219,44 @@ export function transformKaoyanNode(node) {
     };
   }
 
-  // 4. 讲次大标题 (#lec("01", [#tgred(...)], [标题])[正文])
+  // 4. 讲次大标题 (#lec("01", [#makitag(...)], [标题])[正文])
   if (name === 'lec') {
-    const rawTags = bodies[0] || positional[1] || [];
-    const rawTitle = bodies[1] || positional[2] || '';
-    const content = bodies.length >= 3 ? bodies[2] : (bodies[bodies.length - 1] || []);
+    const num = normalizeTagText(positional[0] || named.num || '');
 
-    const tagList = extractTags(Array.isArray(rawTags) ? rawTags : [rawTags]);
-    const titleText = typeof rawTitle === 'string' ? rawTitle : extractPlainText(rawTitle);
+    let rawTags = null;
+    let rawTitle = null;
+    let rawContent = null;
+
+    if (bodies.length >= 3) {
+      // 罕见旧多方括号写法：#lec("01")[tags][title][content]
+      rawTags = bodies[0];
+      rawTitle = bodies[1];
+      rawContent = bodies[2];
+    } else if (bodies.length === 2) {
+      // #lec("01", [tags])[title][content]
+      rawTags = positional[1] || bodies[0];
+      rawTitle = bodies[0] === rawTags ? bodies[1] : bodies[0];
+      rawContent = bodies[1];
+    } else if (bodies.length === 1) {
+      // 标准标准写法：#lec("01", [tags], [title])[content]
+      rawTags = positional[1] !== undefined ? positional[1] : (named.tags || '');
+      rawTitle = positional[2] !== undefined ? positional[2] : (named.title || '');
+      rawContent = bodies[0];
+    } else {
+      rawTags = positional[1] !== undefined ? positional[1] : (named.tags || '');
+      rawTitle = positional[2] !== undefined ? positional[2] : (named.title || '');
+      rawContent = [];
+    }
+
+    const tagList = Array.isArray(rawTags) ? extractTags(rawTags) : parseTagsFromRaw(rawTags);
+    const titleText = typeof rawTitle === 'string' ? cleanTitleString(rawTitle) : extractPlainText(rawTitle);
 
     return {
       type: 'lec',
-      num: positional[0] || '',
+      num,
       title: titleText,
       tags: tagList,
-      children: (Array.isArray(content) ? content : []).map(transformKaoyanNode).filter(Boolean),
+      children: (Array.isArray(rawContent) ? rawContent : [rawContent]).map(transformKaoyanNode).filter(Boolean),
     };
   }
 
