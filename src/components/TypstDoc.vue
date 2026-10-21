@@ -75,14 +75,6 @@ function anchorOf(node) {
   return trimmed ? trimmed : null;
 }
 
-// 讲次编号：num 形如 "01"，补上 L 前缀；已带 L 前缀则原样使用
-function lecBadge(num) {
-  if (num === null || num === undefined) return '';
-  const text = String(num).trim();
-  if (!text) return '';
-  return /^[Ll]/.test(text) ? text : `L${text}`;
-}
-
 // 标签原生色彩样式绑定 (Hex / rgb 优先直接挂载 CSS 变量)
 function tagStyle(color) {
   if (!color) return null;
@@ -118,13 +110,6 @@ function tableStyle(node) {
   const columns = Number(node && node.columns);
   if (!Number.isFinite(columns) || columns < 4) return null;
   return { minWidth: `${Math.min(columns, 8) * 96}px` };
-}
-
-// zt.statement 正常为 null（由业务层补齐），存在字符串时才展示
-function statementText(node) {
-  if (!node) return '';
-  const statement = node.statement;
-  return typeof statement === 'string' && statement.trim() ? statement.trim() : '';
 }
 
 /* ------------------------------------------------------------------
@@ -291,41 +276,16 @@ function warningText(item) {
         </div>
       </aside>
 
-      <!-- 讲次区块：编号 + 标题 + 标签 + 正文 -->
-      <section
-        v-else-if="isType(node, 'lec')"
+      <!-- 通用容器：供各讲义预设自由组织结构与版式 (div, section, header, aside, span 等) -->
+      <component
+        v-else-if="isType(node, 'container') || isType(node, 'section')"
+        :is="node.tag || (isType(node, 'section') ? 'section' : 'div')"
         :id="anchorOf(node)"
-        class="td-lec"
+        :class="node.class"
+        :style="node.style"
       >
-        <header class="td-lec-head">
-          <span v-if="lecBadge(node.num)" class="td-lec-num">{{ lecBadge(node.num) }}</span>
-          <span v-if="Array.isArray(node.tags) && node.tags.length" class="td-lec-tags">
-            <span
-              v-for="(tag, tagIndex) in node.tags"
-              :key="tagIndex"
-              class="td-tag"
-              :class="tagStyle(tag && tag.color) ? null : `td-tag-${kindToken(tag && tag.color)}`"
-              :style="tagStyle(tag && tag.color)"
-              :data-tag="tag && tag.text"
-            >{{ tag && tag.text }}</span>
-          </span>
-          <span class="td-lec-title">{{ node.title }}</span>
-        </header>
-        <div class="td-lec-body">
-          <TypstDoc :nodes="childrenOf(node)" flow />
-        </div>
-      </section>
-
-      <!-- 真题引证卡：只展示 source + title（statement 由业务层补齐） -->
-      <div v-else-if="isType(node, 'zt')" class="td-zt">
-        <span class="td-zt-badge">真题</span>
-        <div class="td-zt-main">
-          <div class="td-zt-title">{{ node.title || node.source || '未命名真题' }}</div>
-          <div v-if="node.source && node.title" class="td-zt-source">{{ node.source }}</div>
-          <div v-if="statementText(node)" class="td-zt-statement">{{ statementText(node) }}</div>
-        </div>
-        <span v-if="node.id" class="td-zt-id">{{ node.id }}</span>
-      </div>
+        <TypstDoc :nodes="childrenOf(node)" flow />
+      </component>
 
       <!-- 表格 -->
       <div v-else-if="isType(node, 'table')" class="td-table-wrap">
