@@ -90,7 +90,7 @@ const canMoveDown = computed(() => props.index < props.siblingCount - 1);
           :disabled="!canMoveUp"
           @click.stop="emit('move', { node, delta: -1 })"
         >
-          <NavArrowUp width="12" height="12" />
+          <NavArrowUp width="14" height="14" />
         </button>
         <button
           class="node-action"
@@ -99,7 +99,7 @@ const canMoveDown = computed(() => props.index < props.siblingCount - 1);
           :disabled="!canMoveDown"
           @click.stop="emit('move', { node, delta: 1 })"
         >
-          <NavArrowDown width="12" height="12" />
+          <NavArrowDown width="14" height="14" />
         </button>
         <button
           v-if="isBranch"
@@ -108,7 +108,7 @@ const canMoveDown = computed(() => props.index < props.siblingCount - 1);
           title="新建子项"
           @click.stop="emit('add', node)"
         >
-          <Plus width="12" height="12" />
+          <Plus width="14" height="14" />
         </button>
         <button
           class="node-action is-danger"
@@ -116,7 +116,7 @@ const canMoveDown = computed(() => props.index < props.siblingCount - 1);
           title="删除"
           @click.stop="emit('remove', node)"
         >
-          <Trash width="12" height="12" />
+          <Trash width="14" height="14" />
         </button>
       </span>
     </div>
@@ -236,7 +236,7 @@ const canMoveDown = computed(() => props.index < props.siblingCount - 1);
 .node-actions {
   display: none;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
   flex-shrink: 0;
 }
 
@@ -245,8 +245,8 @@ const canMoveDown = computed(() => props.index < props.siblingCount - 1);
 }
 
 .node-action {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   border-radius: var(--radius-xs);
   color: var(--text-muted);
   display: inline-flex;

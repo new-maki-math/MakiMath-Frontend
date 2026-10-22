@@ -86,13 +86,13 @@ watch(courseId, (newId) => {
       <!-- 课程头部 -->
       <header class="course-header">
         <div class="header-tags">
-          <MTag v-if="course.category" variant="purple" size="sm">
+          <MTag v-if="course.category" variant="purple" size="md">
             分类: {{ course.category }}
           </MTag>
-          <MTag v-if="course.live" variant="green" size="sm" :dot="true">
+          <MTag v-if="course.live" variant="green" size="md" :dot="true">
             STATUS: ONLINE
           </MTag>
-          <MTag v-else variant="amber" size="sm" :dot="true">
+          <MTag v-else variant="amber" size="md" :dot="true">
             STATUS: PLANNING
           </MTag>
         </div>

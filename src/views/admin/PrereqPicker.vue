@@ -51,7 +51,7 @@ const remove = (id) => emit('update:modelValue', selected.value.filter((v) => v 
         v-for="id in selected"
         :key="id"
         variant="cyan"
-        size="sm"
+        size="md"
       >
         {{ labelOf(id) }}
         <button
@@ -60,7 +60,7 @@ const remove = (id) => emit('update:modelValue', selected.value.filter((v) => v 
           title="移除"
           @click="remove(id)"
         >
-          <Xmark width="10" height="10" />
+          <Xmark width="12" height="12" />
         </button>
       </MTag>
     </div>
@@ -117,9 +117,9 @@ const remove = (id) => emit('update:modelValue', selected.value.filter((v) => v 
 }
 
 .chip-remove {
-  margin-left: 2px;
-  width: 13px;
-  height: 13px;
+  margin-left: 3px;
+  width: 15px;
+  height: 15px;
   border-radius: var(--radius-xs);
   color: inherit;
   opacity: 0.6;
