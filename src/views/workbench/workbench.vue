@@ -1,7 +1,9 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import { adminApi, COURSE_STATUSES } from '../../api/admin.js';
+import { isLoggedIn, initAuth } from '../../utils/auth.js';
 import './workbench.css';
+import WorkbenchAuth from './WorkbenchAuth.vue';
 import WorkbenchTree from './WorkbenchTree.vue';
 import CategoryPanel from './CategoryPanel.vue';
 import CoursePanel from './CoursePanel.vue';
@@ -244,10 +246,24 @@ const navigateTo = async (target) => {
     // 忽略分支未加载异常
   }
 };
+
+// 认证通过后刷新目录树
+const handleAuthSuccess = async () => {
+  if (treeRef.value) {
+    await treeRef.value.reload();
+  }
+};
+
+// 挂载时校验用户登录状态
+onMounted(async () => {
+  await initAuth();
+});
 </script>
 
 <template>
-  <div class="admin-workspace">
+  <WorkbenchAuth v-if="!isLoggedIn" @success="handleAuthSuccess" />
+
+  <div v-else class="admin-workspace">
     <WorkbenchTree
       ref="treeRef"
       :selected-key="selectedKey"

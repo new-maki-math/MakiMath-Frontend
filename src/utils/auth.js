@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue';
 import { request } from '../api/client.js';
 
-// 当前登录用户对象（响应式）
+// 当前登录用户对象响应式
 export const currentUser = ref(null);
 const isInitialized = ref(false);
 
@@ -17,6 +17,20 @@ export function getStoredUser() {
   }
 }
 
+// 归一化用户信息对象
+export function normalizeUser(rawUser) {
+  if (!rawUser) return null;
+  return {
+    ...rawUser,
+    displayName: rawUser.displayName || rawUser.display_name || '',
+    display_name: rawUser.display_name || rawUser.displayName || '',
+    lastLoginAt: rawUser.lastLoginAt || rawUser.last_login_at || null,
+    last_login_at: rawUser.last_login_at || rawUser.lastLoginAt || null,
+    createdAt: rawUser.createdAt || rawUser.created_at || null,
+    created_at: rawUser.created_at || rawUser.createdAt || null
+  };
+}
+
 // 设置认证凭据与用户信息
 export function setAuth(token, user) {
   if (typeof localStorage === 'undefined') return;
@@ -29,8 +43,9 @@ export function setAuth(token, user) {
   }
 
   if (user) {
-    localStorage.setItem('maki_auth_user', JSON.stringify(user));
-    currentUser.value = user;
+    const normalized = normalizeUser(user);
+    localStorage.setItem('maki_auth_user', JSON.stringify(normalized));
+    currentUser.value = normalized;
   } else {
     localStorage.removeItem('maki_auth_user');
     currentUser.value = null;
@@ -60,7 +75,7 @@ export async function initAuth() {
 
   const stored = getStoredUser();
   if (stored) {
-    currentUser.value = stored;
+    currentUser.value = normalizeUser(stored);
   }
 
   const token = localStorage.getItem('maki_auth_token') || localStorage.getItem('token') || localStorage.getItem('auth_token');
