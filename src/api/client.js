@@ -1,11 +1,47 @@
 // 统一请求客户端
 import { beginApiRequest, endApiRequest } from '../utils/progress.js';
+import {
+  encryptPayload,
+  decryptPayload,
+  isEncryptedPayload,
+  getClientPublicKey,
+} from '../vendor/secure-core.min.js';
 
 const env = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env : (typeof process !== 'undefined' ? process.env : {});
 
 const API_BASE = env.VITE_API_BASE !== undefined
   ? env.VITE_API_BASE
   : (typeof window !== 'undefined' && window.location.hostname === 'localhost' ? '' : 'https://maki-math.com');
+
+// 请求拦截处理器
+export async function requestInterceptor(config) {
+  if (config.body != null) {
+    let payload = config.body;
+    if (typeof payload === 'string') {
+      try {
+        payload = JSON.parse(payload);
+      } catch {
+        payload = config.body;
+      }
+    }
+    // 避免重复加密
+    if (!isEncryptedPayload(payload)) {
+      const encrypted = await encryptPayload(payload);
+      config.body = JSON.stringify(encrypted);
+    }
+    config.headers = config.headers || {};
+    config.headers['Content-Type'] = 'application/json';
+  }
+  return config;
+}
+
+// 响应拦截处理器
+export async function responseInterceptor(data) {
+  if (isEncryptedPayload(data)) {
+    return await decryptPayload(data);
+  }
+  return data;
+}
 
 export async function request(url, options = {}) {
   const {
@@ -26,17 +62,27 @@ export async function request(url, options = {}) {
     defaultHeaders['Content-Type'] = 'application/json';
   }
 
-  const config = {
+  let config = {
     method,
     headers: {
       ...defaultHeaders,
       ...headers
     },
+    body,
     ...rest
   };
 
+  // 注入公钥
+  try {
+    const cp = await getClientPublicKey();
+    if (cp) {
+      config.headers['x-cp'] = cp;
+    }
+  } catch {}
+
+  // 混淆加密
   if (hasBody) {
-    config.body = typeof body === 'string' ? body : JSON.stringify(body);
+    config = await requestInterceptor(config);
   }
 
   const fullUrl = API_BASE ? `${API_BASE}${url}` : url;
@@ -57,11 +103,20 @@ export async function request(url, options = {}) {
     }
     const text = await res.text();
     endApiRequest(true);
-    return text ? JSON.parse(text) : null;
+    if (!text) return null;
+
+    let parsed;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      return text;
+    }
+
+    // 解密混淆
+    return await responseInterceptor(parsed);
   } catch (err) {
     endApiRequest(false);
     console.warn(`[API] 请求 ${url} 失败:`, err.message);
     throw err;
   }
 }
-
