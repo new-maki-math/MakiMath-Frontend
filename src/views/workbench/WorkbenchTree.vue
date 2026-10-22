@@ -2,7 +2,7 @@
 import { onMounted, ref } from 'vue';
 import { Refresh, FolderPlus } from '@iconoir/vue';
 import { adminApi } from '../../api/admin.js';
-import AdminTreeNode from './AdminTreeNode.vue';
+import WorkbenchTreeNode from './WorkbenchTreeNode.vue';
 import MButton from '../../components/MButton.vue';
 
 const props = defineProps({
@@ -192,7 +192,7 @@ defineExpose({
         </MButton>
       </div>
 
-      <AdminTreeNode
+      <WorkbenchTreeNode
         v-for="(node, idx) in nodes"
         v-else
         :key="`${node.type}:${node.id}`"

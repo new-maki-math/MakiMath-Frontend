@@ -1,8 +1,8 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { adminApi, COURSE_STATUSES } from '../../api/admin.js';
-import './admin.css';
-import AdminTree from './AdminTree.vue';
+import './workbench.css';
+import WorkbenchTree from './WorkbenchTree.vue';
 import CategoryPanel from './CategoryPanel.vue';
 import CoursePanel from './CoursePanel.vue';
 import ChapterPanel from './ChapterPanel.vue';
@@ -248,7 +248,7 @@ const navigateTo = async (target) => {
 
 <template>
   <div class="admin-workspace">
-    <AdminTree
+    <WorkbenchTree
       ref="treeRef"
       :selected-key="selectedKey"
       @select="selectNode"

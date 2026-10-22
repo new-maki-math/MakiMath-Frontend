@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { adminApi } from '../../api/admin.js';
 import { useForm } from './useForm.js';
-import AdminPanel from './AdminPanel.vue';
+import WorkbenchPanel from './WorkbenchPanel.vue';
 import MInput from '../../components/MInput.vue';
 import MButton from '../../components/MButton.vue';
 import MModal from '../../components/MModal.vue';
@@ -135,7 +135,7 @@ watch(() => props.node.id, load, { immediate: true });
 </script>
 
 <template>
-  <AdminPanel
+  <WorkbenchPanel
     kind="CATEGORY"
     :title="form.name || node.label"
     :meta="meta"
@@ -262,5 +262,5 @@ watch(() => props.node.id, load, { immediate: true });
         警告：选中的课程下的所有章节、小节与资源会一并彻底级联删除，且不可撤销。
       </div>
     </MModal>
-  </AdminPanel>
+  </WorkbenchPanel>
 </template>

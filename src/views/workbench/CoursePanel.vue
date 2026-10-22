@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { adminApi, COURSE_STATUSES } from '../../api/admin.js';
 import { useForm, useText } from './useForm.js';
-import AdminPanel from './AdminPanel.vue';
+import WorkbenchPanel from './WorkbenchPanel.vue';
 import MInput from '../../components/MInput.vue';
 import MSelect from '../../components/MSelect.vue';
 import MTextarea from '../../components/MTextarea.vue';
@@ -107,7 +107,7 @@ watch(() => props.node.id, load, { immediate: true });
 </script>
 
 <template>
-  <AdminPanel
+  <WorkbenchPanel
     kind="COURSE"
     :title="form.title || node.label"
     :meta="meta"
@@ -193,5 +193,5 @@ watch(() => props.node.id, load, { immediate: true });
         />
       </div>
     </template>
-  </AdminPanel>
+  </WorkbenchPanel>
 </template>

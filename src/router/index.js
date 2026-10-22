@@ -7,7 +7,7 @@ const RecomLectureView = () => import('../views/recom-lecture/recom-lecture.vue'
 const MyLectureView = () => import('../views/my-lecture/my-lecture.vue');
 const CourseHomeView = () => import('../views/course-home/course-home.vue');
 const LectureDocView = () => import('../views/lecture-doc/lecture-doc.vue');
-const AdminView = () => import('../views/admin/admin.vue');
+const WorkbenchView = () => import('../views/workbench/workbench.vue');
 
 export const routes = [
   {
@@ -53,17 +53,8 @@ export const routes = [
   {
     path: '/workbench',
     name: 'workbench',
-    component: AdminView,
+    component: WorkbenchView,
     meta: { title: '讲义工作台', tag: 'WORKBENCH' }
-  },
-  // 兼容旧路由
-  {
-    path: '/routes',
-    redirect: '/recom-lecture'
-  },
-  {
-    path: '/notes',
-    redirect: '/my-lecture'
   }
 ];
 

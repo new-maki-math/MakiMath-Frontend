@@ -7,7 +7,7 @@ import {
   nextSectionSlugs
 } from '../../api/admin.js';
 import { useForm, useText } from './useForm.js';
-import AdminPanel from './AdminPanel.vue';
+import WorkbenchPanel from './WorkbenchPanel.vue';
 import MInput from '../../components/MInput.vue';
 import MTextarea from '../../components/MTextarea.vue';
 import MCodeEditor from '../../components/MCodeEditor.vue';
@@ -327,7 +327,7 @@ watch(() => props.node.id, load, { immediate: true });
 </script>
 
 <template>
-  <AdminPanel
+  <WorkbenchPanel
     kind="CHAPTER"
     :title="form.title || node.label"
     :meta="meta"
@@ -582,7 +582,7 @@ watch(() => props.node.id, load, { immediate: true });
         </div>
       </div>
     </MModal>
-  </AdminPanel>
+  </WorkbenchPanel>
 </template>
 
 <style scoped>

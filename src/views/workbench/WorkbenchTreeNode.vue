@@ -10,7 +10,7 @@ import {
 } from '@iconoir/vue';
 import MCollapse from '../../components/MCollapse.vue';
 
-defineOptions({ name: 'AdminTreeNode' });
+defineOptions({ name: 'WorkbenchTreeNode' });
 
 const props = defineProps({
   node: {
@@ -126,7 +126,7 @@ const canMoveDown = computed(() => props.index < props.siblingCount - 1);
       :open="Boolean(node.expanded)"
     >
       <div class="node-children">
-        <AdminTreeNode
+        <WorkbenchTreeNode
           v-for="(child, childIdx) in node.children || []"
           :key="`${child.type}:${child.id}`"
           :node="child"
