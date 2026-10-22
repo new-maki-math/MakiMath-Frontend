@@ -46,7 +46,9 @@ const filteredResults = computed(() => {
   );
 });
 
-const openSearch = () => {
+// 唤醒搜索框逻辑
+const openSearch = (e) => {
+  if (e && !e.isTrusted) return;
   isOpen.value = true;
 };
 

@@ -187,7 +187,7 @@ const formatDate = (isoStr) => {
 
 <template>
   <MBackdrop :open="open" teleport fixed :z-index="120" @close="emit('close')">
-    <transition name="modal-pop">
+    <transition name="modal-pop" appear>
       <div v-if="open" class="user-modal-panel font-mono" @click.stop>
         <div class="user-modal-sidebar">
           <div class="sidebar-brand">

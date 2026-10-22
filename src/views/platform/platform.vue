@@ -762,12 +762,14 @@ onMounted(() => {
       @close="isResetPwdOpen = false"
       @confirm="handleConfirmResetPwd"
     >
-      <MInput
-        v-model="resetPasswordVal"
-        label="设置新密码"
-        type="password"
-        placeholder="请输入新密码（至少六位）"
-      />
+      <form autocomplete="off" @submit.prevent="handleConfirmResetPwd">
+        <MInput
+          v-model="resetPasswordVal"
+          label="设置新密码"
+          type="password"
+          placeholder="请输入新密码（至少六位）"
+        />
+      </form>
     </MModal>
 
     <!-- 生成邀请码弹窗 -->

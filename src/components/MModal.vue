@@ -52,7 +52,7 @@ const emit = defineEmits(['close', 'confirm']);
     :z-index="90"
     @close="emit('close')"
   >
-    <transition name="modal-pop">
+    <transition name="modal-pop" appear>
       <section
         v-if="open"
         class="modal-panel"
