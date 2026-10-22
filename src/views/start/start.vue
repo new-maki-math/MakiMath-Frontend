@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import { Search, Xmark, Terminal, Compass, ArrowRight, Book, Sparks } from '@iconoir/vue';
 import { renderToString } from 'typlet';
 import { getCourseCategories } from '../../api';
+import StartBackground from './StartBackground.vue';
 
 const router = useRouter();
 
@@ -226,8 +227,8 @@ const handleKeyDown = (e) => {
 
 <template>
   <div class="start-viewport" :class="{ 'is-flying': isFlying }">
-    <!-- 背景极客数学细网格与渐变微光 -->
-    <div class="math-grid-bg"></div>
+    <!-- 动态拓扑背景独立组件 -->
+    <StartBackground />
 
     <div class="start-main-container" :class="{ 'is-leaving': isFlying }">
       <!-- 极客头部标识与副标题 -->
@@ -393,19 +394,6 @@ const handleKeyDown = (e) => {
   background-color: var(--bg-app);
   user-select: none;
   padding-top: clamp(80px, 17vh, 150px);
-}
-
-/* 数学点阵背景 */
-.math-grid-bg {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-image: 
-    radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.05) 0%, transparent 65%),
-    linear-gradient(to right, var(--border-subtle) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--border-subtle) 1px, transparent 1px);
-  background-size: 100% 100%, 40px 40px, 40px 40px;
-  opacity: 0.6;
 }
 
 /* 主容器 */
