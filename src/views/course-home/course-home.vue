@@ -392,7 +392,7 @@ watch(courseId, (newId) => {
   justify-content: space-between;
   align-items: center;
   padding-bottom: 8px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .spec-item:last-child {
@@ -543,7 +543,7 @@ watch(courseId, (newId) => {
 }
 
 .chapter-panel:hover {
-  border-color: rgba(255, 255, 255, 0.12);
+  border-color: var(--border-hover);
 }
 
 .chapter-header-btn {
@@ -607,7 +607,7 @@ watch(courseId, (newId) => {
   justify-content: space-between;
   padding: 12px 18px;
   cursor: pointer;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid var(--border-subtle);
   transition: background-color 120ms ease;
 }
 

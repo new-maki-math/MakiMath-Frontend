@@ -1,0 +1,101 @@
+:root[data-theme="light"],
+[data-theme="light"],
+.theme-light {
+  --bg-topbar: #f6f8fa;
+  --bg-sidebar: #f8f9fa;
+  --bg-app: #ffffff;
+  --bg-surface: #f6f8fa;
+  --bg-elevated: #ffffff;
+  --bg-hover: #f2f4f7;
+
+  --accent-primary: #0969da;
+  --accent-hover: #0854c3;
+  --accent-active: #07449c;
+  --accent-muted: rgba(9, 105, 218, 0.10);
+
+  --btn-secondary-bg: #ffffff;
+  --btn-secondary-border: #d0d7de;
+  --btn-secondary-color: #1f2328;
+  --btn-secondary-hover-bg: #f3f4f6;
+  --btn-secondary-hover-border: #8c959f;
+  --btn-secondary-hover-color: #1f2328;
+
+  --btn-ghost-color: #59636e;
+  --btn-ghost-border: transparent;
+  --btn-ghost-hover-bg: #f3f4f6;
+  --btn-ghost-hover-border: #d0d7de;
+  --btn-ghost-hover-color: #1f2328;
+
+  --tag-purple: #7c3aed;
+  --tag-purple-bg: rgba(124, 58, 237, 0.10);
+  --tag-green: #059669;
+  --tag-green-bg: rgba(5, 150, 105, 0.10);
+  --tag-amber: #b45309;
+  --tag-amber-bg: rgba(180, 83, 9, 0.10);
+  --tag-cyan: #0284c7;
+  --tag-cyan-bg: rgba(2, 132, 199, 0.10);
+  --tag-teal: #0d9488;
+  --tag-teal-bg: rgba(13, 148, 136, 0.10);
+  --tag-lime: #4d7c0f;
+  --tag-lime-bg: rgba(77, 124, 15, 0.10);
+  --tag-red: #dc2626;
+  --tag-red-bg: rgba(220, 38, 38, 0.10);
+  --tag-orange: #ea580c;
+  --tag-orange-bg: rgba(234, 88, 12, 0.10);
+  --tag-gray: #64748b;
+  --tag-gray-bg: rgba(100, 116, 139, 0.10);
+  --tag-blue: #0969da;
+  --tag-blue-bg: rgba(9, 105, 218, 0.10);
+
+  --maki-blue-lit: #0284c7;
+  --maki-red-lit: #e11d48;
+  --maki-green-lit: #059669;
+  --maki-orange-lit: #ea580c;
+  --maki-gray-lit: #64748b;
+
+  --text-primary: #1f2328;
+  --text-secondary: #59636e;
+  --text-muted: #8c959f;
+
+  --border-subtle: #d0d7de;
+  --border-hover: #8c959f;
+  --border-focus: rgba(9, 105, 218, 0.65);
+}
+
+:root[data-theme="light"] ::selection,
+[data-theme="light"] ::selection,
+.theme-light ::selection,
+:root[data-theme="light"] *::selection,
+[data-theme="light"] *::selection,
+.theme-light *::selection {
+  color: #1f2328 !important;
+  background: #cce5ff !important;
+}
+
+:root[data-theme="light"] ::-webkit-scrollbar-thumb,
+[data-theme="light"] ::-webkit-scrollbar-thumb,
+.theme-light ::-webkit-scrollbar-thumb {
+  background: #d0d7de;
+}
+
+:root[data-theme="light"] ::-webkit-scrollbar-thumb:hover,
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover,
+.theme-light ::-webkit-scrollbar-thumb:hover {
+  background: #afb8c1;
+}
+
+[data-theme="light"] .variant-danger,
+.theme-light .variant-danger {
+  background-color: #cf222e;
+  color: #ffffff;
+}
+
+[data-theme="light"] .variant-danger:hover:not(:disabled),
+.theme-light .variant-danger:hover:not(:disabled) {
+  background-color: #b62324;
+}
+
+[data-theme="light"] .kb-course-list,
+.theme-light .kb-course-list {
+  border-left-color: rgba(0, 0, 0, 0.08);
+}

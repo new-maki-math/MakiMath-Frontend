@@ -83,7 +83,7 @@ defineEmits(['update:modelValue', 'enter']);
 }
 
 .m-input:hover:not(:disabled) {
-  border-color: rgba(255, 255, 255, 0.14);
+  border-color: var(--border-hover);
 }
 
 .m-input:focus {

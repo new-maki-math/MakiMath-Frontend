@@ -116,23 +116,25 @@ defineEmits(['click']);
 }
 
 .variant-secondary {
-  background-color: var(--bg-elevated);
-  color: var(--text-primary);
-  border-color: var(--border-subtle);
+  background-color: var(--btn-secondary-bg, var(--bg-elevated));
+  color: var(--btn-secondary-color, var(--text-primary));
+  border: 1px solid var(--btn-secondary-border, var(--border-subtle));
 }
 .variant-secondary:hover:not(:disabled) {
-  background-color: var(--bg-hover);
-  color: #ffffff;
+  background-color: var(--btn-secondary-hover-bg, var(--bg-hover));
+  color: var(--btn-secondary-hover-color, var(--text-primary));
+  border-color: var(--btn-secondary-hover-border, var(--border-hover));
 }
 
 .variant-ghost {
   background-color: transparent;
-  color: var(--text-secondary);
-  border-color: var(--border-subtle);
+  color: var(--btn-ghost-color, var(--text-secondary));
+  border: 1px solid var(--btn-ghost-border, transparent);
 }
 .variant-ghost:hover:not(:disabled) {
-  background-color: var(--bg-hover);
-  color: var(--text-primary);
+  background-color: var(--btn-ghost-hover-bg, var(--bg-hover));
+  color: var(--btn-ghost-hover-color, var(--text-primary));
+  border-color: var(--btn-ghost-hover-border, var(--border-subtle));
 }
 
 .variant-danger {

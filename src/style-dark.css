@@ -1,0 +1,72 @@
+:root,
+:root[data-theme="dark"],
+[data-theme="dark"],
+.theme-dark {
+  --bg-topbar: #090909;
+  --bg-sidebar: #0f0f0f;
+  --bg-app: #181818;
+  --bg-surface: #202020;
+  --bg-elevated: #282828;
+  --bg-hover: #303030;
+
+  --accent-primary: #007acc;
+  --accent-hover: #1f8ad2;
+  --accent-active: #0062a3;
+  --accent-muted: rgba(0, 122, 204, 0.16);
+
+  --btn-secondary-bg: #282828;
+  --btn-secondary-border: rgba(255, 255, 255, 0.08);
+  --btn-secondary-color: #e0e0e0;
+  --btn-secondary-hover-bg: #303030;
+  --btn-secondary-hover-border: rgba(255, 255, 255, 0.16);
+  --btn-secondary-hover-color: #e0e0e0;
+
+  --btn-ghost-color: #aaaaaa;
+  --btn-ghost-border: rgba(255, 255, 255, 0.08);
+  --btn-ghost-hover-bg: #303030;
+  --btn-ghost-hover-border: rgba(255, 255, 255, 0.16);
+  --btn-ghost-hover-color: #e0e0e0;
+
+  --tag-purple: #b180ff;
+  --tag-purple-bg: rgba(177, 128, 255, 0.14);
+  --tag-green: #4ec9b0;
+  --tag-green-bg: rgba(78, 201, 176, 0.14);
+  --tag-amber: #ce9178;
+  --tag-amber-bg: rgba(206, 145, 120, 0.14);
+  --tag-cyan: #4fc1ff;
+  --tag-cyan-bg: rgba(79, 193, 255, 0.14);
+  --tag-teal: #2dd4bf;
+  --tag-teal-bg: rgba(45, 212, 191, 0.16);
+  --tag-lime: #a3e635;
+  --tag-lime-bg: rgba(163, 230, 53, 0.14);
+  --tag-red: #fb7185;
+  --tag-red-bg: rgba(251, 113, 133, 0.14);
+  --tag-orange: #fb923c;
+  --tag-orange-bg: rgba(251, 146, 60, 0.14);
+  --tag-gray: #94a3b8;
+  --tag-gray-bg: rgba(148, 163, 184, 0.14);
+  --tag-blue: #38bdf8;
+  --tag-blue-bg: rgba(56, 189, 248, 0.14);
+
+  --maki-blue-lit: #38bdf8;
+  --maki-red-lit: #fb7185;
+  --maki-green-lit: #34d399;
+  --maki-orange-lit: #fb923c;
+  --maki-gray-lit: #94a3b8;
+
+  --text-primary: #e0e0e0;
+  --text-secondary: #aaaaaa;
+  --text-muted: #808080;
+
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(255, 255, 255, 0.16);
+  --border-focus: rgba(0, 122, 204, 0.6);
+}
+
+:root:not([data-theme="light"]) ::selection,
+:root:not([data-theme="light"]) *::selection,
+[data-theme="dark"] ::selection,
+[data-theme="dark"] *::selection {
+  color: #ffffff !important;
+  background: rgba(0, 122, 204, 0.45) !important;
+}

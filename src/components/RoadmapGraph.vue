@@ -813,7 +813,16 @@ onBeforeUnmount(() => {
   padding: 0 10px;
   height: 32px;
   width: 200px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  transition: border-color 140ms ease, background-color 140ms ease;
+}
+
+.search-input-wrap:hover {
+  border-color: var(--border-hover);
+}
+
+.search-input-wrap:focus-within {
+  border-color: var(--border-focus);
+  background-color: var(--bg-elevated);
 }
 
 .search-icon {
@@ -867,7 +876,7 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   background: transparent;
-  border: none;
+  border: 1px solid transparent;
   color: var(--text-muted);
   font-size: 11px;
   padding: 0 10px;
@@ -875,7 +884,7 @@ onBeforeUnmount(() => {
   cursor: pointer;
   user-select: none;
   white-space: nowrap;
-  transition: color 120ms ease, background-color 120ms ease;
+  transition: color 120ms ease, background-color 120ms ease, border-color 120ms ease;
 }
 
 .level-btn:hover {
@@ -885,6 +894,7 @@ onBeforeUnmount(() => {
 
 .level-btn.active {
   background-color: var(--bg-elevated);
+  border-color: var(--border-subtle);
   color: var(--text-primary);
   font-weight: 600;
 }

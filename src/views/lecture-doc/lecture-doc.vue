@@ -355,7 +355,6 @@ const scrollToOutline = (id) => {
   font-weight: var(--font-weight-medium);
   line-height: 1;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
   transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease, transform 140ms ease;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -365,7 +364,7 @@ const scrollToOutline = (id) => {
 .drawer-open-btn:hover {
   background-color: var(--bg-hover);
   color: var(--text-primary);
-  border-color: rgba(255, 255, 255, 0.15);
+  border-color: var(--border-hover);
 }
 
 .drawer-open-btn:active {

@@ -108,7 +108,7 @@ const handleNavigate = (section) => {
 
 .nav-card:hover {
   background-color: var(--bg-hover);
-  border-color: rgba(255, 255, 255, 0.12);
+  border-color: var(--border-hover);
 }
 
 .prev-card {
