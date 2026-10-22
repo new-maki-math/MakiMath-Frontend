@@ -1,14 +1,36 @@
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { ref, watch, onMounted, onUnmounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { Search, Xmark } from '@iconoir/vue';
+import { useLectureSearch, getCourseTagVariant, getSectionTags, getSectionTagVariant } from '../utils';
 
 const route = useRoute();
+const router = useRouter();
 const inputRef = ref(null);
 const searchContainerRef = ref(null);
-const query = ref('');
+const listRef = ref(null);
 const isOpen = ref(false);
-const activeIndex = ref(-1);
+
+// 推荐默认节点数据
+const defaultLectures = [
+  { id: 'm1', title: '泰勒中值定理与佩亚诺余项', tag: '定理', courseTitle: '考研数学精讲', excerpt: '若函数在区间内存在直至连续高阶导数则泰勒公式展开式余项可由佩亚诺形式精确表示', path: '/course/kaoyan' },
+  { id: 'm2', title: '实数确界存在定理与单调有界准则', tag: '公理', courseTitle: '考研数学精讲', excerpt: '非空有上界的实数集必有上确界从而奠定极限论单调有界收敛原理的基石', path: '/course/kaoyan' },
+  { id: 'm3', title: '定积分的几何应用：旋转体体积与弧长', tag: '应用', courseTitle: '考研数学精讲', excerpt: '平面曲线绕轴旋转生成的旋转体体积微元与平滑弧长积分计算法则详解', path: '/course/kaoyan' },
+  { id: 'm4', title: '特征值、特征向量与矩阵正交对角化', tag: '方法', courseTitle: '线性代数精讲', excerpt: '实对称矩阵不同特征值对应的特征向量相互正交且必可通过正交矩阵相似对角化', path: '/course/kaoyan' }
+];
+
+const {
+  query,
+  isSearching,
+  activeIndex,
+  displayResults,
+  clear,
+  handleKeyNavigation
+} = useLectureSearch({
+  defaultItems: defaultLectures,
+  limit: 15,
+  listRef
+});
 
 // 路由变化时重置搜索状态并失焦
 watch(
@@ -19,32 +41,6 @@ watch(
     inputRef.value?.blur();
   }
 );
-
-// 示例搜索数据
-const sampleData = [
-  { id: '1', title: '中国剩余定理 (Chinese Remainder Theorem)', type: '定理', variant: 'purple', course: '初等数论', code: 'CRT_01' },
-  { id: '2', title: '良序原理与第一/第二数学归纳法', type: '公理', variant: 'cyan', course: '数学基础', code: 'AXIOM_WO' },
-  { id: '3', title: '单射、满射与双射构造定理', type: '性质', variant: 'green', course: '数学基础', code: 'PROP_BIJ' },
-  { id: '4', title: '实数连续性之确界存在定理', type: '定理', variant: 'purple', course: '分析引论', code: 'THM_SUP' },
-  { id: '5', title: '特征值、特征向量与正交对角化', type: '方法', variant: 'amber', course: '线性代数', code: 'EIGEN_DIAG' },
-  { id: '6', title: '费马小定理与欧拉函数应用', type: '讲义', variant: 'blue', course: '精选路线', code: 'ROUTE_EULER' },
-  { id: '7', title: '等价关系与商集的良定义性', type: '定义', variant: 'cyan', course: '数学基础', code: 'DEF_EQUIV' }
-];
-
-// 根据关键词过滤结果
-const filteredResults = computed(() => {
-  const q = query.value.trim().toLowerCase();
-  if (!q) {
-    // 无输入时提供推荐项
-    return sampleData.slice(0, 4);
-  }
-  return sampleData.filter(item =>
-    item.title.toLowerCase().includes(q) ||
-    item.type.toLowerCase().includes(q) ||
-    item.course.toLowerCase().includes(q) ||
-    item.code.toLowerCase().includes(q)
-  );
-});
 
 // 唤醒搜索框逻辑
 const openSearch = (e) => {
@@ -58,8 +54,7 @@ const closeSearch = () => {
 };
 
 const clearQuery = () => {
-  query.value = '';
-  activeIndex.value = -1;
+  clear();
   inputRef.value?.focus();
 };
 
@@ -67,9 +62,12 @@ const handleSelect = (item) => {
   query.value = item.title;
   closeSearch();
   inputRef.value?.blur();
+  if (item.path) {
+    router.push(item.path);
+  }
 };
 
-// 键盘导航控制
+// 键盘按键逻辑
 const handleKeyDown = (e) => {
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
     e.preventDefault();
@@ -85,25 +83,13 @@ const handleKeyDown = (e) => {
     return;
   }
 
-  if (e.key === 'ArrowDown') {
-    e.preventDefault();
-    if (filteredResults.value.length) {
-      activeIndex.value = (activeIndex.value + 1) % filteredResults.value.length;
-    }
-  } else if (e.key === 'ArrowUp') {
-    e.preventDefault();
-    if (filteredResults.value.length) {
-      activeIndex.value = (activeIndex.value - 1 + filteredResults.value.length) % filteredResults.value.length;
-    }
-  } else if (e.key === 'Enter') {
-    e.preventDefault();
-    if (activeIndex.value >= 0 && activeIndex.value < filteredResults.value.length) {
-      handleSelect(filteredResults.value[activeIndex.value]);
-    }
-  } else if (e.key === 'Escape') {
+  if (e.key === 'Escape') {
     closeSearch();
     inputRef.value?.blur();
+    return;
   }
+
+  handleKeyNavigation(e, handleSelect);
 };
 
 // 点击外部关闭弹层
@@ -140,7 +126,7 @@ onUnmounted(() => {
 
 <template>
   <div ref="searchContainerRef" class="search-container">
-    <!-- 全局背景半透明压暗遮罩组件 (点击外部遮罩退出搜索) -->
+    <!-- 全局背景半透明压暗遮罩组件 -->
     <MBackdrop
       teleport="body"
       :open="isOpen"
@@ -181,33 +167,45 @@ onUnmounted(() => {
       <kbd v-else class="shortcut">Ctrl+K</kbd>
     </div>
 
-    <!-- 下拉弹出搜索结果列表 (独立绝对定位浮层，确保输入框位置绝对稳定不发生偏移错位) -->
+    <!-- 下拉弹出搜索结果列表 -->
     <div class="search-dropdown-wrapper" :class="{ 'is-open': isOpen }">
       <MCollapse :open="isOpen">
         <div class="search-dropdown-card">
           <div class="dropdown-header">
-            <span>{{ query ? '搜索结果' : '常用与推荐节点' }}</span>
-            <span class="count">{{ filteredResults.length }} 项结果</span>
+            <span>{{ query ? '检索结果' : '常用讲义小节' }}</span>
+            <span class="count">{{ displayResults.length }} 项结果</span>
           </div>
 
-          <div v-if="filteredResults.length" class="dropdown-list">
+          <div ref="listRef" v-if="displayResults.length" class="dropdown-list">
             <div
-              v-for="(item, idx) in filteredResults"
+              v-for="(item, idx) in displayResults"
               :key="item.id"
               class="result-item"
               :class="{ 'is-active': activeIndex === idx }"
               @click="handleSelect(item)"
               @mouseenter="activeIndex = idx"
             >
+              <!-- 标签列包含课程名称与小节标签 -->
               <div class="item-tag-wrap">
-                <MTag :variant="item.variant" size="md" :mono="false">{{ item.type }}</MTag>
+                <MTag :variant="getCourseTagVariant(item.courseTitle || item.course)" size="sm" :mono="false">
+                  {{ item.courseTitle || item.course }}
+                </MTag>
+                <MTag
+                  v-for="(st, stIdx) in getSectionTags(item.tag)"
+                  :key="stIdx"
+                  :variant="getSectionTagVariant(st)"
+                  size="sm"
+                  :mono="false"
+                >
+                  {{ st }}
+                </MTag>
               </div>
               <div class="item-main">
+                <!-- 标题为该小节名称 -->
                 <span class="item-title">{{ item.title }}</span>
+                <!-- 副标题为搜索关键词所在的语句节选 -->
                 <div class="item-sub">
-                  <span class="item-course">{{ item.course }}</span>
-                  <span class="item-sep">//</span>
-                  <span class="item-code">{{ item.code }}</span>
+                  <span class="item-sentence-excerpt">{{ item.excerpt || item.summary || item.chapterTitle }}</span>
                 </div>
               </div>
             </div>
@@ -215,7 +213,7 @@ onUnmounted(() => {
 
           <div v-else class="dropdown-empty">
             <span class="empty-icon">[!]</span>
-            <span>未找到与 "{{ query }}" 相关的数学节点</span>
+            <span>未找到与 "{{ query }}" 相关的讲义内容</span>
           </div>
 
           <div class="dropdown-footer">
@@ -370,6 +368,22 @@ onUnmounted(() => {
 
 .item-tag-wrap {
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.item-course-badge {
+  font-size: var(--font-size-smallest);
+  padding: 2px 7px;
+  border-radius: var(--radius-xs);
+  background-color: var(--accent-muted);
+  border: 1px solid rgba(0, 122, 204, 0.25);
+  color: var(--accent-primary);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.2px;
+  white-space: nowrap;
 }
 
 .item-main {
@@ -394,7 +408,16 @@ onUnmounted(() => {
   color: var(--text-muted);
   display: flex;
   align-items: center;
-  gap: 8px;
+  min-width: 0;
+}
+
+.item-sentence-excerpt {
+  font-size: var(--font-size-smaller);
+  color: var(--text-muted);
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .item-sep {

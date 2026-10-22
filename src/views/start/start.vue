@@ -1,9 +1,10 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { Search, Xmark, Terminal, Compass, ArrowRight, Book, Sparks } from '@iconoir/vue';
 import { renderToString } from 'typlet';
 import { getCourseCategories } from '../../api';
+import { useLectureSearch, getCourseTagVariant, getSectionTags, getSectionTagVariant } from '../../utils';
 import StartBackground from './StartBackground.vue';
 
 const router = useRouter();
@@ -11,11 +12,10 @@ const router = useRouter();
 // DOM 引用
 const heroSearchBoxRef = ref(null);
 const heroInputRef = ref(null);
+const listRef = ref(null);
 
 // 搜索状态与动画控制
-const query = ref('');
 const isOpen = ref(false);
-const activeIndex = ref(-1);
 const isFlying = ref(false);
 const flightStyle = ref({});
 
@@ -37,15 +37,27 @@ const startPlaceholderLoop = () => {
   }, 3600);
 };
 
-// 预设数学节点与课程数据
-const realCourses = ref([]);
+// 预设数学节点数据
 const sampleMathNodes = [
-  { id: 'm1', title: '泰勒中值定理与佩亚诺余项', type: '核心定理', variant: 'purple', path: '/course/kaoyan/doc/sec-2-3', tag: 'THM_TAYLOR' },
-  { id: 'm2', title: '实数确界存在定理与单调有界准则', type: '极限理论', variant: 'blue', path: '/course/kaoyan/doc/sec-1-1', tag: 'AXIOM_LIMIT' },
-  { id: 'm3', title: '定积分的几何应用：旋转体体积与弧长', type: '微积分', variant: 'cyan', path: '/course/kaoyan/doc/sec-3-2', tag: 'CALC_INTEG' },
-  { id: 'm4', title: '特征值、特征向量与矩阵正交对角化', type: '线性代数', variant: 'amber', path: '/course/kaoyan', tag: 'EIGEN_VEC' },
-  { id: 'm5', title: '拉格朗日中值定理与柯西中值定理', type: '微分学', variant: 'purple', path: '/course/kaoyan/doc/sec-2-2', tag: 'THM_MVT' }
+  { id: 'm1', title: '泰勒中值定理与佩亚诺余项', tag: '定理', courseTitle: '考研数学精讲', excerpt: '若函数在区间内存在直至连续高阶导数则泰勒公式展开式余项可由佩亚诺形式精确表示', path: '/course/kaoyan/doc/sec-2-3' },
+  { id: 'm2', title: '实数确界存在定理与单调有界准则', tag: '公理', courseTitle: '考研数学精讲', excerpt: '非空有上界的实数集必有上确界从而奠定极限论单调有界收敛原理的基石', path: '/course/kaoyan/doc/sec-1-1' },
+  { id: 'm3', title: '定积分的几何应用：旋转体体积与弧长', tag: '应用', courseTitle: '考研数学精讲', excerpt: '平面曲线绕轴旋转生成的旋转体体积微元与平滑弧长积分计算法则详解', path: '/course/kaoyan/doc/sec-3-2' },
+  { id: 'm4', title: '特征值、特征向量与矩阵正交对角化', tag: '方法', courseTitle: '线性代数精讲', excerpt: '实对称矩阵不同特征值对应的特征向量相互正交且必可通过正交矩阵相似对角化', path: '/course/kaoyan' },
+  { id: 'm5', title: '拉格朗日中值定理与柯西中值定理', tag: '定理', courseTitle: '考研数学精讲', excerpt: '可导函数在闭区间连续开区间可导则必存在中值点其导数值等于割线斜率', path: '/course/kaoyan/doc/sec-2-2' }
 ];
+
+const {
+  query,
+  isSearching,
+  activeIndex,
+  displayResults: filteredResults,
+  clear: clearQuery,
+  handleKeyNavigation
+} = useLectureSearch({
+  defaultItems: () => sampleMathNodes.slice(0, 4),
+  limit: 15,
+  listRef
+});
 
 // 头部胶囊文字解码动效
 const TARGET_PILL_TEXT = 'MAKIMATH // ADVANCED MATHEMATICAL WORKSTATION';
@@ -124,24 +136,6 @@ const typstPreviewHtml = computed(() => {
   return null;
 });
 
-// 综合搜索候选池
-const allSearchPool = computed(() => {
-  return [...sampleMathNodes, ...realCourses.value];
-});
-
-// 搜索结果过滤
-const filteredResults = computed(() => {
-  const q = query.value.trim().toLowerCase();
-  if (!q) {
-    return sampleMathNodes.slice(0, 4);
-  }
-  return allSearchPool.value.filter(item =>
-    item.title.toLowerCase().includes(q) ||
-    item.type.toLowerCase().includes(q) ||
-    item.tag.toLowerCase().includes(q)
-  );
-});
-
 // 快捷导航项
 const quickShortcuts = [
   { label: '考研数学精讲', path: '/course/kaoyan', icon: Book },
@@ -199,29 +193,14 @@ const flyAndNavigate = (targetPath) => {
 
 // 键盘导航控制
 const handleKeyDown = (e) => {
-  if (e.key === 'ArrowDown') {
-    e.preventDefault();
-    if (filteredResults.value.length) {
-      activeIndex.value = (activeIndex.value + 1) % filteredResults.value.length;
-    }
-  } else if (e.key === 'ArrowUp') {
-    e.preventDefault();
-    if (filteredResults.value.length) {
-      activeIndex.value = (activeIndex.value - 1 + filteredResults.value.length) % filteredResults.value.length;
-    }
-  } else if (e.key === 'Enter') {
-    e.preventDefault();
-    if (activeIndex.value >= 0 && activeIndex.value < filteredResults.value.length) {
-      flyAndNavigate(filteredResults.value[activeIndex.value].path);
-    } else if (filteredResults.value.length > 0) {
-      flyAndNavigate(filteredResults.value[0].path);
-    } else {
-      flyAndNavigate('/course/kaoyan');
-    }
-  } else if (e.key === 'Escape') {
+  if (e.key === 'Escape') {
     isOpen.value = false;
     heroInputRef.value?.blur();
+    return;
   }
+  handleKeyNavigation(e, (item) => {
+    flyAndNavigate(item.path || '/course/kaoyan');
+  });
 };
 </script>
 
@@ -245,7 +224,7 @@ const handleKeyDown = (e) => {
         </p>
       </header>
 
-      <!-- 中央超级检索舱 (包含飞行动画承载层) -->
+      <!-- 中央超级检索舱 -->
       <div class="hero-search-wrapper">
         <div
           ref="heroSearchBoxRef"
@@ -289,10 +268,10 @@ const handleKeyDown = (e) => {
           </div>
         </div>
 
-        <!-- 实时搜索结果浮层面板 (绝对定位，内部滚动，绝对不撑开外层滚动条) -->
+        <!-- 实时搜索结果浮层面板 -->
         <transition name="dropdown-fade">
           <div v-if="isOpen && !isFlying" class="hero-dropdown-card">
-            <!-- Typst 实时公式预览条目（如果用户输入了公式，带滑入展开动效） -->
+            <!-- Typst 实时公式预览条目 -->
             <transition name="preview-slide">
               <div v-if="typstPreviewHtml" class="typst-preview-box">
                 <div class="preview-header font-mono">
@@ -305,13 +284,14 @@ const handleKeyDown = (e) => {
 
             <!-- 搜索结果列表 -->
             <div class="dropdown-header">
-              <span>{{ query ? '匹配数学讲义与知识节点' : '推荐核心数学定理与章节' }}</span>
+              <span>{{ query ? '匹配数学讲义与小节' : '推荐核心数学定理与章节' }}</span>
               <span class="count-tag font-mono">{{ filteredResults.length }} 节点</span>
             </div>
 
             <!-- 带平滑重排与交错过渡的列表项容器 -->
             <TransitionGroup
               v-if="filteredResults.length"
+              ref="listRef"
               name="result-item"
               tag="div"
               class="dropdown-list"
@@ -324,12 +304,28 @@ const handleKeyDown = (e) => {
                 @mousedown.prevent="flyAndNavigate(item.path)"
                 @mouseenter="activeIndex = idx"
               >
+                <!-- 标签列包含课程名称与小节标签 -->
                 <div class="result-tag-col">
-                  <MTag :variant="item.variant" size="sm">{{ item.type }}</MTag>
+                  <MTag :variant="getCourseTagVariant(item.courseTitle || item.course)" size="sm" :mono="false">
+                    {{ item.courseTitle || item.course }}
+                  </MTag>
+                  <MTag
+                    v-for="(st, stIdx) in getSectionTags(item.tag)"
+                    :key="stIdx"
+                    :variant="getSectionTagVariant(st)"
+                    size="sm"
+                    :mono="false"
+                  >
+                    {{ st }}
+                  </MTag>
                 </div>
                 <div class="result-content-col">
+                  <!-- 标题为该小节名称 -->
                   <span class="result-title">{{ item.title }}</span>
-                  <span class="result-path font-mono">{{ item.tag }}</span>
+                  <!-- 副标题为搜索关键词所在的语句节选 -->
+                  <span class="result-excerpt font-mono">
+                    {{ item.excerpt || item.summary || item.chapterTitle }}
+                  </span>
                 </div>
                 <ArrowRight width="14" height="14" class="result-arrow" />
               </div>
@@ -777,7 +773,22 @@ const handleKeyDown = (e) => {
 
 .result-tag-col {
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
   transition: transform 160ms ease;
+}
+
+.start-tag-badge {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  color: var(--accent-primary);
+  letter-spacing: 0.3px;
+  white-space: nowrap;
 }
 
 .result-content-col {
@@ -800,6 +811,16 @@ const handleKeyDown = (e) => {
 .result-path {
   font-size: 11px;
   color: var(--text-muted);
+}
+
+.result-excerpt {
+  font-size: var(--font-size-smallest);
+  color: var(--text-muted);
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 2px;
 }
 
 .result-arrow {

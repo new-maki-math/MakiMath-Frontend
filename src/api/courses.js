@@ -246,3 +246,16 @@ export async function fetchCourseGraph(slug = 'kaoyan') {
   graphCache.set(key, bundle);
   return bundle;
 }
+
+// 全文搜索讲义与课程节点
+export async function searchLectures(q, limit = 20) {
+  const trimmed = String(q || '').trim();
+  if (!trimmed) return [];
+  try {
+    const res = await request(`/api/search?q=${encodeURIComponent(trimmed)}&limit=${limit}`);
+    return Array.isArray(res?.hits) ? res.hits : [];
+  } catch (error) {
+    console.warn('[API] 全文检索请求异常:', error);
+    return [];
+  }
+}
