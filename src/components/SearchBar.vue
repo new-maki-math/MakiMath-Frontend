@@ -221,7 +221,7 @@ onUnmounted(() => {
   height: 34px;
   padding: 0 12px;
   background-color: var(--bg-surface);
-  border: 1px solid transparent;
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   color: var(--text-muted);
   cursor: text;
@@ -230,6 +230,7 @@ onUnmounted(() => {
 
 .search-input-box:hover {
   background-color: var(--bg-elevated);
+  border-color: var(--border-hover);
   color: var(--text-secondary);
 }
 

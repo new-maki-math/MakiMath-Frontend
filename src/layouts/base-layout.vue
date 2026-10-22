@@ -19,12 +19,43 @@ import {
   Terminal,
   ReportsSolid,
   NavArrowRight,
-  NavArrowLeft
+  NavArrowLeft,
+  SunLight,
+  HalfMoon
 } from '@iconoir/vue';
 
 const route = useRoute();
 const router = useRouter();
 const progressBarRef = ref(null);
+
+// 主题模式控制（默认深色，持久化至 localStorage）
+const isDark = ref(true);
+
+const initTheme = () => {
+  if (typeof window === 'undefined') return;
+  const saved = localStorage.getItem('maki-theme');
+  if (saved === 'light') {
+    isDark.value = false;
+    document.documentElement.setAttribute('data-theme', 'light');
+  } else {
+    isDark.value = true;
+    document.documentElement.removeAttribute('data-theme');
+  }
+};
+
+const toggleTheme = () => {
+  isDark.value = !isDark.value;
+  if (isDark.value) {
+    document.documentElement.removeAttribute('data-theme');
+    localStorage.setItem('maki-theme', 'dark');
+  } else {
+    document.documentElement.setAttribute('data-theme', 'light');
+    localStorage.setItem('maki-theme', 'light');
+  }
+};
+
+// 预初始化主题，避免渲染闪烁
+initTheme();
 
 // 知识库手风琴折叠状态与分类数据
 const isKbOpen = ref(true);
@@ -141,8 +172,11 @@ const showViewportHeader = computed(() => {
   return route.path !== '/start' && route.name !== 'start' && route.name !== 'admin';
 });
 
-// admin 页面自行管理滚动，锁定视口不产生外层滚动条
-const isViewportLocked = computed(() => route.name === 'admin');
+// start 页面与 admin 页面锁定视口，绝对不产生外层滚动条
+const isViewportLocked = computed(() => route.name === 'admin' || route.name === 'start' || route.path === '/start');
+
+// 判断是否为 start 欢迎页（用于顶栏小搜索框的隐显切换）
+const isStartRoute = computed(() => route.path === '/start' || route.name === 'start');
 
 // 侧边栏整体收起/展开状态（收起后仅显示 Icon 列，点击 Icon 展开）
 const isSidebarCollapsed = ref(localStorage.getItem('maki_sidebar_collapsed') === 'true');
@@ -265,7 +299,7 @@ const handleRefreshDoc = () => {
         </div>
       </div>
 
-      <div class="topbar-center">
+      <div class="topbar-center" :class="{ 'is-hidden-on-start': isStartRoute }">
         <SearchBar />
       </div>
 
@@ -274,6 +308,15 @@ const handleRefreshDoc = () => {
           <MTag variant="purple">ENGINE:TYPST</MTag>
           <MTag variant="green" :dot="true">SOLID:READY</MTag>
         </div>
+        <button
+          class="theme-toggle-btn"
+          :title="isDark ? '切换至浅色模式' : '切换至深色模式'"
+          aria-label="切换浅色/深色模式"
+          @click="toggleTheme"
+        >
+          <SunLight v-if="isDark" width="16" height="16" />
+          <HalfMoon v-else width="16" height="16" />
+        </button>
       </div>
     </header>
 
@@ -472,6 +515,9 @@ const handleRefreshDoc = () => {
         </slot>
       </main>
     </div>
+
+    <!-- 全局轻量浮动通知组件 (接收全站各页面 notify 触发) -->
+    <MNotice />
   </div>
 </template>
 
@@ -536,11 +582,39 @@ const handleRefreshDoc = () => {
   flex: 1;
   max-width: 500px;
   margin: 0 20px;
+  transition: opacity 220ms ease;
+}
+
+.topbar-center.is-hidden-on-start {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .topbar-right {
   display: flex;
   align-items: center;
+  gap: 12px;
+}
+
+.theme-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-xs);
+  color: var(--text-secondary);
+  background-color: transparent;
+  border: 1px solid var(--border-subtle);
+  transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.theme-toggle-btn:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--border-hover);
 }
 
 .header-tags {

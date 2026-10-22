@@ -1,95 +1,956 @@
 <script setup>
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { Search, Xmark, Terminal, Compass, ArrowRight, Book, Sparks } from '@iconoir/vue';
+import { renderToString } from 'typlet';
+import { getCourseCategories } from '../../api';
+
+const router = useRouter();
+
+// 引用元素
+const heroSearchBoxRef = ref(null);
+const heroInputRef = ref(null);
+
+// 搜索状态与动画控制
+const query = ref('');
+const isOpen = ref(false);
+const activeIndex = ref(-1);
+const isFlying = ref(false);
+const flightStyle = ref({});
+
+// 打字机 Placeholder 轮播
+const placeholders = [
+  '搜索考研高数核心定理，如: 泰勒公式...',
+  '搜索课程或章节，如: 极限与连续...',
+  '键入 Typst 公式代码，如: $f(x) = \\int_0^x e^{-t^2} dt$...',
+  '搜索线性代数，如: 特征值与相似对角化...'
+];
+const currentPlaceholder = ref(placeholders[0]);
+let placeholderTimer = null;
+let phIndex = 0;
+
+const startPlaceholderLoop = () => {
+  placeholderTimer = setInterval(() => {
+    phIndex = (phIndex + 1) % placeholders.length;
+    currentPlaceholder.value = placeholders[phIndex];
+  }, 3600);
+};
+
+// 预设高频数学节点与真实课程数据
+const realCourses = ref([]);
+const sampleMathNodes = [
+  { id: 'm1', title: '泰勒中值定理与佩亚诺余项', type: '核心定理', variant: 'purple', path: '/course/kaoyan/doc/sec-2-3', tag: 'THM_TAYLOR' },
+  { id: 'm2', title: '实数确界存在定理与单调有界准则', type: '极限理论', variant: 'blue', path: '/course/kaoyan/doc/sec-1-1', tag: 'AXIOM_LIMIT' },
+  { id: 'm3', title: '定积分的几何应用：旋转体体积与弧长', type: '微积分', variant: 'cyan', path: '/course/kaoyan/doc/sec-3-2', tag: 'CALC_INTEG' },
+  { id: 'm4', title: '特征值、特征向量与矩阵正交对角化', type: '线性代数', variant: 'amber', path: '/course/kaoyan', tag: 'EIGEN_VEC' },
+  { id: 'm5', title: '拉格朗日中值定理与柯西中值定理', type: '微分学', variant: 'purple', path: '/course/kaoyan/doc/sec-2-2', tag: 'THM_MVT' }
+];
+
+// 头部胶囊小字载入解码动效
+const TARGET_PILL_TEXT = 'MAKIMATH // ADVANCED MATHEMATICAL WORKSTATION';
+const displayPillText = ref('');
+
+const runDecodeAnimation = () => {
+  const chars = '01#_*/Σ∂∫λΔΩπ∇+-=<>[]';
+  const target = TARGET_PILL_TEXT;
+  const length = target.length;
+  let iteration = 0;
+  const totalFrames = 42; // 增加帧数，让解码动画更平缓细腻
+
+  const interval = setInterval(() => {
+    displayPillText.value = target
+      .split('')
+      .map((letter, index) => {
+        if (letter === ' ' || letter === '/') return letter;
+        if (index < (iteration / totalFrames) * length) {
+          return target[index];
+        }
+        return chars[Math.floor(Math.random() * chars.length)];
+      })
+      .join('');
+
+    iteration++;
+    if (iteration > totalFrames) {
+      clearInterval(interval);
+      displayPillText.value = target;
+    }
+  }, 36); // 约 1.5 秒舒缓完成
+};
+
+// 加载真实课程信息
+onMounted(async () => {
+  runDecodeAnimation();
+  startPlaceholderLoop();
+  try {
+    const cats = await getCourseCategories();
+    const list = [];
+    cats.forEach(cat => {
+      (cat.courses || []).forEach(c => {
+        list.push({
+          id: `c_${c.id}`,
+          title: c.title,
+          type: '精品课程',
+          variant: 'green',
+          path: `/course/${c.id}`,
+          tag: 'COURSE'
+        });
+      });
+    });
+    realCourses.value = list;
+  } catch (err) {
+    console.warn('[StartView] 获取课程失败，使用默认节点', err);
+  }
+});
+
+onUnmounted(() => {
+  if (placeholderTimer) clearInterval(placeholderTimer);
+});
+
+// 检测是否为 Typst 数学公式输入并即时编译
+const typstPreviewHtml = computed(() => {
+  const q = query.value.trim();
+  if (!q) return null;
+  // 当用户输入带 $ 或者含常见数学符号时触发即时编译
+  if (q.startsWith('$') || q.includes('\\') || q.includes('^') || q.includes('_') || q.includes('=')) {
+    try {
+      const cleanTypst = q.replace(/^\$+|\$+$/g, '').trim();
+      if (!cleanTypst) return null;
+      return renderToString(cleanTypst, { displayMode: true });
+    } catch {
+      return null;
+    }
+  }
+  return null;
+});
+
+// 综合搜索匹配池
+const allSearchPool = computed(() => {
+  return [...sampleMathNodes, ...realCourses.value];
+});
+
+// 过滤结果
+const filteredResults = computed(() => {
+  const q = query.value.trim().toLowerCase();
+  if (!q) {
+    return sampleMathNodes.slice(0, 4);
+  }
+  return allSearchPool.value.filter(item =>
+    item.title.toLowerCase().includes(q) ||
+    item.type.toLowerCase().includes(q) ||
+    item.tag.toLowerCase().includes(q)
+  );
+});
+
+// 快捷胶囊列表
+const quickShortcuts = [
+  { label: '考研数学精讲', path: '/course/kaoyan', icon: Book },
+  { label: '讲义管理后台', path: '/admin', icon: Terminal },
+  { label: '讲义推荐路线', path: '/recom-lecture', icon: Compass },
+  { label: '如何使用平台', path: '/how-to-use', icon: Sparks }
+];
+
+// 打开/关闭搜索
+const handleFocus = () => {
+  isOpen.value = true;
+};
+
+const handleBlur = () => {
+  // 延迟失焦，确保点击结果项先触发
+  setTimeout(() => {
+    isOpen.value = false;
+  }, 180);
+};
+
+// 核心：启动向顶栏的平滑飞行动画并跳转
+const flyAndNavigate = (targetPath) => {
+  if (isFlying.value) return;
+
+  isOpen.value = false;
+  const heroEl = heroSearchBoxRef.value;
+  const targetEl = document.querySelector('.topbar-center');
+
+  if (!heroEl || !targetEl) {
+    router.push(targetPath);
+    return;
+  }
+
+  const heroRect = heroEl.getBoundingClientRect();
+  const targetRect = targetEl.getBoundingClientRect();
+
+  // 精准计算中心到顶栏的平移与缩放 (FLIP 原理)
+  const dx = targetRect.left - heroRect.left;
+  const dy = targetRect.top - heroRect.top;
+  const sx = targetRect.width / heroRect.width;
+  const sy = targetRect.height / heroRect.height;
+
+  flightStyle.value = {
+    transform: `translate3d(${dx}px, ${dy}px, 0) scale(${sx}, ${sy})`,
+    transformOrigin: 'top left'
+  };
+
+  isFlying.value = true;
+
+  // 动画即将落位时完成路由切换
+  setTimeout(() => {
+    router.push(targetPath);
+  }, 280);
+};
+
+// 键盘控制（上下切换与回车确认）
+const handleKeyDown = (e) => {
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    if (filteredResults.value.length) {
+      activeIndex.value = (activeIndex.value + 1) % filteredResults.value.length;
+    }
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (filteredResults.value.length) {
+      activeIndex.value = (activeIndex.value - 1 + filteredResults.value.length) % filteredResults.value.length;
+    }
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    if (activeIndex.value >= 0 && activeIndex.value < filteredResults.value.length) {
+      flyAndNavigate(filteredResults.value[activeIndex.value].path);
+    } else if (filteredResults.value.length > 0) {
+      flyAndNavigate(filteredResults.value[0].path);
+    } else {
+      flyAndNavigate('/course/kaoyan');
+    }
+  } else if (e.key === 'Escape') {
+    isOpen.value = false;
+    heroInputRef.value?.blur();
+  }
+};
 </script>
 
 <template>
-  <div class="view-container">
-    <div class="view-header">
-      <h1 class="view-title font-mono">START // 快速开始</h1>
-      <p class="view-desc">MakiMath 数学讲义系统工作台，专注于结构化公式编排与知识图谱浏览。</p>
-    </div>
+  <div class="start-viewport" :class="{ 'is-flying': isFlying }">
+    <!-- 背景极客数学细网格与渐变微光 -->
+    <div class="math-grid-bg"></div>
 
-    <div class="card-grid">
-      <div class="info-card">
-        <div class="card-header">
-          <span class="card-title font-mono">01 // 环境与引擎</span>
-          <MTag variant="purple" size="sm">TYPST</MTag>
+    <div class="start-main-container" :class="{ 'is-leaving': isFlying }">
+      <!-- 极客头部标识与副标题 -->
+      <header class="start-header">
+        <div class="brand-pill font-mono">
+          <Terminal width="13" height="13" class="pill-icon" />
+          <span>{{ displayPillText || TARGET_PILL_TEXT }}</span>
         </div>
-        <p class="card-body-text">
-          基于 Typst 现代化排版引擎驱动，提供毫秒级公式渲染与高质量 PDF/SVG 讲义输出。
+        <h1 class="start-title">
+          结构化数学讲义与知识拓扑平台
+        </h1>
+        <p class="start-desc">
+          毫秒级 Typst 公式排版 · 前置定理依赖图谱 · 沉浸式 IDE 极客视界
         </p>
+      </header>
+
+      <!-- 中央超级检索舱 (包含飞行动画承载层) -->
+      <div class="hero-search-wrapper">
+        <div
+          ref="heroSearchBoxRef"
+          class="hero-search-box"
+          :class="{ 'is-focused': isOpen, 'is-in-flight': isFlying }"
+          :style="isFlying ? flightStyle : {}"
+          @click="heroInputRef?.focus()"
+        >
+          <div class="hero-search-inner">
+            <Search width="19" height="19" class="hero-search-icon" />
+            <div class="input-field-wrapper">
+              <input
+                ref="heroInputRef"
+                v-model="query"
+                type="text"
+                class="hero-native-input"
+                @focus="handleFocus"
+                @blur="handleBlur"
+                @keydown="handleKeyDown"
+              />
+              <!-- 动态垂直滚动翻转的提示文字 -->
+              <div v-if="!query" class="animated-placeholder-box">
+                <transition name="placeholder-roll" mode="out-in">
+                  <span :key="currentPlaceholder" class="placeholder-text">
+                    {{ currentPlaceholder }}
+                  </span>
+                </transition>
+              </div>
+            </div>
+            <button
+              v-if="query && !isFlying"
+              class="clear-btn"
+              title="清除"
+              @click.stop="query = ''; heroInputRef?.focus()"
+            >
+              <Xmark width="16" height="16" />
+            </button>
+            <div v-else class="hero-kbd-wrap font-mono">
+              <kbd class="hero-kbd">Ctrl+K</kbd>
+            </div>
+          </div>
+        </div>
+
+        <!-- 实时搜索结果浮层面板 (绝对定位，内部滚动，绝对不撑开外层滚动条) -->
+        <transition name="dropdown-fade">
+          <div v-if="isOpen && !isFlying" class="hero-dropdown-card">
+            <!-- Typst 实时公式预览条目（如果用户输入了公式，带滑入展开动效） -->
+            <transition name="preview-slide">
+              <div v-if="typstPreviewHtml" class="typst-preview-box">
+                <div class="preview-header font-mono">
+                  <span class="preview-tag">TYPST LIVE COMPILED</span>
+                  <span class="preview-hint">毫秒级公式即时排版预览</span>
+                </div>
+                <div class="preview-body" v-html="typstPreviewHtml"></div>
+              </div>
+            </transition>
+
+            <!-- 搜索结果列表 -->
+            <div class="dropdown-header">
+              <span>{{ query ? '匹配数学讲义与知识节点' : '推荐核心数学定理与章节' }}</span>
+              <span class="count-tag font-mono">{{ filteredResults.length }} 节点</span>
+            </div>
+
+            <!-- 带平滑重排与交错过渡的列表项容器 -->
+            <TransitionGroup
+              v-if="filteredResults.length"
+              name="result-item"
+              tag="div"
+              class="dropdown-list"
+            >
+              <div
+                v-for="(item, idx) in filteredResults"
+                :key="item.id"
+                class="result-row"
+                :class="{ 'is-active': activeIndex === idx }"
+                @mousedown.prevent="flyAndNavigate(item.path)"
+                @mouseenter="activeIndex = idx"
+              >
+                <div class="result-tag-col">
+                  <MTag :variant="item.variant" size="sm">{{ item.type }}</MTag>
+                </div>
+                <div class="result-content-col">
+                  <span class="result-title">{{ item.title }}</span>
+                  <span class="result-path font-mono">{{ item.tag }}</span>
+                </div>
+                <ArrowRight width="14" height="14" class="result-arrow" />
+              </div>
+            </TransitionGroup>
+
+            <div v-else class="empty-state">
+              <span>未检索到与 "{{ query }}" 相关的数学节点</span>
+            </div>
+
+            <div class="dropdown-footer font-mono">
+              <span><kbd>↑</kbd><kbd>↓</kbd> 导航</span>
+              <span><kbd>Enter</kbd> 确认并跳转</span>
+              <span><kbd>Esc</kbd> 退出</span>
+            </div>
+          </div>
+        </transition>
       </div>
 
-      <div class="info-card">
-        <div class="card-header">
-          <span class="card-title font-mono">02 // 极简暗色体验</span>
-          <MTag variant="cyan" size="sm">THEME</MTag>
-        </div>
-        <p class="card-body-text">
-          遵循中性深炭灰阶梯规范，无眩光纯色微圆角，提供沉浸专注的公式编排视界。
-        </p>
+      <!-- 快捷胶囊入口 -->
+      <div class="shortcuts-row">
+        <span class="shortcuts-label font-mono">FAST TRACK //</span>
+        <button
+          v-for="sc in quickShortcuts"
+          :key="sc.path"
+          class="shortcut-btn"
+          @click="flyAndNavigate(sc.path)"
+        >
+          <component :is="sc.icon" width="14" height="14" class="sc-icon" />
+          <span>{{ sc.label }}</span>
+        </button>
       </div>
     </div>
+
+    <!-- 底部悬挂备案信息 -->
+    <footer class="start-beian-footer font-mono" :class="{ 'is-leaving': isFlying }">
+      <span class="beian-item copyright">© 2026 MakiMath</span>
+      <span class="beian-sep">/</span>
+      <a
+        href="https://beian.miit.gov.cn/"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="beian-link"
+      >
+        沪ICP备2022010774号
+      </a>
+    </footer>
   </div>
 </template>
 
 <style scoped>
-.view-container {
-  padding: 28px;
+/* 整个欢迎首页视口强制 100% 高度，严格禁止任何外层滚动条 */
+.start-viewport {
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  max-height: 100%;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  position: relative;
+  background-color: var(--bg-app);
+  user-select: none;
+  padding-top: clamp(80px, 17vh, 150px);
+}
+
+/* 极客轻量数学点阵网格背景 */
+.math-grid-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: 
+    radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.05) 0%, transparent 65%),
+    linear-gradient(to right, var(--border-subtle) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--border-subtle) 1px, transparent 1px);
+  background-size: 100% 100%, 40px 40px, 40px 40px;
+  opacity: 0.6;
+}
+
+/* 主容器：在视口上半部分呈纵向分布，为下拉面板留出充裕空间 */
+.start-main-container {
+  position: relative;
+  z-index: 10;
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  max-width: 1200px;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  max-width: 720px;
+  padding: 0 24px;
+  transition: opacity 260ms ease, transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.view-header {
+/* 飞行动画触发时，周围元素纯淡出，无任何位移 */
+.start-main-container.is-leaving .start-header,
+.start-main-container.is-leaving .shortcuts-row {
+  opacity: 0;
+  transition: opacity 200ms ease;
+  pointer-events: none;
+}
+
+/* 顶部标题与极客标识 */
+.start-header {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-}
-
-.view-title {
-  font-size: var(--font-size-largest);
-  font-weight: var(--font-weight-semibold);
-  color: var(--text-primary);
-  letter-spacing: 0.5px;
-}
-
-.view-desc {
-  font-size: var(--font-size-smaller);
-  color: var(--text-muted);
-}
-
-.card-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-}
-
-.info-card {
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
+  align-items: center;
+  text-align: center;
   gap: 12px;
 }
 
-.card-header {
+.brand-pill {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  border-radius: var(--radius-xs);
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  font-size: var(--font-size-smallest);
+  color: var(--accent-primary);
+  letter-spacing: 0.75px;
+}
+
+/* 载入时的一道柔和微光，以舒缓的速度徐徐扫过 */
+.brand-pill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 65%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.06) 20%,
+    rgba(255, 255, 255, 0.42) 50%,
+    rgba(255, 255, 255, 0.06) 80%,
+    transparent 100%
+  );
+  transform: skewX(-20deg);
+  animation: pillShimmer 2.8s 0.25s cubic-bezier(0.25, 0.9, 0.35, 1) forwards;
+  pointer-events: none;
+}
+
+@keyframes pillShimmer {
+  from {
+    left: -100%;
+  }
+  to {
+    left: 200%;
+  }
+}
+
+.pill-icon {
+  color: var(--accent-primary);
+}
+
+.start-title {
+  font-size: 26px;
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  letter-spacing: -0.2px;
+}
+
+.start-desc {
+  font-size: var(--font-size-smaller);
+  color: var(--text-muted);
+  max-width: 520px;
+  line-height: 1.6;
+}
+
+/* 中央超级检索舱 */
+.hero-search-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 640px;
+}
+
+.hero-search-box {
+  width: 100%;
+  height: 52px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  cursor: text;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  transition: border-color 200ms ease, background-color 200ms ease, box-shadow 200ms ease;
+  will-change: transform;
+}
+
+.hero-search-box:hover {
+  background-color: var(--bg-elevated);
+  border-color: var(--border-hover);
+}
+
+.hero-search-box.is-focused {
+  background-color: var(--bg-elevated);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 1px var(--accent-primary), 0 8px 30px rgba(0, 0, 0, 0.25);
+}
+
+/* 飞行中的状态（硬件加速） */
+.hero-search-box.is-in-flight {
+  border-color: var(--border-subtle) !important;
+  box-shadow: none !important;
+  transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1), opacity 300ms ease !important;
+  pointer-events: none;
+  z-index: 999;
+}
+
+.hero-search-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  height: 100%;
+  padding: 0 16px;
+}
+
+.hero-search-icon {
+  flex-shrink: 0;
+  color: var(--accent-primary);
+}
+
+.input-field-wrapper {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  overflow: hidden;
+}
+
+.hero-native-input {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-size: var(--font-size);
+  font-family: var(--font-ui);
+  position: relative;
+  z-index: 2;
+}
+
+/* 动态垂直滚动翻转的提示文字层 */
+.animated-placeholder-box {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.placeholder-text {
+  font-size: var(--font-size-smaller);
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-block;
+}
+
+/* 提示文字垂直翻滚淡出淡入动效 */
+.placeholder-roll-enter-active,
+.placeholder-roll-leave-active {
+  transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1), opacity 240ms ease;
+}
+
+.placeholder-roll-enter-from {
+  opacity: 0;
+  transform: translateY(12px);
+}
+
+.placeholder-roll-leave-to {
+  opacity: 0;
+  transform: translateY(-12px);
+}
+
+.clear-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: var(--radius-xs);
+}
+
+.clear-btn:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-base);
+}
+
+.hero-kbd-wrap {
+  display: flex;
+  align-items: center;
+}
+
+.hero-kbd {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+  background-color: var(--bg-base);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+}
+
+/* 下拉搜索浮层卡片 */
+.hero-dropdown-card {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 50;
+  max-height: 380px;
+}
+
+/* Typst 实时编译预览条与滑发展开动效 */
+.typst-preview-box {
+  padding: 12px 16px;
+  background-color: var(--bg-base);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: all 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.preview-slide-enter-active,
+.preview-slide-leave-active {
+  transition: all 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  max-height: 140px;
+  overflow: hidden;
+}
+
+.preview-slide-enter-from,
+.preview-slide-leave-to {
+  opacity: 0;
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  transform: translateY(-6px);
+}
+
+.preview-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-.card-title {
-  font-size: var(--font-size-smaller);
-  color: var(--text-secondary);
+.preview-tag {
+  font-size: 11px;
+  color: var(--accent-primary);
   font-weight: var(--font-weight-medium);
 }
 
-.card-body-text {
-  font-size: var(--font-size-smaller);
-  line-height: 1.6;
+.preview-hint {
+  font-size: 11px;
   color: var(--text-muted);
+}
+
+.preview-body {
+  padding: 6px 10px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+}
+
+.dropdown-header {
+  padding: 10px 16px;
+  font-size: 12px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.count-tag {
+  font-size: 11px;
+}
+
+.dropdown-list {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  max-height: 220px;
+  position: relative;
+}
+
+/* 搜索结果列表项在输入变化时的平滑重排与交错进出动效 */
+.result-item-move {
+  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.result-item-enter-active {
+  transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.result-item-leave-active {
+  transition: all 160ms ease-in;
+  position: absolute;
+  width: 100%;
+}
+
+.result-item-enter-from {
+  opacity: 0;
+  transform: translateY(-8px) scale(0.99);
+}
+
+.result-item-leave-to {
+  opacity: 0;
+  transform: scale(0.98);
+}
+
+/* 列表行：键盘上下键切换高亮时的平滑微交互响应 */
+.result-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  transition: background-color 160ms cubic-bezier(0.16, 1, 0.3, 1),
+              border-left-color 160ms cubic-bezier(0.16, 1, 0.3, 1),
+              padding-left 160ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.result-row:hover,
+.result-row.is-active {
+  background-color: var(--bg-elevated);
+  border-left-color: var(--accent-primary);
+  padding-left: 20px; /* 选中行轻快向右微推 4px，产生灵动的指示感 */
+}
+
+.result-tag-col {
+  flex-shrink: 0;
+  transition: transform 160ms ease;
+}
+
+.result-content-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  transition: transform 160ms ease;
+}
+
+.result-title {
+  font-size: var(--font-size);
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.result-path {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.result-arrow {
+  color: var(--text-muted);
+  opacity: 0.3;
+  flex-shrink: 0;
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 180ms ease,
+              color 180ms ease;
+}
+
+.result-row:hover .result-arrow,
+.result-row.is-active .result-arrow {
+  color: var(--accent-primary);
+  opacity: 1;
+  transform: translateX(4px); /* 箭头向右探出指示 */
+}
+
+.empty-state {
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: var(--font-size-smaller);
+}
+
+.dropdown-footer {
+  padding: 8px 16px;
+  background-color: var(--bg-base);
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.dropdown-footer kbd {
+  padding: 1px 4px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xs);
+  margin-right: 4px;
+}
+
+/* 下拉渐隐动效 */
+.dropdown-fade-enter-active,
+.dropdown-fade-leave-active {
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.dropdown-fade-enter-from,
+.dropdown-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+/* 快捷胶囊入口 */
+.shortcuts-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  transition: all 240ms ease;
+}
+
+.shortcuts-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-right: 4px;
+}
+
+.shortcut-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xs);
+  color: var(--text-secondary);
+  font-size: var(--font-size-smallest);
+  cursor: pointer;
+  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+
+.shortcut-btn:hover {
+  background-color: var(--bg-elevated);
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+}
+
+.sc-icon {
+  color: var(--text-muted);
+}
+
+.shortcut-btn:hover .sc-icon {
+  color: var(--accent-primary);
+}
+
+/* 底部悬挂示例备案信息 */
+.start-beian-footer {
+  position: absolute;
+  bottom: 14px;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--text-muted);
+  opacity: 0.6;
+  transition: opacity 200ms ease;
+  z-index: 10;
+  user-select: text;
+}
+
+.start-beian-footer:hover {
+  opacity: 0.95;
+}
+
+.start-beian-footer.is-leaving {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.beian-link {
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 140ms ease;
+}
+
+.beian-link:hover {
+  color: var(--accent-primary);
+  text-decoration: underline;
+}
+
+.beian-sep {
+  opacity: 0.35;
 }
 </style>
