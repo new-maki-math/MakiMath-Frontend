@@ -22,6 +22,7 @@ import MButton from '../../components/MButton.vue';
 import MInput from '../../components/MInput.vue';
 import MTag from '../../components/MTag.vue';
 import MModal from '../../components/MModal.vue';
+import MTable from '../../components/MTable.vue';
 
 // 当前激活的管理选项卡
 const activeTab = ref('users');
@@ -417,68 +418,70 @@ onMounted(() => {
           </div>
         </div>
 
-        <div class="data-table-card">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>用户名</th>
-                <th>显示昵称</th>
-                <th>系统角色</th>
-                <th>账号状态</th>
-                <th>注册时间</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="user in users" :key="user.id">
-                <td class="col-dim">#{{ user.id }}</td>
-                <td class="col-bold">{{ user.username }}</td>
-                <td>{{ user.display_name || '-' }}</td>
-                <td>
-                  <MTag :variant="user.role === 'super_admin' ? 'purple' : 'blue'" size="sm">
-                    {{ user.role === 'super_admin' ? '超级管理员' : '编者' }}
-                  </MTag>
-                </td>
-                <td>
-                  <span
-                    class="status-pill"
-                    :class="user.status === 'active' ? 'status-active' : 'status-disabled'"
+        <MTable :data="users" :loading="isLoadingUsers">
+          <template #header>
+            <th>ID</th>
+            <th>用户名</th>
+            <th>显示昵称</th>
+            <th>系统角色</th>
+            <th>账号状态</th>
+            <th>注册时间</th>
+            <th>操作</th>
+          </template>
+          <template #rows="{ data }">
+            <tr v-for="user in data" :key="user.id">
+              <td class="col-dim">#{{ user.id }}</td>
+              <td class="col-bold">{{ user.username }}</td>
+              <td>{{ user.display_name || '-' }}</td>
+              <td>
+                <MTag :variant="user.role === 'super_admin' ? 'purple' : 'blue'" size="sm">
+                  {{ user.role === 'super_admin' ? '超级管理员' : '编者' }}
+                </MTag>
+              </td>
+              <td>
+                <span
+                  class="status-pill"
+                  :class="user.status === 'active' ? 'status-active' : 'status-disabled'"
+                >
+                  {{ user.status === 'active' ? '正常' : '已冻结' }}
+                </span>
+              </td>
+              <td class="col-dim">{{ formatDate(user.created_at) }}</td>
+              <td>
+                <div class="table-actions">
+                  <MButton
+                    variant="secondary"
+                    size="sm"
+                    :mono="true"
+                    :title="user.status === 'active' ? '禁用账号' : '解封账号'"
+                    @click="toggleUserStatus(user)"
                   >
-                    {{ user.status === 'active' ? '正常' : '已冻结' }}
-                  </span>
-                </td>
-                <td class="col-dim">{{ formatDate(user.created_at) }}</td>
-                <td>
-                  <div class="table-actions">
-                    <button
-                      class="row-action-btn"
-                      :title="user.status === 'active' ? '禁用账号' : '解封账号'"
-                      @click="toggleUserStatus(user)"
-                    >
-                      {{ user.status === 'active' ? '冻结' : '解封' }}
-                    </button>
-                    <button
-                      class="row-action-btn"
-                      title="重置登录密码"
-                      @click="handleOpenResetPwd(user)"
-                    >
-                      改密
-                    </button>
-                    <button
-                      v-if="user.id !== currentUser?.id"
-                      class="row-action-btn is-danger"
-                      title="删除用户"
-                      @click="handleDeleteUser(user)"
-                    >
-                      删除
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+                    {{ user.status === 'active' ? '冻结' : '解封' }}
+                  </MButton>
+                  <MButton
+                    variant="secondary"
+                    size="sm"
+                    :mono="true"
+                    title="重置登录密码"
+                    @click="handleOpenResetPwd(user)"
+                  >
+                    改密
+                  </MButton>
+                  <MButton
+                    v-if="user.id !== currentUser?.id"
+                    variant="danger"
+                    size="sm"
+                    :mono="true"
+                    title="删除用户"
+                    @click="handleDeleteUser(user)"
+                  >
+                    删除
+                  </MButton>
+                </div>
+              </td>
+            </tr>
+          </template>
+        </MTable>
       </section>
 
       <!-- 邀请码管理面板 -->
@@ -499,68 +502,66 @@ onMounted(() => {
           </div>
         </div>
 
-        <div class="data-table-card">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>邀请码</th>
-                <th>角色</th>
-                <th>使用次数</th>
-                <th>状态</th>
-                <th>备注</th>
-                <th>有效期至</th>
-                <th>生成时间</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="inv in invitations" :key="inv.id">
-                <td class="col-code">
-                  <span>{{ inv.code }}</span>
-                  <button class="copy-inline-btn" title="复制邀请码" @click="handleCopy(inv.code)">
-                    <Copy width="12" height="12" />
-                  </button>
-                </td>
-                <td>
-                  <MTag :variant="inv.role === 'super_admin' ? 'purple' : 'gray'" size="sm">
-                    {{ inv.role }}
-                  </MTag>
-                </td>
-                <td class="col-dim">{{ inv.used_count }} / {{ inv.max_uses }}</td>
-                <td>
-                  <span
-                    class="status-pill"
-                    :class="{
-                      'status-active': inv.status === 'active',
-                      'status-exhausted': inv.status === 'exhausted',
-                      'status-disabled': inv.status === 'revoked'
-                    }"
-                  >
-                    {{ inv.status === 'active' ? '有效' : inv.status === 'exhausted' ? '已耗尽' : '已作废' }}
-                  </span>
-                </td>
-                <td class="col-dim">{{ inv.note || '-' }}</td>
-                <td class="col-dim">{{ inv.expires_at ? formatDate(inv.expires_at) : '永久有效' }}</td>
-                <td class="col-dim">{{ formatDate(inv.created_at) }}</td>
-                <td>
-                  <button
-                    v-if="inv.status === 'active'"
-                    class="row-action-btn is-danger"
-                    title="废弃此邀请码"
-                    @click="handleRevokeInvite(inv)"
-                  >
-                    作废
-                  </button>
-                  <span v-else class="col-dim">-</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <MTable :data="invitations" :loading="isLoadingInvitations">
+          <template #header>
+            <th>邀请码</th>
+            <th>角色</th>
+            <th>使用次数</th>
+            <th>状态</th>
+            <th>备注</th>
+            <th>有效期至</th>
+            <th>生成时间</th>
+            <th>操作</th>
+          </template>
+          <template #rows="{ data }">
+            <tr v-for="inv in data" :key="inv.id">
+              <td class="col-code">
+                <span>{{ inv.code }}</span>
+                <button class="copy-inline-btn" title="复制邀请码" @click="handleCopy(inv.code)">
+                  <Copy width="12" height="12" />
+                </button>
+              </td>
+              <td>
+                <MTag :variant="inv.role === 'super_admin' ? 'purple' : 'gray'" size="sm">
+                  {{ inv.role }}
+                </MTag>
+              </td>
+              <td class="col-dim">{{ inv.used_count }} / {{ inv.max_uses }}</td>
+              <td>
+                <span
+                  class="status-pill"
+                  :class="{
+                    'status-active': inv.status === 'active',
+                    'status-exhausted': inv.status === 'exhausted',
+                    'status-disabled': inv.status === 'revoked'
+                  }"
+                >
+                  {{ inv.status === 'active' ? '有效' : inv.status === 'exhausted' ? '已耗尽' : '已作废' }}
+                </span>
+              </td>
+              <td class="col-dim">{{ inv.note || '-' }}</td>
+              <td class="col-dim">{{ inv.expires_at ? formatDate(inv.expires_at) : '永久有效' }}</td>
+              <td class="col-dim">{{ formatDate(inv.created_at) }}</td>
+              <td>
+                <MButton
+                  v-if="inv.status === 'active'"
+                  variant="danger"
+                  size="sm"
+                  :mono="true"
+                  title="废弃此邀请码"
+                  @click="handleRevokeInvite(inv)"
+                >
+                  作废
+                </MButton>
+                <span v-else class="col-dim">-</span>
+              </td>
+            </tr>
+          </template>
+        </MTable>
       </section>
 
       <!-- 课程协作者授权面板 -->
-      <section v-else-if="activeTab === 'editors'" class="section-pane">
+      <section v-else-if="activeTab === 'editors'" class="section-pane is-fill-pane">
         <div class="pane-toolbar">
           <div class="toolbar-title-wrap">
             <h1 class="pane-title font-mono">EDITORS // 课程协作者授权</h1>
@@ -611,38 +612,36 @@ onMounted(() => {
             <div v-else-if="courseEditors.length === 0" class="empty-holder">
               当前课程尚未指派协作者，所有超级管理员均具备完全编辑权。
             </div>
-            <div v-else class="data-table-card">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>用户</th>
-                    <th>昵称</th>
-                    <th>角色</th>
-                    <th>授权时间</th>
-                    <th>操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="ed in courseEditors" :key="ed.id">
-                    <td class="col-bold">{{ ed.username }}</td>
-                    <td>{{ ed.display_name || '-' }}</td>
-                    <td>
-                      <MTag variant="gray" size="sm">{{ ed.role }}</MTag>
-                    </td>
-                    <td class="col-dim">{{ formatDate(ed.assigned_at) }}</td>
-                    <td>
-                      <button
-                        class="row-action-btn is-danger"
-                        title="收回编辑权"
-                        @click="handleRemoveEditor(ed)"
-                      >
-                        移除
-                      </button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+            <MTable v-else :data="courseEditors" :loading="isLoadingEditors">
+              <template #header>
+                <th>用户</th>
+                <th>昵称</th>
+                <th>角色</th>
+                <th>授权时间</th>
+                <th>操作</th>
+              </template>
+              <template #rows="{ data }">
+                <tr v-for="ed in data" :key="ed.id">
+                  <td class="col-bold">{{ ed.username }}</td>
+                  <td>{{ ed.display_name || '-' }}</td>
+                  <td>
+                    <MTag variant="gray" size="sm">{{ ed.role }}</MTag>
+                  </td>
+                  <td class="col-dim">{{ formatDate(ed.assigned_at) }}</td>
+                  <td>
+                    <MButton
+                      variant="danger"
+                      size="sm"
+                      :mono="true"
+                      title="收回编辑权"
+                      @click="handleRemoveEditor(ed)"
+                    >
+                      移除
+                    </MButton>
+                  </td>
+                </tr>
+              </template>
+            </MTable>
           </div>
         </div>
       </section>
@@ -661,49 +660,45 @@ onMounted(() => {
           </div>
         </div>
 
-        <div class="data-table-card">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>时间</th>
-                <th>操作者</th>
-                <th>角色</th>
-                <th>方法</th>
-                <th>API 路由</th>
-                <th>状态</th>
-                <th>耗时</th>
-                <th>IP 地址</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="log in auditLogs" :key="log.id">
-                <td class="col-dim">{{ formatDate(log.created_at) }}</td>
-                <td class="col-bold">{{ log.username || '匿名/系统' }}</td>
-                <td>
-                  <MTag :variant="log.user_role === 'super_admin' ? 'purple' : 'gray'" size="sm">
-                    {{ log.user_role || '-' }}
-                  </MTag>
-                </td>
-                <td>
-                  <span class="method-tag" :class="`is-${log.method.toLowerCase()}`">
-                    {{ log.method }}
-                  </span>
-                </td>
-                <td class="col-path" :title="log.path">{{ log.path }}</td>
-                <td>
-                  <span
-                    class="status-dot"
-                    :class="log.status_code < 400 ? 'status-ok' : 'status-err'"
-                  >
-                    {{ log.status_code }}
-                  </span>
-                </td>
-                <td class="col-dim">{{ log.duration_ms }}ms</td>
-                <td class="col-dim">{{ log.ip_address || '-' }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <MTable :data="auditLogs" :loading="isLoadingAudit">
+          <template #header>
+            <th>时间</th>
+            <th>操作者</th>
+            <th>角色</th>
+            <th>方法</th>
+            <th>API 路由</th>
+            <th>状态</th>
+            <th>耗时</th>
+            <th>IP 地址</th>
+          </template>
+          <template #rows="{ data }">
+            <tr v-for="log in data" :key="log.id">
+              <td class="col-dim">{{ formatDate(log.created_at) }}</td>
+              <td class="col-bold">{{ log.username || '匿名/系统' }}</td>
+              <td>
+                <MTag :variant="log.user_role === 'super_admin' ? 'purple' : 'gray'" size="sm">
+                  {{ log.user_role || '-' }}
+                </MTag>
+              </td>
+              <td>
+                <span class="method-tag" :class="`is-${log.method.toLowerCase()}`">
+                  {{ log.method }}
+                </span>
+              </td>
+              <td class="col-path" :title="log.path">{{ log.path }}</td>
+              <td>
+                <span
+                  class="status-dot"
+                  :class="log.status_code < 400 ? 'status-ok' : 'status-err'"
+                >
+                  {{ log.status_code }}
+                </span>
+              </td>
+              <td class="col-dim">{{ log.duration_ms }}ms</td>
+              <td class="col-dim">{{ log.ip_address || '-' }}</td>
+            </tr>
+          </template>
+        </MTable>
       </section>
     </main>
 
@@ -932,13 +927,20 @@ onMounted(() => {
   flex-direction: column;
   min-width: 0;
   overflow-y: auto;
-  padding: 24px 32px;
+  padding: 28px;
 }
 
 .section-pane {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 24px;
+  max-width: 1200px;
+}
+
+.section-pane.is-fill-pane {
+  flex: 1;
+  min-height: 0;
+  max-width: none;
 }
 
 .pane-toolbar {
@@ -948,7 +950,7 @@ onMounted(() => {
 }
 
 .pane-title {
-  font-size: var(--font-size-larger);
+  font-size: var(--font-size-largest);
   font-weight: var(--font-weight-semibold);
   color: var(--text-primary);
   letter-spacing: 0.5px;
@@ -958,7 +960,7 @@ onMounted(() => {
 .pane-subtitle {
   font-size: var(--font-size-smaller);
   color: var(--text-muted);
-  margin: 4px 0 0 0;
+  margin: 8px 0 0 0;
   line-height: 1.5;
 }
 
@@ -985,39 +987,6 @@ onMounted(() => {
 .icon-action-btn:hover {
   background-color: var(--bg-hover);
   color: var(--text-primary);
-}
-
-.data-table-card {
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  overflow-x: auto;
-}
-
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--font-size-smaller);
-}
-
-.data-table th {
-  text-align: left;
-  padding: 10px 14px;
-  color: var(--text-muted);
-  border-bottom: 1px solid var(--border-subtle);
-  font-weight: var(--font-weight-medium);
-  background-color: var(--bg-surface-elevated, var(--bg-surface));
-}
-
-.data-table td {
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--border-subtle);
-  color: var(--text-secondary);
-  white-space: nowrap;
-}
-
-.data-table tbody tr:hover {
-  background-color: var(--bg-hover);
 }
 
 .col-dim {
@@ -1108,7 +1077,8 @@ onMounted(() => {
 .split-editor-box {
   display: flex;
   gap: 16px;
-  height: 520px;
+  flex: 1;
+  min-height: 0;
 }
 
 .course-picker-list {

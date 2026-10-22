@@ -74,11 +74,11 @@ const navigateToCourse = (courseId) => {
 
 <style scoped>
 .view-container {
-  padding: 24px;
+  padding: 28px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  width: 100%;
+  gap: 24px;
+  max-width: 1200px;
   box-sizing: border-box;
 }
 
@@ -86,19 +86,16 @@ const navigateToCourse = (courseId) => {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--border-subtle);
 }
 
 .header-main {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  max-width: 680px;
+  gap: 8px;
 }
 
 .view-title {
-  font-size: var(--font-size-larger);
+  font-size: var(--font-size-largest);
   font-weight: var(--font-weight-semibold);
   color: var(--text-primary);
   letter-spacing: 0.5px;
@@ -109,7 +106,6 @@ const navigateToCourse = (courseId) => {
   font-size: var(--font-size-smaller);
   color: var(--text-muted);
   margin: 0;
-  line-height: 1.5;
 }
 
 .routes-grid {
