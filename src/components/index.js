@@ -14,6 +14,7 @@ import RoadmapGraph from './RoadmapGraph.vue';
 import MBackdrop from './MBackdrop.vue';
 import MSelectionToolbar from './MSelectionToolbar.vue';
 import MUserModal from './MUserModal.vue';
+import MTable from './MTable.vue';
 import MNotice, { notify, useNotice } from './MNotice.vue';
 
 export {
@@ -33,6 +34,7 @@ export {
   MBackdrop,
   MSelectionToolbar,
   MUserModal,
+  MTable,
   MNotice,
   notify,
   useNotice
@@ -58,6 +60,7 @@ export default {
     app.component('MOverlay', MBackdrop);
     app.component('MSelectionToolbar', MSelectionToolbar);
     app.component('MUserModal', MUserModal);
+    app.component('MTable', MTable);
     app.component('MNotice', MNotice);
   }
 };

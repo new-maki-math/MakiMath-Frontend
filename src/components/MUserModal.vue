@@ -187,158 +187,160 @@ const formatDate = (isoStr) => {
 
 <template>
   <MBackdrop :open="open" teleport fixed :z-index="120" @close="emit('close')">
-    <div class="user-modal-panel font-mono" @click.stop>
-      <div class="user-modal-sidebar">
-        <div class="sidebar-brand">
-          <UserCircle width="18" height="18" class="brand-icon" />
-          <span class="brand-title">ACCOUNT</span>
-        </div>
-        <nav class="sidebar-tab-list">
-          <button
-            v-for="tab in tabs"
-            :key="tab.id"
-            type="button"
-            class="sidebar-tab-btn"
-            :class="{ active: currentTab === tab.id }"
-            @click="currentTab = tab.id"
-          >
-            <component :is="tab.icon" width="16" height="16" class="tab-icon" />
-            <span class="tab-text">{{ tab.label }}</span>
-          </button>
-        </nav>
-      </div>
-
-      <div class="user-modal-content">
-        <div class="content-header">
-          <div class="header-left">
-            <span class="header-section-name">
-              {{ tabs.find((t) => t.id === currentTab)?.label }}
-            </span>
+    <transition name="modal-pop">
+      <div v-if="open" class="user-modal-panel font-mono" @click.stop>
+        <div class="user-modal-sidebar">
+          <div class="sidebar-brand">
+            <UserCircle width="18" height="18" class="brand-icon" />
+            <span class="brand-title">ACCOUNT</span>
           </div>
-          <button class="header-close-btn" title="关闭窗口" @click="emit('close')">
-            <Xmark width="16" height="16" />
-          </button>
+          <nav class="sidebar-tab-list">
+            <button
+              v-for="tab in tabs"
+              :key="tab.id"
+              type="button"
+              class="sidebar-tab-btn"
+              :class="{ active: currentTab === tab.id }"
+              @click="currentTab = tab.id"
+            >
+              <component :is="tab.icon" width="16" height="16" class="tab-icon" />
+              <span class="tab-text">{{ tab.label }}</span>
+            </button>
+          </nav>
         </div>
 
-        <div class="content-body">
-          <section v-if="currentTab === 'info'" class="tab-pane">
-            <form class="pane-form" @submit.prevent="handleSaveProfile">
-              <div class="field-item">
-                <span class="field-label">账号角色</span>
-                <div class="field-static-row">
-                  <MTag :variant="roleMeta.variant" size="md">{{ roleMeta.label }}</MTag>
-                  <span class="role-desc">Role: {{ user?.role || 'user' }}</span>
-                </div>
-              </div>
-
-              <MInput
-                v-model="profileForm.username"
-                label="登录账号"
-                placeholder="用户名不可修改"
-                :disabled="true"
-              />
-
-              <MInput
-                v-model="profileForm.displayName"
-                label="用户昵称"
-                placeholder="请输入您的昵称"
-                :disabled="isSavingProfile"
-              />
-
-              <div class="pane-action">
-                <MButton
-                  variant="primary"
-                  type="submit"
-                  size="sm"
-                  :mono="true"
-                  :disabled="isSavingProfile"
-                >
-                  {{ isSavingProfile ? '保存中...' : '保存修改' }}
-                </MButton>
-              </div>
-            </form>
-          </section>
-
-          <section v-else-if="currentTab === 'security'" class="tab-pane">
-            <form class="pane-form" @submit.prevent="handleSavePassword">
-              <MInput
-                v-model="passwordForm.oldPassword"
-                label="当前密码"
-                type="password"
-                placeholder="请输入原登录密码"
-                :disabled="isSavingPassword"
-              />
-
-              <MInput
-                v-model="passwordForm.newPassword"
-                label="新密码"
-                type="password"
-                placeholder="至少六位新密码"
-                :disabled="isSavingPassword"
-              />
-
-              <MInput
-                v-model="passwordForm.confirmPassword"
-                label="确认新密码"
-                type="password"
-                placeholder="请再次输入新密码"
-                :disabled="isSavingPassword"
-              />
-
-              <div class="pane-action">
-                <MButton
-                  variant="primary"
-                  type="submit"
-                  size="sm"
-                  :mono="true"
-                  :disabled="isSavingPassword"
-                >
-                  {{ isSavingPassword ? '提交中...' : '确认修改密码' }}
-                </MButton>
-              </div>
-            </form>
-          </section>
-
-          <section v-else-if="currentTab === 'logs'" class="tab-pane">
-            <div v-if="isLoadingLogs" class="logs-empty">加载审计日志中...</div>
-            <div v-else-if="auditLogs.length === 0" class="logs-empty">暂无操作日志记录</div>
-            <div v-else class="logs-table-wrap">
-              <table class="logs-table">
-                <thead>
-                  <tr>
-                    <th>时间</th>
-                    <th>动作</th>
-                    <th>路径</th>
-                    <th>状态</th>
-                    <th>耗时</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="item in auditLogs" :key="item.id">
-                    <td class="log-time">{{ formatDate(item.created_at) }}</td>
-                    <td>
-                      <span class="method-tag" :class="`is-${item.method.toLowerCase()}`">
-                        {{ item.method }}
-                      </span>
-                    </td>
-                    <td class="log-path" :title="item.path">{{ item.path }}</td>
-                    <td>
-                      <span
-                        class="status-dot"
-                        :class="item.status_code < 400 ? 'status-ok' : 'status-err'"
-                      >
-                        {{ item.status_code }}
-                      </span>
-                    </td>
-                    <td class="log-duration">{{ item.duration_ms }}ms</td>
-                  </tr>
-                </tbody>
-              </table>
+        <div class="user-modal-content">
+          <div class="content-header">
+            <div class="header-left">
+              <span class="header-section-name">
+                {{ tabs.find((t) => t.id === currentTab)?.label }}
+              </span>
             </div>
-          </section>
+            <button class="header-close-btn" title="关闭窗口" @click="emit('close')">
+              <Xmark width="16" height="16" />
+            </button>
+          </div>
+
+          <div class="content-body">
+            <section v-if="currentTab === 'info'" class="tab-pane">
+              <form class="pane-form" @submit.prevent="handleSaveProfile">
+                <div class="field-item">
+                  <span class="field-label">账号角色</span>
+                  <div class="field-static-row">
+                    <MTag :variant="roleMeta.variant" size="md">{{ roleMeta.label }}</MTag>
+                    <span class="role-desc">Role: {{ user?.role || 'user' }}</span>
+                  </div>
+                </div>
+
+                <MInput
+                  v-model="profileForm.username"
+                  label="登录账号"
+                  placeholder="用户名不可修改"
+                  :disabled="true"
+                />
+
+                <MInput
+                  v-model="profileForm.displayName"
+                  label="用户昵称"
+                  placeholder="请输入您的昵称"
+                  :disabled="isSavingProfile"
+                />
+
+                <div class="pane-action">
+                  <MButton
+                    variant="primary"
+                    type="submit"
+                    size="sm"
+                    :mono="true"
+                    :disabled="isSavingProfile"
+                  >
+                    {{ isSavingProfile ? '保存中...' : '保存修改' }}
+                  </MButton>
+                </div>
+              </form>
+            </section>
+
+            <section v-else-if="currentTab === 'security'" class="tab-pane">
+              <form class="pane-form" @submit.prevent="handleSavePassword">
+                <MInput
+                  v-model="passwordForm.oldPassword"
+                  label="当前密码"
+                  type="password"
+                  placeholder="请输入原登录密码"
+                  :disabled="isSavingPassword"
+                />
+
+                <MInput
+                  v-model="passwordForm.newPassword"
+                  label="新密码"
+                  type="password"
+                  placeholder="至少六位新密码"
+                  :disabled="isSavingPassword"
+                />
+
+                <MInput
+                  v-model="passwordForm.confirmPassword"
+                  label="确认新密码"
+                  type="password"
+                  placeholder="请再次输入新密码"
+                  :disabled="isSavingPassword"
+                />
+
+                <div class="pane-action">
+                  <MButton
+                    variant="primary"
+                    type="submit"
+                    size="sm"
+                    :mono="true"
+                    :disabled="isSavingPassword"
+                  >
+                    {{ isSavingPassword ? '提交中...' : '确认修改密码' }}
+                  </MButton>
+                </div>
+              </form>
+            </section>
+
+            <section v-else-if="currentTab === 'logs'" class="tab-pane">
+              <div v-if="isLoadingLogs" class="logs-empty">加载审计日志中...</div>
+              <div v-else-if="auditLogs.length === 0" class="logs-empty">暂无操作日志记录</div>
+              <div v-else class="logs-table-wrap">
+                <table class="logs-table">
+                  <thead>
+                    <tr>
+                      <th>时间</th>
+                      <th>动作</th>
+                      <th>路径</th>
+                      <th>状态</th>
+                      <th>耗时</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="item in auditLogs" :key="item.id">
+                      <td class="log-time">{{ formatDate(item.created_at) }}</td>
+                      <td>
+                        <span class="method-tag" :class="`is-${item.method.toLowerCase()}`">
+                          {{ item.method }}
+                        </span>
+                      </td>
+                      <td class="log-path" :title="item.path">{{ item.path }}</td>
+                      <td>
+                        <span
+                          class="status-dot"
+                          :class="item.status_code < 400 ? 'status-ok' : 'status-err'"
+                        >
+                          {{ item.status_code }}
+                        </span>
+                      </td>
+                      <td class="log-duration">{{ item.duration_ms }}ms</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </div>
         </div>
       </div>
-    </div>
+    </transition>
   </MBackdrop>
 </template>
 
@@ -598,5 +600,16 @@ const formatDate = (isoStr) => {
 
 .log-duration {
   color: var(--text-muted);
+}
+
+.modal-pop-enter-active,
+.modal-pop-leave-active {
+  transition: opacity 160ms cubic-bezier(0.16, 1, 0.3, 1), transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-pop-enter-from,
+.modal-pop-leave-to {
+  opacity: 0;
+  transform: translate(-50%, calc(-50% - 8px)) scale(0.98);
 }
 </style>

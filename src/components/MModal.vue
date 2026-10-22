@@ -46,48 +46,50 @@ const emit = defineEmits(['close', 'confirm']);
 
 <template>
   <MBackdrop
-    v-if="open"
     :open="open"
     teleport
     fixed
     :z-index="90"
     @close="emit('close')"
   >
-    <section
-      class="modal-panel"
-      :style="{ width }"
-      @click.stop
-    >
-      <header class="modal-head">
-        <h2 class="modal-title">{{ title }}</h2>
-        <p v-if="desc" class="modal-desc">{{ desc }}</p>
-      </header>
+    <transition name="modal-pop">
+      <section
+        v-if="open"
+        class="modal-panel"
+        :style="{ width }"
+        @click.stop
+      >
+        <header class="modal-head">
+          <h2 class="modal-title">{{ title }}</h2>
+          <p v-if="desc" class="modal-desc">{{ desc }}</p>
+        </header>
 
-      <div class="modal-body">
-        <slot />
-      </div>
+        <div class="modal-body">
+          <slot />
+        </div>
 
-      <footer v-if="!hideFooter" class="modal-foot">
-        <MButton
-          variant="ghost"
-          size="sm"
-          :mono="true"
-          :disabled="busy"
-          @click="emit('close')"
-        >
-          {{ cancelText }}
-        </MButton>
-        <MButton
-          :variant="confirmVariant"
-          size="sm"
-          :mono="true"
-          :disabled="busy"
-          @click="emit('confirm')"
-        >
-          {{ busy ? '处理中...' : confirmText }}
-        </MButton>
-      </footer>
-    </section>
+        <footer v-if="!hideFooter" class="modal-foot">
+          <MButton
+            variant="ghost"
+            size="sm"
+            :mono="true"
+            :disabled="busy"
+            @click="emit('close')"
+          >
+            {{ cancelText }}
+          </MButton>
+          <MButton
+            :variant="confirmVariant"
+            size="sm"
+            :mono="true"
+            :disabled="busy"
+            @click="emit('confirm')"
+          >
+            {{ busy ? '处理中...' : confirmText }}
+          </MButton>
+        </footer>
+      </section>
+    </transition>
   </MBackdrop>
 </template>
 
@@ -139,5 +141,16 @@ const emit = defineEmits(['close', 'confirm']);
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+
+.modal-pop-enter-active,
+.modal-pop-leave-active {
+  transition: opacity 160ms cubic-bezier(0.16, 1, 0.3, 1), transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-pop-enter-from,
+.modal-pop-leave-to {
+  opacity: 0;
+  transform: translate(-50%, calc(-50% - 8px)) scale(0.98);
 }
 </style>
