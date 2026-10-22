@@ -16,6 +16,8 @@ const qs = (params) => {
 };
 
 export const adminApi = {
+  tree: () => request('/api/workbench/tree'),
+
   categories: {
     list: () => request('/api/categories'),
     get: (id) => request(`/api/categories/${id}`),

@@ -16,7 +16,9 @@ const emit = defineEmits(['select', 'add', 'remove', 'move', 'error', 'create-ca
 
 const nodes = ref([]);
 const loading = ref(false);
+const expandedKeys = ref(new Set());
 
+// 深度优先查找目标节点
 const findNode = (type, id, list = nodes.value) => {
   for (const node of list) {
     if (node.type === type && node.id === id) return node;
@@ -28,165 +30,7 @@ const findNode = (type, id, list = nodes.value) => {
   return null;
 };
 
-const loadCategories = async () => {
-  const cats = await adminApi.categories.list();
-  const previous = new Map(nodes.value.map((n) => [n.id, n]));
-  nodes.value = cats.map((c) => {
-    const old = previous.get(c.id);
-    return {
-      type: 'category',
-      id: c.id,
-      label: c.name,
-      slug: c.slug,
-      courseCount: c.course_count,
-      children: old?.children ?? null,
-      expanded: old?.expanded ?? false,
-      loading: false
-    };
-  });
-};
-
-const loadCourses = async (node) => {
-  const list = await adminApi.courses.list({ category_id: node.id });
-  // 保留原有课程展开状态与子树
-  const previous = new Map((node.children || []).map((c) => [c.id, c]));
-  node.children = list.map((c) => {
-    const old = previous.get(c.id);
-    return {
-      type: 'course',
-      id: c.id,
-      label: c.title,
-      slug: c.slug,
-      status: c.status,
-      chapterCount: c.chapter_count,
-      sectionCount: c.section_count,
-      children: old?.children ?? null,
-      expanded: old?.expanded ?? false,
-      loading: false
-    };
-  });
-};
-
-const loadCourseTree = async (node) => {
-  const tree = await adminApi.courses.tree(node.id);
-  const previous = new Map((node.children || []).map((ch) => [ch.id, ch]));
-  node.children = (tree.chapters || []).map((ch) => ({
-    type: 'chapter',
-    id: ch.id,
-    label: ch.title,
-    tag: ch.tag,
-    slug: ch.slug,
-    hasIntro: ch.has_intro,
-    children: (ch.sections || []).map((s) => ({
-      type: 'section',
-      id: s.id,
-      label: s.title,
-      tag: s.tag,
-      slug: s.slug,
-      hasSource: s.has_source,
-      sourceLen: s.source_len
-    })),
-    expanded: previous.get(ch.id)?.expanded ?? false,
-    loading: false
-  }));
-};
-
-const loadChildren = async (node) => {
-  if (node.type === 'category') await loadCourses(node);
-  else if (node.type === 'course') await loadCourseTree(node);
-};
-
-const toggle = async (node) => {
-  if (node.type === 'section') return;
-  if (node.type === 'chapter' || node.expanded) {
-    node.expanded = !node.expanded;
-    return;
-  }
-
-  node.expanded = true;
-  if (node.children !== null) return;
-
-  node.loading = true;
-  try {
-    await loadChildren(node);
-  } catch (err) {
-    node.expanded = false;
-    emit('error', err);
-  } finally {
-    node.loading = false;
-  }
-};
-
-// 展开指定节点
-const expandTo = async (type, id) => {
-  const node = findNode(type, id);
-  if (!node) return null;
-  if (!node.expanded) await toggle(node);
-  return node;
-};
-
-// 重新加载已展开节点
-const reload = async () => {
-  const loaded = [];
-  const walk = (list) => {
-    for (const node of list) {
-      if (node.children && (node.type === 'category' || node.type === 'course')) {
-        loaded.push({ type: node.type, id: node.id });
-      }
-      if (node.children) walk(node.children);
-    }
-  };
-  walk(nodes.value);
-
-  loading.value = true;
-  try {
-    await loadCategories();
-  } catch (err) {
-    emit('error', err);
-    return;
-  } finally {
-    loading.value = false;
-  }
-
-  for (const item of loaded) {
-    const node = findNode(item.type, item.id);
-    if (!node) continue;
-    try {
-      await loadChildren(node);
-      node.expanded = true;
-    } catch {
-      // 忽略已删除节点
-    }
-  }
-};
-
-// 刷新指定课程节点
-const refreshCourse = async (courseId, label) => {
-  const node = findNode('course', courseId);
-  if (!node) return;
-  if (label) node.label = label;
-  try {
-    await loadCourseTree(node);
-    node.expanded = true;
-  } catch (err) {
-    emit('error', err);
-  }
-};
-
-// 刷新指定分类节点
-const refreshCategory = async (categoryId, label) => {
-  const node = findNode('category', categoryId);
-  if (!node) return;
-  if (label) node.label = label;
-  try {
-    await loadCourses(node);
-    node.expanded = true;
-  } catch (err) {
-    emit('error', err);
-  }
-};
-
-// 查找目标节点链路
+// 查找目标节点的祖先链路
 const findPath = (type, id, list = nodes.value, trail = []) => {
   for (const node of list) {
     const next = [...trail, node];
@@ -215,46 +59,87 @@ const getSiblings = (type, id) => {
   return walk(nodes.value, null);
 };
 
-// 局部刷新目标节点所属分支
-const refreshForNode = async (type, id) => {
-  const path = findPath(type, id);
-  if (!path) {
-    await reload();
-    return;
-  }
-  const course = [...path].reverse().find((n) => n.type === 'course');
-  if (course) {
-    try {
-      await loadCourseTree(course);
-      course.expanded = true;
-    } catch (err) {
-      emit('error', err);
-    }
-    return;
-  }
-  const category = [...path].reverse().find((n) => n.type === 'category');
-  if (category) {
-    try {
-      await loadCourses(category);
-      category.expanded = true;
-    } catch (err) {
-      emit('error', err);
-    }
+// 切换展开/折叠（纯前端同步切换，零网络延迟）
+const toggle = (node) => {
+  if (node.type === 'section') return;
+  node.expanded = !node.expanded;
+  const key = `${node.type}:${node.id}`;
+  if (node.expanded) {
+    expandedKeys.value.add(key);
+  } else {
+    expandedKeys.value.delete(key);
   }
 };
 
-onMounted(async () => {
+// 展开目标节点及其所有祖先层级
+const expandTo = async (type, id) => {
+  const path = findPath(type, id);
+  if (path) {
+    for (const n of path) {
+      n.expanded = true;
+      expandedKeys.value.add(`${n.type}:${n.id}`);
+    }
+    return path[path.length - 1];
+  }
+  return null;
+};
+
+// 单接口一次性全量拉取整树，并保持既有展开状态
+const reload = async () => {
   loading.value = true;
   try {
-    await loadCategories();
+    const rawTree = await adminApi.tree();
+    const tree = Array.isArray(rawTree) ? rawTree : [];
+
+    // 默认或恢复展开状态
+    const syncExpanded = (list) => {
+      for (const item of list) {
+        const key = `${item.type}:${item.id}`;
+        if (expandedKeys.value.has(key)) {
+          item.expanded = true;
+        }
+        if (item.children) syncExpanded(item.children);
+      }
+    };
+
+    // 首次进入若无展开记录，默认展开第一个分类和其第一门课程
+    if (expandedKeys.value.size === 0 && tree.length > 0) {
+      tree[0].expanded = true;
+      expandedKeys.value.add(`${tree[0].type}:${tree[0].id}`);
+      if (tree[0].children?.[0]) {
+        tree[0].children[0].expanded = true;
+        expandedKeys.value.add(`${tree[0].children[0].type}:${tree[0].children[0].id}`);
+      }
+    }
+
+    syncExpanded(tree);
+    nodes.value = tree;
   } catch (err) {
     emit('error', err);
   } finally {
     loading.value = false;
   }
+};
+
+// 局部变更统一走单接口秒级同步刷新
+const refreshCourse = async () => reload();
+const refreshCategory = async () => reload();
+const refreshForNode = async () => reload();
+
+onMounted(async () => {
+  await reload();
 });
 
-defineExpose({ reload, refreshCourse, refreshCategory, findNode, findPath, getSiblings, refreshForNode, expandTo });
+defineExpose({
+  reload,
+  refreshCourse,
+  refreshCategory,
+  findNode,
+  findPath,
+  getSiblings,
+  refreshForNode,
+  expandTo
+});
 </script>
 
 <template>
@@ -269,8 +154,8 @@ defineExpose({ reload, refreshCourse, refreshCategory, findNode, findPath, getSi
           @click="reload"
         >
           <Refresh
-            width="13"
-            height="13"
+            width="16"
+            height="16"
             :class="{ 'spin-icon': loading }"
           />
         </button>
@@ -280,7 +165,7 @@ defineExpose({ reload, refreshCourse, refreshCategory, findNode, findPath, getSi
           title="新建分类"
           @click="emit('create-category')"
         >
-          <FolderPlus width="13" height="13" />
+          <FolderPlus width="16" height="16" />
         </button>
       </div>
     </header>
@@ -348,22 +233,23 @@ defineExpose({ reload, refreshCourse, refreshCategory, findNode, findPath, getSi
 }
 
 .tree-title {
-  font-size: var(--font-size-smaller);
-  color: var(--text-muted);
+  font-size: 15px;
+  font-weight: var(--font-weight-medium, 500);
+  color: var(--text-primary);
   letter-spacing: 0.6px;
 }
 
 .tree-head-actions {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
 }
 
 .head-icon-btn {
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
   border-radius: var(--radius-xs);
-  color: var(--text-muted);
+  color: var(--text-secondary);
   display: inline-flex;
   align-items: center;
   justify-content: center;
