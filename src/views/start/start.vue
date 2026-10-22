@@ -144,7 +144,7 @@ const filteredResults = computed(() => {
 // 快捷导航项
 const quickShortcuts = [
   { label: '考研数学精讲', path: '/course/kaoyan', icon: Book },
-  { label: '讲义管理后台', path: '/admin', icon: Terminal },
+  { label: '讲义工作台', path: '/workbench', icon: Terminal },
   { label: '讲义推荐路线', path: '/recom-lecture', icon: Compass },
   { label: '如何使用平台', path: '/how-to-use', icon: Sparks }
 ];

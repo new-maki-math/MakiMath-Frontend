@@ -84,7 +84,7 @@ const navItems = [
   { id: 'how-to-use', label: '如何使用', path: '/how-to-use', icon: HelpCircleSolid, tag: 'DOCS' },
   { id: 'recom-lecture', label: '讲义推荐', path: '/recom-lecture', icon: StarSolid, tag: 'HOT' },
   { id: 'my-lecture', label: '我的讲义', path: '/my-lecture', icon: BookmarkSolid, tag: 'LOCAL' },
-  { id: 'admin', label: '讲义管理', path: '/admin', icon: ReportsSolid, tag: 'EDIT' },
+  { id: 'workbench', label: '讲义工作台', path: '/workbench', icon: ReportsSolid, tag: 'WORKBENCH' },
 ];
 
 // 当前匹配导航项
@@ -169,11 +169,11 @@ const currentBreadcrumbs = computed(() => {
 
 // 控制视口头部显示
 const showViewportHeader = computed(() => {
-  return route.path !== '/start' && route.name !== 'start' && route.name !== 'admin';
+  return route.path !== '/start' && route.name !== 'start' && route.name !== 'workbench';
 });
 
 // 锁定视口外层滚动
-const isViewportLocked = computed(() => route.name === 'admin' || route.name === 'start' || route.path === '/start');
+const isViewportLocked = computed(() => route.name === 'workbench' || route.name === 'start' || route.path === '/start');
 
 // 判断是否为欢迎页
 const isStartRoute = computed(() => route.path === '/start' || route.name === 'start');
@@ -304,10 +304,6 @@ const handleRefreshDoc = () => {
       </div>
 
       <div class="topbar-right">
-        <div class="header-tags">
-          <MTag variant="purple">ENGINE:TYPST</MTag>
-          <MTag variant="green" :dot="true">SOLID:READY</MTag>
-        </div>
         <button
           class="theme-toggle-btn"
           :title="isDark ? '切换至浅色模式' : '切换至深色模式'"
@@ -604,8 +600,8 @@ const handleRefreshDoc = () => {
   border-radius: var(--radius-xs);
   color: var(--text-secondary);
   background-color: transparent;
-  border: 1px solid var(--border-subtle);
-  transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease;
+  border: none;
+  transition: background-color 140ms ease, color 140ms ease;
   flex-shrink: 0;
   cursor: pointer;
 }
@@ -613,13 +609,6 @@ const handleRefreshDoc = () => {
 .theme-toggle-btn:hover {
   background-color: var(--bg-hover);
   color: var(--text-primary);
-  border-color: var(--border-hover);
-}
-
-.header-tags {
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 
 /* 主体分栏 */

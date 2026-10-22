@@ -51,10 +51,10 @@ export const routes = [
     meta: { title: '我的讲义', tag: 'LOCAL' }
   },
   {
-    path: '/admin',
-    name: 'admin',
+    path: '/workbench',
+    name: 'workbench',
     component: AdminView,
-    meta: { title: '讲义管理', tag: 'EDIT' }
+    meta: { title: '讲义工作台', tag: 'WORKBENCH' }
   },
   // 兼容旧路由
   {
