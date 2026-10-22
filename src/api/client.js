@@ -62,12 +62,21 @@ export async function request(url, options = {}) {
     defaultHeaders['Content-Type'] = 'application/json';
   }
 
+  // 注入认证 Token
+  const token = typeof localStorage !== 'undefined'
+    ? (localStorage.getItem('maki_auth_token') || localStorage.getItem('token') || localStorage.getItem('auth_token'))
+    : null;
+  if (token) {
+    defaultHeaders['Authorization'] = `Bearer ${token}`;
+  }
+
   let config = {
     method,
     headers: {
       ...defaultHeaders,
       ...headers
     },
+    credentials: 'include',
     body,
     ...rest
   };

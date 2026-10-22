@@ -8,7 +8,9 @@ import {
   registerProgressBar,
   beginNavigation,
   endNavigation,
-  startProgress
+  startProgress,
+  isSuperAdmin,
+  initAuth
 } from '../utils';
 import {
   PlaySolid,
@@ -18,6 +20,8 @@ import {
   BookmarkSolid,
   Terminal,
   ReportsSolid,
+  CubeScanSolid,
+  FlaskSolid,
   NavArrowRight,
   NavArrowLeft,
   SunLight,
@@ -84,7 +88,8 @@ const navItems = [
   { id: 'how-to-use', label: '如何使用', path: '/how-to-use', icon: HelpCircleSolid, tag: 'DOCS' },
   { id: 'recom-lecture', label: '讲义推荐', path: '/recom-lecture', icon: StarSolid, tag: 'HOT' },
   { id: 'my-lecture', label: '我的讲义', path: '/my-lecture', icon: BookmarkSolid, tag: 'LOCAL' },
-  { id: 'workbench', label: '讲义工作台', path: '/workbench', icon: ReportsSolid, tag: 'WORKBENCH' },
+  { id: 'workbench', label: '讲义工作台', path: '/workbench', icon: FlaskSolid, tag: 'WORKBENCH' },
+  { id: 'platform', label: '平台管理', path: '/platform', icon: CubeScanSolid, tag: 'PLATFORM' },
 ];
 
 // 当前匹配导航项
@@ -258,6 +263,7 @@ const loadCategories = async () => {
 
 // 挂载路由守卫与加载分类
 onMounted(() => {
+  initAuth();
   if (progressBarRef.value) {
     registerProgressBar(progressBarRef.value);
   }
@@ -465,7 +471,7 @@ const handleRefreshDoc = () => {
             </MCollapse>
           </button>
 
-          <!-- 6. 讲义管理 -->
+          <!-- 6. 讲义工作台 -->
           <button
             class="nav-button"
             :class="{ active: isItemActive(navItems[4]) }"
@@ -477,6 +483,22 @@ const handleRefreshDoc = () => {
             </div>
             <MCollapse horizontal :open="!isSidebarCollapsed" class="nav-label-collapse">
               <span class="nav-label">{{ navItems[4].label }}</span>
+            </MCollapse>
+          </button>
+
+          <!-- 7. 平台管理 -->
+          <button
+            v-if="isSuperAdmin"
+            class="nav-button"
+            :class="{ active: isItemActive(navItems[5]) }"
+            :title="isSidebarCollapsed ? navItems[5].label : undefined"
+            @click="handleNavClick(navItems[5])"
+          >
+            <div class="nav-icon-wrap">
+              <component :is="navItems[5].icon" width="18" height="18" class="nav-icon" />
+            </div>
+            <MCollapse horizontal :open="!isSidebarCollapsed" class="nav-label-collapse">
+              <span class="nav-label">{{ navItems[5].label }}</span>
             </MCollapse>
           </button>
         </nav>
@@ -494,9 +516,9 @@ const handleRefreshDoc = () => {
         </MCollapse>
       </aside>
 
-      <!-- 工作视口 (Main Viewport) -->
+      <!-- 工作视口 -->
       <main class="maki-viewport" :class="{ 'is-locked': isViewportLocked }">
-        <!-- 视图顶端状态与上下文条 (全局组件，start 页面不显示) -->
+        <!-- 视图顶端状态与上下文条 -->
         <ViewportHeader
           v-if="showViewportHeader"
           :title="currentCourse ? currentCourse.title : currentItem.label"
@@ -504,14 +526,14 @@ const handleRefreshDoc = () => {
           @refresh="handleRefreshDoc"
         />
 
-        <!-- 页面视图内容插槽 (供路由或自定义视图挂载) -->
+        <!-- 页面视图内容插槽 -->
         <slot :current-item="currentItem">
           <router-view :key="docRefreshKey" />
         </slot>
       </main>
     </div>
 
-    <!-- 全局轻量浮动通知组件 (接收全站各页面 notify 触发) -->
+    <!-- 全局轻量浮动通知组件 -->
     <MNotice />
   </div>
 </template>

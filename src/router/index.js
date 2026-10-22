@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router';
+import { isSuperAdmin, initAuth } from '../utils/auth.js';
 
 // 页面视图
 const StartView = () => import('../views/start/start.vue');
@@ -8,6 +9,7 @@ const MyLectureView = () => import('../views/my-lecture/my-lecture.vue');
 const CourseHomeView = () => import('../views/course-home/course-home.vue');
 const LectureDocView = () => import('../views/lecture-doc/lecture-doc.vue');
 const WorkbenchView = () => import('../views/workbench/workbench.vue');
+const PlatformView = () => import('../views/platform/platform.vue');
 
 export const routes = [
   {
@@ -55,12 +57,29 @@ export const routes = [
     name: 'workbench',
     component: WorkbenchView,
     meta: { title: '讲义工作台', tag: 'WORKBENCH' }
+  },
+  {
+    path: '/platform',
+    name: 'platform',
+    component: PlatformView,
+    meta: { title: '平台管理', tag: 'PLATFORM' }
   }
 ];
 
 const router = createRouter({
   history: createWebHistory(),
   routes
+});
+
+// 平台管理权限守卫：仅登录且为超级管理员可访问
+router.beforeEach(async (to, from, next) => {
+  if (to.name === 'platform' || to.path === '/platform') {
+    await initAuth();
+    if (!isSuperAdmin.value) {
+      return next({ path: '/workbench' });
+    }
+  }
+  next();
 });
 
 export default router;
