@@ -92,7 +92,7 @@ function transformChildren(node) {
 }
 
 // 节点转换核心
-export function transformKaoyanNode(node) {
+function transformKaoyanNode(node) {
   if (!node || typeof node !== 'object') return node;
   if (node.type !== 'call') return transformChildren(node);
 

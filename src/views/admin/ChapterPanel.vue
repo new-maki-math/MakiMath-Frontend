@@ -15,7 +15,7 @@ import MModal from '../../components/MModal.vue';
 import MButton from '../../components/MButton.vue';
 import MSelect from '../../components/MSelect.vue';
 import MTag from '../../components/MTag.vue';
-import { Upload, PagePlus, Xmark } from '@iconoir/vue';
+import { Upload, Xmark } from '@iconoir/vue';
 
 const props = defineProps({
   node: {

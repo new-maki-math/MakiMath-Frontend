@@ -30,28 +30,3 @@ export function transformCourseCategories(rawCats = []) {
     };
   });
 }
-
-/**
- * 扁平化所有课程为字典或列表，方便快速查询
- * @param {Array} transformedCats 
- * @returns {Array} 扁平课程清单
- */
-export function flattenCourses(transformedCats = []) {
-  return transformedCats.flatMap(cat =>
-    cat.courses.map(course => ({
-      ...course,
-      categoryName: cat.name
-    }))
-  );
-}
-
-/**
- * 根据 slug 获取课程名称辅助工具
- */
-export function getCourseTitleBySlug(slug, categories = []) {
-  for (const cat of categories) {
-    const found = cat.courses.find(c => c.id === slug || c.slug === slug);
-    if (found) return found.title;
-  }
-  return slug;
-}

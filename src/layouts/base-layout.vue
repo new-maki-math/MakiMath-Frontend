@@ -504,7 +504,6 @@ const handleRefreshDoc = () => {
         <ViewportHeader
           v-if="showViewportHeader"
           :title="currentCourse ? currentCourse.title : currentItem.label"
-          :path="currentItem.path"
           :breadcrumbs="currentBreadcrumbs"
           @refresh="handleRefreshDoc"
         />

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { Underline, FillColor, Trash } from '@iconoir/vue';
 
 const props = defineProps({
@@ -24,13 +24,6 @@ const props = defineProps({
     type: String,
     default: 'highlight',
     validator: (v) => ['highlight', 'underline'].includes(v)
-  },
-  /**
-   * 默认颜色 key
-   */
-  defaultColor: {
-    type: String,
-    default: 'yellow'
   },
   /**
    * 点击颜色后是否自动向当前选区注入 DOM 标记 (<span class="m-selection-mark">)

@@ -8,10 +8,6 @@ const props = defineProps({
     type: String,
     default: ''
   },
-  path: {
-    type: String,
-    default: ''
-  },
   breadcrumbs: {
     type: Array,
     default: null

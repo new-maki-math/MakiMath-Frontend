@@ -76,13 +76,6 @@ export const COURSE_STATUSES = [
   { value: 'archived', label: 'archived · 归档' }
 ];
 
-export const STATUS_TAG_VARIANT = {
-  draft: 'muted',
-  live: 'green',
-  hidden: 'amber',
-  archived: 'muted'
-};
-
 /**
  * 从文件名推小节标题，去掉扩展名并把下划线连字符转空格
  */
