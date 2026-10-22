@@ -46,6 +46,7 @@ const emit = defineEmits(['close', 'confirm']);
 
 <template>
   <MBackdrop
+    v-if="open"
     :open="open"
     teleport
     fixed

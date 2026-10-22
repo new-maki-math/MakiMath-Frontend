@@ -1,12 +1,24 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { useRoute } from 'vue-router';
 import { Search, Xmark } from '@iconoir/vue';
 
+const route = useRoute();
 const inputRef = ref(null);
 const searchContainerRef = ref(null);
 const query = ref('');
 const isOpen = ref(false);
 const activeIndex = ref(-1);
+
+// 路由变化时重置搜索状态并失焦
+watch(
+  () => route.path,
+  () => {
+    isOpen.value = false;
+    activeIndex.value = -1;
+    inputRef.value?.blur();
+  }
+);
 
 // 示例搜索数据
 const sampleData = [
@@ -143,7 +155,14 @@ onUnmounted(() => {
       <input
         ref="inputRef"
         v-model="query"
-        type="text"
+        type="search"
+        name="makimath_search_query"
+        autocomplete="new-password"
+        data-lpignore="true"
+        data-form-type="other"
+        autocorrect="off"
+        autocapitalize="off"
+        spellcheck="false"
         class="search-native-input"
         placeholder="查找节点、公式定义或输入命令..."
         @focus="openSearch"

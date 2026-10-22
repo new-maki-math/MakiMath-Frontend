@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch, onMounted } from 'vue';
+import { computed, ref, watch, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import ProgressBar from '../components/ProgressBar.vue';
 import { getCourseCategories, getCourseChapters, getCachedCourseChapters } from '../api';
@@ -9,9 +9,14 @@ import {
   beginNavigation,
   endNavigation,
   startProgress,
+  currentUser,
+  isLoggedIn,
   isSuperAdmin,
+  clearAuth,
   initAuth
 } from '../utils';
+import { notify } from '../components/MNotice.vue';
+import MUserModal from '../components/MUserModal.vue';
 import {
   PlaySolid,
   HelpCircleSolid,
@@ -25,7 +30,9 @@ import {
   NavArrowRight,
   NavArrowLeft,
   SunLight,
-  HalfMoon
+  HalfMoon,
+  LogOut,
+  UserCircle
 } from '@iconoir/vue';
 
 const route = useRoute();
@@ -80,6 +87,32 @@ const toggleCategory = (catId) => {
 const getCourseTooltip = (course) => {
   const desc = course.desc || course.title;
   return !course.live ? `[筹划中] ${desc}` : desc;
+};
+
+// 当前用户显示名称
+const userDisplayName = computed(() => {
+  return currentUser.value?.displayName || currentUser.value?.display_name || currentUser.value?.username || '';
+});
+
+// 用户详情弹窗展开状态
+const isUserModalOpen = ref(false);
+
+const openUserModal = () => {
+  isUserModalOpen.value = true;
+};
+
+const closeUserModal = () => {
+  isUserModalOpen.value = false;
+};
+
+// 处理退出登录
+const handleLogout = () => {
+  isUserModalOpen.value = false;
+  clearAuth();
+  notify('已退出登录', 'info');
+  if (route.path === '/platform') {
+    router.push('/start');
+  }
 };
 
 // 基础页面导航项配置
@@ -174,11 +207,25 @@ const currentBreadcrumbs = computed(() => {
 
 // 控制视口头部显示
 const showViewportHeader = computed(() => {
-  return route.path !== '/start' && route.name !== 'start' && route.name !== 'workbench';
+  return (
+    route.path !== '/start' &&
+    route.name !== 'start' &&
+    route.name !== 'workbench' &&
+    route.name !== 'platform' &&
+    route.path !== '/platform'
+  );
 });
 
 // 锁定视口外层滚动
-const isViewportLocked = computed(() => route.name === 'workbench' || route.name === 'start' || route.path === '/start');
+const isViewportLocked = computed(() => {
+  return (
+    route.name === 'workbench' ||
+    route.name === 'platform' ||
+    route.path === '/platform' ||
+    route.name === 'start' ||
+    route.path === '/start'
+  );
+});
 
 // 判断是否为欢迎页
 const isStartRoute = computed(() => route.path === '/start' || route.name === 'start');
@@ -270,6 +317,7 @@ onMounted(() => {
   loadCategories();
 
   router.beforeEach((to, from, next) => {
+    isUserModalOpen.value = false;
     if (to.path !== from.path) {
       beginNavigation();
     }
@@ -310,8 +358,31 @@ const handleRefreshDoc = () => {
       </div>
 
       <div class="topbar-right">
+        <div v-if="isLoggedIn" class="user-profile-anchor font-mono">
+          <span class="user-name" :title="userDisplayName">{{ userDisplayName }}</span>
+          <button
+            class="topbar-action-btn"
+            :class="{ active: isUserModalOpen }"
+            title="用户设置与详情"
+            aria-label="查看用户设置与详情"
+            @click="openUserModal"
+          >
+            <UserCircle width="16" height="16" />
+          </button>
+        </div>
+
         <button
-          class="theme-toggle-btn"
+          v-if="isLoggedIn"
+          class="topbar-action-btn"
+          title="退出登录"
+          aria-label="退出登录"
+          @click="handleLogout"
+        >
+          <LogOut width="16" height="16" />
+        </button>
+
+        <button
+          class="topbar-action-btn"
           :title="isDark ? '切换至浅色模式' : '切换至深色模式'"
           aria-label="切换浅色/深色模式"
           @click="toggleTheme"
@@ -535,6 +606,13 @@ const handleRefreshDoc = () => {
 
     <!-- 全局轻量浮动通知组件 -->
     <MNotice />
+
+    <!-- 全局用户详情与安全设置弹窗 -->
+    <MUserModal
+      :open="isUserModalOpen"
+      :user="currentUser"
+      @close="closeUserModal"
+    />
   </div>
 </template>
 
@@ -613,7 +691,27 @@ const handleRefreshDoc = () => {
   gap: 12px;
 }
 
-.theme-toggle-btn {
+.user-profile-anchor {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: transparent;
+  border: none;
+  font-size: var(--font-size-smaller);
+  color: var(--text-secondary);
+}
+
+.user-name {
+  color: var(--text-primary);
+  font-weight: var(--font-weight-medium);
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topbar-action-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -628,7 +726,7 @@ const handleRefreshDoc = () => {
   cursor: pointer;
 }
 
-.theme-toggle-btn:hover {
+.topbar-action-btn:hover {
   background-color: var(--bg-hover);
   color: var(--text-primary);
 }
