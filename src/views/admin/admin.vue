@@ -11,6 +11,7 @@ import MButton from '../../components/MButton.vue';
 import MInput from '../../components/MInput.vue';
 import MSelect from '../../components/MSelect.vue';
 import MModal from '../../components/MModal.vue';
+import { notify } from '../../components';
 import { Trash, FolderPlus } from '@iconoir/vue';
 
 const PANELS = {
@@ -25,9 +26,6 @@ const KIND_LABEL = { category: '分类', course: '课程', chapter: '章节', se
 
 const treeRef = ref(null);
 const selected = ref(null);
-
-const notice = ref(null);
-let noticeTimer = null;
 
 const createOpen = ref(false);
 const creating = ref(false);
@@ -84,15 +82,6 @@ const deleteWarning = computed(() => {
   }
   return '该小节的 Typst 源文会一并删除，且不可撤销。';
 });
-
-const notify = (text, kind = 'ok') => {
-  if (!text) return;
-  notice.value = { text, kind };
-  clearTimeout(noticeTimer);
-  noticeTimer = setTimeout(() => {
-    notice.value = null;
-  }, 3200);
-};
 
 const handleError = (err) => notify(err?.message || String(err), 'error');
 
@@ -272,16 +261,6 @@ const navigateTo = async (target) => {
     />
 
     <div class="admin-main">
-      <Transition name="notice-fade">
-        <div
-          v-if="notice"
-          class="admin-notice"
-          :class="`is-${notice.kind}`"
-        >
-          {{ notice.text }}
-        </div>
-      </Transition>
-
       <component
         :is="panelComponent"
         v-if="selected"
@@ -394,40 +373,6 @@ const navigateTo = async (target) => {
   flex-direction: column;
   position: relative;
   overflow: hidden;
-}
-
-.admin-notice {
-  /* 全局浮层：固定在顶部居中，层级高于弹窗/顶栏 */
-  position: fixed;
-  top: calc(var(--topbar-height) + 14px);
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 9999;
-  max-width: min(520px, calc(100vw - 48px));
-  padding: 9px 16px;
-  border-radius: var(--radius-sm);
-  font-size: var(--font-size-smaller);
-  background-color: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
-  color: var(--text-primary);
-}
-
-.admin-notice.is-error {
-  border-color: rgba(224, 112, 112, 0.5);
-  color: #e8a0a0;
-}
-
-.notice-fade-enter-active,
-.notice-fade-leave-active {
-  transition: opacity 160ms ease, transform 160ms ease;
-}
-
-.notice-fade-enter-from,
-.notice-fade-leave-to {
-  opacity: 0;
-  /* 保留居中位移，只做上浮淡出 */
-  transform: translate(-50%, -6px);
 }
 
 .head-tool {

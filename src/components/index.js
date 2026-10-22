@@ -13,6 +13,7 @@ import MCollapse from './MCollapse.vue';
 import RoadmapGraph from './RoadmapGraph.vue';
 import MBackdrop from './MBackdrop.vue';
 import MSelectionToolbar from './MSelectionToolbar.vue';
+import MNotice, { notify, useNotice } from './MNotice.vue';
 
 export {
   MButton,
@@ -29,7 +30,10 @@ export {
   MCollapse,
   RoadmapGraph,
   MBackdrop,
-  MSelectionToolbar
+  MSelectionToolbar,
+  MNotice,
+  notify,
+  useNotice
 };
 
 export default {
@@ -51,6 +55,7 @@ export default {
     app.component('MBackdrop', MBackdrop);
     app.component('MOverlay', MBackdrop);
     app.component('MSelectionToolbar', MSelectionToolbar);
+    app.component('MNotice', MNotice);
   }
 };
 
