@@ -1,7 +1,10 @@
 <script setup>
+import { IconoirProvider } from '@iconoir/vue';
 import BaseLayout from './layouts/base-layout.vue';
 </script>
 
 <template>
-  <BaseLayout />
+  <IconoirProvider>
+    <BaseLayout />
+  </IconoirProvider>
 </template>
