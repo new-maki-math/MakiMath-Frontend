@@ -26,7 +26,7 @@ const props = defineProps({
   }
 });
 
-// 支持自定义直接颜色值 (Hex / RGB / CSS变量)
+// 支持自定义颜色值
 const customStyle = computed(() => {
   if (!props.color) return null;
   const c = props.color.trim();

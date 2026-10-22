@@ -23,7 +23,7 @@ const handleNavigate = (section) => {
 
 <template>
   <footer class="doc-footer-nav" aria-label="讲义章节切换导航">
-    <!-- 上一讲卡片 -->
+    <!-- 上一讲 -->
     <button
       v-if="prevSection"
       type="button"
@@ -45,7 +45,7 @@ const handleNavigate = (section) => {
     </button>
     <div v-else class="nav-placeholder" aria-hidden="true" />
 
-    <!-- 下一讲卡片 -->
+    <!-- 下一讲 -->
     <button
       v-if="nextSection"
       type="button"

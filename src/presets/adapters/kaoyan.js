@@ -1,6 +1,6 @@
 // 考研讲义适配器
 
-// 盒子宏映射 (考频与作业直接复用盒子色块体系)
+// 盒子宏映射
 const KAOYAN_BOXES = Object.freeze({
   defbox: 'def',
   thmbox: 'thm',
@@ -63,7 +63,7 @@ function extractTags(nodes) {
   return tags;
 }
 
-// 递归处理包含子节点的 AST 结构 (children, items, rows)
+// 递归处理子节点
 function transformChildren(node) {
   if (!node || typeof node !== 'object') return node;
   const next = { ...node };
@@ -100,7 +100,7 @@ function transformKaoyanNode(node) {
   const named = args.named || {};
   const positional = args.positional || [];
 
-  // 1. 盒子指令 (defbox, thmbox 等)
+  // 盒子指令
   if (KAOYAN_BOXES[name]) {
     let title = named.title || null;
     let titleChildren = null;
@@ -128,7 +128,7 @@ function transformKaoyanNode(node) {
     return boxNode;
   }
 
-  // 2. 真题引证卡 (#zt，前端仅负责语义结构映射)
+  // 真题引证卡
   if (name === 'zt') {
     const rawSource = extractPlainText(positional[0] ?? named.source ?? '');
     const rawTitle = positional[1] ?? named.title ?? (bodies[0] || '');
@@ -136,7 +136,7 @@ function transformKaoyanNode(node) {
 
     const children = [];
 
-    // 头部区域：琥珀暖橙「真题」徽标 + 来源出处
+    // 头部区域
     const headChildren = [
       { type: 'tag', color: 'amber', text: '真题' }
     ];
@@ -155,7 +155,7 @@ function transformKaoyanNode(node) {
       children: headChildren
     });
 
-    // 终端风格极简分隔符 //
+    // 分隔符
     children.push({
       type: 'container',
       tag: 'span',
@@ -163,7 +163,7 @@ function transformKaoyanNode(node) {
       children: [{ type: 'text', value: '//' }]
     });
 
-    // 考查要旨/题干核心描述 (由后端完成语法解析，前端按节点流或纯文本承接)
+    // 考查要旨描述
     let titleChildren = [];
     if (Array.isArray(rawTitle)) {
       titleChildren = rawTitle.map(transformKaoyanNode).filter(Boolean);
@@ -185,7 +185,7 @@ function transformKaoyanNode(node) {
       });
     }
 
-    // 尾部右侧唯一真题编号 (#2022-1-3)
+    // 真题编号
     if (rawId) {
       const formattedId = rawId.startsWith('#') ? rawId : `#${rawId}`;
       children.push({
@@ -204,7 +204,7 @@ function transformKaoyanNode(node) {
     };
   }
 
-  // 4. 讲次大卡片 (#lec)
+  // 讲次卡片
   if (name === 'lec') {
     const num = String(positional[0] ?? named.num ?? '').trim();
     const rawTags = positional[1] ?? (bodies.length >= 3 ? bodies[0] : (named.tags || []));
@@ -235,7 +235,7 @@ function transformKaoyanNode(node) {
     };
   }
 
-  // 5. 标签宏 (#makitag 与 #tgxxx)
+  // 标签宏
   if (KAOYAN_TAGS[name]) {
     return { type: 'tag', color: KAOYAN_TAGS[name] || 'gray', text: extractPlainText(bodies[0] ?? (positional[0] || '')) };
   }
@@ -243,14 +243,14 @@ function transformKaoyanNode(node) {
     return { type: 'tag', color: extractColorValue(positional[0]), text: extractPlainText(bodies[0] ?? (positional[1] || positional[0] || '')) };
   }
 
-  // 6. 排版辅助宏
+  // 排版辅助宏
   if (name === 'makipagebreak' || name === 'makiv') return null;
   if (name === 'makih' || name === 'h') return { type: 'text', value: ' ' };
   if (name === 'makicenter' || name === 'makialign') {
     return { type: 'container', align: name === 'makicenter' ? 'center' : (positional[0] || 'left'), children: (bodies[0] || []).map(transformKaoyanNode).filter(Boolean) };
   }
 
-  // 兜底其它未知宏：若带内容块则包装并递归其内容，否则透传
+  // 未知宏兜底
   if (bodies.length > 0) {
     const content = bodies[bodies.length - 1] || [];
     return {

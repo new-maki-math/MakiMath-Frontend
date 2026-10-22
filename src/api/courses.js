@@ -1,15 +1,12 @@
 import { request } from './client.js';
 import { transformCourseCategories, adaptDocWithPreset } from '../utils/index.js';
 
-// 内存单例缓存：课程树 / 小节正文 / 图谱，避免同一门课反复解析几十 KB 的讲义
+// 内存单例缓存
 const treeCache = new Map();
 const docCache = new Map();
 const graphCache = new Map();
 
-/**
- * 获取知识库所有大类及课程列表
- * 后端 /api/categories 与 /api/courses 都返回扁平数组，这里按 category_id 归组后交给适配器
- */
+// 获取分类与课程列表
 export async function getCourseCategories() {
   try {
     const [cats, courses] = await Promise.all([
@@ -18,13 +15,12 @@ export async function getCourseCategories() {
     ]);
     if (!Array.isArray(cats)) return [];
 
-    // 按 category_id 把课程归到各自分类下
+    // 按分类归组课程
     const grouped = new Map();
     for (const course of Array.isArray(courses) ? courses : []) {
       const key = String(course.category_id);
       if (!grouped.has(key)) grouped.set(key, []);
       grouped.get(key).push({
-        // 路由与课程接口都按 slug 取课程
         id: course.slug || String(course.id),
         slug: course.slug,
         title: course.title,
@@ -47,10 +43,7 @@ export async function getCourseCategories() {
   }
 }
 
-/**
- * 课程树：课程元信息 + 分类 + 章 / 小节目录 + 章节级前置边
- * 一次请求就够课程主页与讲义导航用
- */
+// 获取课程目录树
 export async function fetchCourseTree(slug) {
   if (!slug) throw new Error('缺少课程 slug');
   const key = String(slug);
@@ -61,14 +54,11 @@ export async function fetchCourseTree(slug) {
   return tree;
 }
 
-/**
- * 把后端的章节树转成前端统一的章节模型（课程主页与讲义导航共用）
- */
+// 转换章节数据模型
 function toChapters(tree) {
   const list = Array.isArray(tree?.chapters) ? tree.chapters : [];
   const byId = new Map(list.map((c) => [c.id, c]));
 
-  // edges 是 [前置章节 id, 后继章节 id]
   const preds = new Map();
   for (const [from, to] of tree?.edges ?? []) {
     if (!preds.has(to)) preds.set(to, []);
@@ -104,15 +94,13 @@ function toChapters(tree) {
       prereqs,
       prereqText: prereqs.length
         ? `学完 ${prereqs.map((p) => p.label).join('、')} 后可学`
-        : '起点 // 随时可学',
+        : '随时可学',
       isOrigin: prereqs.length === 0
     };
   });
 }
 
-/**
- * 课程数据包：课程元信息 + 章节模型，课程主页与讲义页共用
- */
+// 获取课程数据包
 export async function fetchCourseBundle(slug = 'kaoyan') {
   const tree = await fetchCourseTree(slug);
   const chapters = toChapters(tree);
@@ -120,7 +108,6 @@ export async function fetchCourseBundle(slug = 'kaoyan') {
   return {
     slug: tree.slug,
     course: {
-      // 路由 /course/:courseId 走 slug，所以 id 就是 slug
       id: tree.slug,
       slug: tree.slug,
       dbId: tree.id,
@@ -131,7 +118,6 @@ export async function fetchCourseBundle(slug = 'kaoyan') {
       status: tree.status,
       live: tree.status === 'live',
       typstVersion: tree.typst_version,
-      // 小节总数，课程主页概览卡片用
       nodes: chapters.reduce((n, c) => n + c.sections.length, 0)
     },
     chapters,
@@ -139,9 +125,7 @@ export async function fetchCourseBundle(slug = 'kaoyan') {
   };
 }
 
-/**
- * 根据 slug 获取单个课程详情及所属分类；课程不存在时返回 null
- */
+// 获取课程详情
 export async function getCourseById(slug) {
   try {
     const bundle = await fetchCourseBundle(slug);
@@ -153,9 +137,7 @@ export async function getCourseById(slug) {
   }
 }
 
-/**
- * 获取指定课程的章节目录树
- */
+// 获取课程章节树
 export async function getCourseChapters(slug = 'kaoyan') {
   try {
     const bundle = await fetchCourseBundle(slug);
@@ -166,20 +148,15 @@ export async function getCourseChapters(slug = 'kaoyan') {
   }
 }
 
-/**
- * 同步快速获取已缓存的章节树（若未缓存则返回空数组，触发异步预热）
- */
+// 获取缓存的章节树
 export function getCachedCourseChapters(slug = 'kaoyan') {
   const key = String(slug);
   if (treeCache.has(key)) return toChapters(treeCache.get(key));
-  // 异步预热
   fetchCourseBundle(key);
   return [];
 }
 
-/**
- * 小节正文：后端已把 Typst 源文解析成结构化文档树，数学节点带 latex
- */
+// 获取小节正文文档
 export async function getCourseSectionDoc(sectionId) {
   const key = String(sectionId);
   if (docCache.has(key)) return docCache.get(key);
@@ -189,7 +166,7 @@ export async function getCourseSectionDoc(sectionId) {
   return data;
 }
 
-// 标题节点的纯文本：优先用后端拍平的 text，否则递归拼 children
+// 提取标题纯文本
 function headingText(node) {
   if (typeof node.text === 'string' && node.text) return node.text;
   let out = '';
@@ -203,10 +180,7 @@ function headingText(node) {
   return out.trim();
 }
 
-/**
- * 给顶层标题挂锚点并抽出右侧大纲。
- * 大纲项靠 document.getElementById 滚动定位，所以锚点必须写进文档树里。
- */
+// 为标题挂载锚点并生成大纲
 function withOutlines(doc) {
   const outlines = [];
   let i = 0;
@@ -220,9 +194,7 @@ function withOutlines(doc) {
   return outlines;
 }
 
-/**
- * 根据 sectionId 获取讲义正文模型（文档树 + 右侧大纲）
- */
+// 获取小节正文与大纲模型
 export async function getCourseSectionContent(slug, sectionId) {
   const data = await getCourseSectionDoc(sectionId);
   const rawDoc = data.doc ?? { type: 'doc', children: [] };
@@ -237,9 +209,7 @@ export async function getCourseSectionContent(slug, sectionId) {
   };
 }
 
-/**
- * 知识图谱数据：章节 + 小节 + 知识点三层，形状与 roadmap-generator 期望的一致
- */
+// 获取知识图谱数据
 export async function fetchCourseGraph(slug = 'kaoyan') {
   const key = String(slug);
   if (graphCache.has(key)) return graphCache.get(key);
@@ -247,7 +217,7 @@ export async function fetchCourseGraph(slug = 'kaoyan') {
   const g = await request(`/api/courses/by-slug/${encodeURIComponent(key)}/graph`);
   const edges = g.edges ?? [];
 
-  // 给章节补上前置文案，roadmap-generator 直接读 chap.prereqText
+  // 计算章节前置文案
   const byId = new Map((g.chapters ?? []).map((c) => [c.id, c]));
   const preds = new Map();
   for (const [from, to] of edges) {
@@ -263,7 +233,7 @@ export async function fetchCourseGraph(slug = 'kaoyan') {
     });
     return {
       ...ch,
-      prereqText: labels.length ? `学完 ${labels.join('、')} 后可学` : '起点 // 随时可学'
+      prereqText: labels.length ? `学完 ${labels.join('、')} 后可学` : '随时可学'
     };
   });
 

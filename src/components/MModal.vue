@@ -100,7 +100,7 @@ const emit = defineEmits(['close', 'confirm']);
   max-height: calc(100vh - 96px);
   display: flex;
   flex-direction: column;
-  /* 弹窗是浮层，再抬一级，内部表单框体（bg-surface）才不会糊在弹窗底色上 */
+  /* 弹窗面板容器 */
   background-color: var(--bg-elevated);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);

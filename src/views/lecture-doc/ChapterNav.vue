@@ -22,7 +22,7 @@ const props = defineProps({
 
 const emit = defineEmits(['select-section', 'toggle-collapse']);
 
-// 默认展开所有大编/大章
+// 默认展开所有章节
 const expandedChapters = ref(new Set());
 
 watch(

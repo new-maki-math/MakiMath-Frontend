@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 
-// 懒加载页面视图
+// 页面视图
 const StartView = () => import('../views/start/start.vue');
 const HowToUseView = () => import('../views/how-to-use/how-to-use.vue');
 const RecomLectureView = () => import('../views/recom-lecture/recom-lecture.vue');
@@ -56,7 +56,7 @@ export const routes = [
     component: AdminView,
     meta: { title: '讲义管理', tag: 'EDIT' }
   },
-  // 保留旧路由重定向，保证外链兼容
+  // 兼容旧路由
   {
     path: '/routes',
     redirect: '/recom-lecture'

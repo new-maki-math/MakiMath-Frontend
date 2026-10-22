@@ -72,7 +72,7 @@ defineEmits(['update:modelValue', 'enter']);
   width: 100%;
   height: 36px;
   padding: 0 11px;
-  /* 框体比页面背景（bg-app）浅一级，才能看出是输入框 */
+  /* 输入框基础样式 */
   background-color: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);

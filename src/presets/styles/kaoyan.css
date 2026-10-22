@@ -1,15 +1,15 @@
-/* 考研数学专属预设主题 (严格遵循 docs/Design.md 规范) */
+/* 考研数学预设主题 */
 
 :root {
-  /* 讲义核心色相 */
-  --maki-blue-lit:   #38bdf8; /* 核心交互引导亮蓝 (定义 / 一三) */
-  --maki-red-lit:    #fb7185; /* 醒目玫瑰红 (定理 / 重点讲 / 仅一) */
-  --maki-green-lit:  #34d399; /* 鲜翠绿 (结论 / 例题 / 仅三) */
-  --maki-orange-lit: #fb923c; /* 清透暖橙 (易错 / 提醒 / 二重) */
-  --maki-gray-lit:   #94a3b8; /* 质感冷灰 (统 / 压缩讲 / 兜底) */
+  /* 核心色系 */
+  --maki-blue-lit:   #38bdf8; /* 亮蓝 */
+  --maki-red-lit:    #fb7185; /* 玫瑰红 */
+  --maki-green-lit:  #34d399; /* 鲜绿 */
+  --maki-orange-lit: #fb923c; /* 暖橙 */
+  --maki-gray-lit:   #94a3b8; /* 冷灰 */
 }
 
-/* 1. 标签系统 (Tags) */
+/* 标签样式 */
 .td-para .m-tag {
   margin: 0 4px;
   vertical-align: middle;
@@ -17,7 +17,7 @@
   top: -0.14em;
 }
 
-/* 2. 盒子系统 (Box) */
+/* 盒子样式 */
 .td-box {
   --td-accent: var(--maki-gray-lit);
 
@@ -27,7 +27,7 @@
   background-color: color-mix(in srgb, var(--td-accent) 11%, var(--bg-surface, #202020));
 }
 
-/* 语义色位分发 */
+/* 语义色分配 */
 .td-box-def    { --td-accent: var(--maki-blue-lit); }
 .td-box-thm    { --td-accent: var(--maki-red-lit); }
 .td-box-ex     { --td-accent: var(--maki-green-lit); }
@@ -77,7 +77,7 @@
 .td-box-body > :first-child { margin-top: 0; }
 .td-box-body > :last-child  { margin-bottom: 0; }
 
-/* 考频盒子专属：左侧实线极客终端样式 (遵循 docs/Design.md 规范) */
+/* 考频盒子样式 */
 .td-box-kaopin {
   background-color: var(--bg-surface, #202020);
   border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
@@ -91,7 +91,7 @@
   border-left-color: var(--td-accent);
 }
 
-/* 3. 讲次大卡片 (#lec) */
+/* 讲次卡片 */
 .td-lec {
   margin: 0;
   padding: 14px 18px;
@@ -125,7 +125,7 @@
 .td-lec-body > :first-child { margin-top: 0; }
 .td-lec-body > :last-child  { margin-bottom: 0; }
 
-/* 5. 真题引证卡 (#zt，严格遵循 docs/Design.md 极客终端设计规范) */
+/* 真题引证卡 */
 .td-zt {
   --zt-accent: var(--tag-amber, #ce9178);
   --zt-accent-lit: var(--maki-orange-lit, #fb923c);
@@ -197,7 +197,7 @@
   opacity: 0.85;
 }
 
-/* 6. 基础排版 */
+/* 基础排版 */
 .typst-doc {
   display: flex;
   flex-direction: column;
@@ -254,7 +254,7 @@
   color: var(--text-primary, #e0e0e0);
 }
 
-/* 7. 数学公式排版 (typlet 数学引擎渲染与自适应缩放) */
+/* 数学公式排版 */
 .td-math {
   display: inline;
   font-size: 1.22em;
@@ -275,12 +275,12 @@
   text-align: center;
 }
 
-/* 提高公式在深色背景下的对比与清晰度 */
+/* 提升公式对比度 */
 .td-math .typlet {
   text-rendering: optimizeLegibility;
 }
 
-/* 强化分式线与根号横线厚度，消除低于 1px 导致的亚像素发虚与模糊 */
+/* 分式线与根号横线厚度 */
 .td-math .typlet .r {
   min-height: 1.25px;
 }
@@ -292,7 +292,7 @@
   padding: 0 4px;
 }
 
-/* 8. 表格排版 (Table，学术三线风格，线条色系融入当前色块) */
+/* 表格排版 */
 .td-table-wrap {
   width: 100%;
   overflow-x: auto;
@@ -329,7 +329,7 @@
 .td-align-center { text-align: center; }
 .td-align-right  { text-align: right; }
 
-/* 9. 文档解析告警提示 */
+/* 解析告警提示 */
 .td-warnings {
   margin: 1.5em 0 0;
   padding: 12px 16px;

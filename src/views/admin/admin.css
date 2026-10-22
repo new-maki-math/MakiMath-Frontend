@@ -1,4 +1,4 @@
-/* 管理台内部共享布局，类名统一 adm- 前缀避免与全局样式冲突 */
+/* 管理台共享布局 */
 
 .adm-form-grid {
   display: grid;
@@ -53,7 +53,7 @@
 
 .adm-note {
   padding: 12px 14px;
-  /* 框体比页面背景（bg-app）浅一级 */
+  /* 提示框背景 */
   background-color: var(--bg-surface);
   border: 1px dashed var(--border-subtle);
   border-radius: var(--radius-sm);
@@ -125,7 +125,7 @@
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  /* 框体比页面背景（bg-app）浅一级 */
+  /* 文件放置区 */
   background-color: var(--bg-surface);
   border: 1px dashed var(--border-subtle);
   border-radius: var(--radius-sm);
@@ -142,7 +142,7 @@
   background-color: var(--accent-muted);
 }
 
-/* 列表多选操作支持 */
+/* 多选框样式 */
 .adm-checkbox {
   appearance: none;
   -webkit-appearance: none;

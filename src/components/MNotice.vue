@@ -5,12 +5,7 @@ import { ref } from 'vue';
 const globalNotice = ref(null);
 let globalTimer = null;
 
-/**
- * 全局函数式通知触发器
- * @param {string} text 通知文案
- * @param {'ok'|'error'|'warn'|'info'} kind 状态类型
- * @param {number} duration 停留时长(毫秒)，传 0 为不自动关闭
- */
+// 全局函数式通知触发器
 export const notify = (text, kind = 'ok', duration = 3200) => {
   if (!text) return;
   globalNotice.value = { text, kind };
@@ -121,8 +116,8 @@ const handleClose = () => {
 </template>
 
 <style scoped>
+/* 通知浮层定位 */
 .m-notice {
-  /* 全局浮层：固定在顶部居中，层级高于弹窗/顶栏 */
   position: fixed;
   top: calc(var(--topbar-height, 54px) + 14px);
   left: 50%;
@@ -211,7 +206,7 @@ const handleClose = () => {
   border-color: rgba(56, 189, 248, 0.4);
 }
 
-/* 进出过渡动画：保留居中位移，只做微小上浮与渐变 */
+/* 过渡动画 */
 .notice-fade-enter-active,
 .notice-fade-leave-active {
   transition: opacity 180ms ease, transform 180ms cubic-bezier(0.16, 1, 0.3, 1);

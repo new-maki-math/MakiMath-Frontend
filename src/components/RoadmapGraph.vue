@@ -19,32 +19,32 @@ import {
 } from '@iconoir/vue';
 
 const props = defineProps({
-  // 外部直接传入的自定义拓扑数据 { nodes: [], links: [] }
+  // 自定义拓扑数据
   data: {
     type: Object,
     default: null
   },
-  // 课程 ID：若未传入 data 则自动从服务端动态拉取该课程的关系图谱
+  // 课程标识
   courseId: {
     type: String,
     default: 'kaoyan'
   },
-  // 初始层级深度：1 (大编拓扑), 2 (讲次网络, 默认), 3 (全知识节点)
+  // 初始层级深度
   initialLevel: {
     type: Number,
     default: 1
   },
-  // 是否显示交互式悬浮工具栏
+  // 是否显示控制栏
   showControls: {
     type: Boolean,
     default: true
   },
-  // 是否显示实时搜索过滤框
+  // 是否显示搜索框
   showSearch: {
     type: Boolean,
     default: true
   },
-  // 是否在点击节点时弹出详情抽屉
+  // 是否显示详情抽屉
   showDetails: {
     type: Boolean,
     default: true
@@ -64,7 +64,7 @@ const isPhysicsRunning = ref(true);
 const selectedNode = ref(null);
 const hoveredNode = ref(null);
 
-// 原始全量图数据与当前过滤渲染数据
+// 图谱数据与渲染状态
 const rawGraphData = ref({ nodes: [], links: [], chapters: [] });
 let simulation = null;
 let zoomBehavior = null;
@@ -79,19 +79,19 @@ let renderRequested = false;
 let draggedNode = null;
 let mouseDownPos = { x: 0, y: 0 };
 
-// 尺寸管理
+// 容器尺寸
 const dimensions = ref({ width: 800, height: 600 });
 
-// 筛选后的节点与连线数据
+// 过滤后的节点与连线
 const filteredGraph = computed(() => {
   const allNodes = rawGraphData.value.nodes || [];
   const allLinks = rawGraphData.value.links || [];
 
-  // 1. 根据层级深度过滤节点
+  // 按层级过滤节点
   const activeNodes = allNodes.filter(n => n.level <= currentLevel.value);
   const activeNodeIds = new Set(activeNodes.map(n => n.id));
 
-  // 2. 根据可用节点过滤连线
+  // 过滤连线
   const activeLinks = allLinks.filter(l => {
     const sId = typeof l.source === 'object' ? l.source.id : l.source;
     const tId = typeof l.target === 'object' ? l.target.id : l.target;
@@ -104,7 +104,7 @@ const filteredGraph = computed(() => {
   };
 });
 
-// 计算当前高亮节点集合（悬浮或选中节点的直连邻居）
+// 计算直连高亮节点
 const highlightedNeighbors = computed(() => {
   const target = hoveredNode.value || selectedNode.value;
   if (!target) return null;
@@ -128,7 +128,7 @@ const highlightedNeighbors = computed(() => {
   return { targetId, inSet, outSet };
 });
 
-// 节流的 Canvas 渲染调度，确保 60FPS 丝滑不掉帧
+// 节流渲染调度
 const requestRender = () => {
   if (!renderRequested) {
     renderRequested = true;
@@ -139,7 +139,7 @@ const requestRender = () => {
   }
 };
 
-// 在给定坐标下检索节点
+// 检索坐标下的节点
 const findNodeAt = (graphX, graphY) => {
   const nodes = filteredGraph.value.nodes;
   for (let i = nodes.length - 1; i >= 0; --i) {
@@ -155,7 +155,7 @@ const findNodeAt = (graphX, graphY) => {
   return null;
 };
 
-// WebGL2 核心图谱绘制函数 (0 DOM 负担，GPU 硬件管线加速渲染连线、节点与文字)
+// WebGL2 绘制管线
 const renderCanvas = () => {
   if (!webglRenderer) return;
 
@@ -176,7 +176,7 @@ const renderCanvas = () => {
   }
 };
 
-// 加载课程或使用传入的数据源
+// 加载图谱数据
 const loadData = async () => {
   isLoading.value = true;
   try {
@@ -196,7 +196,7 @@ const loadData = async () => {
   }
 };
 
-// 停止正在进行的平滑缩放动画
+// 停止平滑缩放
 const stopSmoothZoom = () => {
   if (isSmoothZooming) {
     isSmoothZooming = false;
@@ -205,7 +205,7 @@ const stopSmoothZoom = () => {
   }
 };
 
-// 无极平滑惯性滚轮缩放核心算法 (亚像素级连续 Lerp 插值，消除所有机械滚轮离散阶梯顿挫感)
+// 平滑滚轮缩放
 const onCanvasWheel = (e) => {
   e.preventDefault();
   const canvas = canvasRef.value;
@@ -215,15 +215,15 @@ const onCanvasWheel = (e) => {
   const mouseX = e.clientX - rect.left;
   const mouseY = e.clientY - rect.top;
 
-  // 标准化不同设备滚轮步长 (像素/行/页模式)
+  // 统一设备滚轮步长
   let delta = e.deltaY;
   if (e.deltaMode === 1) delta *= 24;
   else if (e.deltaMode === 2) delta *= 100;
 
-  // 极柔和对数阻尼缩放系数
+  // 阻尼缩放系数
   const zoomFactor = Math.exp(-delta * 0.0018);
 
-  // 以当前目标状态计算鼠标光标所在的世界坐标 (gx, gy)，确保多次滚轮快速滚动时光标下的锚点严格恒定不漂移
+  // 计算光标下的世界坐标
   const gx = (mouseX - targetTransform.x) / targetTransform.k;
   const gy = (mouseY - targetTransform.y) / targetTransform.k;
 
@@ -249,7 +249,7 @@ const smoothZoomLoop = () => {
   const dx = targetTransform.x - curX;
   const dy = targetTransform.y - curY;
 
-  // 收敛停止阈值：微小差异时精准归位并停止 RAF 循环
+  // 收敛阈值检测
   if (Math.abs(dk) < 0.0005 && Math.abs(dx) < 0.1 && Math.abs(dy) < 0.1) {
     currentTransform = d3.zoomIdentity.translate(targetTransform.x, targetTransform.y).scale(targetTransform.k);
     if (canvasRef.value) {
@@ -261,7 +261,7 @@ const smoothZoomLoop = () => {
     return;
   }
 
-  // 指数平滑插值 (Lerp)：每帧按 16% 平缓趋近目标，呈现丝滑无级缩放
+  // 平滑插值计算
   const ease = 0.16;
   const nextK = curK + dk * ease;
   const nextX = curX + dx * ease;
@@ -276,7 +276,7 @@ const smoothZoomLoop = () => {
   smoothZoomRaf = requestAnimationFrame(smoothZoomLoop);
 };
 
-// 初始化 HTML5 Canvas 与 D3 力导向仿真 + 交互系统
+// 初始化画布与仿真引擎
 const initCanvasAndD3 = () => {
   const canvas = canvasRef.value;
   const container = containerRef.value;
@@ -293,7 +293,7 @@ const initCanvasAndD3 = () => {
   canvas.style.width = `${width}px`;
   canvas.style.height = `${height}px`;
 
-  // 初始化或调整 WebGL 渲染管线
+  // 初始化渲染管线
   if (!webglRenderer) {
     webglRenderer = new RoadmapWebGLRenderer(canvas);
   }
@@ -307,7 +307,7 @@ const initCanvasAndD3 = () => {
 
   const { nodes, links } = filteredGraph.value;
 
-  // 1. 力导向物理引擎配置 (重点优化小层级碰撞半径与排斥力，彻底消除标签文字挤压重叠)
+  // 力导向物理引擎配置
   simulation = d3.forceSimulation(nodes)
     .force('link', d3.forceLink(links).id(d => d.id).distance(d => {
       if (d.type === 'prereq') return 180;
@@ -321,30 +321,30 @@ const initCanvasAndD3 = () => {
       return 0.3;
     }))
     .force('charge', d3.forceManyBody().strength(d => {
-      if (d.level === 1) return -550; // 一级大编强力撑开核心骨干
-      if (d.level === 2) return -240; // 二级讲次大幅增强点间互斥力，彻底散开小球
-      return -70;                    // 三级微观知识节点
+      if (d.level === 1) return -550;
+      if (d.level === 2) return -240;
+      return -70;
     }))
     .force('collide', d3.forceCollide().radius(d => {
-      // 动态分层有效碰撞半径：圆圈半径 + 预留横向文字宽度的安全保护圈
-      if (d.level === 1) return (d.radius || 22) + 28; // ~50px 半径，两个大编节点保持 100px 安全隔离带
-      if (d.level === 2) return (d.radius || 12) + 24; // ~36px 半径，相邻讲次保持 72px 宽度，充分容纳标题
-      return (d.radius || 6) + 12;                     // ~18px 半径，微观节点防贴合
+      // 动态碰撞半径
+      if (d.level === 1) return (d.radius || 22) + 28;
+      if (d.level === 2) return (d.radius || 12) + 24;
+      return (d.radius || 6) + 12;
     }).iterations(2))
     .force('center', d3.forceCenter(width / 2, height / 2))
     .alphaDecay(0.05);
 
-  // 2. 内存预热 50 次，使新物理排斥力在挂载前直接计算归位
+  // 物理引擎预热
   for (let i = 0; i < 50; ++i) {
     simulation.tick();
   }
 
-  // 每帧刷新坐标并触发 Canvas 重绘
+  // 坐标更新触发重绘
   simulation.on('tick', () => {
     requestRender();
   });
 
-  // 3. 缩放与画布平移漫游系统 (D3 Zoom 处理画布拖拽，平滑惯性系统接管滚轮缩放)
+  // 画布平移缩放交互
   targetTransform.k = currentTransform.k;
   targetTransform.x = currentTransform.x;
   targetTransform.y = currentTransform.y;
@@ -352,14 +352,14 @@ const initCanvasAndD3 = () => {
   zoomBehavior = d3.zoom()
     .scaleExtent([0.15, 6])
     .filter((event) => {
-      // 鼠标按下时如果命中节点，放行给节点拖拽逻辑，不启动画布拖动
+      // 命中节点时放行拖拽
       if (event.type === 'mousedown') {
         if (!canvasRef.value) return true;
         const [x, y] = d3.pointer(event, canvasRef.value);
         const [gx, gy] = currentTransform.invert([x, y]);
         if (findNodeAt(gx, gy) != null) return false;
       }
-      // 屏蔽 D3 原生阶梯滚轮，由自定义平滑惯性无极缩放接管
+      // 屏蔽原生滚轮缩放
       if (event.type === 'wheel') return false;
       return !event.ctrlKey && !event.button;
     })
@@ -380,14 +380,14 @@ const initCanvasAndD3 = () => {
 
   d3.select(canvas).call(zoomBehavior);
 
-  // 绑定原生非 passive 滚轮事件监听器，提供亚像素级无极连续缩放
+  // 绑定滚轮监听
   canvas.removeEventListener('wheel', onCanvasWheel);
   canvas.addEventListener('wheel', onCanvasWheel, { passive: false });
 
   requestRender();
 };
 
-// 4. 节点拖拽与点击交互系统
+// 节点拖拽交互
 const onCanvasMouseDown = (e) => {
   mouseDownPos = { x: e.clientX, y: e.clientY };
   if (!canvasRef.value) return;
@@ -396,7 +396,7 @@ const onCanvasMouseDown = (e) => {
   const target = findNodeAt(gx, gy);
 
   if (target) {
-    // 命中节点，开始节点拖拽并持续保持物理活跃
+    // 命中节点启动拖拽
     draggedNode = target;
     if (simulation) {
       simulation.alphaTarget(0.2).restart();
@@ -433,7 +433,7 @@ const onWindowMouseUp = (e) => {
 };
 
 const onCanvasClick = (e) => {
-  // 如果鼠标位移小于 5 像素，判定为真实点击
+  // 判定点击事件
   if (Math.hypot(e.clientX - mouseDownPos.x, e.clientY - mouseDownPos.y) < 5) {
     if (!canvasRef.value) return;
     const [x, y] = d3.pointer(e, canvasRef.value);
@@ -467,7 +467,7 @@ const onCanvasMouseLeave = () => {
   }
 };
 
-// 交互操作工具方法
+// 视图缩放控制
 const handleZoomIn = () => {
   stopSmoothZoom();
   if (canvasRef.value && zoomBehavior) {
@@ -502,7 +502,7 @@ const togglePhysics = () => {
   }
 };
 
-// 聚焦到指定节点
+// 聚焦节点
 const focusNode = (nodeId) => {
   stopSmoothZoom();
   const target = filteredGraph.value.nodes.find(n => n.id === nodeId);
@@ -522,7 +522,7 @@ const focusNode = (nodeId) => {
   requestRender();
 };
 
-// 跳转到该小节/讲次的阅读页
+// 跳转讲义阅读
 const navigateToLecture = (node) => {
   let course = props.courseId || 'kaoyan';
   let section = node.id;
@@ -536,7 +536,7 @@ const navigateToLecture = (node) => {
   router.push(path);
 };
 
-// 响应容器尺寸变化
+// 容器尺寸适配
 const handleResize = () => {
   if (!containerRef.value || !canvasRef.value) return;
   const rect = containerRef.value.getBoundingClientRect();
@@ -564,7 +564,7 @@ const handleResize = () => {
   }
 };
 
-// 监听层级切换，重新渲染
+// 监听层级变化
 watch(currentLevel, () => {
   selectedNode.value = null;
   hoveredNode.value = null;
@@ -576,7 +576,7 @@ watch(searchQuery, () => {
   requestRender();
 });
 
-// 监听 props 变化
+// 监听属性变化
 watch(
   () => [props.courseId, props.data],
   () => {
@@ -611,7 +611,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div ref="containerRef" class="roadmap-graph-container" aria-label="知识图谱路线图">
-    <!-- WebGL2 核心硬件加速画布 (几何拓扑连线、箭头、SDF 亚像素抗锯齿圆球) -->
+    <!-- WebGL 画布 -->
     <canvas
       ref="canvasRef"
       class="graph-canvas"
@@ -621,9 +621,9 @@ onBeforeUnmount(() => {
       @mouseleave="onCanvasMouseLeave"
     ></canvas>
 
-    <!-- 顶部状态指示与工具栏 (Obsidian 极简风格浮层) -->
+    <!-- 顶部控制栏 -->
     <div v-if="showControls" class="graph-floating-panel top-panel">
-      <!-- 实时搜索输入框 -->
+      <!-- 搜索输入框 -->
       <div v-if="showSearch" class="search-input-wrap">
         <Search width="14" height="14" class="search-icon" />
         <input
@@ -635,7 +635,7 @@ onBeforeUnmount(() => {
         <button v-if="searchQuery" class="clear-btn" @click="searchQuery = ''">×</button>
       </div>
 
-      <!-- 层级深度切换器 (支持多层嵌套) -->
+      <!-- 层级切换器 -->
       <div class="level-selector font-mono">
         <button
           class="level-btn"
@@ -664,7 +664,7 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <!-- 右下角视图缩放与仿真控制栏 -->
+    <!-- 视图控制栏 -->
     <div v-if="showControls" class="graph-floating-panel bottom-panel font-mono">
       <button class="tool-btn" title="放大 (+)" @click="handleZoomIn">
         <ZoomIn width="15" height="15" />
@@ -692,7 +692,7 @@ onBeforeUnmount(() => {
       <span>GENERATING KNOWLEDGE NETWORK...</span>
     </div>
 
-    <!-- 节点详情侧边信息卡片 (点击节点时展开) -->
+    <!-- 节点详情侧卡 -->
     <transition name="slide-fade">
       <aside v-if="showDetails && selectedNode" class="node-inspector-drawer">
         <div class="drawer-header">
@@ -705,13 +705,13 @@ onBeforeUnmount(() => {
         <h3 class="drawer-title">{{ selectedNode.tag ? `${selectedNode.tag} · ${selectedNode.title}` : selectedNode.title }}</h3>
         <p v-if="selectedNode.desc" class="drawer-desc">{{ selectedNode.desc }}</p>
 
-        <!-- 前置要求说明 -->
+        <!-- 前置依赖说明 -->
         <div v-if="selectedNode.prereqText" class="drawer-field">
           <div class="field-label font-mono">PREREQUISITE // 前置依赖</div>
           <div class="field-value font-mono">{{ selectedNode.prereqText }}</div>
         </div>
 
-        <!-- 节点指标参数 -->
+        <!-- 节点指标 -->
         <div class="drawer-meta-grid font-mono">
           <div v-if="selectedNode.sectionsCount" class="meta-item">
             <span class="meta-label">收录讲次</span>
@@ -727,7 +727,7 @@ onBeforeUnmount(() => {
           </div>
         </div>
 
-        <!-- 操作按钮：进入讲义阅读 -->
+        <!-- 进入讲义按钮 -->
         <div class="drawer-action-wrap">
           <button
             v-if="selectedNode.level >= 2"
@@ -758,7 +758,8 @@ onBeforeUnmount(() => {
   min-height: 400px;
   position: relative;
   overflow: hidden;
-  isolation: isolate; /* 建立独立层叠上下文，杜绝内部所有绝对定位浮层穿透到页面级导航栏或 Layout */
+  /* 隔离层叠上下文 */
+  isolation: isolate;
   z-index: 1;
   background-color: var(--bg-app);
   display: flex;
@@ -777,7 +778,7 @@ onBeforeUnmount(() => {
   cursor: grabbing;
 }
 
-/* 浮动控制面板 (Obsidian 沉浸暗色风格) */
+/* 浮动控制面板 */
 .graph-floating-panel {
   position: absolute;
   z-index: 5;
@@ -955,7 +956,7 @@ onBeforeUnmount(() => {
   }
 }
 
-/* 节点详情卡片抽屉 (Obsidian 风格沉浸侧卡) */
+/* 节点详情抽屉 */
 .node-inspector-drawer {
   position: absolute;
   top: 14px;

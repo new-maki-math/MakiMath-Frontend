@@ -70,7 +70,7 @@ defineEmits(['update:modelValue']);
   display: block;
   width: 100%;
   padding: 9px 11px;
-  /* 框体比页面背景（bg-app）浅一级 */
+  /* 多行文本框基础样式 */
   background-color: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);

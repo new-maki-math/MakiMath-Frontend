@@ -2,33 +2,33 @@
 import { computed } from 'vue';
 
 const props = defineProps({
-  /** 是否展开 */
+  // 是否展开
   open: {
     type: Boolean,
     default: undefined
   },
-  /** 支持 v-model 绑定 */
+  // 双向绑定展开状态
   modelValue: {
     type: Boolean,
     default: undefined
   },
-  /** 折叠方向: 'vertical' (纵向，默认) | 'horizontal' (横向) */
+  // 折叠方向
   direction: {
     type: String,
     default: 'vertical',
     validator: (v) => ['vertical', 'horizontal'].includes(v)
   },
-  /** 快捷布尔属性: <MCollapse horizontal :open="..." /> */
+  // 横向折叠快捷属性
   horizontal: {
     type: Boolean,
     default: false
   },
-  /** 抽屉/滑层模式: 浮动绝对定位侧滑 (GPU translate3d 独立图层加速，0 挤压重排) */
+  // 抽屉浮层模式
   drawer: {
     type: Boolean,
     default: false
   },
-  /** 动画持续时间 (ms)，默认 220ms */
+  // 动画时长
   duration: {
     type: [Number, String],
     default: 220
@@ -79,11 +79,7 @@ const opacityDurationMs = computed(() => {
   width: 100%;
 }
 
-/* ==========================================================================
-   1. 抽屉模式 (Drawer / Slide-over Mode):
-   GPU 硬件加速 translate3d(-100%, 0, 0) -> translate3d(0, 0, 0)
-   绝对定位脱离常规文档流，0 挤压相邻内容，0 次数学公式与正文重排
-   ========================================================================== */
+/* 抽屉模式 */
 .m-collapse.is-drawer {
   position: absolute;
   top: 0;
@@ -109,10 +105,7 @@ const opacityDurationMs = computed(() => {
   flex-direction: column;
 }
 
-/* ==========================================================================
-   2. 文档流横向折叠 (In-flow Horizontal Mode):
-   升级为 GPU translate3d 位移缓冲 + 高级减速曲线 (0.16, 1, 0.3, 1)
-   ========================================================================== */
+/* 横向折叠模式 */
 .m-collapse.is-horizontal {
   display: grid;
   grid-template-columns: 0fr;
@@ -143,10 +136,7 @@ const opacityDurationMs = computed(() => {
     visibility 0s var(--collapse-duration, 220ms);
 }
 
-/* ==========================================================================
-   3. 文档流纵向折叠 (In-flow Vertical Mode):
-   手风琴式平滑纵向收放，结合微位移渐变
-   ========================================================================== */
+/* 纵向折叠模式 */
 .m-collapse.is-vertical {
   display: grid;
   grid-template-rows: 0fr;

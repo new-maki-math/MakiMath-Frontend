@@ -1,5 +1,5 @@
 import { createApp } from 'vue'
-// 本地引用 Noto Sans SC 字体 (300, 400, 500, 600, 700)
+// 引入中文字体
 import '@fontsource/noto-sans-sc/300.css'
 import '@fontsource/noto-sans-sc/400.css'
 import '@fontsource/noto-sans-sc/500.css'

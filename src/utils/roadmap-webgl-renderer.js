@@ -1,13 +1,4 @@
-/**
- * 高性能 WebGL2 知识图谱渲染器 (Roadmap WebGL Renderer)
- * 极致纯净 0 依赖，利用 GPU 硬件管线渲染节点、连线、箭头与文本标签
- * 
- * 核心技术特色：
- * 1. 纯硬件 GPU 绘制：所有连线、节点、箭头、文字标签均在 WebGL 管线完成，0 CPU 逐帧排版，维持稳定 120 FPS
- * 2. 物理像素级精准 SDF 抗锯齿：圆球边缘无论缩放如何、DPR 多高均恒定为 1.0 物理屏幕像素，彻底告别模糊与锯齿
- * 3. 4x 超高精度 Text Atlas 图集 + 硬件 Mipmap 三线性过滤：在高分屏 (Retina / DPR >= 1.5) 与特写缩放下依然清晰锐利，无拉伸模糊
- * 4. 视锥体视口剔除 (View Frustum Culling)：仅绘制屏幕内可见节点与标签，显存与计算负荷极低
- */
+// WebGL2 知识图谱渲染器
 
 function createProgram(gl, vertexSource, fragmentSource) {
   const vShader = gl.createShader(gl.VERTEX_SHADER);
@@ -72,11 +63,7 @@ function hexToRgba(hex, alpha = 1.0) {
   ];
 }
 
-// =========================================================================
-// 1. Shaders 定义
-// =========================================================================
-
-// --- 连线与箭头着色器 ---
+// 连线与箭头着色器
 const LINK_VS = `
 attribute vec2 a_pos;
 attribute vec4 a_color;
@@ -99,18 +86,18 @@ void main() {
 }
 `;
 
-// --- 节点 SDF 精准物理像素抗锯齿圆形着色器 ---
+// 节点 SDF 抗锯齿圆形着色器
 const NODE_VS = `
-attribute vec2 a_corner;        // Quad 局部四角坐标 [-1, -1] ~ [1, 1]
-attribute vec2 a_center;        // 节点世界中心坐标 (gx, gy)
-attribute float a_total_radius; // 节点几何总半径 (radius + strokeWidth * 0.5)
-attribute vec4 a_fill_color;    // 节点填充色
-attribute vec4 a_stroke_color;  // 节点边框描边色
-attribute float a_fill_ratio;   // 内填充半径比例
-attribute float a_alpha;        // 综合透明度
+attribute vec2 a_corner;
+attribute vec2 a_center;
+attribute float a_total_radius;
+attribute vec4 a_fill_color;
+attribute vec4 a_stroke_color;
+attribute float a_fill_ratio;
+attribute float a_alpha;
 
 uniform mat3 u_matrix;
-uniform float u_scale;          // 当前视口屏幕物理缩放比 (k * dpr)
+uniform float u_scale;
 
 varying vec2 v_corner;
 varying vec4 v_fill_color;
@@ -148,16 +135,16 @@ varying float v_alpha;
 void main() {
   float dist = length(v_corner);
 
-  // 物理屏幕像素级 1.0 像素抗锯齿宽度，无论缩放或 DPR 多高，边缘都极其锐利干净
+  // 像素级抗锯齿宽度
   float delta = 1.0 / max(v_total_radius * u_scale, 1.0);
 
-  // 外边缘平滑裁剪 (1.0 物理像素羽化)
+  // 外边缘羽化裁剪
   float outer_alpha = smoothstep(1.0, 1.0 - delta, dist);
   if (outer_alpha <= 0.001) {
     discard;
   }
 
-  // 内填充与描边分界 (1.0 物理像素羽化)
+  // 内填充与描边分界
   float inner_boundary = v_fill_ratio;
   float fill_factor = smoothstep(inner_boundary + delta, inner_boundary, dist);
 
@@ -168,7 +155,7 @@ void main() {
 }
 `;
 
-// --- 文字纹理着色器 (采样 4x 视网膜 Texture Atlas，GPU 硬件级淡入淡出) ---
+// 文字纹理着色器
 const TEXT_VS = `
 attribute vec2 a_pos;
 attribute vec2 a_uv;
@@ -199,10 +186,7 @@ void main() {
 }
 `;
 
-// =========================================================================
-// 2. WebGL 核心渲染器类
-// =========================================================================
-
+// WebGL 核心渲染器
 export class RoadmapWebGLRenderer {
   constructor(canvas) {
     this.canvas = canvas;
@@ -220,7 +204,7 @@ export class RoadmapWebGLRenderer {
     }
     this.gl = gl;
 
-    // 启用标准导数扩展 (针对 WebGL1)
+    // 启用扩展
     if (gl.getExtension) {
       gl.getExtension('OES_standard_derivatives');
     }
@@ -229,12 +213,12 @@ export class RoadmapWebGLRenderer {
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
-    // 编译 Shader Programs
+    // 编译着色器程序
     this.linkProgram = createProgram(gl, LINK_VS, LINK_FS);
     this.nodeProgram = createProgram(gl, NODE_VS, NODE_FS);
     this.textProgram = createProgram(gl, TEXT_VS, TEXT_FS);
 
-    // 动态显存 VBO / IBO
+    // 创建顶点与索引缓冲区
     this.linkVBO = gl.createBuffer();
     this.linkIBO = gl.createBuffer();
 
@@ -246,16 +230,16 @@ export class RoadmapWebGLRenderer {
     this.textVBO = gl.createBuffer();
     this.textIBO = gl.createBuffer();
 
-    // 4x 高清文字图集纹理
+    // 文字图集纹理
     this.textTexture = gl.createTexture();
-    this.textAtlasMap = new Map(); // id -> { u0, v0, u1, v1, w, h, yOffset }
+    this.textAtlasMap = new Map();
 
     this.width = 800;
     this.height = 600;
     this.dpr = 1;
   }
 
-  // 尺寸调整
+  // 调整视口尺寸
   resize(width, height, dpr = 1) {
     this.width = width;
     this.height = height;
@@ -263,7 +247,7 @@ export class RoadmapWebGLRenderer {
     this.gl.viewport(0, 0, Math.round(width * dpr), Math.round(height * dpr));
   }
 
-  // 获取宿主容器的原版背景颜色 (直接和 Canvas 一样读取全局 CSS 变量 --bg-app)
+  // 获取背景色
   getBackgroundColor() {
     if (typeof window !== 'undefined') {
       const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg-app').trim();
@@ -271,10 +255,10 @@ export class RoadmapWebGLRenderer {
         return hexToRgba(bg, 1.0);
       }
     }
-    return [0.0941176, 0.0941176, 0.0941176, 1.0]; // #181818
+    return [0.0941176, 0.0941176, 0.0941176, 1.0];
   }
 
-  // 构建 4x 视网膜级文字纹理图集 (通过 4.0 超采样烘焙，彻底解决高分屏与放大视角下的字迹模糊)
+  // 构建文字图集纹理
   buildTextAtlas(nodes) {
     const gl = this.gl;
     if (!nodes || nodes.length === 0) return;
@@ -299,8 +283,8 @@ export class RoadmapWebGLRenderer {
     let curX = 16;
     let curY = 16;
     let rowHeight = 0;
-    const padding = 16; // 留白空间，防止 GPU Mipmap 降采样时发生邻近字符渗色
-    const scaleFactor = 4.0; // 4x 超高精度离线烘焙，高分屏 (Retina / DPR >= 1.5) 与特写放大视角下依然呈现 1:1 视网膜级锐度
+    const padding = 16;
+    const scaleFactor = 4.0;
 
     for (let i = 0; i < nodes.length; ++i) {
       const n = nodes[i];
@@ -337,7 +321,7 @@ export class RoadmapWebGLRenderer {
         break;
       }
 
-      // 绘制原版主题深色轮廓光晕 (直接读取全局 CSS 变量 --bg-app，与背景无缝融合)
+      // 绘制轮廓光晕
       const bgApp = (typeof window !== 'undefined'
         ? getComputedStyle(document.documentElement).getPropertyValue('--bg-app').trim()
         : '') || '#181818';
@@ -345,11 +329,11 @@ export class RoadmapWebGLRenderer {
       ctx.lineWidth = strokeW;
       ctx.strokeText(text, curX + strokeW + 4, curY + strokeW + 4);
 
-      // 绘制文本本体
+      // 绘制文本
       ctx.fillStyle = fillCol;
       ctx.fillText(text, curX + strokeW + 4, curY + strokeW + 4);
 
-      // 记录 UV 坐标与世界空间尺寸
+      // 记录 UV 坐标与尺寸
       this.textAtlasMap.set(n.id, {
         u0: curX / atlasW,
         v0: curY / atlasH,
@@ -364,7 +348,7 @@ export class RoadmapWebGLRenderer {
       if (textH > rowHeight) rowHeight = textH;
     }
 
-    // 上传纹理至 GPU 并生成 Mipmap，硬件级三线性过滤消除缩小闪烁
+    // 上传纹理并生成 Mipmap
     gl.bindTexture(gl.TEXTURE_2D, this.textTexture);
     gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, atlasCanvas);
@@ -375,7 +359,7 @@ export class RoadmapWebGLRenderer {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   }
 
-  // 核心渲染方法 (纯 GPU 极速渲染，0 逐帧 CPU 开销)
+  // 核心渲染方法
   render(state) {
     const gl = this.gl;
     const { nodes, links, hl, query, transform } = state;
@@ -387,28 +371,26 @@ export class RoadmapWebGLRenderer {
     let needsMoreFrames = false;
     const FADE_SPEED = 0.22;
 
-    // 清屏为原版主题背景色 (--bg-app: #181818)
+    // 清屏
     const bg = this.getBackgroundColor();
     gl.clearColor(bg[0], bg[1], bg[2], 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
-    // 列优先 3x3 矩阵：世界坐标 (gx, gy) -> 视口 NDC [-1, 1]
+    // 变换矩阵
     const matrix = new Float32Array([
       (2 * k) / width, 0, 0,
       0, (-2 * k) / height, 0,
       (2 * tx) / width - 1, 1 - (2 * ty) / height, 1
     ]);
 
-    // 视锥体视口空间剔除边界 (保留 120px 缓冲带)
+    // 视锥体视口剔除边界
     const pad = 120;
     const viewLeft = -tx / k - pad;
     const viewRight = (width - tx) / k + pad;
     const viewTop = -ty / k - pad;
     const viewBottom = (height - ty) / k + pad;
 
-    // =====================================================================
-    // 1. 连线与箭头 (Links & Arrows)
-    // =====================================================================
+    // 绘制连线与箭头
     const linkVerts = [];
     const linkIndices = [];
     const arrowVerts = [];
@@ -429,11 +411,11 @@ export class RoadmapWebGLRenderer {
       if (hl) {
         if (tId === hl.targetId) {
           isLinkActive = true;
-          strokeColorHex = '#10b981'; // 前置依赖：翡翠绿
+          strokeColorHex = '#10b981';
           lineWidth = 2.2;
         } else if (sId === hl.targetId) {
           isLinkActive = true;
-          strokeColorHex = '#3b82f6'; // 后续依赖：蔚蓝
+          strokeColorHex = '#3b82f6';
           lineWidth = 2.2;
         }
       }
@@ -487,7 +469,7 @@ export class RoadmapWebGLRenderer {
           );
         }
       } else {
-        // 实线 Quad 几何
+        // 实线几何体
         const baseV = linkVerts.length / 6;
         linkVerts.push(
           s.x + nx, s.y + ny, rgba[0], rgba[1], rgba[2], rgba[3],
@@ -500,7 +482,7 @@ export class RoadmapWebGLRenderer {
           baseV, baseV + 2, baseV + 3
         );
 
-        // 前置依赖与顺序关联绘制箭头
+        // 依赖连线箭头
         if (l.type === 'prereq' || l.type === 'sequence') {
           const targetRadius = t.radius || 12;
           const arrowLen = 7;
@@ -527,7 +509,7 @@ export class RoadmapWebGLRenderer {
       }
     }
 
-    // 绘制连线
+    // 提交连线绘制
     if (linkIndices.length > 0) {
       gl.useProgram(this.linkProgram);
       const uMatLoc = gl.getUniformLocation(this.linkProgram, 'u_matrix');
@@ -550,7 +532,7 @@ export class RoadmapWebGLRenderer {
 
       gl.drawElements(gl.TRIANGLES, linkIndices.length, gl.UNSIGNED_SHORT, 0);
 
-      // 绘制箭头
+      // 提交箭头绘制
       if (arrowVerts.length > 0) {
         gl.bindBuffer(gl.ARRAY_BUFFER, this.arrowVBO);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(arrowVerts), gl.DYNAMIC_DRAW);
@@ -562,15 +544,11 @@ export class RoadmapWebGLRenderer {
       }
     }
 
-    // =====================================================================
-    // 2. 节点圆形 (SDF 完美亚像素抗锯齿圆球)
-    // =====================================================================
+    // 绘制节点圆形
     const nodeVerts = [];
     const nodeIndices = [];
 
-    // 单顶点布局：
-    // [cornerX, cornerY, centerX, centerY, totalRadius, fillR, fillG, fillB, fillA, strokeR, strokeG, strokeB, strokeA, fillRatio, alpha]
-    // 15 Float32 = 60 Bytes
+    // 顶点布局：corner, center, radius, color, fillRatio, alpha
     for (let i = 0; i < nodes.length; ++i) {
       const n = nodes[i];
       if (n.x == null || n.y == null) continue;
@@ -596,7 +574,7 @@ export class RoadmapWebGLRenderer {
         n.currentAlpha = targetNodeAlpha;
       }
 
-      // 视锥体视口剔除
+      // 视锥体剔除
       if (n.x < viewLeft || n.x > viewRight || n.y < viewTop || n.y > viewBottom) continue;
 
       const baseRadius = n.radius || 12;
@@ -638,7 +616,7 @@ export class RoadmapWebGLRenderer {
       const uMatLoc = gl.getUniformLocation(this.nodeProgram, 'u_matrix');
       gl.uniformMatrix3fv(uMatLoc, false, matrix);
 
-      // 传入当前物理像素与世界坐标缩放换算比，确保抗锯齿始终恒定为 1.0 物理像素
+      // 设置缩放比例
       const uScaleLoc = gl.getUniformLocation(this.nodeProgram, 'u_scale');
       gl.uniform1f(uScaleLoc, k * dpr);
 
@@ -682,13 +660,11 @@ export class RoadmapWebGLRenderer {
       gl.drawElements(gl.TRIANGLES, nodeIndices.length, gl.UNSIGNED_SHORT, 0);
     }
 
-    // =====================================================================
-    // 3. 构建文本标签网格 (采样 Text Atlas，带视锥体视口剔除与淡入淡出动画)
-    // =====================================================================
+    // 绘制文本标签
     const textVerts = [];
     const textIndices = [];
 
-    // 单顶点布局：[posX, posY, u, v, alpha] -> 5 Float32 = 20 Bytes
+    // 顶点布局：pos, uv, alpha
     for (let i = 0; i < nodes.length; ++i) {
       const n = nodes[i];
       if (n.x == null || n.y == null) continue;
@@ -712,7 +688,7 @@ export class RoadmapWebGLRenderer {
         shouldShow = true;
       }
 
-      // 时间插值平滑淡入淡出
+      // 平滑淡入淡出
       const targetLabelAlpha = shouldShow ? 1.0 : 0.0;
       if (n.currentLabelAlpha == null) n.currentLabelAlpha = targetLabelAlpha;
       n.currentLabelAlpha += (targetLabelAlpha - n.currentLabelAlpha) * FADE_SPEED;
@@ -724,13 +700,13 @@ export class RoadmapWebGLRenderer {
 
       if (n.currentLabelAlpha <= 0.01) continue;
 
-      // 视锥体视口裁剪：超出屏幕视口的文本 quad 跳过提交
+      // 视锥体视口裁剪
       if (n.x < viewLeft || n.x > viewRight || n.y < viewTop || n.y > viewBottom) continue;
 
       const finalAlpha = n.currentLabelAlpha * (n.currentAlpha ?? 1.0);
       if (finalAlpha <= 0.01) continue;
 
-      // 文本世界坐标：水平居中，垂直位于节点正下方
+      // 计算文本世界坐标
       const tw = atlasInfo.w;
       const th = atlasInfo.h;
       const left = n.x - tw * 0.5;
@@ -754,7 +730,7 @@ export class RoadmapWebGLRenderer {
       );
     }
 
-    // --- 绘制文本 (GPU 单次 DrawCall 满帧完成所有文字渲染) ---
+    // 提交文本绘制
     if (textIndices.length > 0) {
       gl.useProgram(this.textProgram);
       const uMatLoc = gl.getUniformLocation(this.textProgram, 'u_matrix');

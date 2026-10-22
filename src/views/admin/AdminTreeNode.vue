@@ -25,7 +25,7 @@ const props = defineProps({
     type: String,
     default: ''
   },
-  /** 在兄弟节点中的下标，用于判断能否上移 / 下移 */
+  // 兄弟节点中的下标
   index: {
     type: Number,
     default: 0

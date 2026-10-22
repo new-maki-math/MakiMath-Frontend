@@ -3,7 +3,7 @@ import { ref, nextTick } from 'vue';
 
 const progress = ref(0);
 const opacity = ref(0);
-const status = ref('normal'); // 'normal' | 'error'
+const status = ref('normal');
 const isTransitioning = ref(true);
 
 let trickleTimer = null;
@@ -19,25 +19,25 @@ const clearAllTimers = () => {
   resetTimer = null;
 };
 
-// 启动进度条：柔和淡入，并从 0 持续平滑递增
+// 启动进度条
 const start = () => {
   clearAllTimers();
   status.value = 'normal';
 
-  // 如果当前还在淡出中，先重置归零
+  // 淡出中重置进度
   if (opacity.value === 0) {
     isTransitioning.value = false;
     progress.value = 0;
   }
 
   nextTick(() => {
-    // 开启过渡并淡入
+    // 开启过渡
     isTransitioning.value = true;
     opacity.value = 1;
-    // 起步平滑推至 22%
+    // 推进初始进度
     progress.value = 22;
 
-    // 智能流式递增（越往后步进越细，过渡无顿挫）
+    // 流式递增
     trickleTimer = setInterval(() => {
       if (progress.value < 88) {
         const remaining = 90 - progress.value;
@@ -48,7 +48,7 @@ const start = () => {
   });
 };
 
-// 完成加载：冲刺到 100% 后优雅淡出
+// 完成进度
 const finish = () => {
   if (trickleTimer) clearInterval(trickleTimer);
   trickleTimer = null;
@@ -56,11 +56,11 @@ const finish = () => {
   isTransitioning.value = true;
   progress.value = 100;
 
-  // 160ms 让进度条跑满 100%，随后开启 240ms 柔和淡出
+  // 完成后淡出
   finishTimer = setTimeout(() => {
     opacity.value = 0;
 
-    // 淡出完全结束后重置宽度归零
+    // 淡出结束重置进度
     resetTimer = setTimeout(() => {
       isTransitioning.value = false;
       progress.value = 0;
@@ -127,14 +127,14 @@ defineExpose({
   background-color: transparent;
   z-index: 9999;
   pointer-events: none;
-  /* 轨道透明度淡入淡出过渡 */
+  /* 轨道透明度过渡 */
   transition: opacity 240ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .top-progress-bar {
   height: 100%;
   background-color: var(--accent-primary);
-  /* 采用经过微调的缓动贝塞尔曲线，消除跳阶与顿挫感 */
+  /* 进度条宽度过渡 */
   transition: width 260ms cubic-bezier(0.16, 1, 0.3, 1), background-color 200ms ease;
   will-change: width, opacity;
 }

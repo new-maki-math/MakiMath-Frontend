@@ -1,6 +1,4 @@
-/**
- * 讲义管理接口，对应 maki-math-backend 的 /api 路由
- */
+// 讲义管理接口
 import { request } from './client.js';
 
 const post = (url, body) => request(url, { method: 'POST', body });
@@ -76,17 +74,13 @@ export const COURSE_STATUSES = [
   { value: 'archived', label: 'archived · 归档' }
 ];
 
-/**
- * 从文件名推小节标题，去掉扩展名并把下划线连字符转空格
- */
+// 从文件名推导小节标题
 export function titleFromFilename(filename) {
   const stem = String(filename).replace(/\.(typ|txt)$/i, '');
   return stem.replace(/[_-]+/g, ' ').trim() || stem;
 }
 
-/**
- * 批量导入时按已有 L## 序号往后生成新 slug
- */
+// 批量生成新小节标识
 export function nextSectionSlugs(existingSlugs, count) {
   let max = 0;
   for (const slug of existingSlugs) {
@@ -96,9 +90,7 @@ export function nextSectionSlugs(existingSlugs, count) {
   return Array.from({ length: count }, (_, i) => `L${String(max + i + 1).padStart(2, '0')}`);
 }
 
-/**
- * 读取本地 .typ 文件为文本
- */
+// 读取本地文件文本
 export function readTextFile(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();

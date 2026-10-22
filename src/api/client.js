@@ -1,8 +1,4 @@
-/**
- * MakiMath API 统一客户端
- * 接入生产服务器 baseurl: https://maki-math.com/
- * 挂钩全局进度条生命周期，请求期间保持顶部进度条平滑递增直至数据全部到达
- */
+// 统一请求客户端
 import { beginApiRequest, endApiRequest } from '../utils/progress.js';
 
 const env = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env : (typeof process !== 'undefined' ? process.env : {});
@@ -19,12 +15,10 @@ export async function request(url, options = {}) {
     ...rest
   } = options;
 
-  // 只有真的带 body 才算「JSON 体」。DELETE 这类没有 body 的请求若声明了
-  // Content-Type: application/json，Fastify 会以 FST_ERR_CTP_EMPTY_JSON_BODY 直接拒掉。
+  // 仅在带 body 时声明 json 请求头
   const hasBody = body !== undefined && body !== null;
 
   const defaultHeaders = {};
-  // 仅在非 GET/HEAD 请求时添加防护头，避免对 GET 请求触发浏览器非简单请求预检 (OPTIONS)
   if (method !== 'GET' && method !== 'HEAD') {
     defaultHeaders['x-mm'] = '1';
   }

@@ -109,7 +109,7 @@ const runBatchDelete = async () => {
   }
 };
 
-// 批量复制（在当前章生成副本）
+// 批量复制生成副本
 const copying = ref(false);
 const runBatchCopy = async () => {
   const ids = Array.from(selectedIds.value);
@@ -244,7 +244,7 @@ const save = async () => {
   }
 };
 
-// 读取选中的 .typ，按现有 L## 序号预生成 slug
+// 读取文件并预生成标识
 const stageFiles = async (fileList) => {
   const files = Array.from(fileList || []).filter((f) => f.size > 0);
   if (files.length === 0) return;

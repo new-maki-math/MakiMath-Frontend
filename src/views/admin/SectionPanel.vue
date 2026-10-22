@@ -106,8 +106,7 @@ const discard = () => {
 
 const save = async () => {
   saving.value = true;
-  // PATCH /sections/:id 的返回体不含 course_id，先存下来，
-  // 否则下面 record.value 被覆盖后拿不到，父级就无法刷新左侧树
+  // 缓存课程标识以供父级刷新树
   const courseId = record.value?.course_id;
   try {
     const patch = diff();
@@ -332,7 +331,7 @@ watch(() => props.node.id, load, { immediate: true });
   max-height: 220px;
   overflow: auto;
   padding: 12px 14px;
-  /* 框体比页面背景（bg-app）浅一级 */
+  /* 预览区容器 */
   background-color: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);

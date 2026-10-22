@@ -66,7 +66,7 @@ defineEmits(['click']);
   text-rendering: geometricPrecision;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* 快速而克制的纯色过渡，严禁弹跳与拖拉 */
+  /* 颜色过渡 */
   transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease;
 }
 
@@ -84,7 +84,7 @@ defineEmits(['click']);
   justify-content: center;
 }
 
-/* 尺寸变体 (Sizes) */
+/* 尺寸变体 */
 .size-sm {
   height: 28px;
   padding: 0 12px;
@@ -103,7 +103,7 @@ defineEmits(['click']);
   font-size: var(--font-size-larger);
 }
 
-/* 风格变体 (Variants) - 纯色填充，去装饰化，严禁渐变与厚阴影 */
+/* 风格变体 */
 .variant-primary {
   background-color: var(--accent-primary);
   color: #ffffff;

@@ -7,7 +7,7 @@ import { getCourseCategories } from '../../api';
 
 const router = useRouter();
 
-// 引用元素
+// DOM 引用
 const heroSearchBoxRef = ref(null);
 const heroInputRef = ref(null);
 
@@ -18,7 +18,7 @@ const activeIndex = ref(-1);
 const isFlying = ref(false);
 const flightStyle = ref({});
 
-// 打字机 Placeholder 轮播
+// 占位提示轮播
 const placeholders = [
   '搜索考研高数核心定理，如: 泰勒公式...',
   '搜索课程或章节，如: 极限与连续...',
@@ -36,7 +36,7 @@ const startPlaceholderLoop = () => {
   }, 3600);
 };
 
-// 预设高频数学节点与真实课程数据
+// 预设数学节点与课程数据
 const realCourses = ref([]);
 const sampleMathNodes = [
   { id: 'm1', title: '泰勒中值定理与佩亚诺余项', type: '核心定理', variant: 'purple', path: '/course/kaoyan/doc/sec-2-3', tag: 'THM_TAYLOR' },
@@ -46,7 +46,7 @@ const sampleMathNodes = [
   { id: 'm5', title: '拉格朗日中值定理与柯西中值定理', type: '微分学', variant: 'purple', path: '/course/kaoyan/doc/sec-2-2', tag: 'THM_MVT' }
 ];
 
-// 头部胶囊小字载入解码动效
+// 头部胶囊文字解码动效
 const TARGET_PILL_TEXT = 'MAKIMATH // ADVANCED MATHEMATICAL WORKSTATION';
 const displayPillText = ref('');
 
@@ -55,7 +55,7 @@ const runDecodeAnimation = () => {
   const target = TARGET_PILL_TEXT;
   const length = target.length;
   let iteration = 0;
-  const totalFrames = 42; // 增加帧数，让解码动画更平缓细腻
+  const totalFrames = 42;
 
   const interval = setInterval(() => {
     displayPillText.value = target
@@ -74,10 +74,10 @@ const runDecodeAnimation = () => {
       clearInterval(interval);
       displayPillText.value = target;
     }
-  }, 36); // 约 1.5 秒舒缓完成
+  }, 36);
 };
 
-// 加载真实课程信息
+// 加载课程列表
 onMounted(async () => {
   runDecodeAnimation();
   startPlaceholderLoop();
@@ -106,11 +106,11 @@ onUnmounted(() => {
   if (placeholderTimer) clearInterval(placeholderTimer);
 });
 
-// 检测是否为 Typst 数学公式输入并即时编译
+// 检测 Typst 公式输入并即时编译
 const typstPreviewHtml = computed(() => {
   const q = query.value.trim();
   if (!q) return null;
-  // 当用户输入带 $ 或者含常见数学符号时触发即时编译
+  // 包含数学符号时即时编译
   if (q.startsWith('$') || q.includes('\\') || q.includes('^') || q.includes('_') || q.includes('=')) {
     try {
       const cleanTypst = q.replace(/^\$+|\$+$/g, '').trim();
@@ -123,12 +123,12 @@ const typstPreviewHtml = computed(() => {
   return null;
 });
 
-// 综合搜索匹配池
+// 综合搜索候选池
 const allSearchPool = computed(() => {
   return [...sampleMathNodes, ...realCourses.value];
 });
 
-// 过滤结果
+// 搜索结果过滤
 const filteredResults = computed(() => {
   const q = query.value.trim().toLowerCase();
   if (!q) {
@@ -141,7 +141,7 @@ const filteredResults = computed(() => {
   );
 });
 
-// 快捷胶囊列表
+// 快捷导航项
 const quickShortcuts = [
   { label: '考研数学精讲', path: '/course/kaoyan', icon: Book },
   { label: '讲义管理后台', path: '/admin', icon: Terminal },
@@ -149,19 +149,19 @@ const quickShortcuts = [
   { label: '如何使用平台', path: '/how-to-use', icon: Sparks }
 ];
 
-// 打开/关闭搜索
+// 聚焦与失焦处理
 const handleFocus = () => {
   isOpen.value = true;
 };
 
 const handleBlur = () => {
-  // 延迟失焦，确保点击结果项先触发
+  // 延迟失焦确保点击触发
   setTimeout(() => {
     isOpen.value = false;
   }, 180);
 };
 
-// 核心：启动向顶栏的平滑飞行动画并跳转
+// 启动向顶栏的飞行动画并跳转
 const flyAndNavigate = (targetPath) => {
   if (isFlying.value) return;
 
@@ -177,7 +177,7 @@ const flyAndNavigate = (targetPath) => {
   const heroRect = heroEl.getBoundingClientRect();
   const targetRect = targetEl.getBoundingClientRect();
 
-  // 精准计算中心到顶栏的平移与缩放 (FLIP 原理)
+  // 计算飞行动画位移与缩放
   const dx = targetRect.left - heroRect.left;
   const dy = targetRect.top - heroRect.top;
   const sx = targetRect.width / heroRect.width;
@@ -190,13 +190,13 @@ const flyAndNavigate = (targetPath) => {
 
   isFlying.value = true;
 
-  // 动画即将落位时完成路由切换
+  // 动画结束切换路由
   setTimeout(() => {
     router.push(targetPath);
   }, 280);
 };
 
-// 键盘控制（上下切换与回车确认）
+// 键盘导航控制
 const handleKeyDown = (e) => {
   if (e.key === 'ArrowDown') {
     e.preventDefault();
@@ -379,7 +379,7 @@ const handleKeyDown = (e) => {
 </template>
 
 <style scoped>
-/* 整个欢迎首页视口强制 100% 高度，严格禁止任何外层滚动条 */
+/* 欢迎页视口布局 */
 .start-viewport {
   width: 100%;
   height: 100%;
@@ -395,7 +395,7 @@ const handleKeyDown = (e) => {
   padding-top: clamp(80px, 17vh, 150px);
 }
 
-/* 极客轻量数学点阵网格背景 */
+/* 数学点阵背景 */
 .math-grid-bg {
   position: absolute;
   inset: 0;
@@ -408,7 +408,7 @@ const handleKeyDown = (e) => {
   opacity: 0.6;
 }
 
-/* 主容器：在视口上半部分呈纵向分布，为下拉面板留出充裕空间 */
+/* 主容器 */
 .start-main-container {
   position: relative;
   z-index: 10;
@@ -422,7 +422,7 @@ const handleKeyDown = (e) => {
   transition: opacity 260ms ease, transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* 飞行动画触发时，周围元素纯淡出，无任何位移 */
+/* 飞行动画淡出周围元素 */
 .start-main-container.is-leaving .start-header,
 .start-main-container.is-leaving .shortcuts-row {
   opacity: 0;
@@ -430,7 +430,7 @@ const handleKeyDown = (e) => {
   pointer-events: none;
 }
 
-/* 顶部标题与极客标识 */
+/* 顶部标题栏 */
 .start-header {
   display: flex;
   flex-direction: column;
@@ -454,7 +454,7 @@ const handleKeyDown = (e) => {
   letter-spacing: 0.75px;
 }
 
-/* 载入时的一道柔和微光，以舒缓的速度徐徐扫过 */
+/* 微光扫光动效 */
 .brand-pill::after {
   content: '';
   position: absolute;
@@ -502,7 +502,7 @@ const handleKeyDown = (e) => {
   line-height: 1.6;
 }
 
-/* 中央超级检索舱 */
+/* 检索舱容器 */
 .hero-search-wrapper {
   position: relative;
   width: 100%;
@@ -534,7 +534,7 @@ const handleKeyDown = (e) => {
   box-shadow: 0 0 0 1px var(--accent-primary), 0 8px 30px rgba(0, 0, 0, 0.25);
 }
 
-/* 飞行中的状态（硬件加速） */
+/* 飞行状态 */
 .hero-search-box.is-in-flight {
   border-color: var(--border-subtle) !important;
   box-shadow: none !important;
@@ -579,7 +579,7 @@ const handleKeyDown = (e) => {
   z-index: 2;
 }
 
-/* 动态垂直滚动翻转的提示文字层 */
+/* 占位文字层 */
 .animated-placeholder-box {
   position: absolute;
   left: 0;
@@ -601,7 +601,7 @@ const handleKeyDown = (e) => {
   display: inline-block;
 }
 
-/* 提示文字垂直翻滚淡出淡入动效 */
+/* 占位文字动效 */
 .placeholder-roll-enter-active,
 .placeholder-roll-leave-active {
   transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1), opacity 240ms ease;
@@ -648,7 +648,7 @@ const handleKeyDown = (e) => {
   color: var(--text-muted);
 }
 
-/* 下拉搜索浮层卡片 */
+/* 下拉卡片 */
 .hero-dropdown-card {
   position: absolute;
   top: calc(100% + 8px);
@@ -665,7 +665,7 @@ const handleKeyDown = (e) => {
   max-height: 380px;
 }
 
-/* Typst 实时编译预览条与滑发展开动效 */
+/* Typst 编译预览 */
 .typst-preview-box {
   padding: 12px 16px;
   background-color: var(--bg-base);
@@ -742,7 +742,7 @@ const handleKeyDown = (e) => {
   position: relative;
 }
 
-/* 搜索结果列表项在输入变化时的平滑重排与交错进出动效 */
+/* 结果项动画 */
 .result-item-move {
   transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -767,7 +767,7 @@ const handleKeyDown = (e) => {
   transform: scale(0.98);
 }
 
-/* 列表行：键盘上下键切换高亮时的平滑微交互响应 */
+/* 列表行样式 */
 .result-row {
   display: flex;
   align-items: center;
@@ -784,7 +784,7 @@ const handleKeyDown = (e) => {
 .result-row.is-active {
   background-color: var(--bg-elevated);
   border-left-color: var(--accent-primary);
-  padding-left: 20px; /* 选中行轻快向右微推 4px，产生灵动的指示感 */
+  padding-left: 20px;
 }
 
 .result-tag-col {
@@ -827,7 +827,7 @@ const handleKeyDown = (e) => {
 .result-row.is-active .result-arrow {
   color: var(--accent-primary);
   opacity: 1;
-  transform: translateX(4px); /* 箭头向右探出指示 */
+  transform: translateX(4px);
 }
 
 .empty-state {
@@ -856,7 +856,7 @@ const handleKeyDown = (e) => {
   margin-right: 4px;
 }
 
-/* 下拉渐隐动效 */
+/* 下拉渐隐动画 */
 .dropdown-fade-enter-active,
 .dropdown-fade-leave-active {
   transition: opacity 160ms ease, transform 160ms ease;
@@ -868,7 +868,7 @@ const handleKeyDown = (e) => {
   transform: translateY(-6px);
 }
 
-/* 快捷胶囊入口 */
+/* 快捷导航入口 */
 .shortcuts-row {
   display: flex;
   align-items: center;
@@ -912,7 +912,7 @@ const handleKeyDown = (e) => {
   color: var(--accent-primary);
 }
 
-/* 底部悬挂示例备案信息 */
+/* 底部备案信息 */
 .start-beian-footer {
   position: absolute;
   bottom: 14px;

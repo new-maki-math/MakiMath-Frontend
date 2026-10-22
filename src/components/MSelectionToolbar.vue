@@ -3,45 +3,33 @@ import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { Underline, FillColor, Trash } from '@iconoir/vue';
 
 const props = defineProps({
-  /**
-   * 限制划选监听的容器元素或选择器，为 null 时监听整篇文档
-   */
+  // 限制划选监听的容器
   container: {
     type: [Object, String],
     default: null
   },
-  /**
-   * 是否禁用工具栏
-   */
+  // 是否禁用工具栏
   disabled: {
     type: Boolean,
     default: false
   },
-  /**
-   * 默认标记模式：'highlight' (背景高亮) 或 'underline' (下划线)
-   */
+  // 默认标记模式
   defaultMode: {
     type: String,
     default: 'highlight',
     validator: (v) => ['highlight', 'underline'].includes(v)
   },
-  /**
-   * 点击颜色后是否自动向当前选区注入 DOM 标记 (<span class="m-selection-mark">)
-   */
+  // 点击颜色后是否自动注入标记
   autoApply: {
     type: Boolean,
     default: true
   },
-  /**
-   * 标记完成后是否自动清除浏览器原生蓝色选区，让标记效果立即呈现
-   */
+  // 标记完成后是否清除原生选区
   collapseSelectionOnApply: {
     type: Boolean,
     default: true
   },
-  /**
-   * 预设颜色配置，严格遵循温和耐看的阅读色彩原则
-   */
+  // 预设高亮色彩
   presetColors: {
     type: Array,
     default: () => [
@@ -111,25 +99,19 @@ const savedRange = ref(null);
 const savedText = ref('');
 const isOverExistingMark = ref(false);
 
-/**
- * 切换标记模式 (高亮 / 下划线)
- */
+// 切换标记模式
 const setMode = (mode) => {
   activeMode.value = mode;
   emit('mode-change', mode);
 };
 
-/**
- * 点击颜色直接应用到选区
- */
+// 点击颜色应用到选区
 const selectColor = (colorConfig) => {
   emit('color-change', colorConfig);
   applyCurrentMark(colorConfig);
 };
 
-/**
- * 获取绑定的有效容器元素
- */
+// 获取目标容器元素
 const getTargetContainer = () => {
   if (!props.container) return null;
   if (typeof props.container === 'string') {
@@ -138,25 +120,19 @@ const getTargetContainer = () => {
   return props.container;
 };
 
-/**
- * 检查节点是否位于容器内
- */
+// 检查节点是否位于容器内
 const isNodeInsideContainer = (node, container) => {
   if (!container || !node) return true;
   return container.contains(node);
 };
 
-/**
- * 智能选区吸附与净化：
- * 1. 自动消除首尾多余空白（空格、Tab、换行），确保高亮色块严密贴合文本字符
- * 2. 数学公式原子吸附：若划选触碰公式内部，自动对齐至整式边界，避免公式被切断
- */
+// 选区智能吸附与修剪
 const sanitizeAndSnapRange = (range) => {
   if (!range || range.collapsed) return range;
 
   const newRange = range.cloneRange();
 
-  // (1) 公式原子吸附：如果起止点处于公式内部，向外扩展至公式容器整式边界
+  // 公式吸附扩展至整式边界
   const startFormula = getFormulaAncestor(newRange.startContainer);
   if (startFormula) {
     newRange.setStartBefore(startFormula);
@@ -167,7 +143,7 @@ const sanitizeAndSnapRange = (range) => {
     newRange.setEndAfter(endFormula);
   }
 
-  // (2) 首尾空白字符自动修剪
+  // 修剪首尾空白字符
   trimRangeWhitespace(newRange);
 
   return newRange;
@@ -180,7 +156,7 @@ const getFormulaAncestor = (node) => {
 };
 
 const trimRangeWhitespace = (range) => {
-  // 修剪起点多余空白
+  // 修剪起点空白
   while (
     range.startContainer.nodeType === Node.TEXT_NODE &&
     range.startOffset < range.startContainer.length
@@ -193,7 +169,7 @@ const trimRangeWhitespace = (range) => {
     }
   }
 
-  // 修剪终点多余空白
+  // 修剪终点空白
   while (
     range.endContainer.nodeType === Node.TEXT_NODE &&
     range.endOffset > 0
@@ -221,9 +197,7 @@ const isNodeIntersectingRange = (node, range) => {
   }
 };
 
-/**
- * 重新计算工具栏浮动坐标
- */
+// 更新工具栏浮动坐标
 const updatePosition = () => {
   const selection = window.getSelection();
   if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
@@ -249,7 +223,7 @@ const updatePosition = () => {
     }
   }
 
-  // 执行智能吸附与修剪净化
+  // 执行选区吸附与修剪
   const range = sanitizeAndSnapRange(rawRange);
   const text = range.toString().trim();
   if (!text) {
@@ -257,12 +231,12 @@ const updatePosition = () => {
     return;
   }
 
-  // 同步更新浏览器的原生选区高亮，使蓝色高亮边缘立即精准对齐文本与整式
+  // 同步更新原生选区高亮
   try {
     selection.removeAllRanges();
     selection.addRange(range);
   } catch {
-    // 降级忽略选区替换异常
+    // 忽略选区替换异常
   }
 
   const rect = range.getBoundingClientRect();
@@ -287,11 +261,11 @@ const updatePosition = () => {
   const toolbarHeight = toolbarRef.value ? toolbarRef.value.offsetHeight : 38;
 
   let left = rect.left + rect.width / 2;
-  // 边缘保护：距离视口左右两端至少保留 12px 安全距离
+  // 视口边缘保护
   const half = toolbarWidth / 2;
   left = Math.max(half + 12, Math.min(window.innerWidth - half - 12, left));
 
-  // 计算纵坐标：优先显示在选区上方 8px，若触顶则翻转至选区下方 8px
+  // 计算纵坐标
   let top = rect.top - toolbarHeight - 8;
   if (top < 10) {
     top = rect.bottom + 8;
@@ -305,9 +279,7 @@ const updatePosition = () => {
   }
 };
 
-/**
- * 隐藏工具栏
- */
+// 隐藏工具栏
 const hide = () => {
   if (isVisible.value) {
     isVisible.value = false;
@@ -318,9 +290,7 @@ const hide = () => {
   }
 };
 
-/**
- * 执行标记核心逻辑
- */
+// 执行标记核心逻辑
 const applyCurrentMark = (targetColor = null) => {
   if (!savedRange.value) return;
 
@@ -357,9 +327,7 @@ const applyCurrentMark = (targetColor = null) => {
   hide();
 };
 
-/**
- * 清除当前选区内的所有标记
- */
+// 清除当前选区内的所有标记
 const clearMarks = () => {
   if (!savedRange.value) return;
 
@@ -384,30 +352,17 @@ const clearMarks = () => {
   hide();
 };
 
-/**
- * 安全标记算法：
- * - 普通文本：安全切片包裹 <span class="m-selection-mark">
- * - 数学公式 (math, .dm, .katex)：
- *   绝不在 MathML 或 KaTeX 内部注入任何 <span>，
- *   而是将整个公式作为原子，在外层包裹 <span class="m-selection-mark">，
- *   保证 MathML / KaTeX 内部 DOM 树结构、数学斜体字号与对齐 100% 原始不变！
- */
-/**
- * 安全连续包裹算法：
- * 将划选的连续文字与公式合并为一个统一的 <span class="m-selection-mark">，
- * 绝不在同一行内拆成多个高低不齐的小 span！
- * 同一行的背景高亮由最外层的连续 span 统一渲染，高度严格一致，并以最高的内容（公式）为准！
- */
+// 安全包裹选区并注入标记
 const wrapRangeWithMark = (range, config) => {
   const markId = `mk-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
-  // 获取所属的块级容器 (如 p, li, h1-h6, div.dm 等)
+  // 获取所属块级容器
   const startBlock = getBlockAncestor(range.startContainer);
   const endBlock = getBlockAncestor(range.endContainer);
 
   const createdElements = [];
 
-  // 1. 同一自然段/块级容器内的划选（最常见情况：文字 + 行内公式一体化包裹）
+  // 同一自然段或块级容器内的划选
   if (startBlock && startBlock === endBlock) {
     try {
       const wrapper = document.createElement('span');
@@ -420,11 +375,11 @@ const wrapRangeWithMark = (range, config) => {
       createdElements.push(wrapper);
       return createdElements;
     } catch {
-      // 出现异常降级
+      // 异常降级
     }
   }
 
-  // 2. 跨段落划选处理：按块级切分子选区，每个段落内部独立保持整段一体化包裹
+  // 跨段落划选处理
   const container = startBlock?.parentElement || document.body;
   const blocks = getIntersectingBlocks(container, range);
 
@@ -509,9 +464,7 @@ const applyMarkStyles = (el, config, markId) => {
   }
 };
 
-/**
- * 解包并清除范围内的所有已有标记
- */
+// 清除范围内的已有标记
 const removeMarksInRange = (range) => {
   const commonAncestor = range.commonAncestorContainer;
   const root = commonAncestor.nodeType === Node.TEXT_NODE ? commonAncestor.parentNode : commonAncestor;
@@ -547,7 +500,7 @@ const unwrapElement = (el) => {
 // 交互事件监听
 const handleMouseUp = () => {
   if (props.disabled) return;
-  // 延迟一帧，等待浏览器就绪并完成选区更新
+  // 延迟一帧等待选区就绪
   requestAnimationFrame(() => {
     updatePosition();
   });
@@ -566,7 +519,7 @@ const handleKeyUp = (e) => {
 
 const handleScroll = () => {
   if (isVisible.value) {
-    // 页面滚动时实时平滑跟随重算，若选区滚出可视区则隐藏
+    // 页面滚动时重算位置
     updatePosition();
   }
 };
@@ -583,7 +536,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('scroll', handleScroll);
 });
 
-// 对外暴露的方法与属性
+// 对外暴露方法与属性
 defineExpose({
   show: updatePosition,
   hide,
@@ -782,7 +735,7 @@ defineExpose({
   color: #fb7185;
 }
 
-/* 快速轻盈的淡入淡出动画 */
+/* 淡入淡出动画 */
 .fade-toolbar-enter-active,
 .fade-toolbar-leave-active {
   transition: opacity 120ms ease, transform 120ms ease;

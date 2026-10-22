@@ -130,7 +130,7 @@ const onKeydown = (e) => {
 .code-wrap {
   display: flex;
   min-height: 0;
-  /* 框体比页面背景（bg-app）浅一级 */
+  /* 编辑器容器 */
   background-color: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
@@ -142,7 +142,7 @@ const onKeydown = (e) => {
   border-color: var(--border-focus);
 }
 
-/* 行号列不滚动，靠 JS 同步 scrollTop */
+/* 行号侧栏 */
 .code-gutter {
   flex-shrink: 0;
   min-width: 52px;

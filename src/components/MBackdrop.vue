@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 
 const props = defineProps({
-  /** 是否打开显示遮罩 */
+  // 是否显示遮罩
   open: {
     type: Boolean,
     default: undefined
@@ -15,22 +15,22 @@ const props = defineProps({
     type: Boolean,
     default: undefined
   },
-  /** 是否传送到指定容器，如 'body'，传 true 时默认传送到 'body' */
+  // 传送目标容器
   teleport: {
     type: [Boolean, String],
     default: false
   },
-  /** 是否使用 fixed 定位（脱离父级覆盖全屏） */
+  // 是否固定定位
   fixed: {
     type: Boolean,
     default: false
   },
-  /** 自定义 z-index 层级 */
+  // 自定义层级
   zIndex: {
     type: [Number, String],
     default: undefined
   },
-  /** 点击遮罩是否触发 close 事件 */
+  // 点击遮罩是否触发关闭
   closeOnClick: {
     type: Boolean,
     default: true
@@ -109,7 +109,7 @@ const handleClick = (e) => {
 </template>
 
 <style scoped>
-/* 纯净暗色遮罩：仅调整透明度压暗背景，无模糊滤镜 (No blur / No glassmorphism) */
+/* 遮罩层基础样式 */
 .m-backdrop {
   background-color: rgba(0, 0, 0, 0.4);
   opacity: 0;

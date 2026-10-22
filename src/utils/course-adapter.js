@@ -1,13 +1,4 @@
-/**
- * 数据转换与适配工具 (Adapters & Transformers)
- * 将后端原始数据格式规整为适合现代前端渲染、树状导航与组件绑定的数据模型
- */
-
-/**
- * 将后端 GET /api/courses 返回的大类与课程数据规整为侧边栏手风琴树模型
- * @param {Array} rawCats - 后端返回的 { cats: [ { name, courses: [ { id, title, live, ... } ] } ] }
- * @returns {Array} 规范化后的分类列表
- */
+// 规整课程分类为侧边栏树结构
 export function transformCourseCategories(rawCats = []) {
   if (!Array.isArray(rawCats)) return [];
 

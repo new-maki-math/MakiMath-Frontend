@@ -1,17 +1,17 @@
-// 讲义专属预设适配器与专属样式动态加载器
+// 课程预设与专属样式加载器
 const adapterModules = import.meta.glob('../presets/adapters/*.js');
 const styleModules = import.meta.glob('../presets/styles/*.css', { query: '?inline', import: 'default' });
 
 const adapterCache = new Map();
 const injectedStyleIds = new Set();
 
-// 归一化课程 slug
+// 归一化课程标识
 export function sanitizeSlug(slug) {
   if (typeof slug !== 'string') return '';
   return slug.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
 }
 
-// 动态匹配并获取专属讲义适配器转换函数（每门讲义独占专属解析器）
+// 匹配并获取课程适配器
 export async function getPresetAdapter(slug) {
   const clean = sanitizeSlug(slug);
   const specificPath = `../presets/adapters/${clean}.js`;
@@ -28,7 +28,7 @@ export async function getPresetAdapter(slug) {
   return doc => doc;
 }
 
-// 动态注入对应讲义的专属样式表（每门讲义独占专属样式）
+// 注入课程专属样式
 export async function loadPresetStyle(slug) {
   const clean = sanitizeSlug(slug);
   if (!clean) return;
@@ -53,7 +53,7 @@ export async function loadPresetStyle(slug) {
   }
 }
 
-// 统一调度接口：加载专属样式并转换文档 AST
+// 加载专属样式并转换文档
 export async function adaptDocWithPreset(doc, slug) {
   if (!doc || !Array.isArray(doc.children)) return doc;
   const [adapter] = await Promise.all([

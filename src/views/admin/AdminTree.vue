@@ -48,7 +48,7 @@ const loadCategories = async () => {
 
 const loadCourses = async (node) => {
   const list = await adminApi.courses.list({ category_id: node.id });
-  // 保留原有课程对象的已加载子树与展开状态，否则 reload 后整棵树会被收起
+  // 保留原有课程展开状态与子树
   const previous = new Map((node.children || []).map((c) => [c.id, c]));
   node.children = list.map((c) => {
     const old = previous.get(c.id);
@@ -117,7 +117,7 @@ const toggle = async (node) => {
   }
 };
 
-// 展开指定节点，必要时先拉取子级
+// 展开指定节点
 const expandTo = async (type, id) => {
   const node = findNode(type, id);
   if (!node) return null;
@@ -125,7 +125,7 @@ const expandTo = async (type, id) => {
   return node;
 };
 
-// 重拉已展开的节点，保留展开状态
+// 重新加载已展开节点
 const reload = async () => {
   const loaded = [];
   const walk = (list) => {
@@ -155,12 +155,12 @@ const reload = async () => {
       await loadChildren(node);
       node.expanded = true;
     } catch {
-      // 节点可能已被删除，忽略
+      // 忽略已删除节点
     }
   }
 };
 
-// 只刷新某个课程的章 / 小节；课程自己的标题不在 children 里，改名时得单独同步
+// 刷新指定课程节点
 const refreshCourse = async (courseId, label) => {
   const node = findNode('course', courseId);
   if (!node) return;
@@ -173,7 +173,7 @@ const refreshCourse = async (courseId, label) => {
   }
 };
 
-// 只刷新某个分类下的课程；分类自己的名称不在 children 里，改名时得单独同步
+// 刷新指定分类节点
 const refreshCategory = async (categoryId, label) => {
   const node = findNode('category', categoryId);
   if (!node) return;
@@ -186,7 +186,7 @@ const refreshCategory = async (categoryId, label) => {
   }
 };
 
-// 从根到目标节点的链路，用于定位祖先
+// 查找目标节点链路
 const findPath = (type, id, list = nodes.value, trail = []) => {
   for (const node of list) {
     const next = [...trail, node];
@@ -199,7 +199,7 @@ const findPath = (type, id, list = nodes.value, trail = []) => {
   return null;
 };
 
-// 同一父级下的兄弟列表与自身下标
+// 获取兄弟节点与自身索引
 const getSiblings = (type, id) => {
   const walk = (list, parent) => {
     for (let i = 0; i < list.length; i++) {
@@ -215,7 +215,7 @@ const getSiblings = (type, id) => {
   return walk(nodes.value, null);
 };
 
-// 重拉目标节点所属的课程或分类，避免整棵树重载
+// 局部刷新目标节点所属分支
 const refreshForNode = async (type, id) => {
   const path = findPath(type, id);
   if (!path) {

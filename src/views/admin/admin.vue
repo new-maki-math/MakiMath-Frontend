@@ -63,7 +63,7 @@ const createTitleLabel = computed(
     })[createKind.value]
 );
 
-// 只有章节和小节在表里有 tag 字段
+// 仅章节和小节包含 tag 字段
 const createHasTag = computed(
   () => createKind.value === 'chapter' || createKind.value === 'section'
 );
@@ -224,13 +224,12 @@ const handleChanged = async (payload) => {
   } else if (payload.scope === 'course') {
     await treeRef.value.refreshCourse(payload.courseId, payload.label);
   } else if (payload.courseId) {
-    // 章 / 小节是课程的子级，重拉课程树时标题会一并更新。
-    // 这里不能把 label 透传下去，否则会拿章的标题覆盖掉课程名。
+    // 刷新课程子级树
     await treeRef.value.refreshCourse(payload.courseId);
   }
 };
 
-// 从面板里的列表跳到另一个节点，同时把树展开到位
+// 跳转选中节点并展开树
 const navigateTo = async (target) => {
   selectNode(target);
   try {
@@ -242,7 +241,7 @@ const navigateTo = async (target) => {
       if (target.chapterId) await treeRef.value.expandTo('chapter', target.chapterId);
     }
   } catch {
-    // 树尚未加载到该分支时忽略，选中态仍然生效
+    // 忽略分支未加载异常
   }
 };
 </script>

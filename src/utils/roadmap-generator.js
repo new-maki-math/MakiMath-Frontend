@@ -1,8 +1,4 @@
-/**
- * 知识图谱与路线图数据生成器 (Roadmap Graph Data Generator)
- * 将课程多层泡泡与节点拓扑结构提炼为支持多层嵌套的 D3 力导向关系网络模型
- * 完整支持多连接 (章节点簇集连接 + 讲次顺序链条 + 知识点依赖边)
- */
+// 知识图谱数据生成器
 
 export const CHAPTER_PALETTE = [
   '#10b981', // 翡翠绿
@@ -39,11 +35,7 @@ export const NODE_TYPE_LABELS = {
   exercise: '真题演练'
 };
 
-/**
- * 根据课程数据包生成多层级关系图数据
- * @param {Object} bundle fetchCourseBundle 返回的课程完整对象
- * @returns {Object} { nodes: Array, links: Array, chapters: Array }
- */
+// 根据课程数据生成多层级关系图
 export function buildGraphFromCourseBundle(bundle) {
   if (!bundle || !bundle.chapters) {
     return { nodes: [], links: [], chapters: [] };
@@ -57,7 +49,7 @@ export function buildGraphFromCourseBundle(bundle) {
 
   const nodeMap = new Map();
 
-  // 1. 生成第一层：大编/大章节点 (Level 1)
+  // 生成第一层大编节点
   chapters.forEach((chap, idx) => {
     const color = CHAPTER_PALETTE[idx % CHAPTER_PALETTE.length];
     const chapNode = {
@@ -78,7 +70,7 @@ export function buildGraphFromCourseBundle(bundle) {
     nodeMap.set(chap.id, chapNode);
   });
 
-  // 2. 生成大章之间的前置依赖边 (Chapter Edges - 拓扑主线)
+  // 生成大章前置依赖边
   chEdges.forEach(([fromId, toId]) => {
     if (nodeMap.has(fromId) && nodeMap.has(toId)) {
       links.push({
@@ -91,7 +83,7 @@ export function buildGraphFromCourseBundle(bundle) {
     }
   });
 
-  // 3. 生成第二层：讲次/小节节点 (Level 2 - 完整多连接架构)
+  // 生成第二层讲次节点
   chapters.forEach((chap, cIdx) => {
     const chapColor = CHAPTER_PALETTE[cIdx % CHAPTER_PALETTE.length];
     const sections = chap.sections || [];
@@ -116,7 +108,7 @@ export function buildGraphFromCourseBundle(bundle) {
       nodes.push(secNode);
       nodeMap.set(sec.id, secNode);
 
-      // 多连接：1. 父大章与所有小节的星簇归属连接
+      // 大章与小节归属连接
       links.push({
         source: chap.id,
         target: sec.id,
@@ -124,7 +116,7 @@ export function buildGraphFromCourseBundle(bundle) {
         level: 2
       });
 
-      // 多连接：2. 同章内相邻讲次的顺序学习链条
+      // 同章讲次顺序连接
       if (sIdx > 0) {
         const prevSec = sections[sIdx - 1];
         links.push({
@@ -138,7 +130,7 @@ export function buildGraphFromCourseBundle(bundle) {
     });
   });
 
-  // 4. 生成第三层：知识点/真题精要节点 (Level 3 - 多连接)
+  // 生成第三层知识点节点
   chapters.forEach((chap) => {
     const sections = chap.sections || [];
     sections.forEach((sec) => {
@@ -169,7 +161,7 @@ export function buildGraphFromCourseBundle(bundle) {
         nodes.push(leafNode);
         nodeMap.set(nid, leafNode);
 
-        // 小节与其内节点的归属多连接
+        // 小节与知识点归属连接
         links.push({
           source: sec.id,
           target: nid,
@@ -180,7 +172,7 @@ export function buildGraphFromCourseBundle(bundle) {
     });
   });
 
-  // 5. 补充单节点之间的引用关系 (Level 3 知识点依赖多连接)
+  // 节点间引用关系连接
   nodes.forEach(n => {
     if (n.level === 3 && Array.isArray(n.deps)) {
       n.deps.forEach(depId => {

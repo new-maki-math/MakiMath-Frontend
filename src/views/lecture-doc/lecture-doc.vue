@@ -15,7 +15,7 @@ const readingViewportRef = ref(null);
 const isChapterDrawerOpen = ref(false);
 const activeOutlineId = ref('');
 
-// 侧滑抽屉控制
+// 抽屉状态控制
 const openDrawer = () => {
   isChapterDrawerOpen.value = true;
 };
@@ -28,7 +28,7 @@ const toggleDrawer = () => {
   isChapterDrawerOpen.value = !isChapterDrawerOpen.value;
 };
 
-// 模式开关：按键 ` 切换选择模式（方案 B 开关模式）
+// 选择模式状态
 const isSelectionMode = ref(false);
 
 const isInputFocused = () => {
@@ -38,12 +38,12 @@ const isInputFocused = () => {
   return tag === 'input' || tag === 'textarea' || activeEl.isContentEditable;
 };
 
-// 键盘快捷键支持：按 ` 切换选择模式，按 Escape 退出选择模式或关闭抽屉，Ctrl/Cmd + B 切换抽屉
+// 键盘快捷键监听
 const handleKeyDown = (e) => {
-  // 1. 如果当前焦点在输入框/搜索框内，不拦截输入
+  // 输入框聚焦时跳过快捷键
   if (isInputFocused()) return;
 
-  // 2. 按键 ` (Backquote / ~) 切换选择模式开关
+  // 切换选择模式
   if (e.code === 'Backquote' || e.key === '`' || e.key === '~') {
     e.preventDefault();
     isSelectionMode.value = !isSelectionMode.value;
@@ -53,7 +53,7 @@ const handleKeyDown = (e) => {
     return;
   }
 
-  // 3. 按 Escape 键：优先退出选择模式，其次收起目录抽屉
+  // 退出选择模式或关闭抽屉
   if (e.key === 'Escape') {
     if (isSelectionMode.value) {
       window.getSelection()?.removeAllRanges();
@@ -64,7 +64,7 @@ const handleKeyDown = (e) => {
     return;
   }
 
-  // 4. Ctrl/Cmd + B 切换抽屉
+  // 切换抽屉显隐
   if ((e.ctrlKey || e.metaKey) && (e.key === 'b' || e.key === 'B')) {
     e.preventDefault();
     toggleDrawer();
@@ -79,7 +79,7 @@ onUnmounted(() => {
   window.removeEventListener('keydown', handleKeyDown);
 });
 
-// 当前课程与小节 ID
+// 当前路由参数
 const currentCourseId = computed(() => {
   return route.params.courseId || 'kaoyan';
 });
@@ -88,7 +88,7 @@ const currentSectionId = computed(() => {
   return route.params.sectionId ? String(route.params.sectionId).trim() : '';
 });
 
-// 从服务器异步拉取的章节目录树与节点正文
+// 讲义正文与目录数据
 const courseChapters = ref([]);
 const currentContent = ref({
   id: '',
@@ -99,27 +99,27 @@ const currentContent = ref({
 });
 const isLoading = ref(true);
 
-// 监听路由参数变化，动态从服务器获取对应课程及小节数据
+// 监听路由参数加载讲义
 watch(
   [currentCourseId, currentSectionId],
   async ([courseId, sectionId]) => {
     isSelectionMode.value = false;
     isLoading.value = true;
     try {
-      // 1. 获取完整章节目录树
+      // 加载章节目录树
       const chaps = await getChaptersForCourse(courseId);
       courseChapters.value = chaps;
 
-      // 2. 获取该讲次/小节的真实正文与大纲模型；URL 没带 sectionId 就退到第一节
+      // 加载讲义正文与大纲
       const secId = sectionId || (chaps[0]?.sections?.[0]?.id ? String(chaps[0].sections[0].id) : '');
       if (!secId) {
-        // 课程还没建小节，别去请求一个不存在的 id
+        // 无有效小节时设为空状态
         currentContent.value = { id: '', title: '暂无讲义', lead: '', outlines: [], doc: null };
         return;
       }
       currentContent.value = await getNodeContent(courseId, secId);
 
-      // 切换讲义时平滑重置滚动位置
+      // 切换时重置滚动位置
       if (readingViewportRef.value) {
         readingViewportRef.value.scrollTop = 0;
       }
@@ -132,7 +132,7 @@ watch(
   { immediate: true }
 );
 
-// 计算当前小节对象及所属大编
+// 当前小节与所属章节
 const currentSection = computed(() => {
   const targetId = currentSectionId.value;
   for (const chap of courseChapters.value) {
@@ -202,7 +202,7 @@ const nextSection = computed(() => {
 
 // 切换章节
 const handleSelectSection = (section) => {
-  closeDrawer(); // 点击选择小节后自动平滑收起抽屉
+  closeDrawer();
   const targetId = String(section.id);
   if (targetId === currentSectionId.value) return;
   router.push({
@@ -214,7 +214,7 @@ const handleSelectSection = (section) => {
   });
 };
 
-// 点击大纲平滑滚动至对应锚点
+// 滚动至大纲锚点
 const scrollToOutline = (id) => {
   activeOutlineId.value = id;
   const targetEl = document.getElementById(id);
@@ -226,7 +226,7 @@ const scrollToOutline = (id) => {
 
 <template>
   <div class="lecture-doc-view" :class="{ 'is-selection-mode': isSelectionMode }">
-    <!-- 1. 悬浮在内容区左上角的目录呼出按钮 (常驻，抽屉开启时隐藏) -->
+    <!-- 目录呼出按钮 -->
     <button
       v-if="!isChapterDrawerOpen"
       class="drawer-open-btn"
@@ -237,13 +237,13 @@ const scrollToOutline = (id) => {
       <span>目录</span>
     </button>
 
-    <!-- 2. 全局半透明微暗遮罩组件 (点击外部关闭抽屉) -->
+    <!-- 遮罩组件 -->
     <MBackdrop
       :open="isChapterDrawerOpen"
       @close="closeDrawer"
     />
 
-    <!-- 3. 左侧浮动侧滑抽屉 (使用升级后的全局 MCollapse 抽屉模式，GPU 硬件加速) -->
+    <!-- 左侧浮动抽屉 -->
     <MCollapse
       horizontal
       drawer
@@ -259,7 +259,7 @@ const scrollToOutline = (id) => {
       />
     </MCollapse>
 
-    <!-- 4. 中间 Markdown 讲义正文主阅读视口 (全宽恒定，绝不发生逐帧挤压) -->
+    <!-- 讲义正文阅读视口 -->
     <main ref="readingViewportRef" class="reading-viewport">
       <!-- 讲义核心正文容器 -->
       <div class="reading-content-wrap">
@@ -275,14 +275,14 @@ const scrollToOutline = (id) => {
             </p>
           </header>
 
-          <!-- 讲义正文：后端把 Typst 源文解析成结构化文档树，这里递归渲染 -->
+          <!-- 讲义正文 -->
           <TypstDoc
             v-if="currentContent.doc"
             :doc="currentContent.doc"
           />
         </article>
 
-        <!-- 讲义底部上一讲 / 下一讲翻页导航栏 -->
+        <!-- 底部翻页导航栏 -->
         <DocFooterNav
           :prev-section="prevSection"
           :next-section="nextSection"
@@ -291,7 +291,7 @@ const scrollToOutline = (id) => {
       </div>
     </main>
 
-    <!-- 5. 右侧页面大纲导航组件 (无背景悬浮，左侧细竖线 + 连续滑动指示色条) -->
+    <!-- 右侧大纲导航组件 -->
     <OutlineNav
       :outlines="pageOutlines"
       :active-id="activeOutlineId"
@@ -300,7 +300,7 @@ const scrollToOutline = (id) => {
       @active-change="id => activeOutlineId = id"
     />
 
-    <!-- 6. 按键 ` 切换选择模式的提示浮层 (方案 B 开关模式，使用全局 MTag 黄绿正常状态色) -->
+    <!-- 选择模式提示浮层 -->
     <Transition name="fade-fast">
       <div v-if="isSelectionMode" class="selection-mode-pill" role="status">
         <MTag variant="lime" size="md">`</MTag>
@@ -309,7 +309,7 @@ const scrollToOutline = (id) => {
       </div>
     </Transition>
 
-    <!-- 7. 文本划选浮动标记工具栏 (仅限正文文章区域，下划线 / 背景高亮 / 预设阅读色盘) -->
+    <!-- 文本划选标记工具栏 -->
     <MSelectionToolbar
       container=".markdown-article"
       :disabled="!isSelectionMode"
@@ -327,7 +327,7 @@ const scrollToOutline = (id) => {
   position: relative;
 }
 
-/* 浮动侧滑抽屉外观定制 (动画与 GPU 加速由全局 MCollapse drawer 驱动) */
+/* 侧滑抽屉样式 */
 .chapter-drawer-wrap {
   width: 280px;
   max-width: 85vw;
@@ -336,7 +336,7 @@ const scrollToOutline = (id) => {
   box-shadow: 4px 0 24px rgba(0, 0, 0, 0.45);
 }
 
-/* 悬浮在内容区域左上角的展开目录按钮 */
+/* 展开目录按钮 */
 .drawer-open-btn {
   position: absolute;
   top: 18px;
@@ -371,7 +371,7 @@ const scrollToOutline = (id) => {
   transform: scale(0.97);
 }
 
-/* 中间阅读流视口 (全宽恒定，0 挤压) */
+/* 阅读视口容器 */
 .reading-viewport {
   flex: 1;
   width: 100%;
@@ -383,7 +383,7 @@ const scrollToOutline = (id) => {
   min-width: 0;
 }
 
-/* 核心正文容器 (右侧留出 220px 空间给悬浮的竖向时间条) */
+/* 正文内容容器 */
 .reading-content-wrap {
   flex: 1;
   padding: 48px 220px 96px 56px;
@@ -400,7 +400,7 @@ const scrollToOutline = (id) => {
   line-height: 1.7;
 }
 
-/* 讲义大标头 */
+/* 讲义标题栏 */
 .doc-header {
   display: flex;
   flex-direction: column;
@@ -428,7 +428,7 @@ const scrollToOutline = (id) => {
   line-height: 1.6;
 }
 
-/* 开启选择模式：仅讲义正文文章区域（标题、段落、公式）放行文本划选 */
+/* 选择模式文本放行 */
 .lecture-doc-view.is-selection-mode .markdown-article,
 .lecture-doc-view.is-selection-mode .markdown-article *,
 .lecture-doc-view.is-selection-mode :deep(.typst-doc),
@@ -437,7 +437,7 @@ const scrollToOutline = (id) => {
   -webkit-user-select: text !important;
 }
 
-/* 底部上一讲/下一讲翻页控件与侧边悬浮 UI 永远禁止被选区捕捉，保障纯粹沉浸的点击翻页 */
+/* 翻页控件禁止划选 */
 .lecture-doc-view :deep(.doc-footer-nav),
 .lecture-doc-view :deep(.doc-footer-nav *),
 .lecture-doc-view .drawer-open-btn,
@@ -451,7 +451,7 @@ const scrollToOutline = (id) => {
   cursor: text;
 }
 
-/* 底部选择模式提示胶囊 (尺寸适中清晰，与全局 MTag 配合) */
+/* 选择模式提示胶囊 */
 .selection-mode-pill {
   position: absolute;
   bottom: 28px;
@@ -486,7 +486,7 @@ const scrollToOutline = (id) => {
   line-height: 1;
 }
 
-/* 快速淡入淡出动画 (120ms，纯粹干脆) */
+/* 淡入淡出动画 */
 .fade-fast-enter-active,
 .fade-fast-leave-active {
   transition: opacity 120ms ease, transform 120ms ease;

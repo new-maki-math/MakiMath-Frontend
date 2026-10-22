@@ -8,7 +8,7 @@ const query = ref('');
 const isOpen = ref(false);
 const activeIndex = ref(-1);
 
-// 贴合数学平台 MakiMath 的高质量示例搜索数据
+// 示例搜索数据
 const sampleData = [
   { id: '1', title: '中国剩余定理 (Chinese Remainder Theorem)', type: '定理', variant: 'purple', course: '初等数论', code: 'CRT_01' },
   { id: '2', title: '良序原理与第一/第二数学归纳法', type: '公理', variant: 'cyan', course: '数学基础', code: 'AXIOM_WO' },
@@ -19,11 +19,11 @@ const sampleData = [
   { id: '7', title: '等价关系与商集的良定义性', type: '定义', variant: 'cyan', course: '数学基础', code: 'DEF_EQUIV' }
 ];
 
-// 根据输入关键词过滤
+// 根据关键词过滤结果
 const filteredResults = computed(() => {
   const q = query.value.trim().toLowerCase();
   if (!q) {
-    // 未输入内容时，提供预置推荐项
+    // 无输入时提供推荐项
     return sampleData.slice(0, 4);
   }
   return sampleData.filter(item =>
@@ -55,7 +55,7 @@ const handleSelect = (item) => {
   inputRef.value?.blur();
 };
 
-// 键盘控制（上下切换与回车）
+// 键盘导航控制
 const handleKeyDown = (e) => {
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
     e.preventDefault();
@@ -99,7 +99,7 @@ const handleClickOutside = (e) => {
   }
 };
 
-// 全局快捷键 ⌘K / Ctrl+K (支持展开与收起切换)
+// 全局快捷键唤起搜索
 const handleGlobalKey = (e) => {
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
     e.preventDefault();
@@ -287,7 +287,7 @@ onUnmounted(() => {
   background-color: var(--bg-hover);
 }
 
-/* 弹出结果绝对定位包裹层 (稳定锚定在输入框下方 6px，彻底杜绝输入框被挤压错位) */
+/* 下拉结果定位容器 */
 .search-dropdown-wrapper {
   position: absolute;
   top: calc(100% + 6px);
@@ -301,7 +301,7 @@ onUnmounted(() => {
   pointer-events: auto;
 }
 
-/* 弹出结果实体卡片 (由 MCollapse 驱动平滑展开收起与微妙位移) */
+/* 下拉结果卡片 */
 .search-dropdown-card {
   background-color: var(--bg-surface);
   border: 1px solid var(--border-subtle);

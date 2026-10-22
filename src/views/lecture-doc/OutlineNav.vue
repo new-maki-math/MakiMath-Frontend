@@ -69,7 +69,7 @@ const updateBar = () => {
     return;
   }
 
-  // 1. 获取各 outline 按钮在其轨道中的垂直中心位置
+  // 获取大纲项中心坐标
   const itemCenters = [];
   for (let i = 0; i < N; i++) {
     const el = itemRefs.value[i];
@@ -80,7 +80,7 @@ const updateBar = () => {
     }
   }
 
-  // 2. 计算每个 outline 目标位置 Y_i（首项贴顶 0，末项贴底 maxTravel，中间居中对齐文字）
+  // 计算大纲目标位置
   const targets = [];
   for (let i = 0; i < N; i++) {
     if (i === 0) {
@@ -92,7 +92,7 @@ const updateBar = () => {
     }
   }
 
-  // 3. 获取正文中各 section 标题在容器中的实际滚动距离 S_i
+  // 获取正文标题实际滚动距离
   const containerRect = container.getBoundingClientRect();
   const currentScroll = container.scrollTop;
   const sectionScrollTops = [];
@@ -106,24 +106,24 @@ const updateBar = () => {
     }
   }
 
-  // 4. 连续映射计算色条位置
+  // 计算当前色条位置
   let newBarTop = 0;
 
   if (currentScroll >= maxScroll - 2) {
-    // 已经滚动到容器最底部：完全贴底，0 缝隙
+    // 滚动贴底处理
     newBarTop = maxTravel;
   } else if (currentScroll <= sectionScrollTops[0]) {
-    // 在第一个 section 之前
+    // 首项之前区域
     const ratio = sectionScrollTops[0] > 0 ? Math.min(currentScroll / sectionScrollTops[0], 1) : 0;
     newBarTop = ratio * Math.max(0, itemCenters[0] - barHeight / 2);
   } else if (currentScroll >= sectionScrollTops[N - 1]) {
-    // 在最后一个 section 之后，平滑过渡到底部
+    // 末项之后区域
     const remaining = maxScroll - sectionScrollTops[N - 1];
     const ratio = remaining > 0 ? Math.min((currentScroll - sectionScrollTops[N - 1]) / remaining, 1) : 1;
     const startY = targets[N - 1];
     newBarTop = startY + ratio * (maxTravel - startY);
   } else {
-    // 在区间 [i, i + 1] 之间连续线性插值
+    // 线性插值计算
     for (let i = 0; i < N - 1; i++) {
       const sA = sectionScrollTops[i];
       const sB = sectionScrollTops[i + 1];
@@ -138,7 +138,7 @@ const updateBar = () => {
 
   barTop.value = Math.max(0, Math.min(newBarTop, maxTravel));
 
-  // 5. 标题高亮严格与色条物理位置对齐：激活离当前色条最近的大纲项
+  // 激活最近大纲项
   let closestIdx = 0;
   let minDiff = Infinity;
   for (let i = 0; i < N; i++) {
@@ -242,7 +242,7 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-/* 无背景的竖向时间条导航，悬浮在内容区右侧上层 */
+/* 竖向时间条导航 */
 .outline-timeline {
   position: absolute;
   right: 32px;
@@ -283,7 +283,7 @@ onUnmounted(() => {
   border-radius: 1px;
 }
 
-/* 随着滚动即时连续位移的指示色条 (无滞后 transition，精确贴底) */
+/* 指示色条 */
 .track-active-bar {
   position: absolute;
   left: -0.25px;

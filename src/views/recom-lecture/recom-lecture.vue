@@ -19,7 +19,7 @@ const navigateToCourse = (courseId) => {
       </div>
     </div>
 
-    <!-- 精选路径卡片列表 -->
+    <!-- 推荐路线列表 -->
     <div class="routes-grid">
       <div class="route-card">
         <div class="route-top">

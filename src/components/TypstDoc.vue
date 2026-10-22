@@ -2,39 +2,39 @@
 import { computed } from 'vue';
 import { renderToString } from 'typlet';
 
-// 组件自引用递归渲染依赖组件名，显式声明 name 以保证递归稳健
+// 递归渲染依赖组件名
 defineOptions({ name: 'TypstDoc' });
 
 const props = defineProps({
-  // 根文档：既支持 { type: 'doc', children: [...] }，也支持裸的 children 数组
+  // 根文档数据
   doc: {
     type: [Object, Array],
     default: null
   },
-  // 递归内部使用的节点数组（父组件也可借此只渲染一棵子树）
+  // 子节点列表
   nodes: {
     type: Array,
     default: null
   },
-  // 解析告警：可由父组件传入，缺省时回落到 doc.warnings
+  // 解析告警列表
   warnings: {
     type: Array,
     default: () => []
   },
-  // flow = true 时不包裹外层容器，直接输出节点流（递归专用）
+  // 递归模式不包裹外层容器
   flow: {
     type: Boolean,
     default: false
   }
 });
 
-// 共享空数组，避免每次渲染都产生新引用
+// 共享空数组引用
 const EMPTY = Object.freeze([]);
 
-// 表格单元格对齐取值白名单
+// 单元格对齐白名单
 const CELL_ALIGNS = ['left', 'center', 'right'];
 
-// 使用 typlet 渲染数学公式 HTML + MathML
+// 渲染数学公式
 function renderMath(node) {
   if (!node) return '';
   const typst = typeof node.typst === 'string'
@@ -51,20 +51,14 @@ function renderMath(node) {
   }
 }
 
-/* 卡片 / 标签的类型刻意不写死在组件里：不同讲义会不断引入新的框、面板与标签色。
-   组件只把原始字段规范化成一个安全 token 透出去（class 与 data-kind 都用它），
-   文案、配色全部由 styles/MakiTheme.css 决定。主题没覆盖到的新类型会自动
-   回退显示原始字段（见 .td-box-label 的 attr() 规则），而不是被悄悄换成别的。 */
+// 规范化卡片与标签类型标识
 function kindToken(kind) {
   if (typeof kind !== 'string') return 'unknown';
   const token = kind.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
   return token || 'unknown';
 }
 
-/* ------------------------------------------------------------------
-   基础取值助手
-   ------------------------------------------------------------------ */
-
+// 基础取值助手
 function isType(node, type) {
   return !!node && node.type === type;
 }
@@ -73,7 +67,7 @@ function childrenOf(node) {
   return node && Array.isArray(node.children) ? node.children : EMPTY;
 }
 
-// 标题层级收敛到 h1–h6，非法值退化为 h3
+// 标题层级收敛至 h1 到 h6
 function headingLevel(level) {
   const n = Number(level);
   if (!Number.isFinite(n)) return 3;
@@ -84,7 +78,7 @@ function headingTag(level) {
   return `h${headingLevel(level)}`;
 }
 
-// anchor 由 API 层下发；缺失时不渲染 id 属性（避免出现 id=""）
+// 获取节点锚点标识
 function anchorOf(node) {
   if (!node) return null;
   const anchor = node.anchor;
@@ -93,7 +87,7 @@ function anchorOf(node) {
   return trimmed ? trimmed : null;
 }
 
-// 标签变体映射 (供全局 MTag 组件使用)
+// 标签变体映射
 const TAG_VARIANTS = Object.freeze({
   red: 'red',
   blue: 'blue',
@@ -135,23 +129,20 @@ function cellSpan(cell, key) {
   return Number.isFinite(value) && value > 1 ? Math.trunc(value) : null;
 }
 
-// 单元格对齐走 class，避免无对齐时渲染出空的 style 属性
+// 单元格对齐类名
 function cellAlignClass(cell) {
   const align = cell && CELL_ALIGNS.includes(cell.align) ? cell.align : null;
   return align ? `td-align-${align}` : '';
 }
 
-// 列数较多时给出最小宽度，交给外层容器横向滚动，避免单元格被压扁
+// 表格最小宽度计算
 function tableStyle(node) {
   const columns = Number(node && node.columns);
   if (!Number.isFinite(columns) || columns < 4) return null;
   return { minWidth: `${Math.min(columns, 8) * 96}px` };
 }
 
-/* ------------------------------------------------------------------
-   根节点与告警
-   ------------------------------------------------------------------ */
-
+// 根节点与告警计算
 const rootNodes = computed(() => {
   if (Array.isArray(props.nodes)) return props.nodes;
 
@@ -159,7 +150,7 @@ const rootNodes = computed(() => {
   if (Array.isArray(doc)) return doc;
   if (doc && typeof doc === 'object') {
     if (Array.isArray(doc.children)) return doc.children;
-    // 容忍直接传入单个节点的情况
+    // 兼容直接传入单个节点
     if (doc.type && doc.type !== 'doc') return [doc];
   }
   return EMPTY;
@@ -186,7 +177,7 @@ function warningText(item) {
 </script>
 
 <template>
-  <!-- 根容器：承载正文排版与解析告警 -->
+  <!-- 根容器 -->
   <div v-if="!flow" class="typst-doc">
     <TypstDoc :nodes="rootNodes" flow />
 
@@ -198,7 +189,7 @@ function warningText(item) {
     </div>
   </div>
 
-  <!-- 递归分支：直接输出节点流，不额外包裹元素 -->
+  <!-- 递归输出节点流 -->
   <template v-else>
     <template v-for="(node, index) in rootNodes" :key="index">
       <!-- 纯文本 -->
@@ -214,7 +205,7 @@ function warningText(item) {
         <TypstDoc :nodes="childrenOf(node)" flow />
       </em>
 
-      <!-- 彩色标签 (使用全局 MTag 组件) -->
+      <!-- 标签 -->
       <MTag
         v-else-if="isType(node, 'tag')"
         size="sm"
@@ -222,7 +213,7 @@ function warningText(item) {
         :color="tagCustomColor(node.color)"
       >{{ node.text }}</MTag>
 
-      <!-- 数学公式：使用 typlet 渲染 -->
+      <!-- 数学公式 -->
       <component
         v-else-if="isType(node, 'math')"
         :is="node.display ? 'div' : 'span'"
@@ -231,7 +222,7 @@ function warningText(item) {
         v-html="renderMath(node)"
       />
 
-      <!-- 标题（anchor 存在时作为 DOM id，供右侧大纲定位） -->
+      <!-- 标题 -->
       <component
         v-else-if="isType(node, 'heading')"
         :is="headingTag(node.level)"
@@ -268,12 +259,12 @@ function warningText(item) {
         </li>
       </component>
 
-      <!-- 游离的列表项：兜底渲染其子节点 -->
+      <!-- 游离列表项 -->
       <div v-else-if="isType(node, 'item')" class="td-item">
         <TypstDoc :nodes="childrenOf(node)" flow />
       </div>
 
-      <!-- 提示框：title / titleChildren 二选一，都没有时只显示 kind 标签 -->
+      <!-- 提示框 -->
       <div
         v-else-if="isType(node, 'box')"
         class="td-box"
@@ -294,7 +285,7 @@ function warningText(item) {
         </div>
       </div>
 
-      <!-- 侧栏面板：考频 / 作业 -->
+      <!-- 侧栏面板 -->
       <aside
         v-else-if="isType(node, 'panel')"
         class="td-panel"
@@ -311,7 +302,7 @@ function warningText(item) {
         </div>
       </aside>
 
-      <!-- 通用容器：供各讲义预设自由组织结构与版式 (div, section, header, aside, span 等) -->
+      <!-- 通用容器 -->
       <component
         v-else-if="isType(node, 'container') || isType(node, 'section')"
         :is="node.tag || (isType(node, 'section') ? 'section' : 'div')"
@@ -342,10 +333,10 @@ function warningText(item) {
         </table>
       </div>
 
-      <!-- 嵌套 doc 节点 -->
+      <!-- 嵌套文档节点 -->
       <TypstDoc v-else-if="isType(node, 'doc')" :nodes="childrenOf(node)" flow />
 
-      <!-- 未知类型兜底：有 children 就继续渲染，否则什么都不输出 -->
+      <!-- 未知类型兜底 -->
       <TypstDoc v-else-if="childrenOf(node).length" :nodes="childrenOf(node)" flow />
     </template>
   </template>

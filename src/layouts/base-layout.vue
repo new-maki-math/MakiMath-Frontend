@@ -28,7 +28,7 @@ const route = useRoute();
 const router = useRouter();
 const progressBarRef = ref(null);
 
-// 主题模式控制（默认深色，持久化至 localStorage）
+// 主题模式控制
 const isDark = ref(true);
 
 const initTheme = () => {
@@ -54,14 +54,14 @@ const toggleTheme = () => {
   }
 };
 
-// 预初始化主题，避免渲染闪烁
+// 预初始化主题
 initTheme();
 
-// 知识库手风琴折叠状态与分类数据
+// 知识库折叠状态与分类数据
 const isKbOpen = ref(true);
 const categories = ref([]);
 const isLoadingCats = ref(false);
-// 默认展开所有大类，或点击单独大类展开/收起
+// 展开的分类集合
 const expandedCategories = ref(new Set());
 
 const toggleCategory = (catId) => {
@@ -72,13 +72,13 @@ const toggleCategory = (catId) => {
   }
 };
 
-// 悬浮提示文本：未上线课程前置 [筹划中] 标签
+// 获取课程悬浮提示
 const getCourseTooltip = (course) => {
   const desc = course.desc || course.title;
   return !course.live ? `[筹划中] ${desc}` : desc;
 };
 
-// 基础页面导航项配置（知识库不再作为单一直达路由，改为折叠菜单）
+// 基础页面导航项配置
 const navItems = [
   { id: 'start', label: '开始', path: '/start', icon: PlaySolid, tag: 'INIT' },
   { id: 'how-to-use', label: '如何使用', path: '/how-to-use', icon: HelpCircleSolid, tag: 'DOCS' },
@@ -87,7 +87,7 @@ const navItems = [
   { id: 'admin', label: '讲义管理', path: '/admin', icon: ReportsSolid, tag: 'EDIT' },
 ];
 
-// 获取当前匹配项（面包屑与标题）
+// 当前匹配导航项
 const currentItem = computed(() => {
   const match = navItems.find(item => item.path === route.path);
   if (match) return match;
@@ -100,7 +100,7 @@ const currentItem = computed(() => {
   };
 });
 
-// 当前正在浏览的课程（如果在课程页）
+// 当前课程数据
 const currentCourse = computed(() => {
   const courseId = route.params.courseId;
   if (!courseId) return null;
@@ -111,7 +111,7 @@ const currentCourse = computed(() => {
   return null;
 });
 
-// 响应式跟踪当前课程的章节树，确保路径栏能实时精准匹配
+// 监听课程章节树
 const layoutChapters = ref([]);
 
 watch(
@@ -129,7 +129,7 @@ watch(
   { immediate: true }
 );
 
-// 计算面包屑路径：课程页固定为 APP / 知识库 / XXXX，讲义篇章页为多级链路，其他页面为 APP / 页面名
+// 计算面包屑路径
 const currentBreadcrumbs = computed(() => {
   if (route.name === 'lecture-doc') {
     const courseId = route.params.courseId || 'kaoyan';
@@ -167,18 +167,18 @@ const currentBreadcrumbs = computed(() => {
   return ['APP', currentItem.value.label];
 });
 
-// 在 start 页面不显示 viewport-header
+// 控制视口头部显示
 const showViewportHeader = computed(() => {
   return route.path !== '/start' && route.name !== 'start' && route.name !== 'admin';
 });
 
-// start 页面与 admin 页面锁定视口，绝对不产生外层滚动条
+// 锁定视口外层滚动
 const isViewportLocked = computed(() => route.name === 'admin' || route.name === 'start' || route.path === '/start');
 
-// 判断是否为 start 欢迎页（用于顶栏小搜索框的隐显切换）
+// 判断是否为欢迎页
 const isStartRoute = computed(() => route.path === '/start' || route.name === 'start');
 
-// 侧边栏整体收起/展开状态（收起后仅显示 Icon 列，点击 Icon 展开）
+// 侧边栏折叠状态
 const isSidebarCollapsed = ref(localStorage.getItem('maki_sidebar_collapsed') === 'true');
 
 const toggleSidebar = () => {
@@ -186,7 +186,7 @@ const toggleSidebar = () => {
   localStorage.setItem('maki_sidebar_collapsed', String(isSidebarCollapsed.value));
 };
 
-// 点击常规导航项（收起状态下只展开侧边栏，不触发路由跳转以避免双重渲染卡顿）
+// 导航项点击处理
 const handleNavClick = (item) => {
   if (isSidebarCollapsed.value) {
     isSidebarCollapsed.value = false;
@@ -196,7 +196,7 @@ const handleNavClick = (item) => {
   navigateTo(item.path);
 };
 
-// 点击知识库项（收起状态下只展开侧边栏并打开树，不触发其他行为）
+// 知识库菜单点击处理
 const handleKbClick = () => {
   if (isSidebarCollapsed.value) {
     isSidebarCollapsed.value = false;
@@ -207,7 +207,7 @@ const handleKbClick = () => {
   toggleKb();
 };
 
-// 判断知识库是否处于激活状态（用于收起时高亮 Database 图标）
+// 判断知识库是否激活
 const isKbActive = computed(() => {
   return (
     route.name === 'course-home' ||
@@ -216,28 +216,28 @@ const isKbActive = computed(() => {
   );
 });
 
-// 判断当前常规导航是否激活
+// 判断导航项是否激活
 const isItemActive = (item) => {
   return route.path === item.path;
 };
 
-// 判断指定课程是否处于选中激活状态
+// 判断课程是否激活
 const isCourseActive = (courseId) => {
   return (route.name === 'course-home' || route.name === 'lecture-doc' || route.path.startsWith('/course/')) && route.params.courseId === courseId;
 };
 
-// 切换知识库树展开/折叠
+// 切换知识库折叠
 const toggleKb = () => {
   isKbOpen.value = !isKbOpen.value;
 };
 
-// 路由切换
+// 路由跳转
 const navigateTo = (targetPath) => {
   if (route.path === targetPath) return;
   router.push(targetPath);
 };
 
-// 点击课程条目导航至对应课程首页
+// 导航至课程首页
 const selectCourse = (course) => {
   navigateTo(`/course/${course.id}`);
 };
@@ -256,7 +256,7 @@ const loadCategories = async () => {
   }
 };
 
-// 监听路由前后守卫并联动顶部加载条，拉取大类
+// 挂载路由守卫与加载分类
 onMounted(() => {
   if (progressBarRef.value) {
     registerProgressBar(progressBarRef.value);
@@ -275,7 +275,7 @@ onMounted(() => {
   });
 });
 
-// 仅局部刷新内容区域 (重新加载当前 router-view 视图，不刷新整个浏览器页面)
+// 局部刷新内容视图
 const docRefreshKey = ref(0);
 const handleRefreshDoc = () => {
   startProgress();
@@ -521,7 +521,7 @@ const handleRefreshDoc = () => {
 </template>
 
 <style scoped>
-/* 整个应用全屏布局约束 */
+/* 应用全局布局 */
 .maki-layout {
   display: flex;
   flex-direction: column;
@@ -532,7 +532,7 @@ const handleRefreshDoc = () => {
   overflow: hidden;
 }
 
-/* 顶栏 Header Bar */
+/* 顶栏容器 */
 .maki-topbar {
   display: flex;
   align-items: center;
@@ -576,7 +576,7 @@ const handleRefreshDoc = () => {
   color: var(--accent-primary);
 }
 
-/* 顶栏中间快捷搜索 */
+/* 顶栏搜索栏 */
 .topbar-center {
   flex: 1;
   max-width: 500px;
@@ -622,7 +622,7 @@ const handleRefreshDoc = () => {
   gap: 8px;
 }
 
-/* 主体分栏：左侧导航 + 主内容视口 */
+/* 主体分栏 */
 .maki-main {
   display: flex;
   flex: 1;
@@ -630,7 +630,7 @@ const handleRefreshDoc = () => {
   overflow: hidden;
 }
 
-/* 左侧页面内导航侧栏 (根据内容最长条目自适应宽度，支持平滑收起为 Icon 列) */
+/* 侧边栏容器 */
 .maki-sidebar {
   width: var(--sidebar-width, max-content);
   min-width: var(--sidebar-min-width, 220px);
@@ -773,7 +773,7 @@ const handleRefreshDoc = () => {
   font-weight: var(--font-weight-medium);
 }
 
-/* 导航左侧极简纯色指示条 */
+/* 激活指示条 */
 .nav-button.active::before {
   content: '';
   position: absolute;
@@ -819,7 +819,7 @@ const handleRefreshDoc = () => {
   width: 100%;
 }
 
-/* 知识库折叠组样式 (VS Code 文件资源管理器树状纯粹风格) */
+/* 知识库折叠组 */
 .kb-nav-group {
   display: flex;
   flex-direction: column;
@@ -985,7 +985,7 @@ const handleRefreshDoc = () => {
   letter-spacing: 0.5px;
 }
 
-/* 主工作视口 (Viewport) */
+/* 主视口区域 */
 .maki-viewport {
   flex: 1;
   display: flex;
@@ -995,7 +995,7 @@ const handleRefreshDoc = () => {
   min-width: 0;
 }
 
-/* admin 等自管理滚动页面：禁用视口外层滚动 */
+/* 锁定外层滚动 */
 .maki-viewport.is-locked {
   overflow: hidden;
 }

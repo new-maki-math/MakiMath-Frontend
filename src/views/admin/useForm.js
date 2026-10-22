@@ -1,8 +1,6 @@
 import { computed, reactive } from 'vue';
 
-/**
- * 表单字段与原始值比对，提供脏检查、放弃改动与增量提交
- */
+// 表单脏检查与增量变更提取
 export function useForm(fields) {
   const form = reactive({});
   const baseline = reactive({});
@@ -36,9 +34,7 @@ export function useForm(fields) {
   return { form, fill, dirty, reset, diff, commit };
 }
 
-/**
- * 非 PATCH 字段（如 Typst 源文）的独立脏检查
- */
+// 独立文本脏检查
 export function useText(initial = '') {
   const value = reactive({ text: initial, baseline: initial });
 

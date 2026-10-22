@@ -38,7 +38,7 @@ const openLecture = (sectionId) => {
 };
 
 const enterDoc = () => {
-  // 课程还没建小节时不要跳转，否则会落到一个不存在的讲义地址上
+  // 无小节时不跳转
   const firstSecId = chapters.value[0]?.sections?.[0]?.id;
   if (!firstSecId) return;
   openLecture(firstSecId);
@@ -76,14 +76,14 @@ watch(courseId, (newId) => {
 
 <template>
   <div class="view-container">
-    <!-- 加载中占位 -->
+    <!-- 加载占位 -->
     <div v-if="isLoading" class="course-loading font-mono">
       LOADING COURSE DATA // {{ courseId }}...
     </div>
 
-    <!-- 课程详情内容 -->
+    <!-- 课程详情 -->
     <template v-else-if="course">
-      <!-- 课程主标头 -->
+      <!-- 课程头部 -->
       <header class="course-header">
         <div class="header-tags">
           <MTag v-if="course.category" variant="purple" size="sm">
@@ -102,7 +102,7 @@ watch(courseId, (newId) => {
           {{ course.desc || '暂无课程描述信息。' }}
         </p>
 
-        <!-- 课程快捷操作栏 -->
+        <!-- 快捷操作栏 -->
         <div class="course-actions">
           <MButton
             v-if="course.live"
@@ -131,10 +131,10 @@ watch(courseId, (newId) => {
         </div>
       </header>
 
-      <!-- 核心概览卡片区 -->
+      <!-- 概览卡片区 -->
       <section class="course-sections">
         <div class="grid-layout">
-          <!-- 课程架构概览 -->
+          <!-- 课程概览 -->
           <div class="spec-card">
             <div class="card-header">
               <span class="card-title font-mono">OVERVIEW // 课程概要</span>
@@ -162,7 +162,7 @@ watch(courseId, (newId) => {
             </div>
           </div>
 
-          <!-- 学习提示与前置说明 -->
+          <!-- 学习指引 -->
           <div class="spec-card">
             <div class="card-header">
               <span class="card-title font-mono">PREREQUISITES // 学习指引</span>
@@ -180,7 +180,7 @@ watch(courseId, (newId) => {
         </div>
       </section>
 
-      <!-- 知识谱系与路线图 (Roadmap Graph Section) -->
+      <!-- 知识路线图 -->
       <section class="roadmap-section">
         <div class="roadmap-header">
           <div class="section-title-wrap">
@@ -196,7 +196,7 @@ watch(courseId, (newId) => {
         </div>
       </section>
 
-      <!-- 课程目录与讲义索引 (Curriculum Section) -->
+      <!-- 讲义大纲目录 -->
       <section id="curriculum-toc" class="curriculum-section">
         <div class="curriculum-header">
           <div class="section-title-wrap">
@@ -223,7 +223,7 @@ watch(courseId, (newId) => {
             class="chapter-panel"
             :class="{ 'is-collapsed': !openChapters.has(chap.id) }"
           >
-            <!-- 编/章 标题栏 (可点击折叠/展开) -->
+            <!-- 章节标题栏 -->
             <button
               class="chapter-header-btn"
               @click="toggleChapter(chap.id)"
@@ -251,7 +251,7 @@ watch(courseId, (newId) => {
               </div>
             </button>
 
-            <!-- 该编下各节 / 讲次列表 -->
+            <!-- 小节列表 -->
             <MCollapse :open="openChapters.has(chap.id)">
               <div class="sections-container">
                 <div
@@ -276,7 +276,7 @@ watch(courseId, (newId) => {
           </div>
         </div>
 
-        <!-- 筹划中/无章节目录时的占位 -->
+        <!-- 空目录占位 -->
         <div v-else class="empty-curriculum font-mono">
           STATUS: COMING SOON // 该课程大纲筹备与内容撰写中
         </div>
@@ -308,7 +308,7 @@ watch(courseId, (newId) => {
   padding: 40px 0;
 }
 
-/* 课程主标头 */
+/* 课程头部 */
 .course-header {
   display: flex;
   flex-direction: column;
@@ -426,7 +426,7 @@ watch(courseId, (newId) => {
   border: 1px solid var(--border-subtle);
 }
 
-/* 知识图谱区域 (Roadmap Graph Section) */
+/* 知识图谱区域 */
 .roadmap-section {
   display: flex;
   flex-direction: column;
@@ -452,7 +452,7 @@ watch(courseId, (newId) => {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   overflow: hidden;
-  isolation: isolate; /* 建立独立层叠上下文，杜绝内部元素在页面滚动时溢出至吸顶 Header 或全局 Topbar */
+  isolation: isolate;
   z-index: 1;
   background-color: var(--bg-surface);
   position: relative;
@@ -527,7 +527,7 @@ watch(courseId, (newId) => {
   opacity: 0.5;
 }
 
-/* 章节外壳列表 */
+/* 章节列表 */
 .chapters-wrapper {
   display: flex;
   flex-direction: column;
@@ -593,7 +593,7 @@ watch(courseId, (newId) => {
   transform: rotate(90deg);
 }
 
-/* 讲义小节列表 */
+/* 小节列表 */
 .sections-container {
   border-top: 1px solid var(--border-subtle);
   background-color: var(--bg-app);

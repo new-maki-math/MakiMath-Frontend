@@ -140,7 +140,7 @@ const remove = (id) => emit('update:modelValue', selected.value.filter((v) => v 
 .picker-search {
   height: 34px;
   padding: 0 11px;
-  /* 框体比页面背景（bg-app）浅一级 */
+  /* 搜索输入框 */
   background-color: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
