@@ -6,19 +6,22 @@ import { request } from '../../api/client.js';
 import { notify } from '../../components/MNotice.vue';
 import MTag from '../../components/MTag.vue';
 import MTable from '../../components/MTable.vue';
+import MPagination from '../../components/MPagination.vue';
 import { formatDate } from './utils.js';
 
 const auditLogs = ref([]);
 const isLoadingAudit = ref(false);
 const auditTotal = ref(0);
 const auditPage = ref(1);
+const auditLimit = ref(20);
 
 // 加载审计日志流水
-const loadAuditLogs = async (page = 1) => {
+const loadAuditLogs = async (page = 1, limit = auditLimit.value) => {
   isLoadingAudit.value = true;
   auditPage.value = page;
+  auditLimit.value = limit;
   try {
-    const res = await request(`/api/audit-logs?page=${page}&limit=20`);
+    const res = await request(`/api/audit-logs?page=${page}&limit=${limit}`);
     if (res?.items) {
       auditLogs.value = res.items;
       auditTotal.value = res.total || 0;
@@ -30,8 +33,13 @@ const loadAuditLogs = async (page = 1) => {
   }
 };
 
+// 切换页码或每页条数处理
+const handlePageChange = ({ page, pageSize }) => {
+  loadAuditLogs(page, pageSize);
+};
+
 onMounted(() => {
-  loadAuditLogs(1);
+  loadAuditLogs(1, 20);
 });
 </script>
 
@@ -43,7 +51,7 @@ onMounted(() => {
         <p class="pane-subtitle">实时留痕全站所有需鉴权管理与讲义编撰接口的调用流水，保障系统运维安全。</p>
       </div>
       <div class="toolbar-actions">
-        <button class="icon-action-btn" title="刷新日志" @click="loadAuditLogs(auditPage)">
+        <button class="icon-action-btn" title="刷新日志" @click="loadAuditLogs(auditPage, auditLimit)">
           <Refresh width="14" height="14" />
         </button>
       </div>
@@ -88,6 +96,15 @@ onMounted(() => {
         </tr>
       </template>
     </MTable>
+
+    <!-- 底部审计日志分页器 -->
+    <MPagination
+      v-model:page="auditPage"
+      v-model:page-size="auditLimit"
+      :total="auditTotal"
+      :disabled="isLoadingAudit"
+      @change="handlePageChange"
+    />
   </section>
 </template>
 

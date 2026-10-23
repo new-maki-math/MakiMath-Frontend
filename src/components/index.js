@@ -15,6 +15,7 @@ import MBackdrop from './MBackdrop.vue';
 import MSelectionToolbar from './MSelectionToolbar.vue';
 import MUserModal from './MUserModal.vue';
 import MTable from './MTable.vue';
+import MPagination from './MPagination.vue';
 import MNotice, { notify, useNotice } from './MNotice.vue';
 
 export {
@@ -35,6 +36,7 @@ export {
   MSelectionToolbar,
   MUserModal,
   MTable,
+  MPagination,
   MNotice,
   notify,
   useNotice
@@ -61,6 +63,7 @@ export default {
     app.component('MSelectionToolbar', MSelectionToolbar);
     app.component('MUserModal', MUserModal);
     app.component('MTable', MTable);
+    app.component('MPagination', MPagination);
     app.component('MNotice', MNotice);
   }
 };
