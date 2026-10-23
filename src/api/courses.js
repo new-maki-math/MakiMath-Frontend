@@ -221,3 +221,14 @@ export async function searchLectures(q, limit = 20) {
     return [];
   }
 }
+
+// 获取随机搜索推荐讲义小节
+export async function fetchSearchRecommendations(limit = 6) {
+  try {
+    const res = await request(`/api/search/recommendations?limit=${limit}`);
+    return Array.isArray(res?.hits) ? res.hits : [];
+  } catch (error) {
+    console.warn('[API] 获取搜索推荐异常:', error);
+    return [];
+  }
+}

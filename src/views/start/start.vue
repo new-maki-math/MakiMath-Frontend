@@ -3,7 +3,7 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { Search, Xmark, Terminal, Compass, ArrowRight, Book, Sparks } from '@iconoir/vue';
 import { renderToString } from 'typlet';
-import { getCourseCategories } from '../../api';
+import { getCourseCategories, fetchSearchRecommendations } from '../../api';
 import { useLectureSearch, getCourseTagVariant, getSectionTags, getSectionTagVariant } from '../../utils';
 import StartBackground from './StartBackground.vue';
 
@@ -18,6 +18,10 @@ const listRef = ref(null);
 const isOpen = ref(false);
 const isFlying = ref(false);
 const flightStyle = ref({});
+
+// 推荐小节数据（由后端 API 动态随机获取 6 个小节）
+const recommendedSections = ref([]);
+const realCourses = ref([]);
 
 // 占位提示轮播
 const placeholders = [
@@ -37,15 +41,6 @@ const startPlaceholderLoop = () => {
   }, 3600);
 };
 
-// 预设数学节点数据
-const sampleMathNodes = [
-  { id: 'm1', title: '泰勒中值定理与佩亚诺余项', tag: '定理', courseTitle: '考研数学精讲', excerpt: '若函数在区间内存在直至连续高阶导数则泰勒公式展开式余项可由佩亚诺形式精确表示', path: '/course/kaoyan/doc/sec-2-3' },
-  { id: 'm2', title: '实数确界存在定理与单调有界准则', tag: '公理', courseTitle: '考研数学精讲', excerpt: '非空有上界的实数集必有上确界从而奠定极限论单调有界收敛原理的基石', path: '/course/kaoyan/doc/sec-1-1' },
-  { id: 'm3', title: '定积分的几何应用：旋转体体积与弧长', tag: '应用', courseTitle: '考研数学精讲', excerpt: '平面曲线绕轴旋转生成的旋转体体积微元与平滑弧长积分计算法则详解', path: '/course/kaoyan/doc/sec-3-2' },
-  { id: 'm4', title: '特征值、特征向量与矩阵正交对角化', tag: '方法', courseTitle: '线性代数精讲', excerpt: '实对称矩阵不同特征值对应的特征向量相互正交且必可通过正交矩阵相似对角化', path: '/course/kaoyan' },
-  { id: 'm5', title: '拉格朗日中值定理与柯西中值定理', tag: '定理', courseTitle: '考研数学精讲', excerpt: '可导函数在闭区间连续开区间可导则必存在中值点其导数值等于割线斜率', path: '/course/kaoyan/doc/sec-2-2' }
-];
-
 const {
   query,
   isSearching,
@@ -54,7 +49,7 @@ const {
   clear: clearQuery,
   handleKeyNavigation
 } = useLectureSearch({
-  defaultItems: () => sampleMathNodes.slice(0, 4),
+  defaultItems: () => recommendedSections.value,
   limit: 15,
   listRef
 });
@@ -90,10 +85,37 @@ const runDecodeAnimation = () => {
   }, 36);
 };
 
-// 加载课程列表
+// 全局快捷键响应 Ctrl+K 聚焦中间输入框
+const handleGlobalKey = (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+    e.preventDefault();
+    if (isOpen.value && document.activeElement === heroInputRef.value) {
+      heroInputRef.value?.blur();
+      isOpen.value = false;
+    } else {
+      heroInputRef.value?.focus();
+      isOpen.value = true;
+    }
+  }
+};
+
+// 加载课程列表与随机推荐小节
 onMounted(async () => {
   runDecodeAnimation();
   startPlaceholderLoop();
+  window.addEventListener('keydown', handleGlobalKey);
+
+  // 1. 获取搜索推荐（随机 6 个小节）
+  try {
+    const recs = await fetchSearchRecommendations(6);
+    if (Array.isArray(recs) && recs.length > 0) {
+      recommendedSections.value = recs;
+    }
+  } catch (err) {
+    console.warn('[StartView] 获取搜索推荐失败', err);
+  }
+
+  // 2. 获取分类课程列表
   try {
     const cats = await getCourseCategories();
     const list = [];
@@ -117,6 +139,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   if (placeholderTimer) clearInterval(placeholderTimer);
+  window.removeEventListener('keydown', handleGlobalKey);
 });
 
 // 检测 Typst 公式输入并即时编译
@@ -193,6 +216,12 @@ const flyAndNavigate = (targetPath) => {
 
 // 键盘导航控制
 const handleKeyDown = (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+    e.preventDefault();
+    heroInputRef.value?.blur();
+    isOpen.value = false;
+    return;
+  }
   if (e.key === 'Escape') {
     isOpen.value = false;
     heroInputRef.value?.blur();

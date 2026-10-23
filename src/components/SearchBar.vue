@@ -2,6 +2,7 @@
 import { ref, watch, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Search, Xmark } from '@iconoir/vue';
+import { fetchSearchRecommendations } from '../api';
 import { useLectureSearch, getCourseTagVariant, getSectionTags, getSectionTagVariant } from '../utils';
 
 const route = useRoute();
@@ -11,13 +12,8 @@ const searchContainerRef = ref(null);
 const listRef = ref(null);
 const isOpen = ref(false);
 
-// 推荐默认节点数据
-const defaultLectures = [
-  { id: 'm1', title: '泰勒中值定理与佩亚诺余项', tag: '定理', courseTitle: '考研数学精讲', excerpt: '若函数在区间内存在直至连续高阶导数则泰勒公式展开式余项可由佩亚诺形式精确表示', path: '/course/kaoyan' },
-  { id: 'm2', title: '实数确界存在定理与单调有界准则', tag: '公理', courseTitle: '考研数学精讲', excerpt: '非空有上界的实数集必有上确界从而奠定极限论单调有界收敛原理的基石', path: '/course/kaoyan' },
-  { id: 'm3', title: '定积分的几何应用：旋转体体积与弧长', tag: '应用', courseTitle: '考研数学精讲', excerpt: '平面曲线绕轴旋转生成的旋转体体积微元与平滑弧长积分计算法则详解', path: '/course/kaoyan' },
-  { id: 'm4', title: '特征值、特征向量与矩阵正交对角化', tag: '方法', courseTitle: '线性代数精讲', excerpt: '实对称矩阵不同特征值对应的特征向量相互正交且必可通过正交矩阵相似对角化', path: '/course/kaoyan' }
-];
+// 推荐默认小节数据
+const defaultLectures = ref([]);
 
 const {
   query,
@@ -27,7 +23,7 @@ const {
   clear,
   handleKeyNavigation
 } = useLectureSearch({
-  defaultItems: defaultLectures,
+  defaultItems: () => defaultLectures.value,
   limit: 15,
   listRef
 });
@@ -102,6 +98,9 @@ const handleClickOutside = (e) => {
 // 全局快捷键唤起搜索
 const handleGlobalKey = (e) => {
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+    // start 页面由其中央输入框响应 Ctrl+K，顶部隐藏的搜索框不响应
+    if (route.path === '/start') return;
+
     e.preventDefault();
     if (isOpen.value) {
       closeSearch();
@@ -113,9 +112,17 @@ const handleGlobalKey = (e) => {
   }
 };
 
-onMounted(() => {
+onMounted(async () => {
   document.addEventListener('click', handleClickOutside);
   window.addEventListener('keydown', handleGlobalKey);
+  try {
+    const recs = await fetchSearchRecommendations(6);
+    if (Array.isArray(recs) && recs.length > 0) {
+      defaultLectures.value = recs;
+    }
+  } catch (err) {
+    console.warn('[SearchBar] 获取搜索推荐失败:', err);
+  }
 });
 
 onUnmounted(() => {
