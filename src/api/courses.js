@@ -87,7 +87,8 @@ function toChapters(tree) {
         title: s.title,
         desc: s.summary || '',
         hasSource: Boolean(s.has_source),
-        sourceLen: s.source_len ?? 0
+        sourceLen: s.source_len ?? 0,
+        updatedAt: s.updated_at || null
       })),
       prereqIds,
       prereqs,
@@ -203,6 +204,7 @@ export async function getCourseSectionContent(slug, sectionId) {
     id: data.id,
     title: data.title,
     lead: data.summary || '',
+    updatedAt: data.updated_at || data.created_at || null,
     outlines: withOutlines(doc),
     doc
   };

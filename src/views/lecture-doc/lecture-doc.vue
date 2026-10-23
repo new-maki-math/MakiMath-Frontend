@@ -94,6 +94,7 @@ const currentContent = ref({
   id: '',
   title: '讲义加载中...',
   lead: '',
+  updatedAt: null,
   outlines: [],
   doc: null
 });
@@ -142,7 +143,8 @@ const currentSection = computed(() => {
         ...sec,
         chapterId: String(chap.id),
         chapterTag: chap.tag,
-        chapterTitle: chap.title
+        chapterTitle: chap.title,
+        updatedAt: sec.updatedAt
       };
     }
   }
@@ -153,8 +155,24 @@ const currentSection = computed(() => {
     title: currentContent.value?.title || firstSec?.title || '讲义阅读',
     chapterId: firstChap ? String(firstChap.id) : '',
     chapterTag: firstChap?.tag || '',
-    chapterTitle: firstChap?.title || ''
+    chapterTitle: firstChap?.title || '',
+    updatedAt: currentContent.value?.updatedAt || firstSec?.updatedAt || null
   };
+});
+
+// 格式化上次修改时间
+const lastModifiedText = computed(() => {
+  const iso = currentContent.value?.updatedAt || currentSection.value?.updatedAt;
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const p = (n) => String(n).padStart(2, '0');
+  const y = d.getFullYear();
+  const m = p(d.getMonth() + 1);
+  const day = p(d.getDate());
+  const h = p(d.getHours());
+  const min = p(d.getMinutes());
+  return `${y}-${m}-${day} ${h}:${min}`;
 });
 
 // 右侧大纲列表
@@ -266,8 +284,13 @@ const scrollToOutline = (id) => {
         <article class="markdown-article">
           <!-- 讲义大标题 -->
           <header class="doc-header">
-            <div class="doc-kicker font-mono">
-              {{ currentSection.chapterTag }} · {{ currentSection.chapterTitle }}
+            <div class="doc-header-meta">
+              <span class="doc-kicker font-mono">
+                {{ currentSection.chapterTag }} · {{ currentSection.chapterTitle }}
+              </span>
+              <span v-if="lastModifiedText" class="doc-last-modified font-mono">
+                上次修改：{{ lastModifiedText }}
+              </span>
             </div>
             <h1 class="doc-main-title">{{ currentSection.title }}</h1>
             <p v-if="currentContent.lead || currentSection.desc" class="doc-lead">
@@ -280,6 +303,11 @@ const scrollToOutline = (id) => {
             v-if="currentContent.doc"
             :doc="currentContent.doc"
           />
+
+          <!-- 底部修改时间说明 -->
+          <footer v-if="lastModifiedText" class="doc-meta-footer">
+            <span class="doc-last-modified font-mono">上次修改：{{ lastModifiedText }}</span>
+          </footer>
         </article>
 
         <!-- 底部翻页导航栏 -->
@@ -409,10 +437,24 @@ const scrollToOutline = (id) => {
   padding-bottom: 24px;
 }
 
+.doc-header-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
 .doc-kicker {
   font-size: var(--font-size-smallest);
   color: var(--accent-primary);
   letter-spacing: 0.5px;
+}
+
+.doc-last-modified {
+  font-size: var(--font-size-smaller);
+  color: var(--text-muted);
+  letter-spacing: 0.2px;
 }
 
 .doc-main-title {
@@ -426,6 +468,14 @@ const scrollToOutline = (id) => {
   font-size: var(--font-size);
   color: var(--text-secondary);
   line-height: 1.6;
+}
+
+.doc-meta-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-top: 20px;
+  border-top: 1px dashed var(--border-subtle);
 }
 
 /* 选择模式文本放行 */
