@@ -35,26 +35,13 @@ function createProgram(gl, vertexSource, fragmentSource) {
 }
 
 function hexToRgba(hex, alpha = 1.0) {
-  if (!hex) return [0.0941176, 0.0941176, 0.0941176, alpha];
-  const s = String(hex).trim();
-  if (s.startsWith('rgb')) {
-    const m = s.match(/rgba?\(([^)]+)\)/);
-    if (m) {
-      const parts = m[1].split(',').map(v => parseFloat(v.trim()));
-      return [
-        (parts[0] || 0) / 255,
-        (parts[1] || 0) / 255,
-        (parts[2] || 0) / 255,
-        parts[3] != null ? parts[3] * alpha : alpha
-      ];
-    }
+  if (!hex) return [0.0941, 0.0941, 0.0941, alpha];
+  let s = String(hex).trim().replace('#', '');
+  if (s.length === 3) {
+    s = s[0] + s[0] + s[1] + s[1] + s[2] + s[2];
   }
-  let c = s.replace('#', '');
-  if (c.length === 3) {
-    c = c[0] + c[0] + c[1] + c[1] + c[2] + c[2];
-  }
-  const num = parseInt(c, 16);
-  if (isNaN(num)) return [0.0941176, 0.0941176, 0.0941176, alpha];
+  const num = parseInt(s, 16);
+  if (isNaN(num)) return [0.0941, 0.0941, 0.0941, alpha];
   return [
     ((num >> 16) & 255) / 255,
     ((num >> 8) & 255) / 255,
@@ -63,7 +50,7 @@ function hexToRgba(hex, alpha = 1.0) {
   ];
 }
 
-// 连线与箭头着色器
+// 连线着色器
 const LINK_VS = `
 attribute vec2 a_pos;
 attribute vec4 a_color;
@@ -97,7 +84,6 @@ attribute float a_fill_ratio;
 attribute float a_alpha;
 
 uniform mat3 u_matrix;
-uniform float u_scale;
 
 varying vec2 v_corner;
 varying vec4 v_fill_color;
@@ -204,11 +190,6 @@ export class RoadmapWebGLRenderer {
     }
     this.gl = gl;
 
-    // 启用扩展
-    if (gl.getExtension) {
-      gl.getExtension('OES_standard_derivatives');
-    }
-
     // 开启混合
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
@@ -222,15 +203,13 @@ export class RoadmapWebGLRenderer {
     this.linkVBO = gl.createBuffer();
     this.linkIBO = gl.createBuffer();
 
-    this.arrowVBO = gl.createBuffer();
-
     this.nodeVBO = gl.createBuffer();
     this.nodeIBO = gl.createBuffer();
 
     this.textVBO = gl.createBuffer();
     this.textIBO = gl.createBuffer();
 
-    // 文字图集纹理
+    // 文字图集纹理与映射表
     this.textTexture = gl.createTexture();
     this.textAtlasMap = new Map();
 
@@ -251,11 +230,9 @@ export class RoadmapWebGLRenderer {
   getBackgroundColor() {
     if (typeof window !== 'undefined') {
       const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg-app').trim();
-      if (bg) {
-        return hexToRgba(bg, 1.0);
-      }
+      if (bg) return hexToRgba(bg, 1.0);
     }
-    return [0.0941176, 0.0941176, 0.0941176, 1.0];
+    return [0.0941, 0.0941, 0.0941, 1.0];
   }
 
   // 构建文字图集纹理
@@ -265,7 +242,7 @@ export class RoadmapWebGLRenderer {
 
     const atlasCanvas = document.createElement('canvas');
     const atlasW = 2048;
-    const atlasH = 4096;
+    const atlasH = 2048;
     atlasCanvas.width = atlasW;
     atlasCanvas.height = atlasH;
     const ctx = atlasCanvas.getContext('2d');
@@ -274,7 +251,6 @@ export class RoadmapWebGLRenderer {
     ctx.clearRect(0, 0, atlasW, atlasH);
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
-    ctx.lineJoin = 'round';
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
 
@@ -292,23 +268,20 @@ export class RoadmapWebGLRenderer {
       if (!text) continue;
 
       let fontSpec = `500 ${Math.round(8.5 * scaleFactor)}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif`;
-      let strokeW = 1.8 * scaleFactor;
       let fillCol = '#cbd5e1';
 
       if (n.level === 1) {
         fontSpec = `600 ${Math.round(12 * scaleFactor)}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif`;
-        strokeW = 2.6 * scaleFactor;
         fillCol = '#ffffff';
       } else if (n.level === 3) {
         fontSpec = `400 ${Math.round(7.5 * scaleFactor)}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif`;
-        strokeW = 1.2 * scaleFactor;
         fillCol = '#94a3b8';
       }
 
       ctx.font = fontSpec;
       const metrics = ctx.measureText(text);
-      const textW = Math.ceil(metrics.width) + strokeW * 2 + 12;
-      const textH = Math.ceil(20 * scaleFactor) + strokeW * 2 + 12;
+      const textW = Math.ceil(metrics.width) + 16;
+      const textH = Math.ceil(20 * scaleFactor) + 16;
 
       // 自动换行排布
       if (curX + textW + padding > atlasW) {
@@ -321,17 +294,9 @@ export class RoadmapWebGLRenderer {
         break;
       }
 
-      // 绘制轮廓光晕
-      const bgApp = (typeof window !== 'undefined'
-        ? getComputedStyle(document.documentElement).getPropertyValue('--bg-app').trim()
-        : '') || '#181818';
-      ctx.strokeStyle = bgApp;
-      ctx.lineWidth = strokeW;
-      ctx.strokeText(text, curX + strokeW + 4, curY + strokeW + 4);
-
-      // 绘制文本
+      // 绘制纯净文本（无黑色描边）
       ctx.fillStyle = fillCol;
-      ctx.fillText(text, curX + strokeW + 4, curY + strokeW + 4);
+      ctx.fillText(text, curX + 8, curY + 8);
 
       // 记录 UV 坐标与尺寸
       this.textAtlasMap.set(n.id, {
@@ -390,10 +355,9 @@ export class RoadmapWebGLRenderer {
     const viewTop = -ty / k - pad;
     const viewBottom = (height - ty) / k + pad;
 
-    // 绘制连线与箭头
+    // 1. 绘制连线
     const linkVerts = [];
     const linkIndices = [];
-    const arrowVerts = [];
 
     for (let i = 0; i < links.length; ++i) {
       const l = links[i];
@@ -404,23 +368,25 @@ export class RoadmapWebGLRenderer {
       const sId = s.id;
       const tId = t.id;
 
+      const isLevel1to2 = l.level === 2 || s.level === 1 || t.level === 2;
       let isLinkActive = false;
-      let strokeColorHex = '#ffffff';
-      let lineWidth = l.type === 'prereq' ? 1.8 : 1.0;
+      let strokeColorHex = '#ffffff'; // 默认状态下中性无彩色
+      let lineWidth = isLevel1to2 ? 2.0 : 1.1;
+      let baseAlpha = isLevel1to2 ? 0.35 : 0.18;
 
       if (hl) {
         if (tId === hl.targetId) {
           isLinkActive = true;
           strokeColorHex = '#10b981';
-          lineWidth = 2.2;
+          lineWidth = isLevel1to2 ? 2.8 : 2.0;
         } else if (sId === hl.targetId) {
           isLinkActive = true;
           strokeColorHex = '#3b82f6';
-          lineWidth = 2.2;
+          lineWidth = isLevel1to2 ? 2.8 : 2.0;
         }
       }
 
-      const targetLinkAlpha = hl ? (isLinkActive ? 1.0 : 0.08) : 0.55;
+      const targetLinkAlpha = hl ? (isLinkActive ? 1.0 : 0.05) : baseAlpha;
       if (l.currentAlpha == null) l.currentAlpha = targetLinkAlpha;
       l.currentAlpha += (targetLinkAlpha - l.currentAlpha) * FADE_SPEED;
       if (Math.abs(l.currentAlpha - targetLinkAlpha) > 0.005) {
@@ -440,73 +406,17 @@ export class RoadmapWebGLRenderer {
       const nx = (-dy / dist) * halfW;
       const ny = (dx / dist) * halfW;
 
-      // 簇集虚线生成
-      if (l.type === 'cluster') {
-        const dashLen = 4;
-        const gapLen = 4;
-        const step = dashLen + gapLen;
-        const count = Math.floor(dist / step);
-
-        for (let j = 0; j < count; ++j) {
-          const t0 = (j * step) / dist;
-          const t1 = Math.min(1.0, (j * step + dashLen) / dist);
-
-          const x0 = s.x + dx * t0;
-          const y0 = s.y + dy * t0;
-          const x1 = s.x + dx * t1;
-          const y1 = s.y + dy * t1;
-
-          const baseV = linkVerts.length / 6;
-          linkVerts.push(
-            x0 + nx, y0 + ny, rgba[0], rgba[1], rgba[2], rgba[3],
-            x1 + nx, y1 + ny, rgba[0], rgba[1], rgba[2], rgba[3],
-            x1 - nx, y1 - ny, rgba[0], rgba[1], rgba[2], rgba[3],
-            x0 - nx, y0 - ny, rgba[0], rgba[1], rgba[2], rgba[3]
-          );
-          linkIndices.push(
-            baseV, baseV + 1, baseV + 2,
-            baseV, baseV + 2, baseV + 3
-          );
-        }
-      } else {
-        // 实线几何体
-        const baseV = linkVerts.length / 6;
-        linkVerts.push(
-          s.x + nx, s.y + ny, rgba[0], rgba[1], rgba[2], rgba[3],
-          t.x + nx, t.y + ny, rgba[0], rgba[1], rgba[2], rgba[3],
-          t.x - nx, t.y - ny, rgba[0], rgba[1], rgba[2], rgba[3],
-          s.x - nx, s.y - ny, rgba[0], rgba[1], rgba[2], rgba[3]
-        );
-        linkIndices.push(
-          baseV, baseV + 1, baseV + 2,
-          baseV, baseV + 2, baseV + 3
-        );
-
-        // 依赖连线箭头
-        if (l.type === 'prereq' || l.type === 'sequence') {
-          const targetRadius = t.radius || 12;
-          const arrowLen = 7;
-          const arrowW = 4;
-
-          const tipX = t.x - (dx / dist) * (targetRadius + 2);
-          const tipY = t.y - (dy / dist) * (targetRadius + 2);
-
-          const baseX = tipX - (dx / dist) * arrowLen;
-          const baseY = tipY - (dy / dist) * arrowLen;
-
-          const leftX = baseX - (dy / dist) * arrowW;
-          const leftY = baseY + (dx / dist) * arrowW;
-
-          const rightX = baseX + (dy / dist) * arrowW;
-          const rightY = baseY - (dx / dist) * arrowW;
-
-          arrowVerts.push(
-            tipX, tipY, rgba[0], rgba[1], rgba[2], rgba[3],
-            leftX, leftY, rgba[0], rgba[1], rgba[2], rgba[3],
-            rightX, rightY, rgba[0], rgba[1], rgba[2], rgba[3]
-          );
-        }
-      }
+      const baseV = linkVerts.length / 6;
+      linkVerts.push(
+        s.x + nx, s.y + ny, rgba[0], rgba[1], rgba[2], rgba[3],
+        t.x + nx, t.y + ny, rgba[0], rgba[1], rgba[2], rgba[3],
+        t.x - nx, t.y - ny, rgba[0], rgba[1], rgba[2], rgba[3],
+        s.x - nx, s.y - ny, rgba[0], rgba[1], rgba[2], rgba[3]
+      );
+      linkIndices.push(
+        baseV, baseV + 1, baseV + 2,
+        baseV, baseV + 2, baseV + 3
+      );
     }
 
     // 提交连线绘制
@@ -531,20 +441,9 @@ export class RoadmapWebGLRenderer {
       gl.vertexAttribPointer(aColLoc, 4, gl.FLOAT, false, 24, 8);
 
       gl.drawElements(gl.TRIANGLES, linkIndices.length, gl.UNSIGNED_SHORT, 0);
-
-      // 提交箭头绘制
-      if (arrowVerts.length > 0) {
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.arrowVBO);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(arrowVerts), gl.DYNAMIC_DRAW);
-
-        gl.vertexAttribPointer(aPosLoc, 2, gl.FLOAT, false, 24, 0);
-        gl.vertexAttribPointer(aColLoc, 4, gl.FLOAT, false, 24, 8);
-
-        gl.drawArrays(gl.TRIANGLES, 0, arrowVerts.length / 6);
-      }
     }
 
-    // 绘制节点圆形
+    // 2. 绘制节点圆形
     const nodeVerts = [];
     const nodeIndices = [];
 
@@ -557,7 +456,7 @@ export class RoadmapWebGLRenderer {
       if (query) {
         isMatch = (n.title && n.title.toLowerCase().includes(query)) ||
                   (n.tag && n.tag.toLowerCase().includes(query)) ||
-                  (n.id && n.id.toLowerCase().includes(query));
+                  (n.id && String(n.id).toLowerCase().includes(query));
       }
 
       const isTarget = hl && n.id === hl.targetId;
@@ -574,7 +473,7 @@ export class RoadmapWebGLRenderer {
         n.currentAlpha = targetNodeAlpha;
       }
 
-      // 视锥体剔除
+      // 视锥体视口剔除
       if (n.x < viewLeft || n.x > viewRight || n.y < viewTop || n.y > viewBottom) continue;
 
       const baseRadius = n.radius || 12;
@@ -582,8 +481,8 @@ export class RoadmapWebGLRenderer {
       const totalRadius = baseRadius + strokeW * 0.5;
       const fillRatio = Math.max(0.0, (baseRadius - strokeW * 0.5) / totalRadius);
 
-      const strokeCol = hexToRgba(n.color, 1.0);
-      const fillCol = n.level === 1 ? hexToRgba(n.color, 1.0) : hexToRgba('#181b26', 1.0);
+      const fillCol = hexToRgba(n.color, 1.0);
+      const strokeCol = isTarget ? hexToRgba('#ffffff', 0.9) : hexToRgba(n.color, 1.0);
 
       const baseV = nodeVerts.length / 15;
       const corners = [
@@ -660,7 +559,7 @@ export class RoadmapWebGLRenderer {
       gl.drawElements(gl.TRIANGLES, nodeIndices.length, gl.UNSIGNED_SHORT, 0);
     }
 
-    // 绘制文本标签
+    // 3. 绘制文本标签
     const textVerts = [];
     const textIndices = [];
 
@@ -672,17 +571,17 @@ export class RoadmapWebGLRenderer {
       const atlasInfo = this.textAtlasMap.get(n.id);
       if (!atlasInfo) continue;
 
-      const isTarget = hl && n.id === hl.targetId;
+      const isTarget = (hl && n.id === hl.targetId) || (query && n.title && n.title.toLowerCase().includes(query));
 
-      // 显隐判定
+      // 显隐判定：缩放层级与节点重要度匹配
       let shouldShow = false;
       if (isTarget) {
         shouldShow = true;
-      } else if (k < 0.6) {
+      } else if (k < 0.5) {
         shouldShow = false;
-      } else if (k < 1.6) {
+      } else if (k < 1.0) {
         shouldShow = n.level === 1;
-      } else if (k < 2.6) {
+      } else if (k < 1.6) {
         shouldShow = n.level <= 2;
       } else {
         shouldShow = true;
@@ -774,7 +673,6 @@ export class RoadmapWebGLRenderer {
     if (this.textTexture) gl.deleteTexture(this.textTexture);
     if (this.linkVBO) gl.deleteBuffer(this.linkVBO);
     if (this.linkIBO) gl.deleteBuffer(this.linkIBO);
-    if (this.arrowVBO) gl.deleteBuffer(this.arrowVBO);
     if (this.nodeVBO) gl.deleteBuffer(this.nodeVBO);
     if (this.nodeIBO) gl.deleteBuffer(this.nodeIBO);
     if (this.textVBO) gl.deleteBuffer(this.textVBO);

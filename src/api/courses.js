@@ -4,7 +4,6 @@ import { transformCourseCategories, adaptDocWithPreset } from '../utils/index.js
 // 内存单例缓存
 const treeCache = new Map();
 const docCache = new Map();
-const graphCache = new Map();
 
 // 获取分类与课程列表
 export async function getCourseCategories() {
@@ -21,7 +20,7 @@ export async function getCourseCategories() {
       const key = String(course.category_id);
       if (!grouped.has(key)) grouped.set(key, []);
       grouped.get(key).push({
-        id: course.slug || String(course.id),
+        id: String(course.id),
         slug: course.slug,
         title: course.title,
         desc: course.descr || course.subtitle || '',
@@ -44,12 +43,12 @@ export async function getCourseCategories() {
 }
 
 // 获取课程目录树
-export async function fetchCourseTree(slug) {
-  if (!slug) throw new Error('缺少课程 slug');
-  const key = String(slug);
+export async function fetchCourseTree(id) {
+  if (!id) throw new Error('缺少课程 id');
+  const key = String(id);
   if (treeCache.has(key)) return treeCache.get(key);
 
-  const tree = await request(`/api/courses/by-slug/${encodeURIComponent(key)}/tree`);
+  const tree = await request(`/api/courses/${encodeURIComponent(key)}/tree`);
   treeCache.set(key, tree);
   return tree;
 }
@@ -208,44 +207,6 @@ export async function getCourseSectionContent(slug, sectionId) {
     outlines: withOutlines(doc),
     doc
   };
-}
-
-// 获取知识图谱数据
-export async function fetchCourseGraph(slug = 'kaoyan') {
-  const key = String(slug);
-  if (graphCache.has(key)) return graphCache.get(key);
-
-  const g = await request(`/api/courses/by-slug/${encodeURIComponent(key)}/graph`);
-  const edges = g.edges ?? [];
-
-  // 计算章节前置文案
-  const byId = new Map((g.chapters ?? []).map((c) => [c.id, c]));
-  const preds = new Map();
-  for (const [from, to] of edges) {
-    if (!preds.has(to)) preds.set(to, []);
-    preds.get(to).push(from);
-  }
-
-  const chapters = (g.chapters ?? []).map((ch) => {
-    const labels = (preds.get(ch.id) ?? []).map((id) => {
-      const p = byId.get(id);
-      if (!p) return String(id);
-      return p.tag ? `${p.tag} ${p.title}` : p.title;
-    });
-    return {
-      ...ch,
-      prereqText: labels.length ? `学完 ${labels.join('、')} 后可学` : '随时可学'
-    };
-  });
-
-  const bundle = {
-    chapters,
-    N: g.nodes ?? {},
-    graph: { edges, pos: {} }
-  };
-
-  graphCache.set(key, bundle);
-  return bundle;
 }
 
 // 全文搜索讲义与课程节点

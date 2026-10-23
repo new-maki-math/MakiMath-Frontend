@@ -17,6 +17,16 @@ const totalSectionsCount = computed(() => {
   return chapters.value.reduce((acc, c) => acc + (c.sections?.length || 0), 0);
 });
 
+// 构建供路线图组件直接消费的目录树
+const courseTree = computed(() => {
+  if (!course.value && chapters.value.length === 0) return null;
+  return {
+    id: course.value?.dbId || course.value?.id || courseId.value,
+    title: course.value?.title || '当前课程',
+    chapters: chapters.value
+  };
+});
+
 const toggleChapter = (chapterId) => {
   if (openChapters.value.has(chapterId)) {
     openChapters.value.delete(chapterId);
@@ -49,6 +59,17 @@ const scrollToCatalog = () => {
   if (el) {
     el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
+};
+
+const scrollToChapter = (chapterId) => {
+  if (!chapterId) return;
+  openChapters.value.add(chapterId);
+  setTimeout(() => {
+    const el = document.getElementById(`chapter-${chapterId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, 50);
 };
 
 const loadCourseData = async (slug) => {
@@ -192,7 +213,11 @@ watch(courseId, (newId) => {
           </div>
         </div>
         <div class="roadmap-container-box">
-          <RoadmapGraph :course-id="courseId" />
+          <RoadmapGraph
+            :tree="courseTree"
+            :course-id="course?.dbId || course?.id || courseId"
+            @select-chapter="scrollToChapter"
+          />
         </div>
       </section>
 
@@ -220,6 +245,7 @@ watch(courseId, (newId) => {
           <div
             v-for="(chap, idx) in chapters"
             :key="chap.id"
+            :id="`chapter-${chap.id}`"
             class="chapter-panel"
             :class="{ 'is-collapsed': !openChapters.has(chap.id) }"
           >

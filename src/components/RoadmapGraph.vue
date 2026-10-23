@@ -1,229 +1,422 @@
 <script setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
 import * as d3 from 'd3';
-import { fetchCourseGraph } from '../api/courses.js';
-import {
-  buildGraphFromCourseBundle,
-  NODE_TYPE_LABELS
-} from '../utils/roadmap-generator.js';
+import { fetchCourseTree } from '../api/courses.js';
 import { RoadmapWebGLRenderer } from '../utils/roadmap-webgl-renderer.js';
 import {
-  Search,
   ZoomIn,
   ZoomOut,
+  Expand,
   Play,
   Pause,
-  Expand,
-  NavArrowRight
+  Search,
+  Xmark
 } from '@iconoir/vue';
 
 const props = defineProps({
-  // 自定义拓扑数据
-  data: {
+  // 可直接传入已加载的目录树对象：{ id, title, chapters: [...] }
+  tree: {
     type: Object,
     default: null
   },
-  // 课程标识
+  // 课程 ID
   courseId: {
-    type: String,
-    default: 'kaoyan'
+    type: [String, Number],
+    default: '1'
   },
-  // 初始层级深度
-  initialLevel: {
-    type: Number,
-    default: 1
+  // 初始视图模式：'chapter' (显示课程+章节) 或 'section' (全部显示)
+  initialMode: {
+    type: String,
+    default: 'chapter' // 'chapter' | 'section'
   },
   // 是否显示控制栏
   showControls: {
     type: Boolean,
     default: true
-  },
-  // 是否显示搜索框
-  showSearch: {
-    type: Boolean,
-    default: true
-  },
-  // 是否显示详情抽屉
-  showDetails: {
-    type: Boolean,
-    default: true
   }
 });
 
-const emit = defineEmits(['select-node', 'navigate']);
+const emit = defineEmits(['select-node', 'select-chapter', 'navigate']);
 const router = useRouter();
 
+// 容器与画布引用
 const containerRef = ref(null);
 const canvasRef = ref(null);
 
+// 状态管理
 const isLoading = ref(true);
-const currentLevel = ref(props.initialLevel);
+const errorMsg = ref('');
+// 模式：'chapter'（1级课程 + 2级章节） 或 'section'（全部：1级课程 + 2级章节 + 3级小节）
+const currentMode = ref(props.initialMode === 'section' ? 'section' : 'chapter');
 const searchQuery = ref('');
 const isPhysicsRunning = ref(true);
-const selectedNode = ref(null);
 const hoveredNode = ref(null);
 
-// 图谱数据与渲染状态
-const rawGraphData = ref({ nodes: [], links: [], chapters: [] });
+// 课程 tree 原始数据
+const rawTree = ref(null);
+
+// 当前力导向仿真对象与解析后的连线缓存
 let simulation = null;
 let zoomBehavior = null;
-let webglRenderer = null;
-let dragBehavior = null;
 let currentTransform = d3.zoomIdentity;
 let targetTransform = { k: 1, x: 0, y: 0 };
 let isSmoothZooming = false;
 let smoothZoomRaf = null;
+let webglRenderer = null;
 let resizeObserver = null;
-let renderRequested = false;
+let animFrameId = null;
 let draggedNode = null;
 let mouseDownPos = { x: 0, y: 0 };
+let currentSimLinks = [];
 
-// 容器尺寸
-const dimensions = ref({ width: 800, height: 600 });
+// 章节调色板
+const CHAPTER_PALETTE = [
+  '#3b82f6', // 蓝
+  '#10b981', // 翡翠绿
+  '#8b5cf6', // 紫
+  '#ec4899', // 洋红
+  '#06b6d4', // 蔚蓝
+  '#f43f5e', // 绯红
+  '#14b8a6', // 青
+  '#a855f7'  // 紫罗兰
+];
 
-// 过滤后的节点与连线
-const filteredGraph = computed(() => {
-  const allNodes = rawGraphData.value.nodes || [];
-  const allLinks = rawGraphData.value.links || [];
+// 将课程 tree 直接构建为三级节点与层级关系：1. 课程 -> 2. 章节 -> 3. 小节
+const graphData = computed(() => {
+  const tree = rawTree.value;
+  if (!tree || !tree.id) {
+    return { nodes: [], links: [] };
+  }
 
-  // 按层级过滤节点
-  const activeNodes = allNodes.filter(n => n.level <= currentLevel.value);
-  const activeNodeIds = new Set(activeNodes.map(n => n.id));
+  const nodes = [];
+  const links = [];
 
-  // 过滤连线
-  const activeLinks = allLinks.filter(l => {
-    const sId = typeof l.source === 'object' ? l.source.id : l.source;
-    const tId = typeof l.target === 'object' ? l.target.id : l.target;
-    return activeNodeIds.has(sId) && activeNodeIds.has(tId);
+  // 一级节点：本课程
+  const courseNodeId = `course-${tree.id}`;
+  nodes.push({
+    id: courseNodeId,
+    rawId: tree.id,
+    title: tree.title || '当前课程',
+    tag: '课程',
+    level: 1,
+    type: 'course',
+    color: '#f59e0b',
+    radius: 22,
+    isOrigin: true
   });
 
-  return {
-    nodes: activeNodes.map(n => ({ ...n })),
-    links: activeLinks.map(l => ({ ...l }))
-  };
+  const chapters = Array.isArray(tree.chapters) ? tree.chapters : [];
+  chapters.forEach((ch, chIdx) => {
+    const chColor = CHAPTER_PALETTE[chIdx % CHAPTER_PALETTE.length];
+    // 二级节点：章节
+    const chNodeId = `ch-${ch.id}`;
+    nodes.push({
+      id: chNodeId,
+      rawId: ch.id,
+      courseId: tree.id,
+      title: ch.title,
+      tag: ch.tag || `第${chIdx + 1}章`,
+      level: 2,
+      type: 'chapter',
+      parentId: courseNodeId,
+      chapterIndex: chIdx,
+      color: chColor,
+      radius: 14,
+      sectionsCount: ch.sections?.length || 0
+    });
+
+    // 连线：课程 -> 章节
+    links.push({
+      id: `${courseNodeId}->${chNodeId}`,
+      sourceId: courseNodeId,
+      targetId: chNodeId,
+      level: 2,
+      type: 'hierarchy'
+    });
+
+    // 三级节点：小节
+    const sections = Array.isArray(ch.sections) ? ch.sections : [];
+    sections.forEach((sec) => {
+      const secNodeId = `sec-${sec.id}`;
+      nodes.push({
+        id: secNodeId,
+        rawId: sec.id,
+        chapterId: ch.id,
+        courseId: tree.id,
+        title: sec.title,
+        tag: sec.tag,
+        level: 3,
+        type: 'section',
+        parentId: chNodeId,
+        chapterIndex: chIdx,
+        color: chColor,
+        radius: 8
+      });
+
+      // 连线：章节 -> 小节
+      links.push({
+        id: `${chNodeId}->${secNodeId}`,
+        sourceId: chNodeId,
+        targetId: secNodeId,
+        level: 3,
+        type: 'hierarchy'
+      });
+    });
+  });
+
+  return { nodes, links };
 });
 
-// 计算直连高亮节点
-const highlightedNeighbors = computed(() => {
-  const target = hoveredNode.value || selectedNode.value;
+// 选择章节时显示一级节点+二级节点，选择小节时全部显示
+const activeGraph = computed(() => {
+  const { nodes: allNodes, links: allLinks } = graphData.value;
+  const maxLevel = currentMode.value === 'chapter' ? 2 : 3;
+
+  const nodes = allNodes.filter((n) => n.level <= maxLevel);
+  const activeIds = new Set(nodes.map((n) => n.id));
+
+  const links = allLinks.filter((l) => {
+    return activeIds.has(l.sourceId) && activeIds.has(l.targetId);
+  });
+
+  return { nodes, links };
+});
+
+// 计算高亮集（用于 WebGL 着色器聚焦）
+const highlightState = computed(() => {
+  const target = hoveredNode.value;
   if (!target) return null;
 
-  const targetId = target.id;
   const inSet = new Set();
   const outSet = new Set();
 
-  filteredGraph.value.links.forEach(l => {
+  for (const l of currentSimLinks) {
     const sId = typeof l.source === 'object' ? l.source.id : l.source;
     const tId = typeof l.target === 'object' ? l.target.id : l.target;
+    if (sId === target.id) outSet.add(tId);
+    if (tId === target.id) inSet.add(sId);
+  }
 
-    if (sId === targetId) {
-      outSet.add(tId);
-    }
-    if (tId === targetId) {
-      inSet.add(sId);
-    }
-  });
-
-  return { targetId, inSet, outSet };
+  return {
+    targetId: target.id,
+    inSet,
+    outSet
+  };
 });
 
-// 节流渲染调度
-const requestRender = () => {
-  if (!renderRequested) {
-    renderRequested = true;
-    requestAnimationFrame(() => {
-      renderRequested = false;
-      renderCanvas();
-    });
-  }
-};
+// 加载数据（无兜底）
+async function loadTreeData() {
+  isLoading.value = true;
+  errorMsg.value = '';
+  hoveredNode.value = null;
 
-// 检索坐标下的节点
-const findNodeAt = (graphX, graphY) => {
-  const nodes = filteredGraph.value.nodes;
+  try {
+    if (props.tree) {
+      rawTree.value = props.tree;
+    } else if (props.courseId) {
+      const tree = await fetchCourseTree(props.courseId);
+      if (!tree || !tree.id) {
+        throw new Error('未获取到有效的课程目录树数据');
+      }
+      rawTree.value = tree;
+    } else {
+      throw new Error('缺少课程标识或目录树数据');
+    }
+  } catch (err) {
+    console.error('[RoadmapGraph] 加载目录树失败:', err);
+    errorMsg.value = err?.message || '目录树数据加载失败';
+    rawTree.value = null;
+  } finally {
+    isLoading.value = false;
+    updateSimulation();
+  }
+}
+
+// 调整 WebGL 视口尺寸
+function resizeCanvas() {
+  const container = containerRef.value;
+  const canvas = canvasRef.value;
+  if (!container || !canvas || !webglRenderer) return;
+
+  const rect = container.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+
+  canvas.width = Math.round(rect.width * dpr);
+  canvas.height = Math.round(rect.height * dpr);
+  canvas.style.width = `${rect.width}px`;
+  canvas.style.height = `${rect.height}px`;
+
+  webglRenderer.resize(rect.width, rect.height, dpr);
+
+  if (simulation) {
+    simulation.force('center', d3.forceCenter(rect.width / 2, rect.height / 2));
+    simulation.alpha(0.3).restart();
+  } else {
+    requestRender();
+  }
+}
+
+// 启动并刷新 D3 力导向物理引擎
+function updateSimulation() {
+  if (!containerRef.value) return;
+  const rect = containerRef.value.getBoundingClientRect();
+  const width = rect.width || 800;
+  const height = rect.height || 600;
+
+  const { nodes, links } = activeGraph.value;
+
+  if (simulation) {
+    simulation.stop();
+    simulation = null;
+  }
+
+  if (webglRenderer) {
+    webglRenderer.buildTextAtlas(nodes);
+  }
+
+  if (nodes.length === 0) {
+    currentSimLinks = [];
+    requestRender();
+    return;
+  }
+
+  // 为节点分配初始位置（若未存在）
+  const nodeMap = new Map();
+  nodes.forEach((n, idx) => {
+    if (n.x == null || n.y == null) {
+      const angle = (idx / nodes.length) * Math.PI * 2;
+      const dist = n.level === 1 ? 0 : (n.level === 2 ? 180 : 320);
+      n.x = width / 2 + Math.cos(angle) * dist;
+      n.y = height / 2 + Math.sin(angle) * dist;
+    }
+    nodeMap.set(n.id, n);
+  });
+
+  // 构建具备 node 实体引用的 links（WebGL 需要直接读取 source.x/target.x）
+  currentSimLinks = links
+    .map((l) => ({
+      ...l,
+      source: nodeMap.get(l.sourceId),
+      target: nodeMap.get(l.targetId)
+    }))
+    .filter((l) => l.source && l.target);
+
+  simulation = d3
+    .forceSimulation(nodes)
+    .force(
+      'link',
+      d3
+        .forceLink(currentSimLinks)
+        .id((d) => d.id)
+        .distance((d) => (d.level === 2 ? 210 : 135))
+        .strength(0.85)
+    )
+    .force('charge', d3.forceManyBody().strength((d) => {
+      if (d.level === 1) return -850;
+      if (d.level === 2) return -400;
+      return -160;
+    }))
+    .force('center', d3.forceCenter(width / 2, height / 2))
+    .force('collide', d3.forceCollide().radius((d) => (d.radius || 12) + 16).strength(0.85))
+    .on('tick', () => {
+      requestRender();
+    });
+
+  if (!isPhysicsRunning.value) {
+    simulation.stop();
+  }
+}
+
+// 触发 WebGL 绘制
+function requestRender() {
+  if (animFrameId) return;
+  animFrameId = requestAnimationFrame(() => {
+    animFrameId = null;
+    if (!webglRenderer) return;
+
+    const { nodes } = activeGraph.value;
+    const needsMoreFrames = webglRenderer.render({
+      nodes,
+      links: currentSimLinks,
+      hl: highlightState.value,
+      query: searchQuery.value.trim().toLowerCase(),
+      transform: currentTransform
+    });
+
+    if (needsMoreFrames) {
+      requestRender();
+    }
+  });
+}
+
+// 查找世界坐标 (graphX, graphY) 下的节点
+function findNodeAt(graphX, graphY) {
+  const { nodes } = activeGraph.value;
   for (let i = nodes.length - 1; i >= 0; --i) {
     const n = nodes[i];
     if (n.x == null || n.y == null) continue;
+    const r = (n.radius || 12) + 6;
     const dx = graphX - n.x;
     const dy = graphY - n.y;
-    const hitRadius = (n.radius || 12) + 6;
-    if (dx * dx + dy * dy <= hitRadius * hitRadius) {
+    if (dx * dx + dy * dy <= r * r) {
       return n;
     }
   }
   return null;
-};
+}
 
-// WebGL2 绘制管线
-const renderCanvas = () => {
-  if (!webglRenderer) return;
-
-  const { nodes, links } = filteredGraph.value;
-  const hl = highlightedNeighbors.value;
-  const query = searchQuery.value.trim().toLowerCase();
-
-  const needsMoreFrames = webglRenderer.render({
-    nodes,
-    links,
-    hl,
-    query,
-    transform: currentTransform
-  });
-
-  if (needsMoreFrames) {
-    requestRender();
-  }
-};
-
-// 加载图谱数据
-const loadData = async () => {
-  isLoading.value = true;
-  try {
-    if (props.data && Array.isArray(props.data.nodes)) {
-      rawGraphData.value = props.data;
-    } else {
-      const bundle = await fetchCourseGraph(props.courseId);
-      rawGraphData.value = buildGraphFromCourseBundle(bundle);
-    }
-    nextTick(() => {
-      initCanvasAndD3();
-    });
-  } catch (err) {
-    console.error('[RoadmapGraph] 数据解析失败:', err);
-  } finally {
-    isLoading.value = false;
-  }
-};
-
-// 停止平滑缩放
-const stopSmoothZoom = () => {
+// 平滑滚轮缩放循环
+function stopSmoothZoom() {
   if (isSmoothZooming) {
     isSmoothZooming = false;
     if (smoothZoomRaf) cancelAnimationFrame(smoothZoomRaf);
     smoothZoomRaf = null;
   }
-};
+}
 
-// 平滑滚轮缩放
-const onCanvasWheel = (e) => {
+function smoothZoomLoop() {
+  if (!isSmoothZooming) return;
+
+  const curK = currentTransform.k;
+  const curX = currentTransform.x;
+  const curY = currentTransform.y;
+
+  const ease = 0.22;
+  const dk = targetTransform.k - curK;
+  const dx = targetTransform.x - curX;
+  const dy = targetTransform.y - curY;
+
+  if (Math.abs(dk) < 0.0005 && Math.abs(dx) < 0.1 && Math.abs(dy) < 0.1) {
+    currentTransform = d3.zoomIdentity.translate(targetTransform.x, targetTransform.y).scale(targetTransform.k);
+    if (canvasRef.value) canvasRef.value.__zoom = currentTransform;
+    isSmoothZooming = false;
+    smoothZoomRaf = null;
+    requestRender();
+    return;
+  }
+
+  const nextK = curK + dk * ease;
+  const nextX = curX + dx * ease;
+  const nextY = curY + dy * ease;
+
+  currentTransform = d3.zoomIdentity.translate(nextX, nextY).scale(nextK);
+  if (canvasRef.value) canvasRef.value.__zoom = currentTransform;
+  requestRender();
+
+  smoothZoomRaf = requestAnimationFrame(smoothZoomLoop);
+}
+
+function onCanvasWheel(e) {
   e.preventDefault();
-  const canvas = canvasRef.value;
-  if (!canvas) return;
+  if (!canvasRef.value) return;
 
-  const rect = canvas.getBoundingClientRect();
-  const mouseX = e.clientX - rect.left;
-  const mouseY = e.clientY - rect.top;
-
-  // 统一设备滚轮步长
+  const [mouseX, mouseY] = d3.pointer(e, canvasRef.value);
   let delta = e.deltaY;
-  if (e.deltaMode === 1) delta *= 24;
+  if (e.deltaMode === 1) delta *= 30;
   else if (e.deltaMode === 2) delta *= 100;
 
-  // 阻尼缩放系数
   const zoomFactor = Math.exp(-delta * 0.0018);
-
-  // 计算光标下的世界坐标
   const gx = (mouseX - targetTransform.x) / targetTransform.k;
   const gy = (mouseY - targetTransform.y) / targetTransform.k;
 
@@ -236,167 +429,40 @@ const onCanvasWheel = (e) => {
     isSmoothZooming = true;
     smoothZoomRaf = requestAnimationFrame(smoothZoomLoop);
   }
-};
+}
 
-const smoothZoomLoop = () => {
-  if (!isSmoothZooming) return;
+// 鼠标悬停
+function onCanvasMouseMove(e) {
+  if (draggedNode || !canvasRef.value) return;
+  const [x, y] = d3.pointer(e, canvasRef.value);
+  const [gx, gy] = currentTransform.invert([x, y]);
+  const hovered = findNodeAt(gx, gy);
 
-  const curK = currentTransform.k;
-  const curX = currentTransform.x;
-  const curY = currentTransform.y;
-
-  const dk = targetTransform.k - curK;
-  const dx = targetTransform.x - curX;
-  const dy = targetTransform.y - curY;
-
-  // 收敛阈值检测
-  if (Math.abs(dk) < 0.0005 && Math.abs(dx) < 0.1 && Math.abs(dy) < 0.1) {
-    currentTransform = d3.zoomIdentity.translate(targetTransform.x, targetTransform.y).scale(targetTransform.k);
-    if (canvasRef.value) {
-      canvasRef.value.__zoom = currentTransform;
-    }
-    isSmoothZooming = false;
-    smoothZoomRaf = null;
+  if (hovered !== hoveredNode.value) {
+    hoveredNode.value = hovered;
+    canvasRef.value.style.cursor = hovered ? 'pointer' : 'grab';
     requestRender();
-    return;
   }
+}
 
-  // 平滑插值计算
-  const ease = 0.16;
-  const nextK = curK + dk * ease;
-  const nextX = curX + dx * ease;
-  const nextY = curY + dy * ease;
-
-  currentTransform = d3.zoomIdentity.translate(nextX, nextY).scale(nextK);
-  if (canvasRef.value) {
-    canvasRef.value.__zoom = currentTransform;
-  }
-  requestRender();
-
-  smoothZoomRaf = requestAnimationFrame(smoothZoomLoop);
-};
-
-// 初始化画布与仿真引擎
-const initCanvasAndD3 = () => {
-  const canvas = canvasRef.value;
-  const container = containerRef.value;
-  if (!canvas || !container) return;
-
-  const rect = container.getBoundingClientRect();
-  const width = Math.round(rect.width) || 800;
-  const height = Math.round(rect.height) || 600;
-  dimensions.value = { width, height };
-
-  const dpr = window.devicePixelRatio || 1;
-  canvas.width = Math.round(width * dpr);
-  canvas.height = Math.round(height * dpr);
-  canvas.style.width = `${width}px`;
-  canvas.style.height = `${height}px`;
-
-  // 初始化渲染管线
-  if (!webglRenderer) {
-    webglRenderer = new RoadmapWebGLRenderer(canvas);
-  }
-  webglRenderer.resize(width, height, dpr);
-  if (rawGraphData.value.nodes && rawGraphData.value.nodes.length > 0) {
-    webglRenderer.buildTextAtlas(rawGraphData.value.nodes);
-  }
-
-  // 停止旧仿真
-  if (simulation) simulation.stop();
-
-  const { nodes, links } = filteredGraph.value;
-
-  // 力导向物理引擎配置
-  simulation = d3.forceSimulation(nodes)
-    .force('link', d3.forceLink(links).id(d => d.id).distance(d => {
-      if (d.type === 'prereq') return 180;
-      if (d.type === 'cluster') return 110;
-      if (d.type === 'sequence') return 75;
-      return 50;
-    }).strength(d => {
-      if (d.type === 'prereq') return 0.6;
-      if (d.type === 'cluster') return 0.35;
-      if (d.type === 'sequence') return 0.55;
-      return 0.3;
-    }))
-    .force('charge', d3.forceManyBody().strength(d => {
-      if (d.level === 1) return -550;
-      if (d.level === 2) return -240;
-      return -70;
-    }))
-    .force('collide', d3.forceCollide().radius(d => {
-      // 动态碰撞半径
-      if (d.level === 1) return (d.radius || 22) + 28;
-      if (d.level === 2) return (d.radius || 12) + 24;
-      return (d.radius || 6) + 12;
-    }).iterations(2))
-    .force('center', d3.forceCenter(width / 2, height / 2))
-    .alphaDecay(0.05);
-
-  // 物理引擎预热
-  for (let i = 0; i < 50; ++i) {
-    simulation.tick();
-  }
-
-  // 坐标更新触发重绘
-  simulation.on('tick', () => {
+function onCanvasMouseLeave() {
+  if (hoveredNode.value) {
+    hoveredNode.value = null;
+    if (canvasRef.value) canvasRef.value.style.cursor = 'grab';
     requestRender();
-  });
+  }
+}
 
-  // 画布平移缩放交互
-  targetTransform.k = currentTransform.k;
-  targetTransform.x = currentTransform.x;
-  targetTransform.y = currentTransform.y;
-
-  zoomBehavior = d3.zoom()
-    .scaleExtent([0.15, 6])
-    .filter((event) => {
-      // 命中节点时放行拖拽
-      if (event.type === 'mousedown') {
-        if (!canvasRef.value) return true;
-        const [x, y] = d3.pointer(event, canvasRef.value);
-        const [gx, gy] = currentTransform.invert([x, y]);
-        if (findNodeAt(gx, gy) != null) return false;
-      }
-      // 屏蔽原生滚轮缩放
-      if (event.type === 'wheel') return false;
-      return !event.ctrlKey && !event.button;
-    })
-    .on('start', () => {
-      stopSmoothZoom();
-      if (canvasRef.value && !draggedNode) canvasRef.value.classList.add('is-grabbing');
-    })
-    .on('zoom', (event) => {
-      currentTransform = event.transform;
-      targetTransform.k = event.transform.k;
-      targetTransform.x = event.transform.x;
-      targetTransform.y = event.transform.y;
-      requestRender();
-    })
-    .on('end', () => {
-      if (canvasRef.value) canvasRef.value.classList.remove('is-grabbing');
-    });
-
-  d3.select(canvas).call(zoomBehavior);
-
-  // 绑定滚轮监听
-  canvas.removeEventListener('wheel', onCanvasWheel);
-  canvas.addEventListener('wheel', onCanvasWheel, { passive: false });
-
-  requestRender();
-};
-
-// 节点拖拽交互
-const onCanvasMouseDown = (e) => {
-  mouseDownPos = { x: e.clientX, y: e.clientY };
+// 节点拖拽与点击
+function onCanvasMouseDown(e) {
   if (!canvasRef.value) return;
+  mouseDownPos = { x: e.clientX, y: e.clientY };
+
   const [x, y] = d3.pointer(e, canvasRef.value);
   const [gx, gy] = currentTransform.invert([x, y]);
   const target = findNodeAt(gx, gy);
 
   if (target) {
-    // 命中节点启动拖拽
     draggedNode = target;
     if (simulation) {
       simulation.alphaTarget(0.2).restart();
@@ -408,18 +474,18 @@ const onCanvasMouseDown = (e) => {
     window.addEventListener('mousemove', onWindowMouseMove);
     window.addEventListener('mouseup', onWindowMouseUp);
   }
-};
+}
 
-const onWindowMouseMove = (e) => {
+function onWindowMouseMove(e) {
   if (!draggedNode || !canvasRef.value) return;
   const [x, y] = d3.pointer(e, canvasRef.value);
   const [gx, gy] = currentTransform.invert([x, y]);
   draggedNode.fx = gx;
   draggedNode.fy = gy;
   requestRender();
-};
+}
 
-const onWindowMouseUp = (e) => {
+function onWindowMouseUp(e) {
   window.removeEventListener('mousemove', onWindowMouseMove);
   window.removeEventListener('mouseup', onWindowMouseUp);
 
@@ -430,69 +496,70 @@ const onWindowMouseUp = (e) => {
     draggedNode = null;
     requestRender();
   }
-};
 
-const onCanvasClick = (e) => {
-  // 判定点击事件
-  if (Math.hypot(e.clientX - mouseDownPos.x, e.clientY - mouseDownPos.y) < 5) {
-    if (!canvasRef.value) return;
+  // 判定是否为单纯点击
+  const dist = Math.hypot(e.clientX - mouseDownPos.x, e.clientY - mouseDownPos.y);
+  if (dist < 5 && canvasRef.value) {
     const [x, y] = d3.pointer(e, canvasRef.value);
     const [gx, gy] = currentTransform.invert([x, y]);
     const clicked = findNodeAt(gx, gy);
+    if (!clicked) {
+      return;
+    }
 
-    selectedNode.value = clicked;
-    emit('select-node', clicked);
-    requestRender();
+    // 1. 点击课程 - 无反应
+    if (clicked.level === 1 || clicked.type === 'course') {
+      return;
+    }
+
+    // 2. 点击章节 - 滚动到页面对应的章节处
+    if (clicked.level === 2 || clicked.type === 'chapter') {
+      const chapterId = clicked.rawId || clicked.id;
+      emit('select-chapter', chapterId);
+      emit('select-node', clicked);
+      const el = document.getElementById(`chapter-${chapterId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      return;
+    }
+
+    // 3. 点击小节 - 跳转小节页面
+    if (clicked.level === 3 || clicked.type === 'section') {
+      emit('select-node', clicked);
+      goToSectionDoc(clicked);
+      return;
+    }
   }
-};
+}
 
-const onCanvasMouseMove = (e) => {
-  if (draggedNode || !canvasRef.value) return;
-  const [x, y] = d3.pointer(e, canvasRef.value);
-  const [gx, gy] = currentTransform.invert([x, y]);
-  const hovered = findNodeAt(gx, gy);
-
-  if (hovered !== hoveredNode.value) {
-    hoveredNode.value = hovered;
-    canvasRef.value.style.cursor = hovered ? 'pointer' : 'grab';
-    requestRender();
-  }
-};
-
-const onCanvasMouseLeave = () => {
-  if (hoveredNode.value) {
-    hoveredNode.value = null;
-    if (canvasRef.value) canvasRef.value.style.cursor = 'grab';
-    requestRender();
-  }
-};
-
-// 视图缩放控制
-const handleZoomIn = () => {
+// 缩放控制按钮
+function zoomIn() {
   stopSmoothZoom();
   if (canvasRef.value && zoomBehavior) {
-    d3.select(canvasRef.value).transition().duration(260).call(zoomBehavior.scaleBy, 1.35);
+    d3.select(canvasRef.value).transition().duration(250).call(zoomBehavior.scaleBy, 1.35);
   }
-};
+}
 
-const handleZoomOut = () => {
+function zoomOut() {
   stopSmoothZoom();
   if (canvasRef.value && zoomBehavior) {
-    d3.select(canvasRef.value).transition().duration(260).call(zoomBehavior.scaleBy, 0.75);
+    d3.select(canvasRef.value).transition().duration(250).call(zoomBehavior.scaleBy, 0.75);
   }
-};
+}
 
-const handleResetView = () => {
+function resetZoom() {
   stopSmoothZoom();
   if (canvasRef.value && zoomBehavior) {
-    d3.select(canvasRef.value).transition().duration(380).call(
-      zoomBehavior.transform,
-      d3.zoomIdentity.translate(0, 0).scale(1)
-    );
+    d3.select(canvasRef.value)
+      .transition()
+      .duration(350)
+      .call(zoomBehavior.transform, d3.zoomIdentity);
   }
-};
+}
 
-const togglePhysics = () => {
+// 仿真启停
+function togglePhysics() {
   isPhysicsRunning.value = !isPhysicsRunning.value;
   if (!simulation) return;
   if (isPhysicsRunning.value) {
@@ -500,607 +567,394 @@ const togglePhysics = () => {
   } else {
     simulation.stop();
   }
-};
+}
 
-// 聚焦节点
-const focusNode = (nodeId) => {
-  stopSmoothZoom();
-  const target = filteredGraph.value.nodes.find(n => n.id === nodeId);
-  if (!target || !canvasRef.value || !zoomBehavior) return;
+// 切换模式：'chapter' (显示课程+章节) 或 'section' (全部显示)
+function setMode(mode) {
+  if (currentMode.value === mode) return;
+  currentMode.value = mode;
+  updateSimulation();
+}
 
-  selectedNode.value = target;
-  const { width, height } = dimensions.value;
-  const scale = target.level === 1 ? 1.8 : 2.8;
-  const x = width / 2 - target.x * scale;
-  const y = height / 2 - target.y * scale;
-
-  d3.select(canvasRef.value).transition().duration(450).call(
-    zoomBehavior.transform,
-    d3.zoomIdentity.translate(x, y).scale(scale)
-  );
-
-  requestRender();
-};
-
-// 跳转讲义阅读
-const navigateToLecture = (node) => {
-  let course = props.courseId || 'kaoyan';
-  let section = node.id;
-
-  if (node.level === 3 && node.parentId) {
-    section = node.parentId;
-  }
-
-  const path = `/course/${course}/doc/${section}`;
-  emit('navigate', { path, node });
-  router.push(path);
-};
-
-// 容器尺寸适配
-const handleResize = () => {
-  if (!containerRef.value || !canvasRef.value) return;
-  const rect = containerRef.value.getBoundingClientRect();
-  const width = Math.round(rect.width);
-  const height = Math.round(rect.height);
-
-  if (width > 0 && height > 0) {
-    dimensions.value = { width, height };
-    const dpr = window.devicePixelRatio || 1;
-    const canvas = canvasRef.value;
-    canvas.width = Math.round(width * dpr);
-    canvas.height = Math.round(height * dpr);
-    canvas.style.width = `${width}px`;
-    canvas.style.height = `${height}px`;
-
-    if (webglRenderer) {
-      webglRenderer.resize(width, height, dpr);
-    }
-
-    if (simulation) {
-      simulation.force('center', d3.forceCenter(width / 2, height / 2));
-      simulation.alpha(0.15).restart();
-    }
-    requestRender();
-  }
-};
-
-// 监听层级变化
-watch(currentLevel, () => {
-  selectedNode.value = null;
-  hoveredNode.value = null;
-  initCanvasAndD3();
-});
-
-// 监听搜索词变化
-watch(searchQuery, () => {
-  requestRender();
-});
-
-// 监听属性变化
-watch(
-  () => [props.courseId, props.data],
-  () => {
-    loadData();
-  }
-);
+// 小节阅读跳转
+function goToSectionDoc(node) {
+  if (!node) return;
+  const secId = node.rawId || node.id;
+  const cid = props.courseId || rawTree.value?.id;
+  emit('navigate', `/course/${cid}/doc/${secId}`);
+  router.push(`/course/${cid}/doc/${secId}`);
+}
 
 onMounted(() => {
-  loadData();
+  const canvas = canvasRef.value;
+  if (canvas) {
+    try {
+      webglRenderer = new RoadmapWebGLRenderer(canvas);
+    } catch (err) {
+      console.error('[RoadmapGraph] WebGL 初始化失败:', err);
+      errorMsg.value = '浏览器不支持 WebGL 硬件加速渲染';
+    }
 
-  if (containerRef.value) {
+    targetTransform.x = currentTransform.x;
+    targetTransform.y = currentTransform.y;
+    targetTransform.k = currentTransform.k;
+
+    // 平移缩放行为：点击空白平移，命中节点放行拖拽
+    zoomBehavior = d3
+      .zoom()
+      .scaleExtent([0.15, 6])
+      .filter((event) => {
+        if (event.type === 'mousedown') {
+          if (!canvasRef.value) return true;
+          const [x, y] = d3.pointer(event, canvasRef.value);
+          const [gx, gy] = currentTransform.invert([x, y]);
+          if (findNodeAt(gx, gy) != null) return false; // 命中节点交给拖拽
+        }
+        if (event.type === 'wheel') return false; // 使用定制平滑滚轮
+        return !event.ctrlKey && !event.button;
+      })
+      .on('start', () => {
+        stopSmoothZoom();
+        if (canvasRef.value && !draggedNode) canvasRef.value.style.cursor = 'grabbing';
+      })
+      .on('zoom', (event) => {
+        currentTransform = event.transform;
+        targetTransform.k = event.transform.k;
+        targetTransform.x = event.transform.x;
+        targetTransform.y = event.transform.y;
+        requestRender();
+      })
+      .on('end', () => {
+        if (canvasRef.value && !draggedNode) canvasRef.value.style.cursor = 'grab';
+      });
+
+    d3.select(canvas).call(zoomBehavior);
+
+    // 绑定平滑滚轮与鼠标拖拽事件
+    canvas.addEventListener('wheel', onCanvasWheel, { passive: false });
+    canvas.addEventListener('mousedown', onCanvasMouseDown);
+    canvas.addEventListener('mousemove', onCanvasMouseMove);
+    canvas.addEventListener('mouseleave', onCanvasMouseLeave);
+  }
+
+  if (containerRef.value && typeof ResizeObserver !== 'undefined') {
     resizeObserver = new ResizeObserver(() => {
-      handleResize();
+      resizeCanvas();
     });
     resizeObserver.observe(containerRef.value);
   }
+
+  loadTreeData();
 });
 
 onBeforeUnmount(() => {
-  if (simulation) simulation.stop();
-  if (resizeObserver) resizeObserver.disconnect();
+  if (simulation) {
+    simulation.stop();
+    simulation = null;
+  }
+  if (resizeObserver) {
+    resizeObserver.disconnect();
+    resizeObserver = null;
+  }
   stopSmoothZoom();
+  if (animFrameId) {
+    cancelAnimationFrame(animFrameId);
+    animFrameId = null;
+  }
   if (canvasRef.value) {
     canvasRef.value.removeEventListener('wheel', onCanvasWheel);
+    canvasRef.value.removeEventListener('mousedown', onCanvasMouseDown);
+    canvasRef.value.removeEventListener('mousemove', onCanvasMouseMove);
+    canvasRef.value.removeEventListener('mouseleave', onCanvasMouseLeave);
   }
+  window.removeEventListener('mousemove', onWindowMouseMove);
+  window.removeEventListener('mouseup', onWindowMouseUp);
   if (webglRenderer) {
     webglRenderer.destroy();
     webglRenderer = null;
   }
 });
+
+watch(() => props.courseId, () => {
+  loadTreeData();
+});
+
+watch(() => props.tree, (newVal) => {
+  if (newVal) {
+    rawTree.value = newVal;
+    updateSimulation();
+  }
+});
 </script>
 
 <template>
-  <div ref="containerRef" class="roadmap-graph-container" aria-label="知识图谱路线图">
-    <!-- WebGL 画布 -->
-    <canvas
-      ref="canvasRef"
-      class="graph-canvas"
-      @mousedown="onCanvasMouseDown"
-      @click="onCanvasClick"
-      @mousemove="onCanvasMouseMove"
-      @mouseleave="onCanvasMouseLeave"
-    ></canvas>
-
+  <div ref="containerRef" class="roadmap-graph-container font-mono">
     <!-- 顶部控制栏 -->
-    <div v-if="showControls" class="graph-floating-panel top-panel">
-      <!-- 搜索输入框 -->
-      <div v-if="showSearch" class="search-input-wrap">
+    <div v-if="showControls" class="graph-toolbar">
+      <!-- 搜索框 -->
+      <div class="search-box">
         <Search width="14" height="14" class="search-icon" />
         <input
           v-model="searchQuery"
           type="text"
-          class="graph-search-input font-mono"
-          placeholder="搜索节点或真题..."
+          placeholder="检索节点..."
+          class="search-input"
+          @input="requestRender"
         />
-        <button v-if="searchQuery" class="clear-btn" @click="searchQuery = ''">×</button>
-      </div>
-
-      <!-- 层级切换器 -->
-      <div class="level-selector font-mono">
         <button
-          class="level-btn"
-          :class="{ active: currentLevel === 1 }"
-          title="仅显示顶层大编拓扑依赖"
-          @click="currentLevel = 1"
+          v-if="searchQuery"
+          type="button"
+          class="clear-btn"
+          @click="searchQuery = ''; requestRender()"
         >
-          L1 // 大编
-        </button>
-        <button
-          class="level-btn"
-          :class="{ active: currentLevel === 2 }"
-          title="展开至具体讲次网络"
-          @click="currentLevel = 2"
-        >
-          L2 // 讲次
-        </button>
-        <button
-          class="level-btn"
-          :class="{ active: currentLevel === 3 }"
-          title="完全展开至全节点"
-          @click="currentLevel = 3"
-        >
-          L3 // 全谱
+          <Xmark width="12" height="12" />
         </button>
       </div>
+
+      <!-- 层级切换控件：选择章节时显示一级(课程)+二级(章节)，选择小节时全部显示 -->
+      <div class="level-selector">
+        <button
+          type="button"
+          class="level-btn"
+          :class="{ active: currentMode === 'chapter' }"
+          @click="setMode('chapter')"
+        >
+          章节
+        </button>
+        <button
+          type="button"
+          class="level-btn"
+          :class="{ active: currentMode === 'section' }"
+          @click="setMode('section')"
+        >
+          小节
+        </button>
+      </div>
+
+      <!-- 视图控制 -->
+      <div class="view-controls">
+        <button type="button" class="tool-btn" title="放大" @click="zoomIn">
+          <ZoomIn width="15" height="15" />
+        </button>
+        <button type="button" class="tool-btn" title="缩小" @click="zoomOut">
+          <ZoomOut width="15" height="15" />
+        </button>
+        <button type="button" class="tool-btn" title="重置视角" @click="resetZoom">
+          <Expand width="15" height="15" />
+        </button>
+        <button
+          type="button"
+          class="tool-btn"
+          :title="isPhysicsRunning ? '暂停物理力学' : '恢复物理力学'"
+          @click="togglePhysics"
+        >
+          <Pause v-if="isPhysicsRunning" width="15" height="15" />
+          <Play v-else width="15" height="15" />
+        </button>
+      </div>
     </div>
 
-    <!-- 视图控制栏 -->
-    <div v-if="showControls" class="graph-floating-panel bottom-panel font-mono">
-      <button class="tool-btn" title="放大 (+)" @click="handleZoomIn">
-        <ZoomIn width="15" height="15" />
-      </button>
-      <button class="tool-btn" title="缩小 (-)" @click="handleZoomOut">
-        <ZoomOut width="15" height="15" />
-      </button>
-      <button class="tool-btn" title="重置居中" @click="handleResetView">
-        <Expand width="15" height="15" />
-      </button>
-      <button
-        class="tool-btn"
-        :class="{ active: !isPhysicsRunning }"
-        :title="isPhysicsRunning ? '暂停物理力导向' : '恢复物理力导向'"
-        @click="togglePhysics"
-      >
-        <Pause v-if="isPhysicsRunning" width="15" height="15" />
-        <Play v-else width="15" height="15" />
-      </button>
+    <!-- WebGL 画布 -->
+    <canvas ref="canvasRef" class="graph-canvas" />
+
+    <!-- 加载中 -->
+    <div v-if="isLoading" class="graph-overlay">
+      <div class="spinner"></div>
+      <span>正在构建路线图...</span>
     </div>
 
-    <!-- 加载中占位 -->
-    <div v-if="isLoading" class="graph-loading font-mono">
-      <div class="loading-spinner"></div>
-      <span>GENERATING KNOWLEDGE NETWORK...</span>
+    <!-- 错误状态（无兜底） -->
+    <div v-else-if="errorMsg" class="graph-overlay error-state">
+      <span class="error-title">无法加载路线图</span>
+      <span class="error-desc">{{ errorMsg }}</span>
     </div>
-
-    <!-- 节点详情侧卡 -->
-    <transition name="slide-fade">
-      <aside v-if="showDetails && selectedNode" class="node-inspector-drawer">
-        <div class="drawer-header">
-          <div class="drawer-type-badge font-mono" :style="{ borderColor: selectedNode.color, color: selectedNode.color }">
-            {{ NODE_TYPE_LABELS[selectedNode.type] || selectedNode.type }}
-          </div>
-          <button class="close-drawer-btn" @click="selectedNode = null">×</button>
-        </div>
-
-        <h3 class="drawer-title">{{ selectedNode.tag ? `${selectedNode.tag} · ${selectedNode.title}` : selectedNode.title }}</h3>
-        <p v-if="selectedNode.desc" class="drawer-desc">{{ selectedNode.desc }}</p>
-
-        <!-- 前置依赖说明 -->
-        <div v-if="selectedNode.prereqText" class="drawer-field">
-          <div class="field-label font-mono">PREREQUISITE // 前置依赖</div>
-          <div class="field-value font-mono">{{ selectedNode.prereqText }}</div>
-        </div>
-
-        <!-- 节点指标 -->
-        <div class="drawer-meta-grid font-mono">
-          <div v-if="selectedNode.sectionsCount" class="meta-item">
-            <span class="meta-label">收录讲次</span>
-            <span class="meta-val">{{ selectedNode.sectionsCount }} 讲</span>
-          </div>
-          <div v-if="selectedNode.nodesCount" class="meta-item">
-            <span class="meta-label">知识节点</span>
-            <span class="meta-val">{{ selectedNode.nodesCount }} 点</span>
-          </div>
-          <div class="meta-item">
-            <span class="meta-label">拓扑层级</span>
-            <span class="meta-val">LEVEL {{ selectedNode.level }}</span>
-          </div>
-        </div>
-
-        <!-- 进入讲义按钮 -->
-        <div class="drawer-action-wrap">
-          <button
-            v-if="selectedNode.level >= 2"
-            class="enter-lecture-btn font-mono"
-            @click="navigateToLecture(selectedNode)"
-          >
-            <span>进入讲义阅读</span>
-            <NavArrowRight width="14" height="14" />
-          </button>
-          <button
-            v-else-if="selectedNode.level === 1"
-            class="enter-lecture-btn font-mono"
-            @click="currentLevel = 2; focusNode(selectedNode.id)"
-          >
-            <span>展开该编下属讲次</span>
-            <NavArrowRight width="14" height="14" />
-          </button>
-        </div>
-      </aside>
-    </transition>
   </div>
 </template>
 
 <style scoped>
 .roadmap-graph-container {
-  width: 100%;
-  height: 100%;
-  min-height: 400px;
   position: relative;
+  width: 100%;
+  height: 580px;
+  background-color: var(--bg-app, #121212);
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  border-radius: var(--radius-sm, 6px);
   overflow: hidden;
-  /* 隔离层叠上下文 */
-  isolation: isolate;
-  z-index: 1;
-  background-color: var(--bg-app);
-  display: flex;
   user-select: none;
 }
 
 .graph-canvas {
+  display: block;
   width: 100%;
   height: 100%;
-  display: block;
   cursor: grab;
-  touch-action: none;
 }
 
-.graph-canvas.is-grabbing {
-  cursor: grabbing;
-}
-
-/* 浮动控制面板 */
-.graph-floating-panel {
+/* 控制栏 */
+.graph-toolbar {
   position: absolute;
-  z-index: 5;
+  top: 14px;
+  left: 14px;
+  right: 14px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  gap: 12px;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.graph-toolbar > * {
   pointer-events: auto;
 }
 
-.top-panel {
-  top: 14px;
-  left: 16px;
-}
-
-.bottom-panel {
-  bottom: 14px;
-  right: 16px;
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  padding: 4px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-}
-
 /* 搜索框 */
-.search-input-wrap {
-  position: relative;
+.search-box {
   display: flex;
   align-items: center;
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  padding: 0 10px;
+  gap: 6px;
   height: 32px;
-  width: 200px;
-  transition: border-color 140ms ease, background-color 140ms ease;
-}
-
-.search-input-wrap:hover {
-  border-color: var(--border-hover);
-}
-
-.search-input-wrap:focus-within {
-  border-color: var(--border-focus);
-  background-color: var(--bg-elevated);
+  background-color: var(--bg-surface, #1e1e1e);
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
+  border-radius: var(--radius-sm, 4px);
+  padding: 0 10px;
+  width: 180px;
 }
 
 .search-icon {
-  color: var(--text-muted);
-  flex-shrink: 0;
-  margin-right: 6px;
+  color: var(--text-muted, #737373);
 }
 
-.graph-search-input {
-  width: 100%;
+.search-input {
   background: transparent;
   border: none;
-  color: var(--text-primary);
-  font-size: var(--font-size-smallest);
   outline: none;
+  color: var(--text-primary, #ffffff);
+  font-size: 11px;
+  width: 100%;
 }
 
-.graph-search-input::placeholder {
-  color: var(--text-muted);
+.search-input::placeholder {
+  color: var(--text-muted, #666666);
 }
 
 .clear-btn {
   background: transparent;
   border: none;
-  color: var(--text-muted);
+  color: var(--text-muted, #888888);
   cursor: pointer;
-  font-size: 14px;
-  padding: 0 4px;
+  padding: 0;
+  display: flex;
+  align-items: center;
 }
 
-.clear-btn:hover {
-  color: var(--text-primary);
-}
-
-/* 层级切换按钮组 */
+/* 层级切换 */
 .level-selector {
   display: flex;
   align-items: center;
   height: 32px;
-  box-sizing: border-box;
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
+  background-color: var(--bg-surface, #1e1e1e);
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
+  border-radius: var(--radius-sm, 4px);
   padding: 3px;
-  gap: 2px;
+  gap: 3px;
 }
 
 .level-btn {
   height: 100%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   background: transparent;
   border: 1px solid transparent;
-  color: var(--text-muted);
+  color: var(--text-muted, #888888);
   font-size: 11px;
-  padding: 0 10px;
-  border-radius: var(--radius-xs);
+  padding: 0 14px;
+  border-radius: var(--radius-xs, 3px);
   cursor: pointer;
-  user-select: none;
+  transition: all 120ms ease;
   white-space: nowrap;
-  transition: color 120ms ease, background-color 120ms ease, border-color 120ms ease;
 }
 
 .level-btn:hover {
-  color: var(--text-primary);
-  background-color: var(--bg-hover);
+  color: var(--text-primary, #ffffff);
+  background-color: var(--bg-hover, rgba(255, 255, 255, 0.05));
 }
 
 .level-btn.active {
-  background-color: var(--bg-elevated);
-  border-color: var(--border-subtle);
-  color: var(--text-primary);
+  background-color: var(--bg-elevated, #282828);
+  border-color: var(--border-subtle, rgba(255, 255, 255, 0.15));
+  color: var(--text-primary, #ffffff);
   font-weight: 600;
 }
 
-/* 工具栏按钮 */
+/* 按钮组 */
+.view-controls {
+  display: flex;
+  align-items: center;
+  height: 32px;
+  background-color: var(--bg-surface, #1e1e1e);
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
+  border-radius: var(--radius-sm, 4px);
+  padding: 2px 4px;
+  gap: 2px;
+}
+
 .tool-btn {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: transparent;
   border: none;
-  color: var(--text-muted);
-  border-radius: var(--radius-xs);
+  color: var(--text-muted, #888888);
+  border-radius: var(--radius-xs, 3px);
   cursor: pointer;
   transition: all 120ms ease;
 }
 
 .tool-btn:hover {
-  background-color: var(--bg-hover);
-  color: var(--text-primary);
+  color: var(--text-primary, #ffffff);
+  background-color: var(--bg-hover, rgba(255, 255, 255, 0.08));
 }
 
-.tool-btn.active {
-  color: var(--accent-primary);
-  background-color: var(--bg-elevated);
-}
-
-/* 加载中 */
-.graph-loading {
+/* 遮罩与状态 */
+.graph-overlay {
   position: absolute;
   inset: 0;
-  background-color: rgba(11, 15, 25, 0.85);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  background-color: rgba(18, 18, 18, 0.85);
+  color: var(--text-muted, #888888);
+  font-size: 12px;
+  gap: 10px;
   z-index: 8;
-  color: var(--text-muted);
-  font-size: var(--font-size-smallest);
-  letter-spacing: 0.5px;
 }
 
-.loading-spinner {
-  width: 24px;
-  height: 24px;
-  border: 2px solid var(--border-subtle);
-  border-top-color: var(--accent-primary);
+.spinner {
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
+  border-top-color: var(--accent-primary, #f59e0b);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
 
 @keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+  to { transform: rotate(360deg); }
 }
 
-/* 节点详情抽屉 */
-.node-inspector-drawer {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  bottom: 14px;
-  width: 320px;
-  max-width: calc(100% - 28px);
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  padding: 18px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  overflow-y: auto;
+.error-state {
+  color: #ef4444;
 }
 
-.drawer-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.error-title {
+  font-weight: 600;
+  font-size: 13px;
 }
 
-.drawer-type-badge {
+.error-desc {
+  color: var(--text-muted, #888888);
   font-size: 11px;
-  padding: 2px 8px;
-  border-radius: var(--radius-xs);
-  border: 1px solid;
-  letter-spacing: 0.5px;
-}
-
-.close-drawer-btn {
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  font-size: 18px;
-  cursor: pointer;
-  line-height: 1;
-  padding: 0 4px;
-}
-
-.close-drawer-btn:hover {
-  color: var(--text-primary);
-}
-
-.drawer-title {
-  font-size: var(--font-size);
-  font-weight: var(--font-weight-semibold);
-  color: var(--text-primary);
-  margin: 0;
-  line-height: 1.4;
-}
-
-.drawer-desc {
-  font-size: var(--font-size-smaller);
-  color: var(--text-secondary);
-  line-height: 1.5;
-  margin: 0;
-}
-
-.drawer-field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 10px;
-  background-color: var(--bg-app);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-xs);
-}
-
-.field-label {
-  font-size: 10px;
-  color: var(--text-muted);
-}
-
-.field-value {
-  font-size: var(--font-size-smallest);
-  color: var(--accent-secondary, #10b981);
-}
-
-.drawer-meta-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-}
-
-.meta-item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 8px 10px;
-  background-color: var(--bg-elevated);
-  border-radius: var(--radius-xs);
-  border: 1px solid var(--border-subtle);
-}
-
-.meta-label {
-  font-size: 10px;
-  color: var(--text-muted);
-}
-
-.meta-val {
-  font-size: var(--font-size-smallest);
-  color: var(--text-primary);
-  font-weight: 600;
-}
-
-.drawer-action-wrap {
-  margin-top: auto;
-  padding-top: 10px;
-}
-
-.enter-lecture-btn {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  background-color: var(--accent-primary);
-  color: #ffffff;
-  border: none;
-  padding: 10px 14px;
-  border-radius: var(--radius-xs);
-  font-size: var(--font-size-smaller);
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity 120ms ease;
-}
-
-.enter-lecture-btn:hover {
-  opacity: 0.9;
-}
-
-/* 抽屉过渡动效 */
-.slide-fade-enter-active,
-.slide-fade-leave-active {
-  transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.slide-fade-enter-from,
-.slide-fade-leave-to {
-  transform: translateX(12px);
-  opacity: 0;
 }
 </style>
