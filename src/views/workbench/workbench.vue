@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref, onMounted } from 'vue';
-import { adminApi, COURSE_STATUSES } from '../../api/admin.js';
+import { workbenchApi, COURSE_STATUSES } from '../../api/workbench.js';
 import { isLoggedIn, initAuth } from '../../utils/auth.js';
 import './workbench.css';
 import WorkbenchAuth from './WorkbenchAuth.vue';
@@ -119,26 +119,26 @@ const createChild = async () => {
   try {
     let created;
     if (kind === 'category') {
-      created = await adminApi.categories.create({
+      created = await workbenchApi.categories.create({
         slug: payload.slug.trim(),
         name: payload.title.trim()
       });
     } else if (kind === 'course') {
-      created = await adminApi.courses.create({
+      created = await workbenchApi.courses.create({
         category_id: parent.id,
         slug: payload.slug.trim(),
         title: payload.title.trim(),
         status: payload.status
       });
     } else if (kind === 'chapter') {
-      created = await adminApi.chapters.create({
+      created = await workbenchApi.chapters.create({
         course_id: parent.id,
         slug: payload.slug.trim(),
         title: payload.title.trim(),
         tag: payload.tag.trim()
       });
     } else {
-      created = await adminApi.sections.create({
+      created = await workbenchApi.sections.create({
         chapter_id: parent.id,
         slug: payload.slug.trim(),
         title: payload.title.trim(),
@@ -171,10 +171,10 @@ const runDelete = async () => {
 
   deleting.value = true;
   try {
-    if (target.type === 'category') await adminApi.categories.remove(target.id);
-    else if (target.type === 'course') await adminApi.courses.remove(target.id);
-    else if (target.type === 'chapter') await adminApi.chapters.remove(target.id);
-    else await adminApi.sections.remove(target.id);
+    if (target.type === 'category') await workbenchApi.categories.remove(target.id);
+    else if (target.type === 'course') await workbenchApi.courses.remove(target.id);
+    else if (target.type === 'chapter') await workbenchApi.chapters.remove(target.id);
+    else await workbenchApi.sections.remove(target.id);
 
     if (selected.value?.type === target.type && selected.value?.id === target.id) {
       selected.value = null;
@@ -204,10 +204,10 @@ const move = async (payload) => {
   [ids[info.index], ids[target]] = [ids[target], ids[info.index]];
 
   try {
-    if (node.type === 'category') await adminApi.categories.order(ids);
-    else if (node.type === 'course') await adminApi.courses.order(info.parent.id, ids);
-    else if (node.type === 'chapter') await adminApi.chapters.order(info.parent.id, ids);
-    else await adminApi.sections.order(info.parent.id, ids);
+    if (node.type === 'category') await workbenchApi.categories.order(ids);
+    else if (node.type === 'course') await workbenchApi.courses.order(info.parent.id, ids);
+    else if (node.type === 'chapter') await workbenchApi.chapters.order(info.parent.id, ids);
+    else await workbenchApi.sections.order(info.parent.id, ids);
 
     await treeRef.value.reload();
     notify('顺序已更新');
@@ -263,7 +263,7 @@ onMounted(async () => {
 <template>
   <WorkbenchAuth v-if="!isLoggedIn" @success="handleAuthSuccess" />
 
-  <div v-else class="admin-workspace">
+  <div v-else class="workbench-workspace">
     <WorkbenchTree
       ref="treeRef"
       :selected-key="selectedKey"
@@ -275,7 +275,7 @@ onMounted(async () => {
       @create-category="openCreate(null)"
     />
 
-    <div class="admin-main">
+    <div class="workbench-main">
       <component
         :is="panelComponent"
         v-if="selected"
@@ -300,7 +300,7 @@ onMounted(async () => {
 
       <div
         v-else
-        class="admin-blank"
+        class="workbench-blank"
       >
         <div class="blank-mark font-mono">// LECTURE WORKSPACE</div>
         <h2 class="blank-title">讲义管理</h2>
@@ -366,13 +366,13 @@ onMounted(async () => {
       @close="deleteTarget = null"
       @confirm="runDelete"
     >
-      <div class="adm-note">{{ deleteWarning }}</div>
+      <div class="wb-note">{{ deleteWarning }}</div>
     </MModal>
   </div>
 </template>
 
 <style scoped>
-.admin-workspace {
+.workbench-workspace {
   height: calc(100vh - var(--topbar-height));
   display: flex;
   align-items: stretch;
@@ -380,7 +380,7 @@ onMounted(async () => {
   overflow: hidden;
 }
 
-.admin-main {
+.workbench-main {
   flex: 1;
   min-width: 0;
   min-height: 0;
@@ -416,7 +416,7 @@ onMounted(async () => {
   color: #e07070;
 }
 
-.admin-blank {
+.workbench-blank {
   flex: 1;
   display: flex;
   flex-direction: column;

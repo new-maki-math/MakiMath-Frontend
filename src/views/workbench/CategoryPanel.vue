@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
-import { adminApi } from '../../api/admin.js';
+import { workbenchApi } from '../../api/workbench.js';
 import { useForm } from './useForm.js';
 import WorkbenchPanel from './WorkbenchPanel.vue';
 import MInput from '../../components/MInput.vue';
@@ -81,7 +81,7 @@ const runBatchDelete = async () => {
 
   batchDeleting.value = true;
   try {
-    await adminApi.courses.batchRemove(ids);
+    await workbenchApi.courses.batchRemove(ids);
     selectedIds.value = new Set();
     batchDeleteOpen.value = false;
     await load();
@@ -104,9 +104,9 @@ const load = async () => {
   loading.value = true;
   clearSelection();
   try {
-    record.value = await adminApi.categories.get(props.node.id);
+    record.value = await workbenchApi.categories.get(props.node.id);
     fill(record.value);
-    courses.value = await adminApi.courses.list({ category_id: props.node.id });
+    courses.value = await workbenchApi.courses.list({ category_id: props.node.id });
   } catch (err) {
     emit('error', err);
   } finally {
@@ -120,7 +120,7 @@ const save = async () => {
 
   saving.value = true;
   try {
-    record.value = await adminApi.categories.update(props.node.id, patch);
+    record.value = await workbenchApi.categories.update(props.node.id, patch);
     commit();
     emit('saved', '分类已保存');
     emit('changed', { scope: 'category', categoryId: props.node.id, label: form.name });
@@ -150,14 +150,14 @@ watch(() => props.node.id, load, { immediate: true });
 
     <div
       v-if="loading"
-      class="adm-empty font-mono"
+      class="wb-empty font-mono"
     >
       加载中...
     </div>
 
     <template v-else>
-      <div class="adm-block">
-        <div class="adm-form-grid">
+      <div class="wb-block">
+        <div class="wb-form-grid">
           <MInput
             v-model="form.name"
             label="分类名称"
@@ -172,15 +172,15 @@ watch(() => props.node.id, load, { immediate: true });
         </div>
       </div>
 
-      <div class="adm-block">
-        <div class="adm-block-head">
-          <span class="adm-block-title">下属课程</span>
-          <span class="adm-block-desc font-mono">{{ courses.length }} 项</span>
+      <div class="wb-block">
+        <div class="wb-block-head">
+          <span class="wb-block-title">下属课程</span>
+          <span class="wb-block-desc font-mono">{{ courses.length }} 项</span>
         </div>
 
         <div
           v-if="courses.length === 0"
-          class="adm-note"
+          class="wb-note"
         >
           该分类下还没有课程。把鼠标移到左侧树的分类行上，点 + 新建课程。
         </div>
@@ -188,20 +188,20 @@ watch(() => props.node.id, load, { immediate: true });
         <template v-else>
           <div
             v-if="selectedIds.size > 0"
-            class="adm-batch-bar"
+            class="wb-batch-bar"
           >
-            <div class="adm-batch-info">
+            <div class="wb-batch-info">
               <input
                 type="checkbox"
-                class="adm-checkbox"
+                class="wb-checkbox"
                 :checked="isAllSelected"
                 :indeterminate="isIndeterminate"
                 title="全选 / 取消全选"
                 @change="toggleSelectAll"
               />
-              <span>已选择 <span class="adm-batch-count">{{ selectedIds.size }}</span> / {{ courses.length }} 项</span>
+              <span>已选择 <span class="wb-batch-count">{{ selectedIds.size }}</span> / {{ courses.length }} 项</span>
             </div>
-            <div class="adm-batch-actions">
+            <div class="wb-batch-actions">
               <MButton
                 variant="secondary"
                 size="sm"
@@ -219,29 +219,29 @@ watch(() => props.node.id, load, { immediate: true });
             </div>
           </div>
 
-          <div class="adm-list">
+          <div class="wb-list">
             <div
               v-for="(course, idx) in courses"
               :key="course.id"
-              class="adm-list-item"
+              class="wb-list-item"
               :class="{ 'is-selected': selectedIds.has(course.id) }"
               @click="handleRowClick(course)"
             >
               <input
                 type="checkbox"
-                class="adm-checkbox"
+                class="wb-checkbox"
                 :checked="selectedIds.has(course.id)"
                 @click.stop="toggleSelect(course.id)"
               />
-              <span class="adm-list-index">{{ String(idx + 1).padStart(2, '0') }}</span>
-              <span class="adm-list-label">{{ course.title }}</span>
+              <span class="wb-list-index">{{ String(idx + 1).padStart(2, '0') }}</span>
+              <span class="wb-list-label">{{ course.title }}</span>
               <MTag
                 :variant="course.status === 'live' ? 'green' : 'muted'"
                 size="sm"
               >
                 {{ course.status }}
               </MTag>
-              <span class="adm-list-meta">{{ course.section_count }} 节</span>
+              <span class="wb-list-meta">{{ course.section_count }} 节</span>
             </div>
           </div>
         </template>
@@ -258,7 +258,7 @@ watch(() => props.node.id, load, { immediate: true });
       @close="batchDeleteOpen = false"
       @confirm="runBatchDelete"
     >
-      <div class="adm-note" style="color: #e07070; border-color: rgba(224, 112, 112, 0.4);">
+      <div class="wb-note" style="color: #e07070; border-color: rgba(224, 112, 112, 0.4);">
         警告：选中的课程下的所有章节、小节与资源会一并彻底级联删除，且不可撤销。
       </div>
     </MModal>

@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
-import { adminApi, COURSE_STATUSES } from '../../api/admin.js';
+import { workbenchApi, COURSE_STATUSES } from '../../api/workbench.js';
 import { useForm } from './useForm.js';
 import WorkbenchPanel from './WorkbenchPanel.vue';
 import MInput from '../../components/MInput.vue';
@@ -54,8 +54,8 @@ const load = async () => {
   loading.value = true;
   try {
     const [rec, list] = await Promise.all([
-      adminApi.courses.get(props.node.id),
-      adminApi.courses.list()
+      workbenchApi.courses.get(props.node.id),
+      workbenchApi.courses.list()
     ]);
     record.value = rec;
     allCourses.value = list;
@@ -79,11 +79,11 @@ const save = async () => {
   try {
     const patch = diff();
     if (Object.keys(patch).length > 0) {
-      record.value = await adminApi.courses.update(props.node.id, patch);
+      record.value = await workbenchApi.courses.update(props.node.id, patch);
       commit();
     }
     if (prereqsDirty.value) {
-      await adminApi.courses.setPrereqs(props.node.id, prereqs.value);
+      await workbenchApi.courses.setPrereqs(props.node.id, prereqs.value);
       prereqBaseline.value = [...prereqs.value];
     }
     emit('saved', '课程已保存');
@@ -114,14 +114,14 @@ watch(() => props.node.id, load, { immediate: true });
 
     <div
       v-if="loading"
-      class="adm-empty font-mono"
+      class="wb-empty font-mono"
     >
       加载中...
     </div>
 
     <template v-else>
-      <div class="adm-block">
-        <div class="adm-form-grid">
+      <div class="wb-block">
+        <div class="wb-form-grid">
           <MInput
             v-model="form.title"
             label="课程名称"
@@ -149,7 +149,7 @@ watch(() => props.node.id, load, { immediate: true });
             placeholder="0.15.1"
             hint="编译该课程小节时使用"
           />
-          <div class="adm-span-2">
+          <div class="wb-span-2">
             <MTextarea
               v-model="form.descr"
               label="简介"
@@ -160,10 +160,10 @@ watch(() => props.node.id, load, { immediate: true });
         </div>
       </div>
 
-      <div class="adm-block">
-        <div class="adm-block-head">
-          <span class="adm-block-title">前置课程</span>
-          <span class="adm-block-desc font-mono">建议先学完这些课程</span>
+      <div class="wb-block">
+        <div class="wb-block-head">
+          <span class="wb-block-title">前置课程</span>
+          <span class="wb-block-desc font-mono">建议先学完这些课程</span>
         </div>
         <PrereqPicker
           v-model="prereqs"

@@ -1,4 +1,4 @@
-// 讲义管理接口
+// 讲义工作台接口
 import { request } from './client.js';
 
 const post = (url, body) => request(url, { method: 'POST', body });
@@ -15,7 +15,7 @@ const qs = (params) => {
   return s ? `?${s}` : '';
 };
 
-export const adminApi = {
+export const workbenchApi = {
   tree: () => request('/api/workbench/tree'),
 
   categories: {

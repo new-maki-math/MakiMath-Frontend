@@ -1,11 +1,11 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import {
-  adminApi,
+  workbenchApi,
   readTextFile,
   titleFromFilename,
   nextSectionSlugs
-} from '../../api/admin.js';
+} from '../../api/workbench.js';
 import { useForm } from './useForm.js';
 import WorkbenchPanel from './WorkbenchPanel.vue';
 import MInput from '../../components/MInput.vue';
@@ -90,7 +90,7 @@ const runBatchDelete = async () => {
 
   batchDeleting.value = true;
   try {
-    await adminApi.sections.batchRemove(ids);
+    await workbenchApi.sections.batchRemove(ids);
     selectedIds.value = new Set();
     batchDeleteOpen.value = false;
     await load();
@@ -115,7 +115,7 @@ const runBatchCopy = async () => {
 
   copying.value = true;
   try {
-    const res = await adminApi.sections.batchCopy(ids, props.node.id);
+    const res = await workbenchApi.sections.batchCopy(ids, props.node.id);
     selectedIds.value = new Set();
     await load();
     emit('saved', `已成功创建 ${res.count} 个小节副本`);
@@ -147,7 +147,7 @@ const chapterOptions = computed(() =>
 const openBatchMove = async () => {
   if (selectedIds.value.size === 0) return;
   try {
-    const list = await adminApi.chapters.list(record.value.course_id);
+    const list = await workbenchApi.chapters.list(record.value.course_id);
     availableChapters.value = list.filter((ch) => ch.id !== props.node.id);
     if (availableChapters.value.length === 0) {
       emit('error', new Error('当前课程没有其他可供移动的章节'));
@@ -166,7 +166,7 @@ const runBatchMove = async () => {
 
   moving.value = true;
   try {
-    await adminApi.sections.batchMove(ids, Number(targetChapterId.value));
+    await workbenchApi.sections.batchMove(ids, Number(targetChapterId.value));
     selectedIds.value = new Set();
     moveModalOpen.value = false;
     await load();
@@ -197,8 +197,8 @@ const load = async () => {
   clearSelection();
   try {
     const [rec, list] = await Promise.all([
-      adminApi.chapters.get(props.node.id),
-      adminApi.sections.list(props.node.id)
+      workbenchApi.chapters.get(props.node.id),
+      workbenchApi.sections.list(props.node.id)
     ]);
     record.value = rec;
     sections.value = list;
@@ -219,7 +219,7 @@ const save = async () => {
   try {
     const patch = diff();
     if (Object.keys(patch).length > 0) {
-      record.value = await adminApi.chapters.update(props.node.id, patch);
+      record.value = await workbenchApi.chapters.update(props.node.id, patch);
       commit();
     }
     emit('saved', '章节已保存');
@@ -291,7 +291,7 @@ const runImport = async () => {
   importing.value = true;
   try {
     for (const row of rows) {
-      await adminApi.sections.create({
+      await workbenchApi.sections.create({
         chapter_id: props.node.id,
         slug: row.slug.trim(),
         title: row.title.trim(),
@@ -334,14 +334,14 @@ watch(() => props.node.id, load, { immediate: true });
 
     <div
       v-if="loading"
-      class="adm-empty font-mono"
+      class="wb-empty font-mono"
     >
       加载中...
     </div>
 
     <template v-else>
-      <div class="adm-block">
-        <div class="adm-form-grid">
+      <div class="wb-block">
+        <div class="wb-form-grid">
           <MInput
             v-model="form.title"
             label="章节名称"
@@ -358,7 +358,7 @@ watch(() => props.node.id, load, { immediate: true });
             label="标签"
             placeholder="第一章"
           />
-          <div class="adm-span-2">
+          <div class="wb-span-2">
             <MTextarea
               v-model="form.summary"
               label="摘要"
@@ -369,14 +369,14 @@ watch(() => props.node.id, load, { immediate: true });
         </div>
       </div>
 
-      <div class="adm-block">
-        <div class="adm-block-head">
-          <span class="adm-block-title">小节</span>
-          <span class="adm-block-desc font-mono">{{ sections.length }} 项 · 一小节对应一个 Typst 文件</span>
+      <div class="wb-block">
+        <div class="wb-block-head">
+          <span class="wb-block-title">小节</span>
+          <span class="wb-block-desc font-mono">{{ sections.length }} 项 · 一小节对应一个 Typst 文件</span>
         </div>
 
         <div
-          class="adm-dropzone"
+          class="wb-dropzone"
           :class="{ 'is-over': dragOver }"
           @click="fileInput?.click()"
           @dragover.prevent="dragOver = true"
@@ -398,7 +398,7 @@ watch(() => props.node.id, load, { immediate: true });
 
         <div
           v-if="sections.length === 0"
-          class="adm-note"
+          class="wb-note"
         >
           本章还没有小节。导入 .typ 文件，或在左侧树中把鼠标移到本章行上点 + 手动新建。
         </div>
@@ -406,20 +406,20 @@ watch(() => props.node.id, load, { immediate: true });
         <template v-else>
           <div
             v-if="selectedIds.size > 0"
-            class="adm-batch-bar"
+            class="wb-batch-bar"
           >
-            <div class="adm-batch-info">
+            <div class="wb-batch-info">
               <input
                 type="checkbox"
-                class="adm-checkbox"
+                class="wb-checkbox"
                 :checked="isAllSelected"
                 :indeterminate="isIndeterminate"
                 title="全选 / 取消全选"
                 @change="toggleSelectAll"
               />
-              <span>已选择 <span class="adm-batch-count">{{ selectedIds.size }}</span> / {{ sections.length }} 项</span>
+              <span>已选择 <span class="wb-batch-count">{{ selectedIds.size }}</span> / {{ sections.length }} 项</span>
             </div>
-            <div class="adm-batch-actions">
+            <div class="wb-batch-actions">
               <MButton
                 variant="secondary"
                 size="sm"
@@ -454,22 +454,22 @@ watch(() => props.node.id, load, { immediate: true });
             </div>
           </div>
 
-          <div class="adm-list">
+          <div class="wb-list">
             <div
               v-for="(sec, idx) in sections"
               :key="sec.id"
-              class="adm-list-item"
+              class="wb-list-item"
               :class="{ 'is-selected': selectedIds.has(sec.id) }"
               @click="handleRowClick(sec)"
             >
               <input
                 type="checkbox"
-                class="adm-checkbox"
+                class="wb-checkbox"
                 :checked="selectedIds.has(sec.id)"
                 @click.stop="toggleSelect(sec.id)"
               />
-              <span class="adm-list-index">{{ String(idx + 1).padStart(2, '0') }}</span>
-              <span class="adm-list-label">{{ sec.title }}</span>
+              <span class="wb-list-index">{{ String(idx + 1).padStart(2, '0') }}</span>
+              <span class="wb-list-label">{{ sec.title }}</span>
               <MTag
                 v-if="!sec.has_source"
                 variant="amber"
@@ -477,8 +477,8 @@ watch(() => props.node.id, load, { immediate: true });
               >
                 空
               </MTag>
-              <span class="adm-list-meta">{{ sec.slug }}</span>
-              <span class="adm-list-meta">{{ sec.source_len }} 字</span>
+              <span class="wb-list-meta">{{ sec.slug }}</span>
+              <span class="wb-list-meta">{{ sec.source_len }} 字</span>
             </div>
           </div>
         </template>
@@ -535,7 +535,7 @@ watch(() => props.node.id, load, { immediate: true });
       @close="batchDeleteOpen = false"
       @confirm="runBatchDelete"
     >
-      <div class="adm-note" style="color: #e07070; border-color: rgba(224, 112, 112, 0.4);">
+      <div class="wb-note" style="color: #e07070; border-color: rgba(224, 112, 112, 0.4);">
         警告：选中的小节及其对应的 Typst 源码会一并彻底删除，且不可撤销。
       </div>
     </MModal>
@@ -549,14 +549,14 @@ watch(() => props.node.id, load, { immediate: true });
       @close="moveModalOpen = false"
       @confirm="runBatchMove"
     >
-      <div class="adm-block">
+      <div class="wb-block">
         <MSelect
           v-model="targetChapterId"
           label="目标章节"
           :options="chapterOptions"
           placeholder="请选择目标章节"
         />
-        <div class="adm-note" style="margin-top: 10px;">
+        <div class="wb-note" style="margin-top: 10px;">
           选中的小节将被追加至目标章节末尾。若目标章节已存在相同 slug，系统会自动平滑重命名避免键位冲突。
         </div>
       </div>

@@ -1,57 +1,57 @@
-/* 管理台共享布局 */
+/* 讲义工作台共享布局 */
 
-.adm-form-grid {
+.wb-form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 18px 20px;
 }
 
-.adm-form-grid.cols-1 {
+.wb-form-grid.cols-1 {
   grid-template-columns: 1fr;
 }
 
-.adm-span-2 {
+.wb-span-2 {
   grid-column: 1 / -1;
 }
 
-.adm-block {
+.wb-block {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-.adm-block + .adm-block {
+.wb-block + .wb-block {
   margin-top: 26px;
   padding-top: 26px;
   border-top: 1px solid var(--border-subtle);
 }
 
-.adm-block-head {
+.wb-block-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
 }
 
-.adm-block-title {
+.wb-block-title {
   font-size: var(--font-size);
   font-weight: var(--font-weight-medium);
   color: var(--text-primary);
 }
 
-.adm-block-desc {
+.wb-block-desc {
   font-size: var(--font-size-smaller);
   color: var(--text-muted);
 }
 
-.adm-row {
+.wb-row {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
 }
 
-.adm-note {
+.wb-note {
   padding: 12px 14px;
   /* 提示框背景 */
   background-color: var(--bg-surface);
@@ -62,7 +62,7 @@
   line-height: 1.8;
 }
 
-.adm-empty {
+.wb-empty {
   padding: 40px 24px;
   display: flex;
   flex-direction: column;
@@ -73,13 +73,13 @@
   font-size: var(--font-size);
 }
 
-.adm-list {
+.wb-list {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-.adm-list-item {
+.wb-list-item {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -91,12 +91,12 @@
   transition: background-color 120ms ease, color 120ms ease;
 }
 
-.adm-list-item:hover {
+.wb-list-item:hover {
   background-color: var(--bg-hover);
   color: var(--text-primary);
 }
 
-.adm-list-index {
+.wb-list-index {
   flex-shrink: 0;
   width: 28px;
   font-family: var(--font-mono);
@@ -104,7 +104,7 @@
   color: var(--text-muted);
 }
 
-.adm-list-label {
+.wb-list-label {
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -112,14 +112,14 @@
   white-space: nowrap;
 }
 
-.adm-list-meta {
+.wb-list-meta {
   flex-shrink: 0;
   font-family: var(--font-mono);
   font-size: var(--font-size-smaller);
   color: var(--text-muted);
 }
 
-.adm-dropzone {
+.wb-dropzone {
   padding: 24px;
   display: flex;
   flex-direction: column;
@@ -135,15 +135,15 @@
   transition: border-color 140ms ease, color 140ms ease, background-color 140ms ease;
 }
 
-.adm-dropzone:hover,
-.adm-dropzone.is-over {
+.wb-dropzone:hover,
+.wb-dropzone.is-over {
   border-color: var(--accent-primary);
   color: var(--text-secondary);
   background-color: var(--accent-muted);
 }
 
 /* 多选框样式 */
-.adm-checkbox {
+.wb-checkbox {
   appearance: none;
   -webkit-appearance: none;
   width: 15px;
@@ -161,16 +161,16 @@
   position: relative;
 }
 
-.adm-checkbox:hover {
+.wb-checkbox:hover {
   border-color: var(--accent-primary);
 }
 
-.adm-checkbox:checked {
+.wb-checkbox:checked {
   background-color: var(--accent-primary);
   border-color: var(--accent-primary);
 }
 
-.adm-checkbox:checked::after {
+.wb-checkbox:checked::after {
   content: '';
   width: 4px;
   height: 8px;
@@ -180,24 +180,24 @@
   margin-top: -1.5px;
 }
 
-.adm-checkbox:indeterminate {
+.wb-checkbox:indeterminate {
   background-color: var(--accent-primary);
   border-color: var(--accent-primary);
 }
 
-.adm-checkbox:indeterminate::after {
+.wb-checkbox:indeterminate::after {
   content: '';
   width: 7px;
   height: 1.5px;
   background-color: #fff;
 }
 
-.adm-list-item.is-selected {
+.wb-list-item.is-selected {
   background-color: var(--bg-hover);
   color: var(--text-primary);
 }
 
-.adm-batch-bar {
+.wb-batch-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -221,20 +221,20 @@
   }
 }
 
-.adm-batch-info {
+.wb-batch-info {
   display: flex;
   align-items: center;
   gap: 10px;
   color: var(--text-secondary);
 }
 
-.adm-batch-count {
+.wb-batch-count {
   font-family: var(--font-mono);
   font-weight: var(--font-weight-medium);
   color: var(--text-primary);
 }
 
-.adm-batch-actions {
+.wb-batch-actions {
   display: flex;
   align-items: center;
   gap: 8px;

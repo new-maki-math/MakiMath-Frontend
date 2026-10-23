@@ -1,7 +1,7 @@
 <script setup>
 import { onMounted, ref } from 'vue';
 import { Refresh, FolderPlus } from '@iconoir/vue';
-import { adminApi } from '../../api/admin.js';
+import { workbenchApi } from '../../api/workbench.js';
 import WorkbenchTreeNode from './WorkbenchTreeNode.vue';
 import MButton from '../../components/MButton.vue';
 
@@ -88,7 +88,7 @@ const expandTo = async (type, id) => {
 const reload = async () => {
   loading.value = true;
   try {
-    const rawTree = await adminApi.tree();
+    const rawTree = await workbenchApi.tree();
     const tree = Array.isArray(rawTree) ? rawTree : [];
 
     // 默认或恢复展开状态
@@ -143,7 +143,7 @@ defineExpose({
 </script>
 
 <template>
-  <aside class="admin-tree">
+  <aside class="workbench-tree">
     <header class="tree-head">
       <span class="tree-title font-mono">知识库</span>
       <div class="tree-head-actions">
@@ -212,7 +212,7 @@ defineExpose({
 </template>
 
 <style scoped>
-.admin-tree {
+.workbench-tree {
   width: 324px;
   flex-shrink: 0;
   display: flex;

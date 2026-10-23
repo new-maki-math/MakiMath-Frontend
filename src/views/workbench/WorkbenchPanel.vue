@@ -36,7 +36,7 @@ defineEmits(['save', 'reset']);
 </script>
 
 <template>
-  <section class="admin-panel">
+  <section class="workbench-panel">
     <header class="panel-head">
       <div class="head-main">
         <div class="head-title-row">
@@ -87,7 +87,7 @@ defineEmits(['save', 'reset']);
 </template>
 
 <style scoped>
-.admin-panel {
+.workbench-panel {
   flex: 1;
   min-width: 0;
   min-height: 0;

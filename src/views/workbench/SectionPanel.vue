@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
-import { adminApi, readTextFile, titleFromFilename } from '../../api/admin.js';
+import { workbenchApi, readTextFile, titleFromFilename } from '../../api/workbench.js';
 import { useForm, useText } from './useForm.js';
 import WorkbenchPanel from './WorkbenchPanel.vue';
 import MInput from '../../components/MInput.vue';
@@ -70,14 +70,14 @@ function formatTime(iso) {
 const load = async () => {
   loading.value = true;
   try {
-    const rec = await adminApi.sections.get(props.node.id);
+    const rec = await workbenchApi.sections.get(props.node.id);
     record.value = rec;
     fill(rec);
     source.set(rec.source ?? '');
     prereqs.value = (rec.prereqs ?? []).map(Number);
     prereqBaseline.value = [...prereqs.value];
 
-    const tree = await adminApi.courses.tree(rec.course_id);
+    const tree = await workbenchApi.courses.tree(rec.course_id);
     const list = [];
     for (const ch of tree.chapters || []) {
       for (const sec of ch.sections || []) {
@@ -111,16 +111,16 @@ const save = async () => {
   try {
     const patch = diff();
     if (Object.keys(patch).length > 0) {
-      record.value = await adminApi.sections.update(props.node.id, patch);
+      record.value = await workbenchApi.sections.update(props.node.id, patch);
       commit();
     }
     if (source.dirty.value) {
-      const res = await adminApi.sections.setSource(props.node.id, source.state.text);
+      const res = await workbenchApi.sections.setSource(props.node.id, source.state.text);
       record.value = { ...record.value, ...res };
       source.commit();
     }
     if (prereqsDirty.value) {
-      await adminApi.sections.setPrereqs(props.node.id, prereqs.value);
+      await workbenchApi.sections.setPrereqs(props.node.id, prereqs.value);
       prereqBaseline.value = [...prereqs.value];
     }
     emit('saved', '小节已保存');
@@ -221,14 +221,14 @@ watch(() => props.node.id, load, { immediate: true });
 
     <div
       v-if="loading"
-      class="adm-empty font-mono"
+      class="wb-empty font-mono"
     >
       加载中...
     </div>
 
     <template v-else>
-      <div class="adm-block">
-        <div class="adm-form-grid">
+      <div class="wb-block">
+        <div class="wb-form-grid">
           <MInput
             v-model="form.title"
             label="小节标题"
@@ -245,7 +245,7 @@ watch(() => props.node.id, load, { immediate: true });
             label="标签"
             placeholder="选填"
           />
-          <div class="adm-span-2">
+          <div class="wb-span-2">
             <MTextarea
               v-model="form.summary"
               label="摘要"
@@ -256,10 +256,10 @@ watch(() => props.node.id, load, { immediate: true });
         </div>
       </div>
 
-      <div class="adm-block">
-        <div class="adm-block-head">
-          <span class="adm-block-title">Typst 源文</span>
-          <span class="adm-block-desc font-mono">Ctrl / Cmd + S 保存</span>
+      <div class="wb-block">
+        <div class="wb-block-head">
+          <span class="wb-block-title">Typst 源文</span>
+          <span class="wb-block-desc font-mono">Ctrl / Cmd + S 保存</span>
         </div>
         <MCodeEditor
           v-model="source.state.text"
@@ -269,10 +269,10 @@ watch(() => props.node.id, load, { immediate: true });
         />
       </div>
 
-      <div class="adm-block">
-        <div class="adm-block-head">
-          <span class="adm-block-title">前置小节</span>
-          <span class="adm-block-desc font-mono">建议先学完这些小节</span>
+      <div class="wb-block">
+        <div class="wb-block-head">
+          <span class="wb-block-title">前置小节</span>
+          <span class="wb-block-desc font-mono">建议先学完这些小节</span>
         </div>
         <PrereqPicker
           v-model="prereqs"
@@ -291,7 +291,7 @@ watch(() => props.node.id, load, { immediate: true });
       @close="closeImport"
       @confirm="runImport"
     >
-      <div class="adm-note">
+      <div class="wb-note">
         当前源文将被文件内容整体替换，保存后写入数据库并刷新 source_hash。
       </div>
       <label class="rename-toggle">
