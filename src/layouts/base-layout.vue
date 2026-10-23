@@ -157,7 +157,7 @@ watch(
   () => [route.params.courseId, route.name],
   async ([courseId, name]) => {
     if (name === 'lecture-doc' || name === 'course-home' || courseId) {
-      const cid = courseId || 'kaoyan';
+      const cid = courseId || '1';
       try {
         layoutChapters.value = await getCourseChapters(cid);
       } catch (e) {
@@ -171,8 +171,8 @@ watch(
 // 计算面包屑路径
 const currentBreadcrumbs = computed(() => {
   if (route.name === 'lecture-doc') {
-    const courseId = route.params.courseId || 'kaoyan';
-    const courseTitle = currentCourse.value?.title || (courseId === 'kaoyan' ? '考研数学' : courseId);
+    const courseId = route.params.courseId || '1';
+    const courseTitle = currentCourse.value?.title || (courseId === '1' ? '考研数学' : courseId);
     const chapters = layoutChapters.value.length ? layoutChapters.value : getCachedCourseChapters(courseId);
     const sectionId = String(route.params.sectionId || '').trim();
 

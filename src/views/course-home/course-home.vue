@@ -7,7 +7,7 @@ import { NavArrowRight } from '@iconoir/vue';
 const route = useRoute();
 const router = useRouter();
 
-const courseId = computed(() => route.params.courseId || 'kaoyan');
+const courseId = computed(() => route.params.courseId || '1');
 const course = ref(null);
 const chapters = ref([]);
 const openChapters = ref(new Set());

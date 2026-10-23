@@ -31,7 +31,7 @@ const navigateToCourse = (courseId) => {
           从实数确界原理与极限定义展开，涵盖连续性、中值定理群、不定积分原函数存在性与泰勒公式逼近体系。
         </p>
         <div class="route-actions">
-          <MButton variant="primary" size="sm" :mono="true" @click="navigateToCourse('kaoyan')">
+          <MButton variant="primary" size="sm" :mono="true" @click="navigateToCourse('1')">
             进入课程大纲 // VIEW COURSE
           </MButton>
         </div>

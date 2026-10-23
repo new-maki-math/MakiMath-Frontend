@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import ChapterNav from './ChapterNav.vue';
 import OutlineNav from './OutlineNav.vue';
 import DocFooterNav from './DocFooterNav.vue';
-import { getChaptersForCourse, getNodeContent } from './data';
+import { fetchCourseTree, toChapters, getCourseSectionContent } from '../../api';
 import { List } from '@iconoir/vue';
 import MSelectionToolbar from '../../components/MSelectionToolbar.vue';
 
@@ -81,7 +81,7 @@ onUnmounted(() => {
 
 // 当前路由参数
 const currentCourseId = computed(() => {
-  return route.params.courseId || 'kaoyan';
+  return route.params.courseId || '1';
 });
 
 const currentSectionId = computed(() => {
@@ -107,8 +107,10 @@ watch(
     isSelectionMode.value = false;
     isLoading.value = true;
     try {
-      // 加载章节目录树
-      const chaps = await getChaptersForCourse(courseId);
+      // 通过统一 /api/courses/:id/tree 接口加载章节目录树
+      const cid = courseId === 'kaoyan' ? '1' : (courseId || '1');
+      const tree = await fetchCourseTree(cid);
+      const chaps = toChapters(tree);
       courseChapters.value = chaps;
 
       // 加载讲义正文与大纲
@@ -118,7 +120,7 @@ watch(
         currentContent.value = { id: '', title: '暂无讲义', lead: '', outlines: [], doc: null };
         return;
       }
-      currentContent.value = await getNodeContent(courseId, secId);
+      currentContent.value = await getCourseSectionContent(tree.slug || tree.id, secId);
 
       // 切换时重置滚动位置
       if (readingViewportRef.value) {
@@ -226,7 +228,7 @@ const handleSelectSection = (section) => {
   router.push({
     name: 'lecture-doc',
     params: {
-      courseId: route.params.courseId || 'kaoyan',
+      courseId: currentCourseId.value === 'kaoyan' ? '1' : (currentCourseId.value || '1'),
       sectionId: targetId
     }
   });

@@ -128,7 +128,7 @@ const handleSelect = (item) => {
   inputRef.value?.blur();
   emit('select', item);
 
-  const targetPath = item.path || '/course/kaoyan';
+  const targetPath = item.path || '/course/1';
   emit('navigate', targetPath);
   router.push(targetPath);
 };
