@@ -153,10 +153,6 @@ const handleRegister = async () => {
         </div>
 
         <div class="auth-tabs">
-          <div
-            class="auth-tab-glider"
-            :style="{ transform: mode === 'login' ? 'translateX(0)' : 'translateX(100%)' }"
-          />
           <button
             type="button"
             class="auth-tab"
@@ -173,6 +169,10 @@ const handleRegister = async () => {
           >
             邀请码注册
           </button>
+          <div
+            class="auth-tab-line"
+            :style="{ transform: mode === 'login' ? 'translateX(0)' : 'translateX(100%)' }"
+          />
         </div>
 
         <transition name="auth-fade" mode="out-in">
@@ -303,41 +303,24 @@ const handleRegister = async () => {
 .auth-tabs {
   position: relative;
   display: flex;
-  background-color: var(--bg-base);
-  border-radius: var(--radius-sm);
-  padding: 4px;
-  margin-bottom: 22px;
-  border: 1px solid var(--border-subtle);
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.15);
-}
-
-.auth-tab-glider {
-  position: absolute;
-  top: 4px;
-  bottom: 4px;
-  left: 4px;
-  width: calc(50% - 4px);
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-hover);
-  border-radius: var(--radius-xs);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
-  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
-  pointer-events: none;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 24px;
 }
 
 .auth-tab {
-  position: relative;
-  z-index: 1;
   flex: 1;
-  height: 32px;
-  border-radius: var(--radius-xs);
-  font-size: var(--font-size-smaller, 13px);
-  font-weight: var(--font-weight-medium, 500);
-  color: var(--text-muted);
+  height: 38px;
   background: transparent;
   border: none;
+  font-size: var(--font-size);
+  font-weight: var(--font-weight-regular);
+  color: var(--text-muted);
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   transition: color 140ms ease;
+  user-select: none;
 }
 
 .auth-tab:hover:not(.active) {
@@ -346,7 +329,17 @@ const handleRegister = async () => {
 
 .auth-tab.active {
   color: var(--text-primary);
-  font-weight: var(--font-weight-semibold, 550);
+  font-weight: var(--font-weight-medium);
+}
+
+.auth-tab-line {
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 50%;
+  height: 2px;
+  background-color: var(--accent-primary);
+  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .auth-form {
