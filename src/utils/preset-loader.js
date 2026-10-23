@@ -5,10 +5,21 @@ const styleModules = import.meta.glob('../presets/styles/*.css', { query: '?inli
 const adapterCache = new Map();
 const injectedStyleIds = new Set();
 
+// 课程 ID 与预设标识映射表
+const idToSlugMap = new Map([
+  ['1', 'kaoyan']
+]);
+
+export function registerPresetMapping(id, slug) {
+  if (id && slug) idToSlugMap.set(String(id).trim(), String(slug).trim().toLowerCase());
+}
+
 // 归一化课程标识
 export function sanitizeSlug(slug) {
-  if (typeof slug !== 'string') return '';
-  return slug.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
+  if (slug === undefined || slug === null) return '';
+  const str = String(slug).trim().toLowerCase();
+  if (idToSlugMap.has(str)) return idToSlugMap.get(str);
+  return str.replace(/[^a-z0-9_-]/g, '');
 }
 
 // 匹配并获取课程适配器

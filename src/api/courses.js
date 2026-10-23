@@ -1,9 +1,31 @@
 import { request } from './client.js';
-import { transformCourseCategories, adaptDocWithPreset } from '../utils/index.js';
+import { transformCourseCategories, adaptDocWithPreset, registerPresetMapping } from '../utils/index.js';
 
-// 内存单例缓存
+// 内存单例缓存与 slug 映射
 const treeCache = new Map();
 const docCache = new Map();
+const slugToIdMap = new Map([
+  ['kaoyan', '1']
+]);
+
+// 规范化课程 id（若传入 slug 则解析为后端所需的数字 ID）
+export async function resolveCourseId(idOrSlug) {
+  if (!idOrSlug) return '1';
+  const str = String(idOrSlug).trim();
+  if (/^\d+$/.test(str)) return str;
+  if (slugToIdMap.has(str)) return slugToIdMap.get(str);
+  try {
+    const list = await request('/api/courses');
+    if (Array.isArray(list)) {
+      for (const c of list) {
+        if (c.slug) slugToIdMap.set(c.slug, String(c.id));
+      }
+    }
+    return slugToIdMap.get(str) || '1';
+  } catch {
+    return '1';
+  }
+}
 
 // 获取分类与课程列表
 export async function getCourseCategories() {
@@ -45,16 +67,23 @@ export async function getCourseCategories() {
 // 获取课程目录树
 export async function fetchCourseTree(id) {
   if (!id) throw new Error('缺少课程 id');
-  const key = String(id);
+  const resolvedId = await resolveCourseId(id);
+  const key = String(resolvedId);
   if (treeCache.has(key)) return treeCache.get(key);
 
   const tree = await request(`/api/courses/${encodeURIComponent(key)}/tree`);
   treeCache.set(key, tree);
+  if (tree.slug) {
+    slugToIdMap.set(tree.slug, String(tree.id));
+    if (typeof registerPresetMapping === 'function') {
+      registerPresetMapping(tree.id, tree.slug);
+    }
+  }
   return tree;
 }
 
 // 转换章节数据模型
-function toChapters(tree) {
+export function toChapters(tree) {
   const list = Array.isArray(tree?.chapters) ? tree.chapters : [];
   const byId = new Map(list.map((c) => [c.id, c]));
 
@@ -100,14 +129,14 @@ function toChapters(tree) {
 }
 
 // 获取课程数据包
-export async function fetchCourseBundle(slug = 'kaoyan') {
-  const tree = await fetchCourseTree(slug);
+export async function fetchCourseBundle(id = '1') {
+  const tree = await fetchCourseTree(id);
   const chapters = toChapters(tree);
 
   return {
     slug: tree.slug,
     course: {
-      id: tree.slug,
+      id: String(tree.id),
       slug: tree.slug,
       dbId: tree.id,
       title: tree.title,
@@ -125,31 +154,31 @@ export async function fetchCourseBundle(slug = 'kaoyan') {
 }
 
 // 获取课程详情
-export async function getCourseById(slug) {
+export async function getCourseById(id = '1') {
   try {
-    const bundle = await fetchCourseBundle(slug);
+    const bundle = await fetchCourseBundle(id);
     return bundle.course;
   } catch (error) {
     if (error?.status === 404) return null;
-    console.error(`[API] 加载课程 ${slug} 失败:`, error);
+    console.error(`[API] 加载课程 ${id} 失败:`, error);
     return null;
   }
 }
 
 // 获取课程章节树
-export async function getCourseChapters(slug = 'kaoyan') {
+export async function getCourseChapters(id = '1') {
   try {
-    const bundle = await fetchCourseBundle(slug);
+    const bundle = await fetchCourseBundle(id);
     return bundle.chapters;
   } catch (error) {
-    console.error(`[API] 加载课程 ${slug} 目录失败:`, error);
+    console.error(`[API] 加载课程 ${id} 目录失败:`, error);
     return [];
   }
 }
 
 // 获取缓存的章节树
-export function getCachedCourseChapters(slug = 'kaoyan') {
-  const key = String(slug);
+export function getCachedCourseChapters(id = '1') {
+  const key = String(id);
   if (treeCache.has(key)) return toChapters(treeCache.get(key));
   fetchCourseBundle(key);
   return [];
@@ -194,9 +223,12 @@ function withOutlines(doc) {
 }
 
 // 获取小节正文与大纲模型
-export async function getCourseSectionContent(slug, sectionId) {
+export async function getCourseSectionContent(courseKey, sectionId) {
   const data = await getCourseSectionDoc(sectionId);
   const rawDoc = data.doc ?? { type: 'doc', children: [] };
+  const keyStr = String(courseKey || '');
+  const cachedTree = treeCache.get(keyStr);
+  const slug = cachedTree?.slug || (keyStr === '1' ? 'kaoyan' : keyStr);
   const doc = await adaptDocWithPreset(rawDoc, slug);
 
   return {
