@@ -282,20 +282,20 @@ const scrollToOutline = (id) => {
       <!-- 讲义核心正文容器 -->
       <div class="reading-content-wrap">
         <article class="markdown-article">
-          <!-- 讲义大标题 -->
+          <!-- 讲义大标题与元信息 -->
           <header class="doc-header">
-            <div class="doc-header-meta">
-              <span class="doc-kicker font-mono">
-                {{ currentSection.chapterTag }} · {{ currentSection.chapterTitle }}
-              </span>
-              <span v-if="lastModifiedText" class="doc-last-modified font-mono">
-                上次修改：{{ lastModifiedText }}
-              </span>
+            <div class="doc-kicker font-mono">
+              <span v-if="currentSection.chapterTag" class="doc-kicker-tag">{{ currentSection.chapterTag }}</span>
+              <span v-if="currentSection.chapterTag && currentSection.chapterTitle" class="doc-kicker-sep">/</span>
+              <span v-if="currentSection.chapterTitle" class="doc-kicker-title">{{ currentSection.chapterTitle }}</span>
             </div>
             <h1 class="doc-main-title">{{ currentSection.title }}</h1>
             <p v-if="currentContent.lead || currentSection.desc" class="doc-lead">
               {{ currentContent.lead || currentSection.desc }}
             </p>
+            <div v-if="lastModifiedText" class="doc-section-meta font-mono">
+              <span class="doc-last-modified">上次修改：{{ lastModifiedText }}</span>
+            </div>
           </header>
 
           <!-- 讲义正文 -->
@@ -437,18 +437,40 @@ const scrollToOutline = (id) => {
   padding-bottom: 24px;
 }
 
-.doc-header-meta {
-  display: flex;
+.doc-kicker {
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
+  gap: 8px;
+  font-size: var(--font-size-smaller);
+  line-height: 1.4;
 }
 
-.doc-kicker {
-  font-size: var(--font-size-smallest);
+.doc-kicker-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background-color: var(--accent-muted);
   color: var(--accent-primary);
+  font-weight: var(--font-weight-medium);
   letter-spacing: 0.5px;
+}
+
+.doc-kicker-sep {
+  color: var(--border-subtle);
+  font-size: var(--font-size-smallest);
+  user-select: none;
+}
+
+.doc-kicker-title {
+  color: var(--text-secondary);
+  letter-spacing: 0.2px;
+}
+
+.doc-section-meta {
+  display: flex;
+  align-items: center;
+  margin-top: 4px;
 }
 
 .doc-last-modified {
