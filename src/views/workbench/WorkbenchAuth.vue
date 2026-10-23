@@ -6,7 +6,6 @@ import { setAuth } from '../../utils/auth.js';
 import { notify } from '../../components/MNotice.vue';
 import MInput from '../../components/MInput.vue';
 import MButton from '../../components/MButton.vue';
-import MTag from '../../components/MTag.vue';
 
 // 声明认证成功回调事件
 const emit = defineEmits(['success']);
@@ -145,9 +144,6 @@ const handleRegister = async () => {
     <div class="auth-card" :style="{ height: cardHeight }">
       <div ref="contentRef" class="auth-card-inner">
         <div class="auth-head">
-          <div class="auth-badge-row">
-            <MTag variant="purple" size="sm">WORKBENCH AUTH</MTag>
-          </div>
           <h2 class="auth-title">讲义工作台</h2>
           <p class="auth-desc">请登录以进入数学讲义编撰与排版系统</p>
         </div>
@@ -282,10 +278,6 @@ const handleRegister = async () => {
 .auth-head {
   margin-bottom: 24px;
   text-align: center;
-}
-
-.auth-badge-row {
-  margin-bottom: 10px;
 }
 
 .auth-title {
