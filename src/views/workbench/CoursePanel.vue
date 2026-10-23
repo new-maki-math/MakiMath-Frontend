@@ -1,12 +1,11 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { adminApi, COURSE_STATUSES } from '../../api/admin.js';
-import { useForm, useText } from './useForm.js';
+import { useForm } from './useForm.js';
 import WorkbenchPanel from './WorkbenchPanel.vue';
 import MInput from '../../components/MInput.vue';
 import MSelect from '../../components/MSelect.vue';
 import MTextarea from '../../components/MTextarea.vue';
-import MCodeEditor from '../../components/MCodeEditor.vue';
 import PrereqPicker from './PrereqPicker.vue';
 
 const props = defineProps({
@@ -26,7 +25,6 @@ const { form, fill, dirty, reset, diff, commit } = useForm([
   'status',
   'typst_version'
 ]);
-const preamble = useText('');
 
 const record = ref(null);
 const allCourses = ref([]);
@@ -39,11 +37,11 @@ const prereqsDirty = computed(
   () => [...prereqs.value].sort().join(',') !== [...prereqBaseline.value].sort().join(',')
 );
 
-const dirtyAll = computed(() => dirty.value || preamble.dirty.value || prereqsDirty.value);
+const dirtyAll = computed(() => dirty.value || prereqsDirty.value);
 
 const meta = computed(() => {
   if (!record.value) return '';
-  return `${record.value.chapter_count ?? 0} 章 · 宏 ${record.value.preamble_len ?? 0} 字符`;
+  return `${record.value.chapter_count ?? 0} 章`;
 });
 
 const candidates = computed(() =>
@@ -62,7 +60,6 @@ const load = async () => {
     record.value = rec;
     allCourses.value = list;
     fill(rec);
-    preamble.set(rec.preamble ?? '');
     prereqs.value = (rec.prereqs ?? []).map(Number);
     prereqBaseline.value = [...prereqs.value];
   } catch (err) {
@@ -74,7 +71,6 @@ const load = async () => {
 
 const discard = () => {
   reset();
-  preamble.reset();
   prereqs.value = [...prereqBaseline.value];
 };
 
@@ -85,10 +81,6 @@ const save = async () => {
     if (Object.keys(patch).length > 0) {
       record.value = await adminApi.courses.update(props.node.id, patch);
       commit();
-    }
-    if (preamble.dirty.value) {
-      await adminApi.courses.setPreamble(props.node.id, preamble.state.text);
-      preamble.commit();
     }
     if (prereqsDirty.value) {
       await adminApi.courses.setPrereqs(props.node.id, prereqs.value);
@@ -166,19 +158,6 @@ watch(() => props.node.id, load, { immediate: true });
             />
           </div>
         </div>
-      </div>
-
-      <div class="adm-block">
-        <div class="adm-block-head">
-          <span class="adm-block-title">课程宏 preamble</span>
-          <span class="adm-block-desc font-mono">编译本课任一 小节 时前置拼接</span>
-        </div>
-        <MCodeEditor
-          v-model="preamble.state.text"
-          height="300px"
-          placeholder="#let 定义本课程共用的宏、字体与包引入"
-          @save="save"
-        />
       </div>
 
       <div class="adm-block">

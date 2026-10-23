@@ -80,7 +80,6 @@ function toChapters(tree) {
       tag: ch.tag || '',
       title: ch.title,
       summary: ch.summary || '',
-      hasIntro: Boolean(ch.has_intro),
       sections: (ch.sections ?? []).map((s) => ({
         id: String(s.id),
         slug: s.slug ? String(s.slug) : '',

@@ -6,11 +6,10 @@ import {
   titleFromFilename,
   nextSectionSlugs
 } from '../../api/admin.js';
-import { useForm, useText } from './useForm.js';
+import { useForm } from './useForm.js';
 import WorkbenchPanel from './WorkbenchPanel.vue';
 import MInput from '../../components/MInput.vue';
 import MTextarea from '../../components/MTextarea.vue';
-import MCodeEditor from '../../components/MCodeEditor.vue';
 import MModal from '../../components/MModal.vue';
 import MButton from '../../components/MButton.vue';
 import MSelect from '../../components/MSelect.vue';
@@ -27,7 +26,6 @@ const props = defineProps({
 const emit = defineEmits(['changed', 'error', 'saved', 'navigate']);
 
 const { form, fill, dirty, reset, diff, commit } = useForm(['slug', 'tag', 'title', 'summary']);
-const intro = useText('');
 
 const record = ref(null);
 const sections = ref([]);
@@ -191,7 +189,7 @@ const importOpen = ref(false);
 const importing = ref(false);
 const importRows = ref([]);
 
-const dirtyAll = computed(() => dirty.value || intro.dirty.value);
+const dirtyAll = computed(() => dirty.value);
 const meta = computed(() => (record.value ? `${sections.value.length} 个小节` : ''));
 
 const load = async () => {
@@ -205,7 +203,6 @@ const load = async () => {
     record.value = rec;
     sections.value = list;
     fill(rec);
-    intro.set(rec.intro_source ?? '');
   } catch (err) {
     emit('error', err);
   } finally {
@@ -215,7 +212,6 @@ const load = async () => {
 
 const discard = () => {
   reset();
-  intro.reset();
 };
 
 const save = async () => {
@@ -225,10 +221,6 @@ const save = async () => {
     if (Object.keys(patch).length > 0) {
       record.value = await adminApi.chapters.update(props.node.id, patch);
       commit();
-    }
-    if (intro.dirty.value) {
-      await adminApi.chapters.setIntro(props.node.id, intro.state.text);
-      intro.commit();
     }
     emit('saved', '章节已保存');
     emit('changed', {
@@ -375,19 +367,6 @@ watch(() => props.node.id, load, { immediate: true });
             />
           </div>
         </div>
-      </div>
-
-      <div class="adm-block">
-        <div class="adm-block-head">
-          <span class="adm-block-title">章导读 intro_source</span>
-          <span class="adm-block-desc font-mono">Typst 源文</span>
-        </div>
-        <MCodeEditor
-          v-model="intro.state.text"
-          height="200px"
-          placeholder="本章导读内容"
-          @save="save"
-        />
       </div>
 
       <div class="adm-block">
