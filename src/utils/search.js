@@ -1,16 +1,32 @@
 import { ref, computed, watch, nextTick } from 'vue';
 import { searchLectures } from '../api';
 
-// 计算课程名称对应的标签色彩
-export function getCourseTagVariant(courseName = '') {
-  const variants = ['blue', 'teal', 'purple', 'cyan', 'green', 'amber'];
-  if (!courseName) return 'blue';
+// 明亮鲜艳的标签色彩变体（排除 gray、muted 等暗色）
+const BRIGHT_TAG_VARIANTS = [
+  'green',  // 翡翠绿
+  'lime',   // 鲜柠绿
+  'orange', // 亮橙
+  'red',    // 亮红
+  'cyan',   // 亮青
+  'blue',   // 亮蓝
+  'teal'   // 青绿
+];
+
+// 内容哈希映射到固定的明亮色彩变体
+export function getBrightTagVariant(text = '') {
+  const str = String(text ?? '').trim();
+  if (!str) return 'cyan';
   let hash = 0;
-  for (let i = 0; i < courseName.length; i++) {
-    hash = (hash << 5) - hash + courseName.charCodeAt(i);
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
     hash |= 0;
   }
-  return variants[Math.abs(hash) % variants.length];
+  return BRIGHT_TAG_VARIANTS[Math.abs(hash) % BRIGHT_TAG_VARIANTS.length];
+}
+
+// 计算课程名称对应的标签变体
+export function getCourseTagVariant(courseName = '') {
+  return getBrightTagVariant(courseName);
 }
 
 // 解析小节附加标签列表
@@ -25,14 +41,7 @@ export function getSectionTags(tag) {
 
 // 计算小节标签色彩变体
 export function getSectionTagVariant(tag = '') {
-  const t = String(tag).trim().toUpperCase();
-  if (t.includes('THM') || t.includes('定理')) return 'purple';
-  if (t.includes('DEF') || t.includes('定义')) return 'cyan';
-  if (t.includes('AXIOM') || t.includes('公理')) return 'amber';
-  if (t.includes('PROP') || t.includes('性质') || t.includes('推论')) return 'green';
-  if (t.includes('LEMMA') || t.includes('引理')) return 'teal';
-  if (t.includes('EX') || t.includes('例题') || t.includes('练习') || t.includes('应用')) return 'lime';
-  return 'muted';
+  return getBrightTagVariant(tag);
 }
 
 // 全局讲义搜索管理可复用函数

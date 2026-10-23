@@ -32,7 +32,8 @@ import {
   SunLight,
   HalfMoon,
   LogOut,
-  UserCircle
+  UserCircle,
+  Search
 } from '@iconoir/vue';
 
 const route = useRoute();
@@ -354,7 +355,7 @@ const handleRefreshDoc = () => {
       </div>
 
       <div class="topbar-center" :class="{ 'is-hidden-on-start': isStartRoute }">
-        <SearchBar />
+        <SearchBar variant="topbar" />
       </div>
 
       <div class="topbar-right">
@@ -673,15 +674,19 @@ const handleRefreshDoc = () => {
 }
 
 /* 顶栏搜索栏 */
+/* 顶栏搜索栏淡入淡出 */
 .topbar-center {
   flex: 1;
   max-width: 500px;
   margin: 0 20px;
-  transition: opacity 220ms ease;
+  transition: opacity 240ms cubic-bezier(0.16, 1, 0.3, 1), transform 240ms cubic-bezier(0.16, 1, 0.3, 1);
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .topbar-center.is-hidden-on-start {
   opacity: 0;
+  transform: translateY(-4px);
   pointer-events: none;
 }
 
