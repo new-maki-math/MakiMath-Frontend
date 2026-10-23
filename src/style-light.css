@@ -12,6 +12,9 @@
   --accent-hover: #0854c3;
   --accent-active: #07449c;
   --accent-muted: rgba(9, 105, 218, 0.10);
+  --tree-selected-bg: #0060c0;
+  --tree-selected-hover-bg: #006cd9;
+  --tree-selected-fg: #ffffff;
 
   --btn-secondary-bg: #ffffff;
   --btn-secondary-border: #d0d7de;

@@ -180,8 +180,26 @@ const canMoveDown = computed(() => props.index < props.siblingCount - 1);
 }
 
 .node-row.is-selected {
-  background-color: var(--accent-muted);
-  color: var(--text-primary);
+  background-color: var(--tree-selected-bg, #094771);
+  color: var(--tree-selected-fg, #ffffff);
+}
+
+.node-row.is-selected:hover {
+  background-color: var(--tree-selected-hover-bg, #0e639c);
+  color: var(--tree-selected-fg, #ffffff);
+}
+
+.node-row.is-selected .node-caret {
+  color: var(--tree-selected-fg, #ffffff);
+}
+
+.node-row.is-selected .node-label {
+  color: var(--tree-selected-fg, #ffffff);
+  font-weight: var(--font-weight-medium);
+}
+
+.node-row.is-selected .node-flag {
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .node-caret {
