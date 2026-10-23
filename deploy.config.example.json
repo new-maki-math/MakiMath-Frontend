@@ -1,0 +1,10 @@
+{
+  "host": "server-ip",
+  "port": 22,
+  "username": "username",
+  "password": "password",
+  "remoteBaseDir": "/var/www/maki-math",
+  "domain": "example.com",
+  "backendPort": 3000,
+  "email": "example@example.com"
+}

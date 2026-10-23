@@ -24,6 +24,7 @@ docs/
 .env.local
 .env.*.local
 !.env.example
+deploy.config.json
 
 # Editor directories and files
 .vscode/

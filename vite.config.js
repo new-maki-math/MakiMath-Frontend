@@ -11,10 +11,6 @@ export default defineConfig({
       '/api': {
         target: API_TARGET,
         changeOrigin: true
-      },
-      '^/c/': {
-        target: 'https://maki-math.com',
-        changeOrigin: true
       }
     }
   }
