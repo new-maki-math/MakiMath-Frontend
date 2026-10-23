@@ -71,13 +71,10 @@ const router = createRouter({
   routes
 });
 
-// 平台管理权限守卫：仅登录且为超级管理员可访问
+// 路由守卫加载认证状态
 router.beforeEach(async (to, from, next) => {
   if (to.name === 'platform' || to.path === '/platform') {
     await initAuth();
-    if (!isSuperAdmin.value) {
-      return next({ path: '/workbench' });
-    }
   }
   next();
 });
