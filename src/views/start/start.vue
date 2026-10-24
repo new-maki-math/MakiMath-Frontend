@@ -72,7 +72,7 @@ onMounted(() => {
           结构化数学讲义与知识拓扑平台
         </h1>
         <p class="start-desc">
-          毫秒级 Typst 公式排版 · 前置定理依赖图谱 · 沉浸式 IDE 极客视界
+          Typst 实时排版 · 知识依赖可视化 · 流畅细腻的交互体验
         </p>
       </header>
 
