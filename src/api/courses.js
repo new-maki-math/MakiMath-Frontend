@@ -4,11 +4,10 @@ import { transformCourseCategories, adaptDocWithPreset, registerPresetMapping } 
 // 内存单例缓存与 slug 映射
 const treeCache = new Map();
 const docCache = new Map();
-const slugToIdMap = new Map([
-  ['kaoyan', '1']
-]);
+// slug -> 数字 id 的动态映射表；不要硬编码，课程 id 由数据库自增决定
+const slugToIdMap = new Map();
 
-// 规范化课程 id（若传入 slug 则解析为后端所需的数字 ID）
+// 规范化课程 id 传入 slug 则解析为后端数字 ID
 export async function resolveCourseId(idOrSlug) {
   if (!idOrSlug) return '1';
   const str = String(idOrSlug).trim();

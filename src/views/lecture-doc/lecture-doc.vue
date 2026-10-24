@@ -107,9 +107,9 @@ watch(
     isSelectionMode.value = false;
     isLoading.value = true;
     try {
-      // 通过统一 /api/courses/:id/tree 接口加载章节目录树
-      const cid = courseId === 'kaoyan' ? '1' : (courseId || '1');
-      const tree = await fetchCourseTree(cid);
+      // 通过统一课程目录树接口加载数据
+      // 内部通过解析器将别名解析为对应数字编号
+      const tree = await fetchCourseTree(courseId || '1');
       const chaps = toChapters(tree);
       courseChapters.value = chaps;
 
@@ -120,7 +120,8 @@ watch(
         currentContent.value = { id: '', title: '暂无讲义', lead: '', outlines: [], doc: null };
         return;
       }
-      currentContent.value = await getCourseSectionContent(tree.slug || tree.id, secId);
+      // 使用数字标识以保证缓存与预设映射命中
+      currentContent.value = await getCourseSectionContent(tree.id, secId);
 
       // 切换时重置滚动位置
       if (readingViewportRef.value) {
@@ -228,7 +229,7 @@ const handleSelectSection = (section) => {
   router.push({
     name: 'lecture-doc',
     params: {
-      courseId: currentCourseId.value === 'kaoyan' ? '1' : (currentCourseId.value || '1'),
+      courseId: currentCourseId.value || '1',
       sectionId: targetId
     }
   });
