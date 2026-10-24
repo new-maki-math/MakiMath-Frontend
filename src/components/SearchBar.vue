@@ -128,7 +128,9 @@ const handleSelect = (item) => {
   inputRef.value?.blur();
   emit('select', item);
 
-  const targetPath = item.path || '/course/1';
+  // 后端已返回 /course/:courseId/doc/:sectionId；缺失时按 courseId 兜底，避免跳错课程
+  const targetPath = item.path
+    || (item.courseId ? `/course/${item.courseId}/doc/${item.id}` : '/start');
   emit('navigate', targetPath);
   router.push(targetPath);
 };
