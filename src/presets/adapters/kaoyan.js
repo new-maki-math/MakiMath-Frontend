@@ -23,6 +23,86 @@ function extractColorValue(raw) {
   return m ? (m[1] || m[2]) : 'gray';
 }
 
+// 解析字符串中的内联公式 $...$ 为 text 与 math 节点数组
+function parseTextWithMath(text) {
+  if (typeof text !== 'string' || !text) return [];
+  if (!text.includes('$')) return [{ type: 'text', value: text }];
+
+  const nodes = [];
+  let i = 0;
+  let buf = '';
+
+  while (i < text.length) {
+    if (text[i] === '\\' && i + 1 < text.length) {
+      if (text[i + 1] === '$') {
+        buf += '$';
+        i += 2;
+        continue;
+      }
+      buf += text[i] + text[i + 1];
+      i += 2;
+      continue;
+    }
+
+    if (text[i] === '$') {
+      let end = -1;
+      for (let j = i + 1; j < text.length; j++) {
+        if (text[j] === '\\') { j++; continue; }
+        if (text[j] === '$') { end = j; break; }
+      }
+
+      if (end !== -1) {
+        if (buf) {
+          nodes.push({ type: 'text', value: buf });
+          buf = '';
+        }
+        const inner = text.slice(i + 1, end);
+        nodes.push({
+          type: 'math',
+          display: false,
+          typst: inner.trim()
+        });
+        i = end + 1;
+        continue;
+      }
+    }
+
+    buf += text[i];
+    i++;
+  }
+
+  if (buf) {
+    nodes.push({ type: 'text', value: buf });
+  }
+
+  return nodes;
+}
+
+// 递归规范化节点流中的内联公式（将 text 节点中残留的 $...$ 拆分成 math 节点）
+function normalizeMathInNodes(nodes) {
+  if (!nodes) return [];
+  const list = Array.isArray(nodes) ? nodes : [nodes];
+  const result = [];
+
+  for (const node of list) {
+    if (!node) continue;
+    if (typeof node === 'string') {
+      result.push(...parseTextWithMath(node));
+    } else if (node.type === 'text' && typeof node.value === 'string' && node.value.includes('$')) {
+      result.push(...parseTextWithMath(node.value));
+    } else if (node.children && Array.isArray(node.children)) {
+      result.push({
+        ...node,
+        children: normalizeMathInNodes(node.children)
+      });
+    } else {
+      result.push(node);
+    }
+  }
+
+  return result;
+}
+
 // 递归提取纯文本
 function extractPlainText(nodes) {
   if (!nodes) return '';
@@ -107,14 +187,16 @@ function transformKaoyanNode(node) {
     let content = [];
 
     if (bodies.length >= 2) {
-      titleChildren = bodies[0].map(transformKaoyanNode).filter(Boolean);
+      titleChildren = normalizeMathInNodes(bodies[0].map(transformKaoyanNode).filter(Boolean));
       title = extractPlainText(titleChildren);
       content = bodies[1];
     } else if (bodies.length === 1) {
       content = bodies[0];
       if (title && typeof title === 'object') {
-        titleChildren = (Array.isArray(title) ? title : [title]).map(transformKaoyanNode).filter(Boolean);
+        titleChildren = normalizeMathInNodes((Array.isArray(title) ? title : [title]).map(transformKaoyanNode).filter(Boolean));
         title = extractPlainText(titleChildren);
+      } else if (typeof title === 'string' && title.includes('$')) {
+        titleChildren = parseTextWithMath(title);
       }
     }
 
@@ -131,8 +213,10 @@ function transformKaoyanNode(node) {
   // 真题引证卡
   if (name === 'zt') {
     const rawSource = extractPlainText(positional[0] ?? named.source ?? '');
-    const rawTitle = positional[1] ?? named.title ?? (bodies[0] || '');
+    const rawTitle = positional[1] ?? named.title ?? '';
     const rawId = extractPlainText(positional[2] ?? named.id ?? '');
+    const rawDiff = extractPlainText(named.diff ?? positional[3] ?? '');
+    const rawBodies = bodies.length > 0 ? (bodies.length === 1 ? bodies[0] : bodies.flat()) : null;
 
     const children = [];
 
@@ -145,7 +229,14 @@ function transformKaoyanNode(node) {
         type: 'container',
         tag: 'span',
         class: 'td-zt-source',
-        children: [{ type: 'text', value: rawSource }]
+        children: normalizeMathInNodes(parseTextWithMath(rawSource))
+      });
+    }
+    if (rawDiff) {
+      headChildren.push({
+        type: 'tag',
+        color: 'orange',
+        text: `难度 ${rawDiff}`
       });
     }
     children.push({
@@ -155,28 +246,31 @@ function transformKaoyanNode(node) {
       children: headChildren
     });
 
-    // 分隔符
-    children.push({
-      type: 'container',
-      tag: 'span',
-      class: 'td-zt-sep font-mono',
-      children: [{ type: 'text', value: '//' }]
-    });
-
     // 考查要旨描述
     let titleChildren = [];
-    if (Array.isArray(rawTitle)) {
-      titleChildren = rawTitle.map(transformKaoyanNode).filter(Boolean);
-    } else if (rawTitle && typeof rawTitle === 'object') {
-      titleChildren = [transformKaoyanNode(rawTitle)].filter(Boolean);
-    } else {
-      const text = String(rawTitle || '').trim();
-      if (text) {
-        titleChildren = [{ type: 'text', value: text }];
+    if (rawTitle) {
+      if (Array.isArray(rawTitle)) {
+        titleChildren = rawTitle.map(transformKaoyanNode).filter(Boolean);
+      } else if (rawTitle && typeof rawTitle === 'object') {
+        titleChildren = [transformKaoyanNode(rawTitle)].filter(Boolean);
+      } else {
+        const text = String(rawTitle).trim();
+        if (text) {
+          titleChildren = parseTextWithMath(text);
+        }
       }
+      titleChildren = normalizeMathInNodes(titleChildren);
     }
 
     if (titleChildren.length > 0) {
+      // 分隔符
+      children.push({
+        type: 'container',
+        tag: 'span',
+        class: 'td-zt-sep font-mono',
+        children: [{ type: 'text', value: '//' }]
+      });
+
       children.push({
         type: 'container',
         tag: 'div',
@@ -194,6 +288,21 @@ function transformKaoyanNode(node) {
         class: 'td-zt-id font-mono',
         children: [{ type: 'text', value: formattedId }]
       });
+    }
+
+    // 题干主体区域（含段落与公式）
+    if (rawBodies && rawBodies.length > 0) {
+      const bodyChildren = (Array.isArray(rawBodies) ? rawBodies : [rawBodies])
+        .map(transformKaoyanNode)
+        .filter(Boolean);
+      if (bodyChildren.length > 0) {
+        children.push({
+          type: 'container',
+          tag: 'div',
+          class: 'td-zt-body',
+          children: normalizeMathInNodes(bodyChildren)
+        });
+      }
     }
 
     return {
