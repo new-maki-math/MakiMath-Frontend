@@ -9,9 +9,8 @@ import {
 
 const env = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env : (typeof process !== 'undefined' ? process.env : {});
 
-const API_BASE = env.VITE_API_BASE !== undefined
-  ? env.VITE_API_BASE
-  : (typeof window !== 'undefined' && window.location.hostname === 'localhost' ? '' : 'https://maki-math.com');
+// API 基地址
+const API_BASE = env.VITE_API_BASE ?? '';
 
 // 请求拦截处理器
 export async function requestInterceptor(config) {
