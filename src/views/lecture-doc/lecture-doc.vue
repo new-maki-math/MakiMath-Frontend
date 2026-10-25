@@ -7,6 +7,7 @@ import DocFooterNav from './DocFooterNav.vue';
 import { fetchCourseTree, toChapters, getCourseSectionContent } from '../../api';
 import { List } from '@iconoir/vue';
 import MSelectionToolbar from '../../components/MSelectionToolbar.vue';
+import LectureViewerEmbed from '../../components/LectureViewerEmbed.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -258,27 +259,20 @@ const scrollToOutline = (id) => {
       <span>目录</span>
     </button>
 
-    <!-- 遮罩组件 -->
-    <MBackdrop
+    <!-- 左侧浮动章节目录抽屉 -->
+    <MDrawer
       :open="isChapterDrawerOpen"
+      placement="left"
+      title="CHAPTERS // 目录"
+      width="300px"
       @close="closeDrawer"
-    />
-
-    <!-- 左侧浮动抽屉 -->
-    <MCollapse
-      horizontal
-      drawer
-      :open="isChapterDrawerOpen"
-      class="chapter-drawer-wrap"
-      aria-label="课程章节目录导航"
     >
       <ChapterNav
         :chapters="courseChapters"
         :current-section-id="currentSection.id"
-        @toggle-collapse="closeDrawer"
         @select-section="handleSelectSection"
       />
-    </MCollapse>
+    </MDrawer>
 
     <!-- 讲义正文阅读视口 -->
     <main ref="readingViewportRef" class="reading-viewport">
@@ -300,6 +294,13 @@ const scrollToOutline = (id) => {
               <span class="doc-last-modified">上次修改：{{ lastModifiedText }}</span>
             </div>
           </header>
+
+          <!-- 配套交互动画（若存在且已开启） -->
+          <LectureViewerEmbed
+            v-if="currentContent.animation && currentContent.animation.enabled"
+            :animation="currentContent.animation"
+            :title="currentContent.animation.title || currentSection.title"
+          />
 
           <!-- 讲义正文 -->
           <TypstDoc
