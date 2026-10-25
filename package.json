@@ -21,6 +21,7 @@
     "vue-router": "^4.6.4"
   },
   "devDependencies": {
+    "@vitejs/plugin-basic-ssl": "^2.3.0",
     "@vitejs/plugin-vue": "^6.0.8",
     "node-ssh": "^13.2.1",
     "vite": "^8.3.0"

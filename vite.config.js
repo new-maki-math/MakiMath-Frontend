@@ -1,4 +1,5 @@
 import vue from '@vitejs/plugin-vue'
+import basicSsl from '@vitejs/plugin-basic-ssl'
 import { defineConfig } from 'vite'
 
 // 本地开发代理目标
@@ -22,6 +23,7 @@ function katexWoff2Plugin() {
 export default defineConfig({
   plugins: [
     vue(),
+    basicSsl(),
     katexWoff2Plugin()
   ],
   build: {
