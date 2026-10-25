@@ -10,6 +10,8 @@ import MModal from '../../components/MModal.vue';
 import MButton from '../../components/MButton.vue';
 import PrereqPicker from './PrereqPicker.vue';
 import { Upload, Download } from '@iconoir/vue';
+import LectureViewerEmbed from '../../components/LectureViewerEmbed.vue';
+import MTabs from '../../components/MTabs.vue';
 
 const props = defineProps({
   node: {
@@ -47,7 +49,39 @@ const prereqsDirty = computed(
   () => [...prereqs.value].sort().join(',') !== [...prereqBaseline.value].sort().join(',')
 );
 
-const dirtyAll = computed(() => dirty.value || source.dirty.value || prereqsDirty.value);
+// 动画表单与基准状态
+const animForm = ref({
+  enabled: false,
+  title: '',
+  cues_str: '[]',
+  parts_str: '[]',
+  steps_str: '[]',
+  scenes_code: ''
+});
+const animBaseline = ref('');
+const activeAnimTab = ref('preview'); // 'preview' | 'scenes' | 'data'
+
+const animDirty = computed(() => {
+  return JSON.stringify(animForm.value) !== animBaseline.value;
+});
+
+const dirtyAll = computed(() => dirty.value || source.dirty.value || prereqsDirty.value || animDirty.value);
+
+// 构造传递给预览组件的数据模型
+const animPreviewData = computed(() => {
+  let cues = [], parts = [], steps = [];
+  try { cues = JSON.parse(animForm.value.cues_str || '[]'); } catch (e) {}
+  try { parts = JSON.parse(animForm.value.parts_str || '[]'); } catch (e) {}
+  try { steps = JSON.parse(animForm.value.steps_str || '[]'); } catch (e) {}
+  return {
+    title: animForm.value.title || form.title || '动画预览',
+    cues,
+    parts,
+    steps,
+    scenes_code: animForm.value.scenes_code,
+    enabled: animForm.value.enabled
+  };
+});
 
 const meta = computed(() => {
   if (!record.value) return '';
@@ -91,6 +125,29 @@ const load = async () => {
       }
     }
     candidates.value = list;
+
+    // 加载动画数据
+    const anim = await workbenchApi.sections.getAnimation(props.node.id);
+    if (anim) {
+      animForm.value = {
+        enabled: Boolean(anim.enabled),
+        title: anim.title || '',
+        cues_str: JSON.stringify(anim.cues || [], null, 2),
+        parts_str: JSON.stringify(anim.parts || [], null, 2),
+        steps_str: JSON.stringify(anim.steps || [], null, 2),
+        scenes_code: anim.scenes_code || ''
+      };
+    } else {
+      animForm.value = {
+        enabled: false,
+        title: '',
+        cues_str: '[]',
+        parts_str: '[]',
+        steps_str: '[]',
+        scenes_code: ''
+      };
+    }
+    animBaseline.value = JSON.stringify(animForm.value);
   } catch (err) {
     emit('error', err);
   } finally {
@@ -102,6 +159,9 @@ const discard = () => {
   reset();
   source.reset();
   prereqs.value = [...prereqBaseline.value];
+  if (animBaseline.value) {
+    animForm.value = JSON.parse(animBaseline.value);
+  }
 };
 
 const save = async () => {
@@ -122,6 +182,34 @@ const save = async () => {
     if (prereqsDirty.value) {
       await workbenchApi.sections.setPrereqs(props.node.id, prereqs.value);
       prereqBaseline.value = [...prereqs.value];
+    }
+    if (animDirty.value) {
+      let parsedCues = [], parsedParts = [], parsedSteps = [];
+      try {
+        parsedCues = JSON.parse(animForm.value.cues_str || '[]');
+      } catch (e) {
+        throw new Error('字幕 Cues 不是合法的 JSON 格式');
+      }
+      try {
+        parsedParts = JSON.parse(animForm.value.parts_str || '[]');
+      } catch (e) {
+        throw new Error('大纲 Parts 不是合法的 JSON 格式');
+      }
+      try {
+        parsedSteps = JSON.parse(animForm.value.steps_str || '[]');
+      } catch (e) {
+        throw new Error('步骤 Steps 不是合法的 JSON 格式');
+      }
+
+      await workbenchApi.sections.setAnimation(props.node.id, {
+        enabled: animForm.value.enabled,
+        title: animForm.value.title || form.title || '',
+        cues: parsedCues,
+        parts: parsedParts,
+        steps: parsedSteps,
+        scenes_code: animForm.value.scenes_code || ''
+      });
+      animBaseline.value = JSON.stringify(animForm.value);
     }
     emit('saved', '小节已保存');
     emit('changed', { scope: 'section', courseId, sectionId: props.node.id, label: form.title });
@@ -280,6 +368,106 @@ watch(() => props.node.id, load, { immediate: true });
           placeholder="按小节标题筛选"
         />
       </div>
+
+      <div class="wb-block">
+        <div class="wb-block-head">
+          <div class="anim-head-left">
+            <span class="wb-block-title">配套手绘交互动画</span>
+            <label class="anim-toggle">
+              <input
+                v-model="animForm.enabled"
+                type="checkbox"
+              />
+              <span class="anim-toggle-text font-mono">
+                {{ animForm.enabled ? '已开启交互动画' : '未开启（点击开启）' }}
+              </span>
+            </label>
+          </div>
+          <div class="anim-head-actions">
+            <span class="wb-block-desc font-mono">在小节页面顶部展示手绘白板步骤式动画</span>
+          </div>
+        </div>
+
+        <div v-if="animForm.enabled" class="anim-body">
+          <MTabs
+            v-model="activeAnimTab"
+            :tabs="[
+              { label: '实时预览', value: 'preview' },
+              { label: '场景绘制脚本(scenes_code)', value: 'scenes' },
+              { label: '数据配置(cues/steps/parts)', value: 'data' }
+            ]"
+          />
+
+          <!-- Tab 1: 实时预览 -->
+          <div v-if="activeAnimTab === 'preview'" class="anim-tab-pane">
+            <LectureViewerEmbed
+              :active="activeAnimTab === 'preview'"
+              :animation="animPreviewData"
+              :title="animForm.title || form.title || '动画预览'"
+            />
+          </div>
+
+          <!-- Tab 2: scenes_code 脚本编辑器 -->
+          <div v-show="activeAnimTab === 'scenes'" class="anim-tab-pane">
+            <div class="anim-hint font-mono">
+              包含页面场景函数 scene({ id, t0, t1, title, draw(t) { ... } }) 与板书 item 声明。
+            </div>
+            <MCodeEditor
+              v-model="animForm.scenes_code"
+              :show-preview="false"
+              height="50vh"
+              placeholder="// 在此处编写或粘贴 scenes 绘图代码&#10;(function() {&#10;  const { C, CT, INK, pr, lin, show, item, mix, scene } = SK;&#10;  // ...&#10;})();"
+              @save="save"
+            />
+          </div>
+
+          <!-- Tab 3: 数据配置 (cues / steps / parts) -->
+          <div v-show="activeAnimTab === 'data'" class="anim-tab-pane">
+            <div style="margin-bottom: 16px;">
+              <MInput
+                v-model="animForm.title"
+                label="动画自定义标题"
+                :placeholder="form.title || '选填，留空默认显示小节标题'"
+              />
+            </div>
+
+            <div class="anim-json-editors">
+              <div class="anim-json-item">
+                <MCodeEditor
+                  v-model="animForm.parts_str"
+                  label="大纲目录 Parts (JSON 数组)"
+                  height="260px"
+                  :show-preview="false"
+                  placeholder='["极限的定义", "左右极限", "海涅定理"]'
+                  @save="save"
+                />
+              </div>
+
+              <div class="anim-json-item">
+                <MCodeEditor
+                  v-model="animForm.steps_str"
+                  label="交互切步 Steps (JSON 数组)"
+                  height="360px"
+                  :show-preview="false"
+                  placeholder='[&#10;  {&#10;    "id": "l03a_seq",&#10;    "steps": [{ "a": 0, "b": 5.2 }]&#10;  }&#10;]'
+                  @save="save"
+                />
+              </div>
+
+              <div class="anim-json-item">
+                <MCodeEditor
+                  v-model="animForm.cues_str"
+                  label="讲解文稿 Cues (JSON 数组)"
+                  height="460px"
+                  :show-preview="false"
+                  placeholder='[&#10;  [0.0, 3.5, "讲解文字第一句"],&#10;  [3.5, 7.2, "第二句"]&#10;]'
+                  @save="save"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </template>
 
     <MModal
@@ -342,5 +530,62 @@ watch(() => props.node.id, load, { immediate: true });
   white-space: pre-wrap;
   word-break: break-all;
   user-select: text;
+}
+
+.anim-head-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.anim-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.anim-toggle input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent-primary, #007acc);
+  cursor: pointer;
+}
+
+.anim-toggle-text {
+  font-size: var(--font-size-smaller);
+  color: var(--accent-primary, #007acc);
+  font-weight: 500;
+}
+
+.anim-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.anim-body {
+  margin-top: 14px;
+}
+
+.anim-tab-pane {
+  padding-top: 2px;
+}
+
+.anim-hint {
+  font-size: var(--font-size-smaller);
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.anim-json-editors {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.anim-json-item {
+  width: 100%;
 }
 </style>

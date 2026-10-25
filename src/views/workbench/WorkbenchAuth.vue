@@ -6,6 +6,7 @@ import { setAuth } from '../../utils/auth.js';
 import { notify } from '../../components/MNotice.vue';
 import MInput from '../../components/MInput.vue';
 import MButton from '../../components/MButton.vue';
+import MTabs from '../../components/MTabs.vue';
 
 // 声明认证成功回调事件
 const emit = defineEmits(['success']);
@@ -148,28 +149,13 @@ const handleRegister = async () => {
           <p class="auth-desc">请登录以进入数学讲义编撰与排版系统</p>
         </div>
 
-        <div class="auth-tabs">
-          <button
-            type="button"
-            class="auth-tab"
-            :class="{ active: mode === 'login' }"
-            @click="mode = 'login'"
-          >
-            账号登录
-          </button>
-          <button
-            type="button"
-            class="auth-tab"
-            :class="{ active: mode === 'register' }"
-            @click="mode = 'register'"
-          >
-            邀请码注册
-          </button>
-          <div
-            class="auth-tab-line"
-            :style="{ transform: mode === 'login' ? 'translateX(0)' : 'translateX(100%)' }"
-          />
-        </div>
+        <MTabs
+          v-model="mode"
+          :tabs="[
+            { label: '账号登录', value: 'login' },
+            { label: '邀请码注册', value: 'register' }
+          ]"
+        />
 
         <transition name="auth-fade" mode="out-in">
           <form v-if="mode === 'login'" key="login" class="auth-form" @submit.prevent="handleLogin">
@@ -290,48 +276,6 @@ const handleRegister = async () => {
 .auth-desc {
   font-size: var(--font-size-smaller, 13px);
   color: var(--text-secondary);
-}
-
-.auth-tabs {
-  position: relative;
-  display: flex;
-  border-bottom: 1px solid var(--border-subtle);
-  margin-bottom: 24px;
-}
-
-.auth-tab {
-  flex: 1;
-  height: 38px;
-  background: transparent;
-  border: none;
-  font-size: var(--font-size);
-  font-weight: var(--font-weight-regular);
-  color: var(--text-muted);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: color 140ms ease;
-  user-select: none;
-}
-
-.auth-tab:hover:not(.active) {
-  color: var(--text-secondary);
-}
-
-.auth-tab.active {
-  color: var(--text-primary);
-  font-weight: var(--font-weight-medium);
-}
-
-.auth-tab-line {
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  width: 50%;
-  height: 2px;
-  background-color: var(--accent-primary);
-  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .auth-form {
