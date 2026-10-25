@@ -88,7 +88,7 @@ const handleClick = (e) => {
       ]"
       :style="backdropStyle"
       aria-hidden="true"
-      @click="handleClick"
+      @click.stop="handleClick"
     >
       <slot />
     </div>
@@ -102,7 +102,7 @@ const handleClick = (e) => {
     ]"
     :style="backdropStyle"
     aria-hidden="true"
-    @click="handleClick"
+    @click.stop="handleClick"
   >
     <slot />
   </div>

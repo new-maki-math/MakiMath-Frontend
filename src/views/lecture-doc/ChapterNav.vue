@@ -17,6 +17,10 @@ const props = defineProps({
   collapsed: {
     type: Boolean,
     default: false
+  },
+  showHeader: {
+    type: Boolean,
+    default: false
   }
 });
 
@@ -71,8 +75,8 @@ const handleSelect = (section) => {
     aria-label="课程章节目录导航"
   >
     <div class="chapter-nav-inner">
-      <!-- 目录头部与收起触发按钮 -->
-      <div class="nav-header">
+      <!-- 目录头部与收起触发按钮（可选） -->
+      <div v-if="showHeader" class="nav-header">
         <div class="nav-header-title font-mono">
           <span>CHAPTERS // 目录</span>
         </div>

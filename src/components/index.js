@@ -17,6 +17,8 @@ import MUserModal from './MUserModal.vue';
 import MTable from './MTable.vue';
 import MPagination from './MPagination.vue';
 import MNotice, { notify, useNotice } from './MNotice.vue';
+import MLoadingMask from './MLoadingMask.vue';
+import MDrawer from './MDrawer.vue';
 
 export {
   MButton,
@@ -38,6 +40,8 @@ export {
   MTable,
   MPagination,
   MNotice,
+  MLoadingMask,
+  MDrawer,
   notify,
   useNotice
 };
@@ -65,6 +69,9 @@ export default {
     app.component('MTable', MTable);
     app.component('MPagination', MPagination);
     app.component('MNotice', MNotice);
+    app.component('MLoadingMask', MLoadingMask);
+    app.component('MDrawer', MDrawer);
+    app.component('MFloatingPanel', MDrawer);
   }
 };
 
