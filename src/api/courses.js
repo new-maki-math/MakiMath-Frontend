@@ -221,6 +221,33 @@ function withOutlines(doc) {
   return outlines;
 }
 
+// 解析可能为字符串形式的 JSON 字段
+function parseJsonField(val, fallback) {
+  if (typeof val === 'string') {
+    try {
+      return JSON.parse(val);
+    } catch {
+      return fallback;
+    }
+  }
+  return val ?? fallback;
+}
+
+// 规范化动画数据
+function normalizeAnimation(anim) {
+  if (!anim) return null;
+  const enabled = anim.enabled !== undefined ? Boolean(anim.enabled) : true;
+  if (!enabled) return null;
+  return {
+    ...anim,
+    enabled: true,
+    steps: parseJsonField(anim.steps, []),
+    cues: parseJsonField(anim.cues, []),
+    parts: parseJsonField(anim.parts, []),
+    config: parseJsonField(anim.config, { crop: { x: 0, y: 0, w: 1920, h: 960 } })
+  };
+}
+
 // 获取小节正文与大纲模型
 export async function getCourseSectionContent(courseKey, sectionId) {
   const data = await getCourseSectionDoc(sectionId);
@@ -236,7 +263,8 @@ export async function getCourseSectionContent(courseKey, sectionId) {
     lead: data.summary || '',
     updatedAt: data.updated_at || data.created_at || null,
     outlines: withOutlines(doc),
-    doc
+    doc,
+    animation: normalizeAnimation(data.animation)
   };
 }
 

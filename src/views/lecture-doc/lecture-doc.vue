@@ -97,7 +97,8 @@ const currentContent = ref({
   lead: '',
   updatedAt: null,
   outlines: [],
-  doc: null
+  doc: null,
+  animation: null
 });
 const isLoading = ref(true);
 
@@ -118,7 +119,7 @@ watch(
       const secId = sectionId || (chaps[0]?.sections?.[0]?.id ? String(chaps[0].sections[0].id) : '');
       if (!secId) {
         // 无有效小节时设为空状态
-        currentContent.value = { id: '', title: '暂无讲义', lead: '', outlines: [], doc: null };
+        currentContent.value = { id: '', title: '暂无讲义', lead: '', outlines: [], doc: null, animation: null };
         return;
       }
       // 使用数字标识以保证缓存与预设映射命中
@@ -295,9 +296,10 @@ const scrollToOutline = (id) => {
             </div>
           </header>
 
-          <!-- 配套交互动画（若存在且已开启） -->
+          <!-- 配套交互动画（若存在且已开启，位于 Typst Doc 顶部展示） -->
           <LectureViewerEmbed
-            v-if="currentContent.animation && currentContent.animation.enabled"
+            v-if="currentContent.animation"
+            :key="currentContent.animation.id || currentContent.id"
             :animation="currentContent.animation"
             :title="currentContent.animation.title || currentSection.title"
           />
