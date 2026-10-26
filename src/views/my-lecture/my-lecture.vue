@@ -2,130 +2,58 @@
 </script>
 
 <template>
-  <div class="view-container">
-    <div class="view-header">
-      <h1 class="view-title font-mono">MY LECTURES // 我的讲义</h1>
-      <p class="view-desc">已收藏与本地保存的数学推导笔记与讲义片段。</p>
-    </div>
-
-    <div class="notes-list">
-      <div class="note-item">
-        <div class="note-main">
-          <div class="note-badge-wrap">
-            <MTag variant="purple" size="sm">CALCULUS</MTag>
-            <span class="note-time font-mono">UPDATED 10m AGO</span>
-          </div>
-          <h3 class="note-title">多元微积分中的链式法则与 Hessian 矩阵定号判别</h3>
-          <p class="note-summary">
-            整理 Taylor 二阶展式、对称矩阵特征值与临界点极值充分条件的推导过程。
-          </p>
-        </div>
-        <div class="note-actions">
-          <MButton variant="ghost" size="sm" :mono="true">EDIT</MButton>
-          <MButton variant="primary" size="sm" :mono="true">EXPORT PDF</MButton>
-        </div>
-      </div>
-
-      <div class="note-item">
-        <div class="note-main">
-          <div class="note-badge-wrap">
-            <MTag variant="green" size="sm">TOPOLOGY</MTag>
-            <span class="note-time font-mono">UPDATED 2h AGO</span>
-          </div>
-          <h3 class="note-title">紧致度量空间与 Lebesgue 数引理</h3>
-          <p class="note-summary">
-            开覆盖有限子覆盖公理在欧几里得子集上的有界闭等价性证明备忘。
-          </p>
-        </div>
-        <div class="note-actions">
-          <MButton variant="ghost" size="sm" :mono="true">EDIT</MButton>
-          <MButton variant="primary" size="sm" :mono="true">EXPORT PDF</MButton>
-        </div>
-      </div>
+  <div class="my-lecture-view">
+    <div class="coming-soon-box font-mono">
+      <span class="coming-soon-tag">MY LECTURES // 我的讲义</span>
+      <h1 class="coming-soon-title">COMING SOON</h1>
+      <p class="coming-soon-desc">个人讲义与笔记整理功能正在筹备中，敬请期待</p>
     </div>
   </div>
 </template>
 
 <style scoped>
-.view-container {
-  padding: 28px;
+.my-lecture-view {
   display: flex;
-  flex-direction: column;
-  gap: 24px;
-  max-width: 1200px;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 140px);
+  width: 100%;
+  padding: 24px 16px;
+  box-sizing: border-box;
 }
 
-.view-header {
+.coming-soon-box {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  text-align: center;
+  user-select: none;
 }
 
-.view-title {
-  font-size: var(--font-size-largest);
-  font-weight: var(--font-weight-semibold);
-  color: var(--text-primary);
+.coming-soon-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--radius-xs, 2px);
+  background-color: var(--accent-muted, rgba(56, 189, 248, 0.12));
+  color: var(--accent-primary, #38bdf8);
+  font-size: var(--font-size-smallest, 12px);
+  letter-spacing: 1.5px;
+}
+
+.coming-soon-title {
+  font-size: clamp(28px, 6vw, 44px);
+  font-weight: var(--font-weight-bold, 700);
+  color: var(--text-primary, #ffffff);
+  letter-spacing: 4px;
+  line-height: 1.2;
+}
+
+.coming-soon-desc {
+  font-size: var(--font-size, 14px);
+  color: var(--text-muted, #808080);
   letter-spacing: 0.5px;
-}
-
-.view-desc {
-  font-size: var(--font-size-smaller);
-  color: var(--text-muted);
-}
-
-.notes-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.note-item {
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  padding: 18px 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-}
-
-.note-main {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  flex: 1;
-}
-
-.note-badge-wrap {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.note-time {
-  font-size: var(--font-size-smallest);
-  color: var(--text-muted);
-}
-
-.note-title {
-  font-size: var(--font-size-larger);
-  font-weight: var(--font-weight-semibold);
-  color: var(--text-primary);
-  margin: 0;
-}
-
-.note-summary {
-  font-size: var(--font-size-smaller);
-  line-height: 1.5;
-  color: var(--text-muted);
-  margin: 0;
-}
-
-.note-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
 }
 </style>
