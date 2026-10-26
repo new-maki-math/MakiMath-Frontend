@@ -177,7 +177,15 @@ const handleNavigate = (section) => {
 @media (max-width: 640px) {
   .doc-footer-nav {
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: 10px;
+    margin-top: 40px;
+  }
+  .nav-placeholder {
+    display: none;
+  }
+  .nav-card {
+    padding: 12px 14px;
+    min-height: 68px;
   }
   .next-card {
     align-items: flex-start;

@@ -609,7 +609,7 @@ defineExpose({
   display: flex;
   flex-direction: column;
   width: 100%;
-  margin: 12px 0 20px 0;
+  margin: 0;
   font-family: var(--font-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
 }
 
@@ -886,6 +886,35 @@ defineExpose({
 @media (max-width: 640px) {
   .ctrl-page-group .hide-s {
     display: none;
+  }
+  .viewer-meta-bar {
+    padding: 6px 10px;
+  }
+  .meta-title {
+    max-width: 150px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 12px;
+  }
+  .viewer-ctrl-row {
+    padding: 8px 10px;
+    gap: 6px;
+  }
+  .ctrl-step-group {
+    gap: 6px;
+  }
+  .step-counter {
+    min-width: 44px;
+    font-size: 12px;
+  }
+  .step-dots {
+    display: none;
+  }
+  .viewer-subtitle {
+    padding: 4px 10px 10px 10px;
+    font-size: 14px;
+    line-height: 1.6;
   }
 }
 </style>

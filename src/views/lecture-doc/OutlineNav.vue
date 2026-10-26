@@ -60,6 +60,26 @@ const updateBar = () => {
   if (N === 0) return;
 
   const trackHeight = trackRef.value.clientHeight;
+
+  // 移动端隐藏时间轨时：降级仅计算当前视口对应的大纲激活项
+  if (trackHeight <= 0) {
+    for (let i = N - 1; i >= 0; i--) {
+      const secEl = document.getElementById(props.outlines[i].id);
+      if (secEl) {
+        const top = secEl.getBoundingClientRect().top;
+        if (top <= 140) {
+          const newActiveId = props.outlines[i].id;
+          if (newActiveId && currentActiveId.value !== newActiveId) {
+            currentActiveId.value = newActiveId;
+            emit('active-change', newActiveId);
+          }
+          break;
+        }
+      }
+    }
+    return;
+  }
+
   const maxTravel = Math.max(0, trackHeight - barHeight);
   const maxScroll = container.scrollHeight - container.clientHeight;
 
@@ -323,5 +343,11 @@ onUnmounted(() => {
 .timeline-item.active .timeline-label {
   color: var(--text-primary);
   font-weight: var(--font-weight-medium);
+}
+
+@media (max-width: 768px) {
+  .outline-timeline {
+    display: none !important;
+  }
 }
 </style>

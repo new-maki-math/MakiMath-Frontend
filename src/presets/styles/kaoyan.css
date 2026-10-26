@@ -219,6 +219,10 @@
   line-height: 1.75;
 }
 
+.typst-doc > :first-child {
+  margin-top: 0 !important;
+}
+
 .td-heading {
   color: var(--text-primary, #e0e0e0);
   font-weight: var(--font-weight-bold, 600);
@@ -364,4 +368,51 @@
   padding-left: 18px;
   color: var(--text-secondary, #aaaaaa);
   line-height: 1.6;
+}
+
+@media (max-width: 640px) {
+  .td-box {
+    padding: 12px 14px;
+  }
+  .td-box-head {
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .td-box-body {
+    line-height: 2.0;
+  }
+  .td-lec {
+    padding: 12px 14px;
+  }
+  .td-lec-body {
+    line-height: 2.0;
+  }
+  .td-zt {
+    padding: 10px 12px;
+    gap: 8px 10px;
+  }
+  .td-zt-body {
+    line-height: 1.95;
+  }
+  .td-para {
+    line-height: 2.05;
+  }
+  .td-heading {
+    scroll-margin-top: 60px;
+  }
+  .td-heading-1 { font-size: 20px; }
+  .td-heading-2 { font-size: 17px; }
+  .td-heading-3 { font-size: 15.5px; }
+  .td-math.is-display {
+    font-size: 1.15em;
+    margin: 1em 0;
+    padding: 6px 0;
+    -webkit-overflow-scrolling: touch;
+  }
+  .td-table-wrap {
+    -webkit-overflow-scrolling: touch;
+  }
+  .td-cell {
+    padding: 6px 10px;
+  }
 }

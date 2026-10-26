@@ -293,4 +293,28 @@ const handleSelect = (section) => {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+@media (max-width: 768px) {
+  .chapter-row {
+    height: 38px;
+    padding: 0 10px;
+    font-size: 14px;
+  }
+  .section-row {
+    height: 36px;
+    padding: 0 10px;
+    font-size: 13.5px;
+  }
+  .chapter-tree {
+    padding: 12px 10px;
+    gap: 6px;
+  }
+  .section-list {
+    margin-left: 12px;
+    padding-left: 10px;
+    gap: 4px;
+    margin-top: 4px;
+    margin-bottom: 6px;
+  }
+}
 </style>

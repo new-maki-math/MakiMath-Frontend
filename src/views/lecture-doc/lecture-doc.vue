@@ -5,7 +5,7 @@ import ChapterNav from './ChapterNav.vue';
 import OutlineNav from './OutlineNav.vue';
 import DocFooterNav from './DocFooterNav.vue';
 import { fetchCourseTree, toChapters, getCourseSectionContent } from '../../api';
-import { List } from '@iconoir/vue';
+import { List, MenuScale, EditPencil, ArrowUp, NavArrowLeft, NavArrowRight } from '@iconoir/vue';
 import MSelectionToolbar from '../../components/MSelectionToolbar.vue';
 import LectureViewerEmbed from '../../components/LectureViewerEmbed.vue';
 
@@ -14,6 +14,7 @@ const router = useRouter();
 
 const readingViewportRef = ref(null);
 const isChapterDrawerOpen = ref(false);
+const isOutlineDrawerOpen = ref(false);
 const activeOutlineId = ref('');
 
 // 抽屉状态控制
@@ -32,6 +33,73 @@ const toggleDrawer = () => {
 // 选择模式状态
 const isSelectionMode = ref(false);
 
+const toggleSelectionMode = () => {
+  isSelectionMode.value = !isSelectionMode.value;
+  if (!isSelectionMode.value) {
+    window.getSelection()?.removeAllRanges();
+  }
+};
+
+const scrollToTop = () => {
+  if (readingViewportRef.value) {
+    readingViewportRef.value.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+};
+
+const handleSelectMobileOutline = (id) => {
+  isOutlineDrawerOpen.value = false;
+  scrollToOutline(id);
+};
+
+// 移动端右下角快捷胶囊横向展开与滚动避让
+const cornerFabRef = ref(null);
+const isCornerExpanded = ref(false);
+const isCornerHiddenByScroll = ref(false);
+
+const handleCornerAction = (action) => {
+  if (typeof action === 'function') action();
+  isCornerExpanded.value = false;
+};
+
+// 点击外部空白区域自动收起胶囊
+const handleGlobalPointer = (e) => {
+  if (isCornerExpanded.value && cornerFabRef.value) {
+    if (!cornerFabRef.value.contains(e.target)) {
+      isCornerExpanded.value = false;
+    }
+  }
+};
+
+let lastScrollTop = 0;
+let scrollTicking = false;
+
+const handleViewportScroll = () => {
+  if (scrollTicking) return;
+  scrollTicking = true;
+  requestAnimationFrame(() => {
+    if (!readingViewportRef.value) {
+      scrollTicking = false;
+      return;
+    }
+    const st = readingViewportRef.value.scrollTop;
+    const maxScroll = readingViewportRef.value.scrollHeight - readingViewportRef.value.clientHeight;
+
+    // 贴顶或贴底时必须展示
+    if (st <= 40 || st >= maxScroll - 40) {
+      isCornerHiddenByScroll.value = false;
+    } else if (st > lastScrollTop + 16 && st > 80) {
+      // 下滑阅读时：自动收起并下沉避让，保证正文纯净视野
+      isCornerExpanded.value = false;
+      isCornerHiddenByScroll.value = true;
+    } else if (st < lastScrollTop - 12) {
+      // 上滑回翻时：重新浮现右下角胶囊
+      isCornerHiddenByScroll.value = false;
+    }
+    lastScrollTop = st;
+    scrollTicking = false;
+  });
+};
+
 const isInputFocused = () => {
   const activeEl = document.activeElement;
   if (!activeEl) return false;
@@ -47,10 +115,7 @@ const handleKeyDown = (e) => {
   // 切换选择模式
   if (e.code === 'Backquote' || e.key === '`' || e.key === '~') {
     e.preventDefault();
-    isSelectionMode.value = !isSelectionMode.value;
-    if (!isSelectionMode.value) {
-      window.getSelection()?.removeAllRanges();
-    }
+    toggleSelectionMode();
     return;
   }
 
@@ -59,8 +124,12 @@ const handleKeyDown = (e) => {
     if (isSelectionMode.value) {
       window.getSelection()?.removeAllRanges();
       isSelectionMode.value = false;
+    } else if (isCornerExpanded.value) {
+      isCornerExpanded.value = false;
     } else if (isChapterDrawerOpen.value) {
       closeDrawer();
+    } else if (isOutlineDrawerOpen.value) {
+      isOutlineDrawerOpen.value = false;
     }
     return;
   }
@@ -74,10 +143,18 @@ const handleKeyDown = (e) => {
 
 onMounted(() => {
   window.addEventListener('keydown', handleKeyDown);
+  document.addEventListener('pointerdown', handleGlobalPointer);
+  if (readingViewportRef.value) {
+    readingViewportRef.value.addEventListener('scroll', handleViewportScroll, { passive: true });
+  }
 });
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeyDown);
+  document.removeEventListener('pointerdown', handleGlobalPointer);
+  if (readingViewportRef.value) {
+    readingViewportRef.value.removeEventListener('scroll', handleViewportScroll);
+  }
 });
 
 // 当前路由参数
@@ -275,6 +352,32 @@ const scrollToOutline = (id) => {
       />
     </MDrawer>
 
+    <!-- 移动端大纲抽屉 (右侧弹出) -->
+    <MDrawer
+      :open="isOutlineDrawerOpen"
+      placement="right"
+      title="OUTLINE // 本讲大纲"
+      width="280px"
+      @close="isOutlineDrawerOpen = false"
+    >
+      <div class="mobile-outline-panel">
+        <div v-if="pageOutlines.length === 0" class="mobile-outline-empty font-mono">
+          本讲暂无大纲锚点
+        </div>
+        <button
+          v-for="(item, idx) in pageOutlines"
+          :key="item.id || idx"
+          type="button"
+          class="mobile-outline-item"
+          :class="{ active: activeOutlineId === item.id }"
+          @click="handleSelectMobileOutline(item.id)"
+        >
+          <span class="mobile-outline-dot" />
+          <span class="mobile-outline-text" :title="item.title">{{ item.title }}</span>
+        </button>
+      </div>
+    </MDrawer>
+
     <!-- 讲义正文阅读视口 -->
     <main ref="readingViewportRef" class="reading-viewport">
       <!-- 讲义核心正文容器 -->
@@ -338,8 +441,15 @@ const scrollToOutline = (id) => {
     <Transition name="fade-fast">
       <div v-if="isSelectionMode" class="selection-mode-pill" role="status">
         <MTag variant="lime" size="md">`</MTag>
-        <span class="selection-mode-text">选择模式已开启 · 左键可自由划选正文与公式</span>
-        <span class="selection-mode-hint">(按 ` 或 Esc 退出)</span>
+        <span class="selection-mode-text">划选模式已开启 · 划选正文与公式</span>
+        <button
+          type="button"
+          class="selection-mode-exit-btn"
+          title="退出划选模式"
+          @click="toggleSelectionMode"
+        >
+          退出
+        </button>
       </div>
     </Transition>
 
@@ -348,6 +458,74 @@ const scrollToOutline = (id) => {
       container=".markdown-article"
       :disabled="!isSelectionMode"
     />
+
+    <!-- 移动端右下角横向展开/收起浮动快捷栏 -->
+    <div
+      ref="cornerFabRef"
+      class="mobile-corner-fab-wrap"
+      :class="{
+        'is-expanded': isCornerExpanded,
+        'is-hidden-by-scroll': isCornerHiddenByScroll
+      }"
+      role="region"
+      aria-label="移动端快捷操作栏"
+    >
+      <!-- 横向展开行动按钮组 (自右向左展开，GPU 硬件加速无重排闪烁) -->
+      <div class="mobile-corner-actions" :class="{ 'is-open': isCornerExpanded }">
+        <button
+          type="button"
+          class="mobile-corner-btn"
+          title="查看课程目录"
+          @click="handleCornerAction(openDrawer)"
+        >
+          <List width="15" height="15" />
+          <span>目录</span>
+        </button>
+
+        <button
+          v-if="pageOutlines.length > 0"
+          type="button"
+          class="mobile-corner-btn"
+          title="查看本讲大纲"
+          @click="handleCornerAction(() => isOutlineDrawerOpen = true)"
+        >
+          <MenuScale width="15" height="15" />
+          <span>大纲</span>
+        </button>
+
+        <button
+          type="button"
+          class="mobile-corner-btn"
+          :class="{ 'is-active': isSelectionMode }"
+          :title="isSelectionMode ? '退出划选模式' : '开启划选模式'"
+          @click="toggleSelectionMode"
+        >
+          <EditPencil width="15" height="15" />
+          <span>{{ isSelectionMode ? '退出' : '划选' }}</span>
+        </button>
+
+        <button
+          type="button"
+          class="mobile-corner-btn"
+          title="返回顶部"
+          @click="handleCornerAction(scrollToTop)"
+        >
+          <ArrowUp width="15" height="15" />
+          <span>回顶</span>
+        </button>
+      </div>
+
+      <!-- 右侧主触发/收起按钮 (CSS 180° 平滑旋转，无任何 DOM 重构跳帧) -->
+      <button
+        type="button"
+        class="mobile-corner-trigger"
+        :class="{ 'is-active': isCornerExpanded }"
+        :title="isCornerExpanded ? '收起快捷栏' : '展开快捷栏'"
+        @click="isCornerExpanded = !isCornerExpanded"
+      >
+        <NavArrowLeft width="18" height="18" class="trigger-arrow" />
+      </button>
+    </div>
   </div>
 </template>
 
@@ -429,7 +607,7 @@ const scrollToOutline = (id) => {
 .markdown-article {
   display: flex;
   flex-direction: column;
-  gap: 36px;
+  gap: 24px;
   color: var(--text-primary);
   line-height: 1.7;
 }
@@ -440,7 +618,7 @@ const scrollToOutline = (id) => {
   flex-direction: column;
   gap: 12px;
   border-bottom: 1px solid var(--border-subtle);
-  padding-bottom: 24px;
+  padding-bottom: 20px;
 }
 
 .doc-kicker {
@@ -536,7 +714,7 @@ const scrollToOutline = (id) => {
   left: 50%;
   transform: translateX(-50%);
   z-index: 50;
-  pointer-events: none;
+  pointer-events: auto;
   display: inline-flex;
   align-items: center;
   gap: 10px;
@@ -562,6 +740,274 @@ const scrollToOutline = (id) => {
   color: var(--text-muted);
   font-size: var(--font-size-smaller);
   line-height: 1;
+}
+
+.selection-mode-exit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 22px;
+  padding: 0 8px;
+  background-color: var(--bg-hover);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xs);
+  color: var(--text-secondary);
+  font-size: var(--font-size-smallest);
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+
+.selection-mode-exit-btn:hover {
+  background-color: var(--accent-muted);
+  color: var(--accent-primary);
+  border-color: var(--border-hover);
+}
+
+/* 移动端右下角横向展开快捷栏 (桌面端隐藏) */
+.mobile-corner-fab-wrap {
+  display: none !important;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  /* 隐藏桌面端左上角小目录按钮 */
+  .drawer-open-btn {
+    display: none;
+  }
+
+  .reading-content-wrap {
+    padding: 18px 14px 100px 14px;
+    max-width: 100%;
+  }
+
+  .markdown-article {
+    gap: 18px;
+  }
+
+  .doc-header {
+    gap: 10px;
+    padding-bottom: 14px;
+  }
+
+  .doc-kicker {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .doc-main-title {
+    font-size: 21px;
+    line-height: 1.35;
+    word-break: break-word;
+  }
+
+  .doc-lead {
+    font-size: 13.5px;
+    line-height: 1.6;
+  }
+
+  .doc-meta-footer {
+    padding-top: 14px;
+  }
+
+  /* 提示胶囊向上避让 */
+  .selection-mode-pill {
+    bottom: 74px;
+    max-width: calc(100vw - 28px);
+    padding: 6px 12px;
+    font-size: 13px;
+    gap: 8px;
+    justify-content: space-between;
+  }
+
+  .selection-mode-text {
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* 右下角横向展开快捷栏 */
+  .mobile-corner-fab-wrap {
+    position: fixed;
+    bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+    right: 14px;
+    z-index: 45;
+    display: flex !important;
+    align-items: center;
+    justify-content: flex-end;
+    pointer-events: none;
+    transition: transform 220ms ease, opacity 180ms ease;
+  }
+
+  .mobile-corner-fab-wrap > * {
+    pointer-events: auto;
+  }
+
+  .mobile-corner-fab-wrap.is-hidden-by-scroll {
+    transform: translateY(calc(100% + 28px));
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* 横向展开的操作项 (GPU 合成层加速，无 reflow 重排闪烁) */
+  .mobile-corner-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 2px 4px 2px 8px;
+    background-color: rgba(26, 26, 26, 0.94);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--border-subtle);
+    border-radius: 9999px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.55);
+    margin-right: 6px;
+    user-select: none;
+    white-space: nowrap;
+    transform-origin: right center;
+    transform: scale(0.85) translateX(16px);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1), opacity 180ms ease;
+    will-change: transform, opacity;
+  }
+
+  .mobile-corner-actions.is-open {
+    transform: scale(1) translateX(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .mobile-corner-btn {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-width: 44px;
+    height: 38px;
+    padding: 0 6px;
+    border: none;
+    background: transparent;
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: var(--font-weight-medium);
+    cursor: pointer;
+    transition: background-color 120ms ease, color 120ms ease;
+    flex-shrink: 0;
+  }
+
+  .mobile-corner-btn:active {
+    transform: scale(0.95);
+  }
+
+  .mobile-corner-btn.is-active {
+    background-color: var(--accent-muted);
+    color: var(--accent-primary);
+  }
+
+  /* 右侧触发圆钮 (常驻且不位移，纯 CSS 旋转平滑过渡) */
+  .mobile-corner-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    border: 1px solid var(--border-subtle);
+    background-color: rgba(26, 26, 26, 0.94);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-radius: 50%;
+    color: var(--text-secondary);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease, transform 120ms ease;
+    user-select: none;
+  }
+
+  .mobile-corner-trigger:active {
+    transform: scale(0.93);
+  }
+
+  .mobile-corner-trigger.is-active {
+    background-color: var(--bg-hover);
+    color: var(--accent-primary);
+    border-color: var(--border-hover);
+  }
+
+  .trigger-arrow {
+    transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: transform;
+  }
+
+  .mobile-corner-trigger.is-active .trigger-arrow {
+    transform: rotate(180deg);
+  }
+
+  /* 移动端大纲面板内容 */
+  .mobile-outline-panel {
+    display: flex;
+    flex-direction: column;
+    padding: 10px 8px;
+    gap: 4px;
+  }
+
+  .mobile-outline-empty {
+    padding: 24px 12px;
+    font-size: 13px;
+    color: var(--text-muted);
+    text-align: center;
+  }
+
+  .mobile-outline-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 40px;
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    border: none;
+    text-align: left;
+    color: var(--text-secondary);
+    font-size: 13.5px;
+    cursor: pointer;
+    transition: background-color 120ms ease, color 120ms ease;
+  }
+
+  .mobile-outline-item:hover,
+  .mobile-outline-item:active {
+    background-color: var(--bg-hover);
+    color: var(--text-primary);
+  }
+
+  .mobile-outline-item.active {
+    background-color: var(--bg-hover);
+    color: var(--accent-primary);
+    font-weight: var(--font-weight-medium);
+  }
+
+  .mobile-outline-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--border-subtle);
+    flex-shrink: 0;
+  }
+
+  .mobile-outline-item.active .mobile-outline-dot {
+    background-color: var(--accent-primary);
+  }
+
+  .mobile-outline-text {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 }
 
 /* 淡入淡出动画 */
