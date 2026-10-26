@@ -209,6 +209,18 @@ const handleMouseLeave = () => {
   mousePos.visible = false;
 };
 
+const handleTouchMove = (e) => {
+  if (e.touches && e.touches[0]) {
+    mousePos.x = e.touches[0].clientX;
+    mousePos.y = e.touches[0].clientY;
+    mousePos.visible = true;
+  }
+};
+
+const handleTouchEnd = () => {
+  mousePos.visible = false;
+};
+
 const handleVisibilityChange = () => {
   if (document.hidden) {
     isTabActive = false;
@@ -229,6 +241,9 @@ onMounted(() => {
   window.addEventListener('resize', handleWindowResize, { passive: true });
   window.addEventListener('mousemove', handleMouseMove, { passive: true });
   window.addEventListener('mouseleave', handleMouseLeave, { passive: true });
+  window.addEventListener('touchmove', handleTouchMove, { passive: true });
+  window.addEventListener('touchend', handleTouchEnd, { passive: true });
+  window.addEventListener('touchcancel', handleTouchEnd, { passive: true });
   document.addEventListener('visibilitychange', handleVisibilityChange);
 });
 
@@ -238,6 +253,9 @@ onUnmounted(() => {
   window.removeEventListener('resize', handleWindowResize);
   window.removeEventListener('mousemove', handleMouseMove);
   window.removeEventListener('mouseleave', handleMouseLeave);
+  window.removeEventListener('touchmove', handleTouchMove);
+  window.removeEventListener('touchend', handleTouchEnd);
+  window.removeEventListener('touchcancel', handleTouchEnd);
   document.removeEventListener('visibilitychange', handleVisibilityChange);
 });
 </script>
@@ -318,5 +336,15 @@ onUnmounted(() => {
     transparent 100%
   );
   opacity: 0.92;
+}
+
+@media (max-width: 640px) {
+  .readability-vignette {
+    background: radial-gradient(
+      ellipse 94vw 360px at 50% 38%,
+      var(--bg-app) 35%,
+      transparent 100%
+    );
+  }
 }
 </style>

@@ -1,24 +1,33 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { Terminal, Compass, Book, Sparks } from '@iconoir/vue';
+import { Terminal, Compass, Sparks, Bookmark } from '@iconoir/vue';
 import StartBackground from './StartBackground.vue';
 import SearchBar from '../../components/SearchBar.vue';
 
 const router = useRouter();
 
 // 头部胶囊文字解码动效
-const TARGET_PILL_TEXT = 'MAKIMATH // ADVANCED MATHEMATICAL WORKSTATION';
+const getTargetPillText = () => {
+  if (typeof window !== 'undefined' && window.innerWidth < 768) {
+    return 'MAKIMATH // MATH WORKSTATION';
+  }
+  return 'MAKIMATH // ADVANCED MATHEMATICAL WORKSTATION';
+};
+
+const TARGET_PILL_TEXT = ref(getTargetPillText());
 const displayPillText = ref('');
+let decodeInterval = null;
 
 const runDecodeAnimation = () => {
+  if (decodeInterval) clearInterval(decodeInterval);
   const chars = '01#_*/Σ∂∫λΔΩπ∇+-=<>[]';
-  const target = TARGET_PILL_TEXT;
+  const target = TARGET_PILL_TEXT.value;
   const length = target.length;
   let iteration = 0;
   const totalFrames = 42;
 
-  const interval = setInterval(() => {
+  decodeInterval = setInterval(() => {
     displayPillText.value = target
       .split('')
       .map((letter, index) => {
@@ -32,18 +41,26 @@ const runDecodeAnimation = () => {
 
     iteration++;
     if (iteration > totalFrames) {
-      clearInterval(interval);
+      clearInterval(decodeInterval);
       displayPillText.value = target;
     }
   }, 36);
 };
 
+const handleWindowResize = () => {
+  const newTarget = getTargetPillText();
+  if (newTarget !== TARGET_PILL_TEXT.value) {
+    TARGET_PILL_TEXT.value = newTarget;
+    displayPillText.value = newTarget;
+  }
+};
+
 // 快捷导航项
 const quickShortcuts = [
-  { label: '考研数学精讲', path: '/course/1', icon: Book },
-  { label: '讲义工作台', path: '/workbench', icon: Terminal },
   { label: '讲义推荐路线', path: '/recom-lecture', icon: Compass },
-  { label: '如何使用平台', path: '/how-to-use', icon: Sparks }
+  { label: '我的讲义', path: '/my-lecture', icon: Bookmark },
+  { label: '如何使用平台', path: '/how-to-use', icon: Sparks },
+  { label: '讲义工作台', path: '/workbench', icon: Terminal }
 ];
 
 // 点击快捷导航卡片跳转
@@ -52,7 +69,14 @@ const handleShortcutClick = (targetPath) => {
 };
 
 onMounted(() => {
+  TARGET_PILL_TEXT.value = getTargetPillText();
   runDecodeAnimation();
+  window.addEventListener('resize', handleWindowResize, { passive: true });
+});
+
+onUnmounted(() => {
+  if (decodeInterval) clearInterval(decodeInterval);
+  window.removeEventListener('resize', handleWindowResize);
 });
 </script>
 
@@ -84,16 +108,18 @@ onMounted(() => {
       <!-- 快捷胶囊入口 -->
       <div class="shortcuts-row">
         <span class="shortcuts-label font-mono">FAST TRACK //</span>
-        <button
-          v-for="sc in quickShortcuts"
-          :key="sc.path"
-          type="button"
-          class="shortcut-btn"
-          @click="handleShortcutClick(sc.path)"
-        >
-          <component :is="sc.icon" width="14" height="14" class="sc-icon" />
-          <span>{{ sc.label }}</span>
-        </button>
+        <div class="shortcuts-grid">
+          <button
+            v-for="sc in quickShortcuts"
+            :key="sc.path"
+            type="button"
+            class="shortcut-btn"
+            @click="handleShortcutClick(sc.path)"
+          >
+            <component :is="sc.icon" width="14" height="14" class="sc-icon" />
+            <span>{{ sc.label }}</span>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -114,20 +140,20 @@ onMounted(() => {
 </template>
 
 <style scoped>
-/* 欢迎页视口布局 */
+/* 欢迎页视口布局：必须为 column 纵向排列 */
 .start-viewport {
   width: 100%;
   height: 100%;
   min-height: 100%;
-  max-height: 100%;
-  overflow: hidden;
   display: flex;
-  align-items: flex-start;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
   position: relative;
   background-color: var(--bg-app);
   user-select: none;
   padding-top: clamp(80px, 17vh, 150px);
+  overflow-x: hidden;
 }
 
 /* 主容器 */
@@ -141,6 +167,7 @@ onMounted(() => {
   width: 100%;
   max-width: 720px;
   padding: 0 24px;
+  margin: 0 auto;
 }
 
 /* 顶部标题栏 */
@@ -202,6 +229,7 @@ onMounted(() => {
   font-weight: var(--font-weight-bold);
   color: var(--text-primary);
   letter-spacing: -0.2px;
+  text-align: center;
 }
 
 .start-desc {
@@ -209,6 +237,7 @@ onMounted(() => {
   color: var(--text-muted);
   max-width: 520px;
   line-height: 1.6;
+  text-align: center;
 }
 
 /* 检索舱容器 */
@@ -226,6 +255,10 @@ onMounted(() => {
   flex-wrap: wrap;
   justify-content: center;
   margin-top: 4px;
+}
+
+.shortcuts-grid {
+  display: contents;
 }
 
 .shortcuts-label {
@@ -291,5 +324,115 @@ onMounted(() => {
 .beian-link:hover {
   color: var(--text-secondary);
   text-decoration: underline;
+}
+
+/* 移动端专属响应式断点 (<768px) */
+@media (max-width: 768px) {
+  .start-viewport {
+    height: 100%;
+    min-height: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-top: clamp(48px, 9vh, 96px);
+    padding-bottom: 72px; /* 留出底部备案信息的常驻安全边距，杜绝遮挡 */
+    align-items: center;
+    justify-content: flex-start;
+    position: relative;
+    box-sizing: border-box;
+  }
+
+  .start-main-container {
+    padding: 0 20px;
+    gap: clamp(28px, 4.5vh, 42px); /* 增大模块间上下呼吸间距 */
+    width: 100%;
+    max-width: 440px;
+    margin: 0 auto;
+  }
+
+  .start-header {
+    gap: 16px; /* 增大胶囊、大标题与副标题之间上下间距 */
+    width: 100%;
+  }
+
+  .brand-pill {
+    max-width: calc(100vw - 36px);
+    padding: 5px 14px;
+    font-size: 11px;
+    letter-spacing: 0.8px;
+    margin-bottom: 2px;
+  }
+
+  .start-title {
+    font-size: clamp(22px, 6vw, 26px);
+    line-height: 1.4;
+    letter-spacing: -0.2px;
+  }
+
+  .start-desc {
+    font-size: 13.5px;
+    line-height: 1.65;
+    padding: 0 4px;
+    max-width: 360px;
+    margin: 0 auto;
+  }
+
+  .hero-search-wrapper {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .shortcuts-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px; /* 增大快捷指引与按钮组间距 */
+    width: 100%;
+    margin-top: 6px;
+  }
+
+  .shortcuts-label {
+    text-align: center;
+    letter-spacing: 1px;
+    font-size: 11px;
+    margin-bottom: 2px;
+  }
+
+  .shortcuts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .shortcut-btn {
+    height: 46px;
+    padding: 0 12px;
+    justify-content: center;
+    font-size: 13.5px;
+    border-radius: var(--radius-sm);
+    gap: 8px;
+  }
+
+  .shortcut-btn:last-child:nth-child(odd) {
+    grid-column: span 2;
+  }
+
+  /* 备案信息在移动端依然固定贴底居中 */
+  .start-beian-footer {
+    position: absolute;
+    bottom: 20px;
+    left: 0;
+    right: 0;
+    margin: 0;
+    padding: 0 16px;
+    gap: 8px;
+    font-size: 11.5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    width: 100%;
+    z-index: 15;
+    pointer-events: auto;
+  }
 }
 </style>
