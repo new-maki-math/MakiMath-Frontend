@@ -57,6 +57,14 @@ const isMobileDrawerOpen = ref(false);
 // 缓存已拉取的小节内容，避免对同一小节重复网络请求
 const sectionContentCache = new Map();
 
+// 条目卡片所显示的 TAG：直接使用小节标题（若本身为整节则标为小节）
+const getItemTag = (item) => {
+  if (item.scope === 'section') {
+    return '小节';
+  }
+  return item.sectionTitle || '小节';
+};
+
 // 当前笔记本对象
 const currentNotebook = computed(() => {
   return notebooks.value.find((nb) => nb.id === activeNotebookId.value) || {
@@ -66,20 +74,32 @@ const currentNotebook = computed(() => {
   };
 });
 
-// 根据分类标签过滤后的条目
+// 根据选项卡过滤后的条目（全部 | 小节 | 卡片）
 const filteredItems = computed(() => {
   if (activeFilter.value === 'all') return rawItems.value;
-  return rawItems.value.filter((it) => it.scope === activeFilter.value);
+  if (activeFilter.value === 'section') {
+    return rawItems.value.filter((it) => it.scope === 'section' || it.scope === 'outline');
+  }
+  if (activeFilter.value === 'card') {
+    return rawItems.value.filter((it) => it.scope === 'card');
+  }
+  return rawItems.value;
 });
 
-// 统计各类型数量
+// 统计各类型数量（全部、小节、卡片）
 const stats = computed(() => {
   const all = rawItems.value.length;
+  const sections = rawItems.value.filter((it) => it.scope === 'section' || it.scope === 'outline').length;
   const cards = rawItems.value.filter((it) => it.scope === 'card').length;
-  const outlines = rawItems.value.filter((it) => it.scope === 'outline').length;
-  const sections = rawItems.value.filter((it) => it.scope === 'section').length;
-  return { all, cards, outlines, sections };
+  return { all, sections, cards };
 });
+
+// 切换选项卡并同步更新右侧内容
+const handleSelectFilter = (key) => {
+  if (activeFilter.value === key) return;
+  activeFilter.value = key;
+  assembleDocument();
+};
 
 // 加载笔记本列表
 const loadNotebooks = async () => {
@@ -106,16 +126,17 @@ const loadItemsAndAssemble = async () => {
   }
 };
 
-// 拼装文档核心逻辑
+// 拼装文档核心逻辑（支持按选项卡动态筛选并联动右侧渲染）
 const assembleDocument = async () => {
-  if (rawItems.value.length === 0) {
+  const targetItems = filteredItems.value;
+  if (!targetItems || targetItems.length === 0) {
     virtualDoc.value = null;
     return;
   }
 
   const slices = [];
 
-  for (const item of rawItems.value) {
+  for (const item of targetItems) {
     const cId = item.courseId || '1';
     const sId = item.sectionId;
     const cacheKey = `${cId}:${sId}`;
@@ -335,39 +356,31 @@ onMounted(async () => {
             <span class="item-count font-mono">{{ rawItems.length }} 项</span>
           </div>
 
-          <!-- 过滤器 Tab 栏 -->
+          <!-- 过滤器 Tab 栏（选项卡） -->
           <div class="filter-tabs font-mono">
             <button
               type="button"
               class="tab-btn"
               :class="{ 'is-active': activeFilter === 'all' }"
-              @click="activeFilter = 'all'"
+              @click="handleSelectFilter('all')"
             >
               全部 ({{ stats.all }})
             </button>
             <button
               type="button"
               class="tab-btn"
-              :class="{ 'is-active': activeFilter === 'card' }"
-              @click="activeFilter = 'card'"
-            >
-              真题/卡 ({{ stats.cards }})
-            </button>
-            <button
-              type="button"
-              class="tab-btn"
-              :class="{ 'is-active': activeFilter === 'outline' }"
-              @click="activeFilter = 'outline'"
-            >
-              考点 ({{ stats.outlines }})
-            </button>
-            <button
-              type="button"
-              class="tab-btn"
               :class="{ 'is-active': activeFilter === 'section' }"
-              @click="activeFilter = 'section'"
+              @click="handleSelectFilter('section')"
             >
-              整节 ({{ stats.sections }})
+              小节 ({{ stats.sections }})
+            </button>
+            <button
+              type="button"
+              class="tab-btn"
+              :class="{ 'is-active': activeFilter === 'card' }"
+              @click="handleSelectFilter('card')"
+            >
+              卡片 ({{ stats.cards }})
             </button>
           </div>
         </div>
@@ -384,13 +397,16 @@ onMounted(async () => {
             class="binder-item-card"
             @click="scrollToItem(idx)"
           >
-            <div class="item-card-top">
-              <span
-                class="item-badge font-mono"
-                :class="`is-${item.scope}`"
-              >
-                {{ item.badge || (item.scope === 'section' ? '整节' : item.scope === 'outline' ? '考点' : '真题') }}
-              </span>
+            <div class="item-card-row">
+              <div class="item-card-main">
+                <span class="item-tag font-mono">
+                  {{ getItemTag(item) }}
+                </span>
+                <span class="item-card-title" :title="item.title">
+                  {{ item.title }}
+                </span>
+              </div>
+
               <div class="item-card-actions">
                 <button
                   type="button"
@@ -399,7 +415,7 @@ onMounted(async () => {
                   :disabled="idx === 0"
                   @click.stop="handleMoveUp(idx)"
                 >
-                  <NavArrowUp width="13" height="13" />
+                  <NavArrowUp width="12" height="12" />
                 </button>
                 <button
                   type="button"
@@ -408,7 +424,7 @@ onMounted(async () => {
                   :disabled="idx === filteredItems.length - 1"
                   @click.stop="handleMoveDown(idx)"
                 >
-                  <NavArrowDown width="13" height="13" />
+                  <NavArrowDown width="12" height="12" />
                 </button>
                 <button
                   type="button"
@@ -416,14 +432,13 @@ onMounted(async () => {
                   title="移出讲义"
                   @click.stop="handleRemoveItem(item.id, item.title)"
                 >
-                  <Trash width="13" height="13" />
+                  <Trash width="12" height="12" />
                 </button>
               </div>
             </div>
 
-            <div class="item-card-title">{{ item.title }}</div>
             <div class="item-card-source font-mono">
-              《{{ item.courseTitle }}》· {{ item.sectionTitle }}
+              《{{ item.courseTitle }}》
             </div>
           </div>
         </div>
@@ -496,26 +511,29 @@ onMounted(async () => {
       <div class="mobile-drawer-body">
         <div class="mobile-items-list">
           <div
-            v-for="(item, idx) in rawItems"
+            v-for="(item, idx) in filteredItems"
             :key="item.id"
             class="mobile-item-card"
             @click="scrollToItem(idx)"
           >
-            <div class="item-card-top">
-              <span class="item-badge font-mono" :class="`is-${item.scope}`">
-                {{ item.badge }}
-              </span>
+            <div class="item-card-row">
+              <div class="item-card-main">
+                <span class="item-tag font-mono">
+                  {{ getItemTag(item) }}
+                </span>
+                <span class="item-card-title">{{ item.title }}</span>
+              </div>
               <button
                 type="button"
                 class="action-btn is-del"
+                title="移出讲义"
                 @click.stop="handleRemoveItem(item.id, item.title)"
               >
-                <Trash width="13" height="13" />
+                <Trash width="12" height="12" />
               </button>
             </div>
-            <div class="item-card-title">{{ item.title }}</div>
             <div class="item-card-source font-mono">
-              《{{ item.courseTitle }}》· {{ item.sectionTitle }}
+              《{{ item.courseTitle }}》
             </div>
           </div>
         </div>
@@ -733,7 +751,7 @@ onMounted(async () => {
 
 /* 条目卡片 (微圆角、纯色填充、深灰分阶) */
 .binder-item-card {
-  padding: 10px 12px;
+  padding: 8px 10px;
   background-color: var(--bg-surface, #202020);
   border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
   border-radius: var(--radius-xs, 2px);
@@ -741,7 +759,7 @@ onMounted(async () => {
   transition: background-color 120ms ease, border-color 120ms ease;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .binder-item-card:hover {
@@ -749,58 +767,84 @@ onMounted(async () => {
   border-color: var(--border-hover, rgba(255, 255, 255, 0.16));
 }
 
-.item-card-top {
+.item-card-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
 }
 
-.item-badge {
+.item-card-main {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+
+.item-tag {
   display: inline-flex;
   align-items: center;
   padding: 1px 6px;
   font-size: 10.5px;
   font-weight: 600;
-  border-radius: 2px;
+  border-radius: var(--radius-xs, 2px);
+  background-color: var(--bg-elevated, #2a2a2a);
+  color: var(--accent-primary, #38bdf8);
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  flex-shrink: 0;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.item-badge.is-card {
-  background-color: rgba(245, 158, 11, 0.14);
-  color: #fbbf24;
+.item-card-title {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-primary, #e0e0e0);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
 }
 
-.item-badge.is-outline {
-  background-color: rgba(168, 85, 247, 0.14);
-  color: #c084fc;
-}
-
-.item-badge.is-section {
-  background-color: rgba(56, 189, 248, 0.14);
-  color: #38bdf8;
-}
-
+/* 右侧操作按钮：平时隐藏，鼠标悬浮在卡片上时显示 */
 .item-card-actions {
   display: flex;
   align-items: center;
   gap: 2px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+  flex-shrink: 0;
+}
+
+.binder-item-card:hover .item-card-actions {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .action-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   background: transparent;
   border: none;
   color: var(--text-muted, #808080);
-  border-radius: 2px;
+  border-radius: var(--radius-xs, 2px);
   cursor: pointer;
   transition: color 100ms ease, background-color 100ms ease;
 }
 
 .action-btn:hover:not(:disabled) {
-  background-color: var(--bg-hover, #333333);
+  background-color: var(--bg-elevated, #333333);
   color: var(--text-primary, #ffffff);
 }
 
@@ -811,16 +855,6 @@ onMounted(async () => {
 
 .action-btn.is-del:hover {
   color: #ef4444;
-}
-
-.item-card-title {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-primary, #e0e0e0);
-  line-height: 1.4;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .item-card-source {
