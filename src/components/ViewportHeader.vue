@@ -27,6 +27,10 @@ const displayTitle = computed(() => {
   return props.title || route.meta?.title || '页面';
 });
 
+const isDocPage = computed(() => {
+  return route.name === 'lecture-doc' || route.path.includes('/doc');
+});
+
 const resolvedBreadcrumbs = computed(() => {
   if (props.breadcrumbs && Array.isArray(props.breadcrumbs) && props.breadcrumbs.length > 0) {
     return props.breadcrumbs;
@@ -53,7 +57,7 @@ const handleRefresh = () => {
       </template>
     </div>
 
-    <div v-if="showActions" class="viewport-actions">
+    <div v-if="showActions && !isDocPage" class="viewport-actions">
       <slot name="actions">
         <MButton
           variant="secondary"
@@ -97,6 +101,28 @@ const handleRefresh = () => {
   gap: 10px;
   font-size: var(--font-size-smaller);
   color: var(--text-muted);
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .viewport-header {
+    height: 40px;
+    padding: 0 12px;
+  }
+
+  .breadcrumb {
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    padding-right: 8px;
+    font-size: var(--font-size-smallest);
+    gap: 6px;
+  }
+
+  .breadcrumb::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .crumb-sep {

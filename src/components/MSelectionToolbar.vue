@@ -524,14 +524,24 @@ const handleScroll = () => {
   }
 };
 
+const handleTouchEnd = () => {
+  if (props.disabled) return;
+  // 延迟给移动端选区变化充分生效时间
+  setTimeout(() => {
+    updatePosition();
+  }, 120);
+};
+
 onMounted(() => {
   document.addEventListener('mouseup', handleMouseUp);
+  document.addEventListener('touchend', handleTouchEnd, { passive: true });
   document.addEventListener('keyup', handleKeyUp);
   window.addEventListener('scroll', handleScroll, { passive: true });
 });
 
 onBeforeUnmount(() => {
   document.removeEventListener('mouseup', handleMouseUp);
+  document.removeEventListener('touchend', handleTouchEnd);
   document.removeEventListener('keyup', handleKeyUp);
   window.removeEventListener('scroll', handleScroll);
 });
@@ -745,5 +755,24 @@ defineExpose({
 .fade-toolbar-leave-to {
   opacity: 0;
   transform: translate(-50%, 4px) scale(0.97);
+}
+
+@media (max-width: 640px) {
+  .m-selection-toolbar {
+    padding: 6px 8px;
+    gap: 8px;
+  }
+  .mode-btn {
+    width: 32px;
+    height: 32px;
+  }
+  .color-swatch-btn {
+    width: 28px;
+    height: 28px;
+  }
+  .clear-btn {
+    width: 32px;
+    height: 32px;
+  }
 }
 </style>

@@ -735,4 +735,42 @@ defineExpose({
   opacity: 0;
   transform: translateY(-6px);
 }
+
+@media (max-width: 640px) {
+  .search-bar-unified.is-hero .search-input-inner {
+    height: 46px;
+    padding: 0 12px;
+  }
+
+  .kbd-wrap {
+    display: none;
+  }
+
+  .dropdown-footer {
+    display: none;
+  }
+
+  .search-dropdown-card {
+    max-height: min(320px, 52vh);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+  }
+
+  .dropdown-list {
+    max-height: min(240px, 42vh);
+  }
+
+  .result-row {
+    padding: 8px 12px;
+    gap: 8px;
+  }
+
+  .result-row:hover,
+  .result-row.is-active {
+    padding-left: 14px;
+  }
+
+  .result-tag-col {
+    max-width: 84px;
+  }
+}
 </style>
