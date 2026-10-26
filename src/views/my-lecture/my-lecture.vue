@@ -46,6 +46,7 @@ const isAssembling = ref(false);
 
 // 拼装虚拟文档
 const virtualDoc = ref(null);
+const isMounted = ref(false);
 
 // 模态框与抽屉状态
 const isNewNotebookModalOpen = ref(false);
@@ -242,6 +243,7 @@ const scrollToItem = (index) => {
 };
 
 onMounted(async () => {
+  isMounted.value = true;
   await openDB();
   await loadNotebooks();
   await loadItemsAndAssemble();
@@ -250,10 +252,9 @@ onMounted(async () => {
 
 <template>
   <div class="my-lecture-page">
-    <!-- 顶部工作台状态条 (符合极客深色无边界设计规范) -->
-    <header class="page-topbar">
-      <div class="topbar-left">
-        <span class="view-tag font-mono">MAKIMATH // NOTEBOOK</span>
+    <!-- 传送至 ViewportHeader 左侧扩展区 (讲义册选择与新建) -->
+    <Teleport v-if="isMounted" to="#viewport-header-extra">
+      <div class="my-lecture-header-left">
         <div class="notebook-select-wrap">
           <select
             class="notebook-selector font-mono"
@@ -274,20 +275,23 @@ onMounted(async () => {
             title="新建讲义册"
             @click="isNewNotebookModalOpen = true"
           >
-            <Plus width="13" height="13" />
+            <Plus width="12" height="12" />
             <span>新建册</span>
           </button>
         </div>
       </div>
+    </Teleport>
 
-      <div class="topbar-actions">
+    <!-- 传送至 ViewportHeader 右侧操作栏 (移动端清单抽屉、打印/导出、清空) -->
+    <Teleport v-if="isMounted" to="#viewport-header-actions">
+      <div class="my-lecture-header-actions">
         <!-- 移动端管理抽屉入口 -->
         <button
           type="button"
           class="mobile-drawer-btn font-mono"
           @click="isMobileDrawerOpen = true"
         >
-          <List width="14" height="14" />
+          <List width="13" height="13" />
           <span>条目清单 ({{ rawItems.length }})</span>
         </button>
 
@@ -319,7 +323,7 @@ onMounted(async () => {
           <span>清空</span>
         </MButton>
       </div>
-    </header>
+    </Teleport>
 
     <!-- 主体分栏工作台：左侧条目管理 + 右侧虚拟文档渲染 -->
     <div class="workspace-body">
@@ -475,6 +479,9 @@ onMounted(async () => {
             />
           </article>
         </div>
+
+        <!-- 仅针对内容区域的内容拼装加载遮罩 -->
+        <MLoadingMask :visible="isLoading" text="正在拼装自定义讲义..." />
       </main>
     </div>
 
@@ -548,9 +555,6 @@ onMounted(async () => {
         确定要清空讲义册《<strong>{{ currentNotebook.title }}</strong>》内的全部 {{ rawItems.length }} 个收录节点吗？此操作仅在本地生效且无法撤销。
       </p>
     </MModal>
-
-    <!-- 全局加载遮罩 -->
-    <MLoadingMask :visible="isLoading" text="正在拼装自定义讲义..." />
   </div>
 </template>
 
@@ -566,48 +570,34 @@ onMounted(async () => {
   box-sizing: border-box;
 }
 
-/* 顶部状态与操作栏 */
-.page-topbar {
+/* 顶部合并控制项 (挂载至 ViewportHeader) */
+.my-lecture-header-left {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  height: 48px;
-  padding: 0 18px;
-  background-color: var(--bg-surface, #1e1e1e);
-  border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
-  flex-shrink: 0;
-  user-select: none;
-}
-
-.topbar-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.view-tag {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--accent-primary, #38bdf8);
-  letter-spacing: 1px;
+  gap: 8px;
+  min-width: 0;
 }
 
 .notebook-select-wrap {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  min-width: 0;
 }
 
 .notebook-selector {
-  height: 28px;
-  padding: 0 10px;
-  background-color: var(--bg-elevated, #282828);
+  height: 26px;
+  padding: 0 8px;
+  background-color: var(--bg-surface, #1e1e1e);
   border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.12));
   border-radius: var(--radius-xs, 2px);
   color: var(--text-primary, #e0e0e0);
-  font-size: 12px;
+  font-size: 11.5px;
+  max-width: 180px;
   outline: none;
   cursor: pointer;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .notebook-selector:focus {
@@ -618,14 +608,15 @@ onMounted(async () => {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  height: 28px;
-  padding: 0 8px;
+  height: 26px;
+  padding: 0 7px;
   background: transparent;
   border: 1px dashed var(--border-subtle, rgba(255, 255, 255, 0.15));
   border-radius: var(--radius-xs, 2px);
   color: var(--text-muted, #808080);
-  font-size: 11.5px;
+  font-size: 11px;
   cursor: pointer;
+  white-space: nowrap;
   transition: all 120ms ease;
 }
 
@@ -635,10 +626,10 @@ onMounted(async () => {
   border-color: var(--border-hover, rgba(255, 255, 255, 0.3));
 }
 
-.topbar-actions {
+.my-lecture-header-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .mobile-drawer-btn {
@@ -731,7 +722,6 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  scrollbar-width: thin;
 }
 
 .empty-filter-state {
@@ -986,26 +976,29 @@ onMounted(async () => {
 
 /* 移动端响应式断点 (<768px) */
 @media (max-width: 768px) {
-  .page-topbar {
-    height: 44px;
-    padding: 0 12px;
+  .sidebar-panel {
+    display: none;
   }
 
-  .sidebar-panel {
+  .notebook-selector {
+    max-width: 110px;
+  }
+
+  .new-nb-btn span {
     display: none;
   }
 
   .mobile-drawer-btn {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    height: 28px;
-    padding: 0 8px;
+    gap: 4px;
+    height: 26px;
+    padding: 0 7px;
     background-color: var(--bg-elevated, #282828);
     border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.12));
-    border-radius: 2px;
+    border-radius: var(--radius-xs, 2px);
     color: var(--text-secondary, #cccccc);
-    font-size: 12px;
+    font-size: 11px;
     cursor: pointer;
   }
 
@@ -1016,7 +1009,8 @@ onMounted(async () => {
 
 /* 打印模式优化 */
 @media print {
-  .page-topbar,
+  .my-lecture-header-left,
+  .my-lecture-header-actions,
   .sidebar-panel,
   .mobile-drawer-btn {
     display: none !important;

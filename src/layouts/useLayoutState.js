@@ -219,7 +219,9 @@ export function useLayoutState() {
       route.name === 'platform' ||
       route.path === '/platform' ||
       route.name === 'start' ||
-      route.path === '/start'
+      route.path === '/start' ||
+      route.name === 'my-lecture' ||
+      route.path === '/my-lecture'
     );
   });
 

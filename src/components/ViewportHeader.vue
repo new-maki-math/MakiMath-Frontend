@@ -31,6 +31,10 @@ const isDocPage = computed(() => {
   return route.name === 'lecture-doc' || route.path.includes('/doc');
 });
 
+const isMyLecturePage = computed(() => {
+  return route.name === 'my-lecture' || route.path.includes('/my-lecture');
+});
+
 const resolvedBreadcrumbs = computed(() => {
   if (props.breadcrumbs && Array.isArray(props.breadcrumbs) && props.breadcrumbs.length > 0) {
     return props.breadcrumbs;
@@ -50,32 +54,43 @@ const handleRefresh = () => {
 
 <template>
   <div class="viewport-header">
-    <div class="breadcrumb font-mono">
-      <template v-for="(seg, idx) in resolvedBreadcrumbs" :key="idx">
-        <span v-if="idx > 0" class="crumb-sep">/</span>
-        <span :class="{ 'crumb-active': idx === resolvedBreadcrumbs.length - 1 }">{{ seg }}</span>
-      </template>
+    <div class="viewport-header-left">
+      <div class="breadcrumb font-mono">
+        <template v-for="(seg, idx) in resolvedBreadcrumbs" :key="idx">
+          <span v-if="idx > 0" class="crumb-sep">/</span>
+          <span :class="{ 'crumb-active': idx === resolvedBreadcrumbs.length - 1 }">{{ seg }}</span>
+        </template>
+      </div>
+
+      <!-- 页面自定义左侧扩展区挂载点 (如讲义册选择器) -->
+      <div id="viewport-header-extra" class="viewport-header-extra"></div>
     </div>
 
-    <div v-if="showActions && !isDocPage" class="viewport-actions">
-      <slot name="actions">
-        <MButton
-          variant="secondary"
-          size="sm"
-          class="header-refresh-btn"
-          title="刷新内容区域"
-          @click="handleRefresh"
-        >
-          <template #icon>
-            <Refresh
-              width="13"
-              height="13"
-              :class="{ 'spin-icon': isRefreshing }"
-            />
-          </template>
-          <span>刷新</span>
-        </MButton>
-      </slot>
+    <div class="viewport-header-right">
+      <!-- 页面自定义操作栏挂载点 -->
+      <div id="viewport-header-actions" class="viewport-header-actions"></div>
+
+      <!-- 默认通用刷新按钮 (在非 doc 且非 my-lecture 页面显示) -->
+      <div v-if="showActions && !isDocPage && !isMyLecturePage" class="viewport-actions">
+        <slot name="actions">
+          <MButton
+            variant="secondary"
+            size="sm"
+            class="header-refresh-btn"
+            title="刷新内容区域"
+            @click="handleRefresh"
+          >
+            <template #icon>
+              <Refresh
+                width="13"
+                height="13"
+                :class="{ 'spin-icon': isRefreshing }"
+              />
+            </template>
+            <span>刷新</span>
+          </MButton>
+        </slot>
+      </div>
     </div>
   </div>
 </template>
@@ -93,6 +108,34 @@ const handleRefresh = () => {
   top: 0;
   z-index: 30;
   flex-shrink: 0;
+}
+
+.viewport-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.viewport-header-extra {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.viewport-header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.viewport-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .breadcrumb {
@@ -159,6 +202,12 @@ const handleRefresh = () => {
   }
   to {
     transform: rotate(360deg);
+  }
+}
+
+@media print {
+  .viewport-header {
+    display: none !important;
   }
 }
 </style>
