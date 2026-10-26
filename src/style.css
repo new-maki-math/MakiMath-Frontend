@@ -118,22 +118,32 @@ kbd {
   font-family: var(--font-ui);
 }
 
-::-webkit-scrollbar {
+/* 全局自定义极客滚动条规范 (支持标准 CSS 与 Webkit 前缀) */
+html, body, * {
+  scrollbar-width: thin;
+  scrollbar-color: var(--bg-elevated) transparent;
+}
+
+*::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
-::-webkit-scrollbar-track {
+*::-webkit-scrollbar-track {
   background: transparent;
 }
 
-::-webkit-scrollbar-thumb {
+*::-webkit-scrollbar-thumb {
   background: var(--bg-elevated);
   border-radius: var(--radius-xs);
 }
 
-::-webkit-scrollbar-thumb:hover {
+*::-webkit-scrollbar-thumb:hover {
   background: var(--bg-hover);
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 .katex-mathml {
