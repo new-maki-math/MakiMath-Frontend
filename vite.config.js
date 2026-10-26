@@ -30,12 +30,11 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          // 将工作台专用的 monaco 独立分包，避免污染前台读者的主包体积
-          if (id.includes('monaco-editor')) {
-            return 'monaco-vendor'
+          if (id.includes('node_modules/vue') || id.includes('node_modules/vue-router') || id.includes('node_modules/@vue')) {
+            return 'vue-vendor';
           }
           if (id.includes('katex')) {
-            return 'katex-vendor'
+            return 'katex-vendor';
           }
         }
       }
