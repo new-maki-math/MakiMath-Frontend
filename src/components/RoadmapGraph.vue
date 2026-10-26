@@ -11,7 +11,9 @@ import {
   Play,
   Pause,
   Search,
-  Xmark
+  Xmark,
+  HandCard,
+  Lock
 } from '@iconoir/vue';
 
 const props = defineProps({
@@ -52,6 +54,7 @@ const currentMode = ref(props.initialMode === 'section' ? 'section' : 'chapter')
 const searchQuery = ref('');
 const isPhysicsRunning = ref(true);
 const hoveredNode = ref(null);
+const isTouchPanActive = ref(false);
 
 // 课程 tree 原始数据
 const rawTree = ref(null);
@@ -585,6 +588,48 @@ function goToSectionDoc(node) {
   router.push(`/course/${cid}/doc/${secId}`);
 }
 
+// 移动端触控点击检测 (零延迟响应)
+let touchStartPos = { x: 0, y: 0 };
+let touchStartTime = 0;
+
+function onCanvasTouchStart(e) {
+  if (!canvasRef.value || !e.touches || e.touches.length !== 1) return;
+  touchStartPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  touchStartTime = Date.now();
+}
+
+function onCanvasTouchEnd(e) {
+  if (!canvasRef.value || !e.changedTouches || e.changedTouches.length !== 1) return;
+  const touch = e.changedTouches[0];
+  const dist = Math.hypot(touch.clientX - touchStartPos.x, touch.clientY - touchStartPos.y);
+  const duration = Date.now() - touchStartTime;
+
+  // 短按且位移小于 10px 判定为点击节点
+  if (dist < 10 && duration < 380) {
+    const [x, y] = d3.pointer(touch, canvasRef.value);
+    const [gx, gy] = currentTransform.invert([x, y]);
+    const clicked = findNodeAt(gx, gy);
+    if (!clicked) return;
+
+    if (clicked.level === 2 || clicked.type === 'chapter') {
+      const chapterId = clicked.rawId || clicked.id;
+      emit('select-chapter', chapterId);
+      emit('select-node', clicked);
+      const el = document.getElementById(`chapter-${chapterId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      return;
+    }
+
+    if (clicked.level === 3 || clicked.type === 'section') {
+      emit('select-node', clicked);
+      goToSectionDoc(clicked);
+      return;
+    }
+  }
+}
+
 onMounted(() => {
   const canvas = canvasRef.value;
   if (canvas) {
@@ -599,11 +644,14 @@ onMounted(() => {
     targetTransform.y = currentTransform.y;
     targetTransform.k = currentTransform.k;
 
-    // 平移缩放行为：点击空白平移，命中节点放行拖拽
+    // 平移缩放行为：点击空白平移，命中节点放行拖拽；移动端单指默认放行滚动，开启手势后才拦截
     zoomBehavior = d3
       .zoom()
       .scaleExtent([0.15, 6])
       .filter((event) => {
+        if (event.type === 'touchstart' || event.type === 'touchmove') {
+          return Boolean(isTouchPanActive.value);
+        }
         if (event.type === 'mousedown') {
           if (!canvasRef.value) return true;
           const [x, y] = d3.pointer(event, canvasRef.value);
@@ -635,6 +683,8 @@ onMounted(() => {
     canvas.addEventListener('mousedown', onCanvasMouseDown);
     canvas.addEventListener('mousemove', onCanvasMouseMove);
     canvas.addEventListener('mouseleave', onCanvasMouseLeave);
+    canvas.addEventListener('touchstart', onCanvasTouchStart, { passive: true });
+    canvas.addEventListener('touchend', onCanvasTouchEnd, { passive: true });
   }
 
   if (containerRef.value && typeof ResizeObserver !== 'undefined') {
@@ -666,6 +716,8 @@ onBeforeUnmount(() => {
     canvasRef.value.removeEventListener('mousedown', onCanvasMouseDown);
     canvasRef.value.removeEventListener('mousemove', onCanvasMouseMove);
     canvasRef.value.removeEventListener('mouseleave', onCanvasMouseLeave);
+    canvasRef.value.removeEventListener('touchstart', onCanvasTouchStart);
+    canvasRef.value.removeEventListener('touchend', onCanvasTouchEnd);
   }
   window.removeEventListener('mousemove', onWindowMouseMove);
   window.removeEventListener('mouseup', onWindowMouseUp);
@@ -756,6 +808,17 @@ watch(() => props.tree, (newVal) => {
 
     <!-- WebGL 画布 -->
     <canvas ref="canvasRef" class="graph-canvas" />
+
+    <!-- 移动端手势防劫持开关与提示浮标 -->
+    <button
+      type="button"
+      class="touch-pan-pill font-mono"
+      :class="{ 'is-active': isTouchPanActive }"
+      @click="isTouchPanActive = !isTouchPanActive"
+    >
+      <component :is="isTouchPanActive ? HandCard : Lock" width="13" height="13" />
+      <span>{{ isTouchPanActive ? '手势已开启 (点击锁定)' : '点击开启平移手势' }}</span>
+    </button>
 
     <!-- 加载中 -->
     <div v-if="isLoading" class="graph-overlay">
@@ -956,5 +1019,69 @@ watch(() => props.tree, (newVal) => {
 .error-desc {
   color: var(--text-muted, #888888);
   font-size: 11px;
+}
+
+.touch-pan-pill {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .roadmap-graph-container {
+    height: 360px;
+  }
+
+  .graph-toolbar {
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    gap: 6px;
+  }
+
+  .search-box {
+    display: none;
+  }
+
+  .level-btn {
+    padding: 0 10px;
+    font-size: 11px;
+  }
+
+  .view-controls {
+    gap: 1px;
+    padding: 2px;
+  }
+
+  .tool-btn {
+    width: 28px;
+    height: 28px;
+  }
+
+  /* 移动端手势防劫持浮标 */
+  .touch-pan-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    z-index: 10;
+    padding: 6px 12px;
+    border-radius: var(--radius-full, 9999px);
+    background-color: rgba(24, 24, 27, 0.88);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.15));
+    color: var(--text-secondary, #a1a1aa);
+    font-size: 11.5px;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+    transition: all 140ms ease;
+  }
+
+  .touch-pan-pill.is-active {
+    background-color: var(--accent-primary, #38bdf8);
+    color: #09090b;
+    font-weight: 600;
+    border-color: var(--accent-primary, #38bdf8);
+  }
 }
 </style>

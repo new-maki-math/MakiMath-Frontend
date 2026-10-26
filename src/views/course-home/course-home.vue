@@ -3,6 +3,7 @@ import { computed, ref, watch, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { getCourseById, getCourseChapters } from '../../api';
 import { NavArrowRight } from '@iconoir/vue';
+import RoadmapGraph from '../../components/RoadmapGraph.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -700,5 +701,114 @@ watch(courseId, (newId) => {
   color: var(--text-muted);
   font-size: var(--font-size-smaller);
   text-align: center;
+}
+
+@media (max-width: 768px) {
+  .view-container {
+    padding: 16px 14px 48px;
+    gap: 24px;
+  }
+
+  .course-header {
+    gap: 12px;
+    padding-bottom: 20px;
+  }
+
+  .course-title {
+    font-size: clamp(20px, 5.5vw, 24px);
+    line-height: 1.35;
+  }
+
+  .course-desc {
+    font-size: 13.5px;
+    line-height: 1.6;
+  }
+
+  .course-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .grid-layout {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .spec-card {
+    padding: 16px;
+    gap: 12px;
+  }
+
+  .roadmap-container-box {
+    height: 360px;
+  }
+
+  .roadmap-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding-bottom: 10px;
+  }
+
+  .curriculum-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding-bottom: 10px;
+  }
+
+  .curriculum-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .chapter-header-btn {
+    padding: 12px 14px;
+  }
+
+  .chapter-meta {
+    flex-wrap: wrap;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .chapter-title {
+    font-size: 13.5px;
+  }
+
+  .chapter-aside {
+    gap: 8px;
+    font-size: 12px;
+  }
+
+  .section-entry {
+    padding: 12px 14px;
+    gap: 8px;
+  }
+
+  .entry-left {
+    gap: 10px;
+    flex: 1;
+  }
+
+  .entry-id {
+    width: 32px;
+    font-size: 11px;
+  }
+
+  .entry-title {
+    font-size: 13px;
+  }
+
+  /* 移动端无鼠标 hover，常驻展示进入讲义提示 */
+  .entry-action {
+    opacity: 0.85;
+    transform: translateX(0);
+    color: var(--accent-primary);
+    font-size: 11px;
+  }
 }
 </style>
