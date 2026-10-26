@@ -207,16 +207,33 @@ function headingText(node) {
   return out.trim();
 }
 
-// 为标题挂载锚点并生成大纲
+// 为标题挂载锚点并生成大纲，同时建立节点与大纲的从属从属关系
 function withOutlines(doc) {
   const outlines = [];
   let i = 0;
+  let currentAnchor = '';
+
+  const attachAnchor = (node, anchor) => {
+    if (!node) return;
+    if (anchor) node.outlineAnchor = anchor;
+    if (Array.isArray(node.children)) {
+      for (const child of node.children) {
+        attachAnchor(child, anchor);
+      }
+    }
+  };
+
   for (const node of doc?.children ?? []) {
-    if (!node || node.type !== 'heading') continue;
-    const title = headingText(node);
-    if (!title) continue;
-    node.anchor = `doc-h${i++}`;
-    outlines.push({ id: node.anchor, title, level: node.level ?? 1 });
+    if (!node) continue;
+    if (node.type === 'heading') {
+      const title = headingText(node);
+      if (!title) continue;
+      node.anchor = `doc-h${i++}`;
+      currentAnchor = node.anchor;
+      outlines.push({ id: node.anchor, title, level: node.level ?? 1 });
+    } else if (currentAnchor) {
+      attachAnchor(node, currentAnchor);
+    }
   }
   return outlines;
 }

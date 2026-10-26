@@ -1,13 +1,21 @@
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted, provide } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import ChapterNav from './ChapterNav.vue';
 import OutlineNav from './OutlineNav.vue';
 import DocFooterNav from './DocFooterNav.vue';
 import { fetchCourseTree, toChapters, getCourseSectionContent } from '../../api';
-import { List, MenuScale, EditPencil, ArrowUp, NavArrowLeft, NavArrowRight } from '@iconoir/vue';
+import { List, MenuScale, EditPencil, ArrowUp, NavArrowLeft, NavArrowRight, Bookmark, BookmarkSolid } from '@iconoir/vue';
 import MSelectionToolbar from '../../components/MSelectionToolbar.vue';
 import LectureViewerEmbed from '../../components/LectureViewerEmbed.vue';
+import {
+  getNotebookItems,
+  addOrUpgradeNotebookItem,
+  removeNotebookItem,
+  DEFAULT_NOTEBOOK_ID
+} from '../../utils/my-lecture-db.js';
+import { getSubordinateCardIds } from '../../utils/my-lecture-slice.js';
+import { notify } from '../../components/MNotice.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -322,6 +330,202 @@ const scrollToOutline = (id) => {
     targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 };
+
+// ============================================================
+// 我的讲义：多粒度收藏与从属合并上下文
+// ============================================================
+const currentNotebookItems = ref([]);
+
+const reloadNotebookItems = async () => {
+  try {
+    currentNotebookItems.value = await getNotebookItems(DEFAULT_NOTEBOOK_ID);
+  } catch (err) {
+    console.error('[DocView] 读取我的讲义失败:', err);
+  }
+};
+
+onMounted(() => {
+  reloadNotebookItems();
+});
+
+watch(() => currentSectionId.value, () => {
+  reloadNotebookItems();
+});
+
+// 是否整节已收录
+const isSectionCollected = computed(() => {
+  const cId = String(courseId.value || '1');
+  const sId = String(currentSectionId.value || '');
+  return currentNotebookItems.value.some(
+    (it) => it.courseId === cId && it.sectionId === sId && it.scope === 'section'
+  );
+});
+
+// 检查某个大纲考点是否已精确收录
+const isOutlineCollected = (outlineId) => {
+  const cId = String(courseId.value || '1');
+  const sId = String(currentSectionId.value || '');
+  return currentNotebookItems.value.some(
+    (it) => it.courseId === cId && it.sectionId === sId && it.scope === 'outline' && it.scopeId === outlineId
+  );
+};
+
+// 检查某个大纲考点是否已被整小节吸收
+const isOutlineAbsorbed = (outlineId) => {
+  return isSectionCollected.value;
+};
+
+// 检查某个卡片是否已精确收录
+const isCardCollected = (cardId) => {
+  const cId = String(courseId.value || '1');
+  const sId = String(currentSectionId.value || '');
+  return currentNotebookItems.value.some(
+    (it) => it.courseId === cId && it.sectionId === sId && it.scope === 'card' && it.scopeId === cardId
+  );
+};
+
+// 检查某个卡片是否已被父大纲考点或整节吸收
+const isCardAbsorbed = (cardId) => {
+  if (isSectionCollected.value) return true;
+  const cId = String(courseId.value || '1');
+  const sId = String(currentSectionId.value || '');
+  const doc = currentContent.value?.doc;
+
+  const collectedOutlineIds = currentNotebookItems.value
+    .filter((it) => it.courseId === cId && it.sectionId === sId && it.scope === 'outline')
+    .map((it) => it.scopeId);
+
+  if (collectedOutlineIds.length === 0) return false;
+
+  for (const outlineId of collectedOutlineIds) {
+    const subCards = getSubordinateCardIds(doc, outlineId);
+    if (subCards.includes(cardId)) {
+      return true;
+    }
+  }
+  return false;
+};
+
+// 收藏 / 移出整小节 (一键收录并自动吸收该小节下的全部碎片)
+const handleToggleSectionCollect = async () => {
+  const cId = String(courseId.value || '1');
+  const sId = String(currentSectionId.value || '');
+  const existing = currentNotebookItems.value.find(
+    (it) => it.courseId === cId && it.sectionId === sId && it.scope === 'section'
+  );
+
+  if (existing) {
+    await removeNotebookItem(existing.id);
+    notify.info(`已将小节《${currentSection.value.title}》移出讲义`);
+    await reloadNotebookItems();
+    return;
+  }
+
+  const res = await addOrUpgradeNotebookItem({
+    courseId: cId,
+    courseTitle: currentSection.value.chapterTitle || '考研数学',
+    sectionId: sId,
+    sectionTitle: currentSection.value.title,
+    scope: 'section',
+    scopeId: 'all',
+    title: currentSection.value.title,
+    badge: '整节',
+    breadcrumb: [currentSection.value.chapterTitle, currentSection.value.title].filter(Boolean)
+  });
+
+  if (res.success) {
+    notify.success(res.message);
+    await reloadNotebookItems();
+  } else {
+    notify.info(res.message);
+  }
+};
+
+// 收藏 / 移出大纲考点节 (自动合并下属真题卡片)
+const handleCollectOutline = async (outlineItem) => {
+  const cId = String(courseId.value || '1');
+  const sId = String(currentSectionId.value || '');
+  const existing = currentNotebookItems.value.find(
+    (it) => it.courseId === cId && it.sectionId === sId && it.scope === 'outline' && it.scopeId === outlineItem.id
+  );
+
+  if (existing) {
+    await removeNotebookItem(existing.id);
+    notify.info(`已将考点《${outlineItem.title}》移出讲义`);
+    await reloadNotebookItems();
+    return;
+  }
+
+  const subCardIds = getSubordinateCardIds(currentContent.value?.doc, outlineItem.id);
+
+  const res = await addOrUpgradeNotebookItem({
+    courseId: cId,
+    courseTitle: currentSection.value.chapterTitle || '考研数学',
+    sectionId: sId,
+    sectionTitle: currentSection.value.title,
+    scope: 'outline',
+    scopeId: outlineItem.id,
+    title: outlineItem.title,
+    badge: '考点',
+    outlineAnchor: outlineItem.id,
+    subordinateCardIds: subCardIds,
+    breadcrumb: [currentSection.value.chapterTitle, currentSection.value.title, outlineItem.title].filter(Boolean)
+  });
+
+  if (res.success) {
+    notify.success(res.message);
+    await reloadNotebookItems();
+  } else {
+    notify.info(res.message);
+  }
+};
+
+// 收藏 / 移出独立卡片 (真题 / 知识盒)
+const handleCollectCard = async (cardNode) => {
+  const cId = String(courseId.value || '1');
+  const sId = String(currentSectionId.value || '');
+  const existing = currentNotebookItems.value.find(
+    (it) => it.courseId === cId && it.sectionId === sId && it.scope === 'card' && it.scopeId === cardNode.cardId
+  );
+
+  if (existing) {
+    await removeNotebookItem(existing.id);
+    notify.info(`已将《${cardNode.cardTitle || '卡片'}》移出讲义`);
+    await reloadNotebookItems();
+    return;
+  }
+
+  const res = await addOrUpgradeNotebookItem({
+    courseId: cId,
+    courseTitle: currentSection.value.chapterTitle || '考研数学',
+    sectionId: sId,
+    sectionTitle: currentSection.value.title,
+    scope: 'card',
+    scopeId: cardNode.cardId,
+    title: cardNode.cardTitle || '知识卡片',
+    badge: cardNode.cardBadge || '卡片',
+    outlineAnchor: cardNode.outlineAnchor || '',
+    breadcrumb: [currentSection.value.chapterTitle, currentSection.value.title, cardNode.cardTitle].filter(Boolean)
+  });
+
+  if (res.success) {
+    notify.success(res.message);
+    await reloadNotebookItems();
+  } else {
+    notify.info(res.message);
+  }
+};
+
+// 提供给递归组件 TypstDoc 与侧边栏 OutlineNav
+provide('lectureCollectContext', {
+  isSectionCollected: () => isSectionCollected.value,
+  isOutlineCollected,
+  isOutlineAbsorbed,
+  isCardCollected,
+  isCardAbsorbed,
+  onCollectCard: handleCollectCard,
+  onCollectOutline: handleCollectOutline
+});
 </script>
 
 <template>
@@ -364,17 +568,30 @@ const scrollToOutline = (id) => {
         <div v-if="pageOutlines.length === 0" class="mobile-outline-empty font-mono">
           本讲暂无大纲锚点
         </div>
-        <button
+        <div
           v-for="(item, idx) in pageOutlines"
           :key="item.id || idx"
-          type="button"
-          class="mobile-outline-item"
-          :class="{ active: activeOutlineId === item.id }"
-          @click="handleSelectMobileOutline(item.id)"
+          class="mobile-outline-row"
         >
-          <span class="mobile-outline-dot" />
-          <span class="mobile-outline-text" :title="item.title">{{ item.title }}</span>
-        </button>
+          <button
+            type="button"
+            class="mobile-outline-item"
+            :class="{ active: activeOutlineId === item.id }"
+            @click="handleSelectMobileOutline(item.id)"
+          >
+            <span class="mobile-outline-dot" />
+            <span class="mobile-outline-text" :title="item.title">{{ item.title }}</span>
+          </button>
+          <button
+            type="button"
+            class="mobile-outline-collect-btn font-mono"
+            :class="{ 'is-collected': isOutlineCollected(item.id), 'is-absorbed': isOutlineAbsorbed(item.id) }"
+            :title="isOutlineAbsorbed(item.id) ? '已随整小节收入讲义' : isOutlineCollected(item.id) ? '已收入我的讲义' : '收入此考点'"
+            @click.stop="handleCollectOutline(item)"
+          >
+            <component :is="isOutlineCollected(item.id) ? BookmarkSolid : Bookmark" width="13" height="13" />
+          </button>
+        </div>
       </div>
     </MDrawer>
 
@@ -390,7 +607,19 @@ const scrollToOutline = (id) => {
               <span v-if="currentSection.chapterTag && currentSection.chapterTitle" class="doc-kicker-sep">/</span>
               <span v-if="currentSection.chapterTitle" class="doc-kicker-title">{{ currentSection.chapterTitle }}</span>
             </div>
-            <h1 class="doc-main-title">{{ currentSection.title }}</h1>
+            <div class="doc-title-row">
+              <h1 class="doc-main-title">{{ currentSection.title }}</h1>
+              <button
+                type="button"
+                class="collect-section-btn font-mono"
+                :class="{ 'is-collected': isSectionCollected }"
+                :title="isSectionCollected ? '整小节已收入我的讲义 (点击移除)' : '将整小节收入我的讲义'"
+                @click="handleToggleSectionCollect"
+              >
+                <component :is="isSectionCollected ? BookmarkSolid : Bookmark" width="13" height="13" />
+                <span>{{ isSectionCollected ? '小节已收录' : '+ 收入整小节' }}</span>
+              </button>
+            </div>
             <p v-if="currentContent.lead || currentSection.desc" class="doc-lead">
               {{ currentContent.lead || currentSection.desc }}
             </p>
@@ -502,6 +731,17 @@ const scrollToOutline = (id) => {
         >
           <EditPencil width="15" height="15" />
           <span>{{ isSelectionMode ? '退出' : '划选' }}</span>
+        </button>
+
+        <button
+          type="button"
+          class="mobile-corner-btn"
+          :class="{ 'is-active': isSectionCollected }"
+          :title="isSectionCollected ? '小节已收录 (点击移出)' : '将整小节收入我的讲义'"
+          @click="handleToggleSectionCollect"
+        >
+          <component :is="isSectionCollected ? BookmarkSolid : Bookmark" width="15" height="15" />
+          <span>{{ isSectionCollected ? '已收录' : '+讲义' }}</span>
         </button>
 
         <button
@@ -663,11 +903,50 @@ const scrollToOutline = (id) => {
   letter-spacing: 0.2px;
 }
 
+.doc-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.collect-section-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  font-size: var(--font-size-smaller);
+  color: var(--text-muted);
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xs, 2px);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+.collect-section-btn:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--border-hover);
+}
+
+.collect-section-btn.is-collected {
+  background-color: rgba(56, 189, 248, 0.14);
+  color: var(--accent-primary);
+  border-color: rgba(56, 189, 248, 0.35);
+  font-weight: 500;
+}
+
 .doc-main-title {
   font-size: var(--font-size-largest);
   font-weight: var(--font-weight-bold);
   color: var(--text-primary);
   line-height: 1.3;
+  margin: 0;
 }
 
 .doc-lead {
@@ -960,6 +1239,44 @@ const scrollToOutline = (id) => {
     font-size: 13px;
     color: var(--text-muted);
     text-align: center;
+  }
+
+  .mobile-outline-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+    width: 100%;
+  }
+
+  .mobile-outline-row .mobile-outline-item {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .mobile-outline-collect-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    border-radius: var(--radius-xs, 2px);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .mobile-outline-collect-btn.is-collected {
+    color: var(--accent-primary);
+  }
+
+  .mobile-outline-collect-btn.is-absorbed {
+    color: var(--accent-primary);
+    opacity: 0.6;
+    cursor: default;
   }
 
   .mobile-outline-item {

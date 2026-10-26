@@ -200,11 +200,15 @@ function transformKaoyanNode(node) {
       }
     }
 
+    const kindKey = KAOYAN_BOXES[name];
     const boxNode = {
       type: 'box',
-      kind: KAOYAN_BOXES[name],
+      kind: kindKey,
       title: typeof title === 'string' ? title : null,
       children: content.map(transformKaoyanNode).filter(Boolean),
+      cardId: `box_${kindKey}_${title ? String(title).slice(0, 24).replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_') : 'item'}`,
+      cardTitle: (typeof title === 'string' && title.trim()) ? title : (kindKey.toUpperCase() + ' 知识卡片'),
+      cardBadge: kindKey
     };
     if (titleChildren && titleChildren.some(n => n.type !== 'text')) boxNode.titleChildren = titleChildren;
     return boxNode;
@@ -305,11 +309,17 @@ function transformKaoyanNode(node) {
       }
     }
 
+    const stableZtId = rawId ? rawId.replace(/^#/, '') : (rawSource ? rawSource.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_') : 'zt');
+    const ztTitle = (rawSource ? rawSource + ' ' : '') + (extractPlainText(rawTitle) || (rawId ? '#' + rawId : '真题试题'));
+
     return {
       type: 'container',
       tag: 'div',
       class: 'td-zt',
-      children
+      children,
+      cardId: `zt_${stableZtId}`,
+      cardTitle: ztTitle,
+      cardBadge: '真题'
     };
   }
 
@@ -376,7 +386,28 @@ function transformKaoyanNode(node) {
 // 文档转换入口
 export function transformKaoyanDoc(doc) {
   if (!doc || !Array.isArray(doc.children)) return doc;
-  return { ...doc, children: doc.children.map(transformKaoyanNode).filter(Boolean) };
+  const transformed = { ...doc, children: doc.children.map(transformKaoyanNode).filter(Boolean) };
+
+  // 确保文档内所有卡片的 cardId 绝对唯一且稳定
+  const seenIds = new Map();
+  const ensureUniqueCardIds = (nodes) => {
+    if (!Array.isArray(nodes)) return;
+    for (const node of nodes) {
+      if (node && node.cardId) {
+        const base = node.cardId;
+        const count = seenIds.get(base) || 0;
+        seenIds.set(base, count + 1);
+        if (count > 0) {
+          node.cardId = `${base}_${count}`;
+        }
+      }
+      if (node && Array.isArray(node.children)) {
+        ensureUniqueCardIds(node.children);
+      }
+    }
+  };
+  ensureUniqueCardIds(transformed.children);
+  return transformed;
 }
 
 export default transformKaoyanDoc;

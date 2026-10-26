@@ -1,5 +1,6 @@
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted, onBeforeUpdate, nextTick } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted, onBeforeUpdate, nextTick, inject } from 'vue';
+import { Bookmark, BookmarkSolid } from '@iconoir/vue';
 
 const props = defineProps({
   outlines: {
@@ -17,6 +18,23 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['select-outline', 'active-change']);
+
+// 讲义收藏上下文
+const collectContext = inject('lectureCollectContext', null);
+
+const isOutlineCollected = (outlineId) => {
+  return Boolean(collectContext?.isOutlineCollected(outlineId));
+};
+
+const isOutlineAbsorbed = (outlineId) => {
+  return Boolean(collectContext?.isOutlineAbsorbed(outlineId));
+};
+
+const handleCollectOutline = (item) => {
+  if (collectContext?.onCollectOutline) {
+    collectContext.onCollectOutline(item);
+  }
+};
 
 const trackRef = ref(null);
 const itemRefs = ref([]);
@@ -246,17 +264,35 @@ onUnmounted(() => {
       <div class="track-active-bar" :style="activeBarStyle"></div>
 
       <!-- 3. 大纲项列表 -->
-      <button
+      <div
         v-for="(item, idx) in outlines"
         :key="item.id"
         :ref="el => setItemRef(el, idx)"
-        class="timeline-item"
+        class="timeline-item-row"
         :class="{ active: currentActiveId === item.id }"
-        :title="item.title"
-        @click="handleClick(item.id)"
       >
-        <span class="timeline-label">{{ item.title }}</span>
-      </button>
+        <button
+          type="button"
+          class="timeline-item"
+          :class="{ active: currentActiveId === item.id }"
+          :title="item.title"
+          @click="handleClick(item.id)"
+        >
+          <span class="timeline-label">{{ item.title }}</span>
+        </button>
+
+        <!-- 考点大纲收藏微交互 -->
+        <button
+          v-if="collectContext"
+          type="button"
+          class="outline-collect-btn"
+          :class="{ 'is-collected': isOutlineCollected(item.id), 'is-absorbed': isOutlineAbsorbed(item.id) }"
+          :title="isOutlineAbsorbed(item.id) ? '已随整小节收入讲义' : isOutlineCollected(item.id) ? '已收入我的讲义 (点击移除)' : '收入此考点到我的讲义'"
+          @click.stop="handleCollectOutline(item)"
+        >
+          <component :is="isOutlineCollected(item.id) ? BookmarkSolid : Bookmark" width="12" height="12" />
+        </button>
+      </div>
     </div>
   </nav>
 </template>
@@ -314,6 +350,14 @@ onUnmounted(() => {
   will-change: transform;
 }
 
+.timeline-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  position: relative;
+}
+
 .timeline-item {
   position: relative;
   display: block;
@@ -323,6 +367,46 @@ onUnmounted(() => {
   cursor: pointer;
   text-align: left;
   transition: color 120ms ease;
+  flex: 1;
+  min-width: 0;
+}
+
+.outline-collect-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 120ms ease, color 120ms ease, background-color 120ms ease;
+  border-radius: var(--radius-xs, 2px);
+  flex-shrink: 0;
+}
+
+.timeline-item-row:hover .outline-collect-btn {
+  opacity: 1;
+}
+
+.outline-collect-btn:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.outline-collect-btn.is-collected {
+  opacity: 1;
+  color: var(--accent-primary);
+}
+
+.outline-collect-btn.is-absorbed {
+  opacity: 0.6;
+  color: var(--accent-primary);
+  cursor: default;
+  pointer-events: none;
 }
 
 .timeline-label {
