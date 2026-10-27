@@ -9,9 +9,10 @@ const props = defineProps({
   selectedKey: { type: String, default: '' },
   loading: { type: Boolean, default: false },
   title: { type: String, default: 'LECTURE WORKBENCH' },
-  refreshLabel: { type: String, default: '刷新讲义' }
+  refreshLabel: { type: String, default: '刷新讲义' },
+  emptyText: { type: String, default: '暂无讲义' }
 });
-const emit = defineEmits(['select', 'expand', 'refresh', 'add', 'remove', 'move']);
+const emit = defineEmits(['select', 'expand', 'refresh', 'add', 'remove', 'move', 'import']);
 const expandedKeys = ref(new Set());
 
 function prepare(nodes) {
@@ -48,10 +49,12 @@ defineExpose({ expand });
         <button class="head-icon-btn" type="button" :title="refreshLabel" :aria-label="refreshLabel" @click="emit('refresh')"><Refresh width="16" height="16" :class="{ 'spin-icon': loading }" /></button>
       </div>
     </header>
+    <div v-if="$slots.toolbar" class="tree-toolbar"><slot name="toolbar" /></div>
     <div class="tree-body">
+      <slot name="notice" />
       <div v-if="loading && !nodes.length" class="tree-empty font-mono">加载中...</div>
-      <div v-else-if="!nodes.length" class="tree-empty"><p>暂无讲义</p><MButton size="sm" @click="emit('refresh')">重试</MButton></div>
-      <WorkbenchTreeNode v-for="(node, index) in prepare(props.nodes)" :key="`${node.type}:${node.id}`" :node="node" :index="index" :sibling-count="nodes.length" :selected-key="selectedKey" @select="emit('select', $event)" @toggle="toggle" @add="emit('add', $event)" @remove="emit('remove', $event)" @move="emit('move', $event)" />
+      <div v-else-if="!nodes.length" class="tree-empty"><p>{{ emptyText }}</p><MButton size="sm" @click="emit('refresh')">重试</MButton></div>
+      <WorkbenchTreeNode v-for="(node, index) in prepare(props.nodes)" :key="`${node.type}:${node.id}`" :node="node" :index="index" :sibling-count="nodes.length" :selected-key="selectedKey" @select="emit('select', $event)" @toggle="toggle" @add="emit('add', $event)" @remove="emit('remove', $event)" @move="emit('move', $event)" @import="emit('import', $event)" />
     </div>
   </aside>
 </template>
@@ -113,6 +116,8 @@ defineExpose({ expand });
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+.tree-toolbar { display: flex; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--border-subtle); }
 
 .tree-body {
   flex: 1;

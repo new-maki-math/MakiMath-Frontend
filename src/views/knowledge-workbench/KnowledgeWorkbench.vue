@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { onBeforeRouteLeave } from 'vue-router';
 import { knowledgeApi } from '../../api/knowledge.js';
+import { managementApi } from '../../api/management.js';
 import { authStatus, currentUser, initAuth } from '../../utils/auth.js';
 import { workbenchPanelState } from '../../utils/workbench-state.js';
 import { notify } from '../../components/MNotice.vue';
@@ -9,6 +10,7 @@ import WorkbenchTree from '../lecture-workbench/WorkbenchTree.vue';
 import WorkbenchPanel from '../lecture-workbench/WorkbenchPanel.vue';
 import MInput from '../../components/MInput.vue';
 import MTextarea from '../../components/MTextarea.vue';
+import MSelect from '../../components/MSelect.vue';
 import MCodeEditor from '../../components/MCodeEditor.vue';
 import MButton from '../../components/MButton.vue';
 import MModal from '../../components/MModal.vue';
@@ -16,6 +18,12 @@ import '../lecture-workbench/workbench.css';
 
 const treeRef = ref(null);
 const points = ref([]);
+const categories = ref([]);
+const categoryError = ref('');
+const listError = ref('');
+const categoryOpen = ref(false);
+const importTarget = ref(null);
+const categoryForm = ref({ name: '', slug: '', parentId: '' });
 const point = ref(null);
 const selectedKey = ref('');
 const baseline = ref('');
@@ -34,18 +42,50 @@ const contextUserId = ref(null);
 
 const authorized = computed(() => authStatus.value === 'authenticated' && currentUser.value?.role === 'super_admin');
 const ownsContext = computed(() => authorized.value && contextUserId.value === currentUser.value?.id);
-const editable = computed(() => ownsContext.value && !selecting.value && !saving.value && !createOpen.value);
+const editable = computed(() => ownsContext.value && !selecting.value && !saving.value && !createOpen.value && !categoryOpen.value && !importTarget.value);
 const snapshot = () => JSON.stringify({ title: point.value?.title || '', source: point.value?.source || '' });
 const dirty = computed(() => Boolean(point.value && baseline.value && snapshot() !== baseline.value));
 watch([dirty, saving], ([changed, busy]) => { workbenchPanelState.value = { dirty: changed, saving: busy }; }, { immediate: true, flush: 'sync' });
 const statusLabels = { active: '有效', disabled: '已停用', archived: '已归档' };
-const treeNodes = computed(() => [{
-  type: 'group', id: 'points', label: '知识点', actions: authorized.value ? { add: true } : false,
-  children: points.value.map((item) => ({
+const categoryLinksMissing = computed(() => {
+  const ids = new Set(categories.value.map((item) => item.id));
+  return points.value.some((item) => !Array.isArray(item.category_ids) || item.category_ids.some((id) => !ids.has(id)));
+});
+const categoryOptions = computed(() => [
+  { value: '', label: '一级分类' },
+  ...categories.value.map((item) => ({ value: String(item.id), label: item.name }))
+]);
+const treeNodes = computed(() => {
+  const groups = new Map(categories.value.map((item) => [item.id, {
+    type: 'group', id: item.id, label: item.name, category: item,
+    actions: authorized.value && item.parent_id === null ? { import: true } : false, children: []
+  }]));
+  const roots = [];
+  const pointNode = (item) => ({
     type: 'section', id: item.id, item,
     label: `${item.title || '未命名知识点'}${item.status && item.status !== 'active' ? ` · ${statusLabels[item.status] || item.status}` : ''}`
-  }))
-}]);
+  });
+  for (const item of categories.value) {
+    const group = groups.get(item.id);
+    const seen = new Set([item.id]);
+    let parent = item.parent_id;
+    let valid = true;
+    while (parent != null && groups.has(parent)) {
+      if (seen.has(parent)) { valid = false; break; }
+      seen.add(parent);
+      parent = groups.get(parent).category.parent_id;
+    }
+    if (valid && item.parent_id != null && groups.has(item.parent_id)) groups.get(item.parent_id).children.push(group);
+    else roots.push(group);
+  }
+  for (const item of points.value) {
+    const ids = Array.isArray(item.category_ids) ? item.category_ids : null;
+    const destinations = ids ? [...new Set(ids)].filter((id) => groups.has(id)) : [];
+    if (!destinations.length) roots.push(pointNode(item));
+    else for (const id of destinations) groups.get(id).children.push(pointNode(item));
+  }
+  return roots;
+});
 
 function finishLeave(confirmed) {
   leaveOpen.value = false;
@@ -68,16 +108,42 @@ function beforeUnload(event) {
 async function loadList() {
   const sequence = ++listSequence;
   loading.value = true;
+  listError.value = '';
+  categoryError.value = '';
   try {
-    const result = await knowledgeApi.manage();
+    const [pointResult, categoryResult] = await Promise.allSettled([knowledgeApi.manage(), managementApi.categories('knowledge')]);
     if (sequence !== listSequence) return;
-    if (!Array.isArray(result)) throw new Error('知识点列表数据不完整');
-    points.value = result;
-  } catch (err) {
-    if (sequence === listSequence) notify(err.message || '知识点列表加载失败', 'error');
+    if (pointResult.status === 'fulfilled' && Array.isArray(pointResult.value)) points.value = pointResult.value;
+    else { points.value = []; listError.value = '知识点管理列表加载失败，请重试。'; }
+    if (categoryResult.status === 'fulfilled' && Array.isArray(categoryResult.value)) categories.value = categoryResult.value;
+    else { categories.value = []; categoryError.value = '分类加载失败，当前无法按分类展示知识点。'; }
   } finally {
     if (sequence === listSequence) loading.value = false;
   }
+}
+async function createCategory() {
+  if (!authorized.value || saving.value) return;
+  const name = categoryForm.value.name.trim();
+  const slug = categoryForm.value.slug.trim();
+  const parentId = categoryForm.value.parentId;
+  if (!name || !slug) { notify('请填写分类名称和标识', 'warn'); return; }
+  if (parentId && !categories.value.some((item) => String(item.id) === parentId)) { notify('父分类不存在，请刷新列表', 'warn'); return; }
+  const body = { name, slug, parent_id: parentId ? Number(parentId) : null };
+  saving.value = true;
+  const epoch = identityEpoch;
+  try {
+    await managementApi.createCategory('knowledge', body);
+    if (epoch !== identityEpoch) { notify('账号状态已变化，请重新核对分类创建结果', 'warn'); return; }
+    categoryOpen.value = false;
+    categoryForm.value = { name: '', slug: '', parentId: '' };
+    notify('分类已创建', 'success');
+    await loadList();
+  } catch (err) { notify(err.message || '创建分类失败', 'error'); }
+  finally { saving.value = false; }
+}
+function openImport(node) {
+  if (!authorized.value || node.category?.parent_id !== null || !categories.value.some((item) => item.id === node.id && item.parent_id === null)) return;
+  importTarget.value = node.category;
 }
 async function selectNode(node) {
   if (!authorized.value || selecting.value || saving.value || createOpen.value || node.type !== 'section' || (ownsContext.value && selectedKey.value === `section:${node.id}`)) return;
@@ -136,7 +202,6 @@ async function createPoint() {
     contextUserId.value = currentUser.value?.id;
     baseline.value = snapshot();
     selectedKey.value = `section:${result.id}`;
-    treeRef.value?.expand('group', 'points');
     createOpen.value = false;
     createForm.value = { slug: '', title: '', source: '' };
     notify('知识点已创建', 'success');
@@ -166,6 +231,12 @@ watch([authStatus, () => currentUser.value?.id, () => currentUser.value?.role], 
   selecting.value = false;
   loading.value = false;
   points.value = [];
+  categories.value = [];
+  categoryError.value = '';
+  listError.value = '';
+  categoryOpen.value = false;
+  categoryForm.value = { name: '', slug: '', parentId: '' };
+  importTarget.value = null;
   createOpen.value = false;
   statusTarget.value = '';
   if (authorized.value) loadList();
@@ -182,7 +253,10 @@ onUnmounted(() => {
 
 <template>
   <div class="knowledge-workbench">
-    <WorkbenchTree :inert="selecting || saving || createOpen" ref="treeRef" title="KNOWLEDGE WORKBENCH" refresh-label="刷新知识点" :nodes="treeNodes" :selected-key="selectedKey" :loading="loading" @select="selectNode" @refresh="authorized && loadList()" @add="openCreate" />
+    <WorkbenchTree :inert="selecting || saving || createOpen || categoryOpen || Boolean(importTarget)" ref="treeRef" title="KNOWLEDGE WORKBENCH" refresh-label="刷新分类与知识点" empty-text="暂无分类或知识点" :nodes="treeNodes" :selected-key="selectedKey" :loading="loading" @select="selectNode" @refresh="authorized && loadList()" @import="openImport">
+      <template #toolbar><MButton v-if="authorized" size="sm" @click="categoryOpen = true">新建分类</MButton><MButton v-if="authorized" size="sm" @click="openCreate">新建知识点</MButton></template>
+      <template #notice><p v-if="listError || categoryError || categoryLinksMissing" class="tree-notice">{{ listError || categoryError || '部分知识点的分类关联未提供或分类不可用，无法完整展示分类归属。' }}</p></template>
+    </WorkbenchTree>
     <main class="workbench-main">
       <div v-if="point && !ownsContext" class="workbench-empty"><h2>当前账号无法访问此编辑内容</h2><p>请使用原账号重新登录，或离开后选择其他知识点。</p></div>
       <WorkbenchPanel v-else-if="point" kind="KNOWLEDGE" :title="point.title || '未命名知识点'" :dirty="dirty" :saving="saving || selecting || createOpen" :editable="editable" :can-save="dirty" @save="save" @reset="discard">
@@ -208,6 +282,10 @@ onUnmounted(() => {
       </WorkbenchPanel>
       <div v-else class="workbench-empty"><span class="empty-label font-mono">KNOWLEDGE WORKBENCH</span><h2>{{ authorized ? '选择一个知识点' : '知识点工作台' }}</h2><p>{{ authorized ? '从左侧选择或新建知识点。' : '请使用超级管理员账号登录。' }}</p></div>
     </main>
+    <MModal :open="categoryOpen" title="新建分类" :busy="saving" @close="!saving && (categoryOpen = false)" @confirm="createCategory">
+      <div class="create-fields"><MInput v-model="categoryForm.name" label="分类名称" required /><MInput v-model="categoryForm.slug" label="分类标识" required /><MSelect v-model="categoryForm.parentId" label="父分类" :options="categoryOptions" /></div>
+    </MModal>
+    <MModal :open="Boolean(importTarget)" title="导入 JSON" :desc="`导入目标：${importTarget?.name || ''}`" :hide-footer="true" :show-close="true" @close="importTarget = null"><p class="tree-notice">导入格式和接口正在确认，暂不可导入。</p></MModal>
     <MModal :open="createOpen" title="新建知识点" :busy="saving" @close="!saving && (createOpen = false)" @confirm="createPoint">
       <div class="create-fields"><MInput v-model="createForm.title" label="知识点标题" required /><MInput v-model="createForm.slug" label="知识点标识" hint="创建后无法修改" required /><MTextarea v-model="createForm.source" label="正文" hint="创建时必须填写正文" :rows="5" /></div>
     </MModal>
@@ -228,6 +306,7 @@ onUnmounted(() => {
 .preview-column { display: flex; flex-direction: column; min-width: 0; }
 .preview-heading { margin-bottom: 4px; padding: 0 1px; font-size: var(--font-size-smaller); font-weight: 500; color: var(--text-secondary); }
 .content-preview { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 600px; padding: 16px; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); background: var(--bg-surface); color: var(--text-muted); text-align: center; }
+.tree-notice { margin: 4px 6px 12px; color: var(--text-secondary); font-size: var(--font-size-smaller); line-height: 1.5; }
 .create-fields { display: flex; flex-direction: column; gap: 16px; }
 @media (max-width: 900px) { .content-layout { grid-template-columns: minmax(0, 1fr); } .content-preview { min-height: 240px; } }
 </style>

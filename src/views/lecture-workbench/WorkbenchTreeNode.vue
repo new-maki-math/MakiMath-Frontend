@@ -39,7 +39,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['select', 'toggle', 'add', 'remove', 'move']);
+const emit = defineEmits(['select', 'toggle', 'add', 'remove', 'move', 'import']);
 
 const isSelected = computed(() => `${props.node.type}:${props.node.id}` === props.selectedKey);
 const isBranch = computed(() => Array.isArray(props.node.children));
@@ -121,6 +121,14 @@ const canMoveDown = computed(() => props.index < props.siblingCount - 1);
           <Plus width="15" height="15" />
         </button>
         <button
+          v-if="node.actions.import"
+          class="node-action import-action"
+          type="button"
+          title="导入 JSON"
+          aria-label="导入 JSON"
+          @click.stop="emit('import', node)"
+        >JSON</button>
+        <button
           v-if="node.actions.remove"
           class="node-action is-danger"
           type="button"
@@ -147,6 +155,7 @@ const canMoveDown = computed(() => props.index < props.siblingCount - 1);
           @add="emit('add', $event)"
           @remove="emit('remove', $event)"
           @move="emit('move', $event)"
+          @import="emit('import', $event)"
         />
         <div
           v-if="node.loading"
@@ -168,6 +177,8 @@ const canMoveDown = computed(() => props.index < props.siblingCount - 1);
 </template>
 
 <style scoped>
+.import-action { width: auto; padding: 0 4px; font-size: 10px; }
+
 .node-row {
   display: flex;
   align-items: center;
