@@ -73,6 +73,7 @@ const registerForm = ref({
 
 // 执行登录操作
 const handleLogin = async () => {
+  if (isSubmitting.value) return;
   if (!loginForm.value.username.trim() || !loginForm.value.password) {
     notify('用户名和密码不能为空', 'error');
     return;
@@ -94,6 +95,7 @@ const handleLogin = async () => {
 
 // 执行邀请码注册操作
 const handleRegister = async () => {
+  if (isSubmitting.value) return;
   if (!registerForm.value.inviteCode.trim()) {
     notify('请输入邀请码', 'error');
     return;
