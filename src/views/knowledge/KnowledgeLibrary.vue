@@ -3,8 +3,10 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { hierarchy, select, treemap, treemapBinary, treemapSquarify, zoom, zoomIdentity } from 'd3';
 import { knowledgeApi } from '../../api/knowledge.js';
 import { managementApi } from '../../api/management.js';
-import { getMasteredIds, setMastered } from '../../utils/knowledge-mastery.js';
+import { getMasteredIds, setMastered, setMasteredBatch } from '../../utils/knowledge-mastery.js';
 import MButton from '../../components/MButton.vue';
+import MInput from '../../components/MInput.vue';
+import MSelect from '../../components/MSelect.vue';
 import MLoadingMask from '../../components/MLoadingMask.vue';
 import TypstSource from '../../components/TypstSource.vue';
 import { createKnowledgeRenderer } from './knowledge-webgpu-renderer.js';
@@ -16,7 +18,6 @@ const librariesLoading = ref(false);
 const librariesError = ref('');
 let librariesSequence = 0;
 const searchQuery = ref('');
-const masteryFilter = ref('all');
 const masteryAvailable = ref(false);
 const mapError = ref('');
 const scopeError = ref(false);
@@ -62,8 +63,6 @@ let zoomFrame = 0;
 let zoomTarget = null;
 const selected = ref(null);
 const focusedId = ref('');
-const activeDomain = ref('');
-const activeTopic = ref('');
 const returnStack = ref([]);
 const graph = ref({ categories: [], nodes: [], edges: [] });
 const domains = ref([]);
@@ -72,10 +71,13 @@ const nodeById = new Map();
 const topicNames = new Map();
 const canonicalId = (id) => id;
 const learningNodes = computed(() => graph.value.nodes);
-const currentDomain = computed(() => domainById.get(activeDomain.value));
-const currentTopic = computed(() => currentDomain.value?.topics.find((topic) => topic.id === activeTopic.value));
 const categoryOptions = computed(() => libraries.value.filter((item) => item.parent_id === null));
 const currentLibraryName = computed(() => categoryOptions.value.find((item) => String(item.id) === categoryId.value)?.name || (categoryId.value ? '所选知识库不可用' : '请选择知识库'));
+const librarySelectOptions = computed(() => [
+  { value: '', label: '请选择知识库', disabled: true },
+  ...(categoryId.value && !categoryOptions.value.some((item) => String(item.id) === categoryId.value) ? [{ value: categoryId.value, label: '所选分类不可用', disabled: true }] : []),
+  ...categoryOptions.value.map((item) => ({ value: String(item.id), label: item.name }))
+]);
 async function loadLibraries() {
   const sequence = ++librariesSequence;
   librariesLoading.value = true;
@@ -104,7 +106,6 @@ async function loadLibraries() {
     if (!disposed && sequence === librariesSequence) librariesLoading.value = false;
   }
 }
-const visibleDomains = computed(() => activeDomain.value ? domains.value.filter((domain) => domain.id === activeDomain.value) : domains.value);
 const mastered = ref(new Set());
 
 function buildDomains(data) {
@@ -164,8 +165,6 @@ async function loadMap({ preserveOnError = false } = {}) {
     if (sequence !== mapSequence || disposed) return;
     domains.value = buildDomains(result);
     graph.value = result;
-    activeDomain.value = '';
-    activeTopic.value = '';
     selected.value = null;
     detailSequence++;
     focusedId.value = '';
@@ -201,17 +200,17 @@ const stats = (nodes) => {
   return { done, total: ids.size, percent: ids.size ? Math.round(done / ids.size * 100) : 0 };
 };
 const totalStats = computed(() => stats(learningNodes.value));
+const masteryBatchReady = computed(() => !masteryLoading.value && !masterySaving.value && masteryAvailable.value
+  && !mapLoading.value && !mapError.value && categoryId.value && graph.value.filter?.category_id === Number(categoryId.value) && graph.value.nodes.length > 0);
 const chipNodes = computed(() => {
   const seen = new Set();
-  return visibleDomains.value.flatMap((domain) => domain.nodes).filter((node) => {
+  return domains.value.flatMap((domain) => domain.nodes).filter((node) => {
     const id = canonicalId(node.id);
     if (seen.has(id)) return false;
     seen.add(id);
     const term = searchQuery.value.trim().toLocaleLowerCase();
     const matches = !term || node.title.toLocaleLowerCase().includes(term);
-    if (!matches || masteryFilter.value === 'all') return matches;
-    const isMastered = mastered.value.has(id);
-    return masteryFilter.value === 'mastered' ? isMastered : !isMastered;
+    return matches;
   });
 });
 const searchResults = computed(() => searchQuery.value.trim() ? chipNodes.value : []);
@@ -273,7 +272,7 @@ const chipLayout = computed(() => {
     style: { left: '0px', top: '0px', width: `${worldSize}px`, height: `${worldSize}px` }
   } : null;
   if (!entries.length) return { groups: libraryGroup ? [libraryGroup] : [], tiles: [] };
-  const children = visibleDomains.value.map((domain) => {
+  const children = domains.value.map((domain) => {
     const topics = domain.topics.map((topic) => {
       const nodes = entries.filter((node) => node.domain_id === domain.id && node.topic_id === topic.id);
       const weightSum = nodes.reduce((sum, node) => sum + visualWeight(node.id), 0);
@@ -325,7 +324,6 @@ function updateWorldTransform() {
     labelLayer.value.style.visibility = opacity ? 'visible' : 'hidden';
     labelLayer.value.style.opacity = opacity;
   }
-  if (gpuCanvas.value) gpuCanvas.value.style.visibility = !currentTopic.value ? 'visible' : 'hidden';
   requestGpuDraw();
 }
 watch(mapWorld, updateWorldTransform);
@@ -355,7 +353,7 @@ function updateGpuColor() {
   probe.remove();
 }
 function requestGpuDraw() {
-  if (!gpuRenderer || gpuFrame || currentTopic.value) return;
+  if (!gpuRenderer || gpuFrame) return;
   gpuFrame = requestAnimationFrame(() => {
     gpuFrame = 0;
     const animating = gpuRenderer?.draw(canvasTransform, canvasWidth.value, canvasHeight.value, gpuColor, [
@@ -436,7 +434,7 @@ watch([chipLayout, selected, mastered, focusedId, detailPrerequisites], rebuildG
 watch([canvasWidth, canvasHeight], requestGpuDraw, { flush: 'post' });
 onMounted(() => {
   canvasZoom = zoom().scaleExtent([0.1, 8]).filter((event) => {
-    if (currentTopic.value || event.button) return false;
+    if (event.button) return false;
     return true;
   }).on('start', (event) => { if (event.sourceEvent) stopSmoothZoom(); })
     .on('zoom', (event) => { canvasTransform = event.transform; updateWorldTransform(); });
@@ -514,6 +512,37 @@ async function toggleMastery(node) {
   catch { mastered.value = previous; storageError.value = '掌握状态保存失败，请重试。'; }
   finally { masterySaving.value = false; }
 }
+async function updateLibraryMastery(randomize) {
+  if (!masteryBatchReady.value) return;
+  const ids = [...new Set(graph.value.nodes.map((node) => node.id))];
+  const changes = new Map();
+  for (const id of ids) {
+    if (randomize) {
+      if (!mastered.value.has(id) && Math.random() < 0.5) changes.set(id, true);
+    } else if (mastered.value.has(id)) changes.set(id, false);
+  }
+  if (randomize && !changes.size) {
+    const candidates = ids.filter((id) => !mastered.value.has(id));
+    if (candidates.length) changes.set(candidates[Math.floor(Math.random() * candidates.length)], true);
+  }
+  if (!changes.size) return;
+  masterySaving.value = true;
+  storageError.value = '';
+  try {
+    await setMasteredBatch(changes);
+    if (disposed) return;
+    const next = new Set(mastered.value);
+    for (const [id, value] of changes) {
+      if (value) next.add(id);
+      else next.delete(id);
+    }
+    mastered.value = next;
+  } catch {
+    if (!disposed) storageError.value = '批量更新掌握状态失败，原状态已保留。';
+  } finally {
+    if (!disposed) masterySaving.value = false;
+  }
+}
 function stopSmoothZoom() {
   cancelAnimationFrame(zoomFrame);
   zoomFrame = 0;
@@ -534,7 +563,7 @@ function animateZoom() {
   else zoomFrame = requestAnimationFrame(animateZoom);
 }
 function scaleAt(factor, x, y) {
-  if (!canvas.value || !canvasZoom || currentTopic.value) return;
+  if (!canvas.value || !canvasZoom) return;
   select(canvas.value).interrupt();
   const current = zoomTarget || canvasTransform;
   const k = Math.max(0.1, Math.min(8, current.k * factor));
@@ -543,7 +572,7 @@ function scaleAt(factor, x, y) {
   if (!zoomFrame) zoomFrame = requestAnimationFrame(animateZoom);
 }
 function handleCanvasWheel(event) {
-  if (currentTopic.value || !canvas.value) return;
+  if (!canvas.value) return;
   event.preventDefault();
   const bounds = canvas.value.getBoundingClientRect();
   const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? bounds.height : 1);
@@ -563,27 +592,6 @@ function zoomCanvas(factor) {
 }
 function resetDetailScroll() {
   nextTick(() => { if (detailPanel.value) detailPanel.value.scrollTop = 0; });
-}
-function openDomain(id) {
-  activeDomain.value = id;
-  activeTopic.value = '';
-  closeDetail();
-  returnStack.value = [];
-  resetCanvas();
-}
-function openTopic(domainId, topicId) {
-  activeDomain.value = domainId;
-  activeTopic.value = topicId;
-  closeDetail();
-  returnStack.value = [];
-  resetCanvas();
-}
-function openOverview() {
-  activeDomain.value = '';
-  activeTopic.value = '';
-  closeDetail();
-  returnStack.value = [];
-  resetCanvas();
 }
 async function selectNode(node, preserveHistory = false) {
   const sequence = ++detailSequence;
@@ -605,7 +613,7 @@ async function selectNode(node, preserveHistory = false) {
   detailLoading.value = false;
 }
 function tileAt(event) {
-  if (!gpuReady.value || !canvas.value || currentTopic.value || event.target !== gpuCanvas.value) return null;
+  if (!gpuReady.value || !canvas.value || event.target !== gpuCanvas.value) return null;
   const bounds = canvas.value.getBoundingClientRect();
   const x = (event.clientX - bounds.left - canvasTransform.x) / canvasTransform.k;
   const y = (event.clientY - bounds.top - canvasTransform.y) / canvasTransform.k;
@@ -641,7 +649,7 @@ const selectedOutsideMap = computed(() => selected.value && !graph.value.nodes.s
 function followDependency(node) {
   if (selected.value) {
     returnStack.value.push({
-      node: selected.value, categoryId: categoryId.value, query: searchQuery.value, filter: masteryFilter.value,
+      node: selected.value, categoryId: categoryId.value, query: searchQuery.value,
       transform: { x: canvasTransform.x, y: canvasTransform.y, k: canvasTransform.k }
     });
   }
@@ -694,7 +702,6 @@ async function locateSelected() {
   if (!target) return;
   locateError.value = '';
   const previousQuery = searchQuery.value;
-  const previousFilter = masteryFilter.value;
   if (!nodeById.has(target.id)) {
     if (detailLoading.value) { locateError.value = '请等待知识点详情加载完成。'; return; }
     if (librariesError.value || librariesLoading.value) { locateError.value = '知识库分类尚未加载，请先重试分类加载。'; return; }
@@ -711,13 +718,11 @@ async function locateSelected() {
     selectNode(current, true);
   }
   searchQuery.value = '';
-  masteryFilter.value = 'all';
   await nextTick();
   const tile = chipLayout.value.tiles.find((item) => item.node.id === target.id);
   if (tile) focusTile(tile);
   else {
     searchQuery.value = previousQuery;
-    masteryFilter.value = previousFilter;
     locateError.value = '当前知识库中无法定位该知识点。';
   }
 }
@@ -726,12 +731,10 @@ async function returnToPrevious() {
   const previous = returnStack.value.pop();
   if (!previous) return;
   const currentQuery = searchQuery.value;
-  const currentFilter = masteryFilter.value;
   searchQuery.value = previous.query;
-  masteryFilter.value = previous.filter;
   const loaded = await switchCategory(previous.categoryId);
   if (loaded !== true) {
-    if (loaded === false) { searchQuery.value = currentQuery; masteryFilter.value = currentFilter; returnStack.value.push(previous); }
+    if (loaded === false) { searchQuery.value = currentQuery; returnStack.value.push(previous); }
     return;
   }
   selectNode(nodeById.get(previous.node.id) || previous.node, true);
@@ -756,17 +759,15 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(canonicalId(no
     <MLoadingMask :visible="mapLoading || gpuInitializing || glyphLoading" :text="mapLoading ? '正在加载知识地图…' : '正在准备知识点字形…'" :z-index="50" />
     <main ref="libraryMain" class="library-main">
       <div class="floating-info">
-        <nav class="breadcrumbs" aria-label="知识库层级"><button type="button" @click="openOverview">{{ currentLibraryName }}</button><template v-if="currentDomain"><span>/</span><button type="button" @click="openDomain(currentDomain.id)">{{ currentDomain.name }}</button></template><template v-if="currentTopic"><span>/</span><span aria-current="page">{{ currentTopic.title }}</span></template></nav>
         <div class="knowledge-filters">
-          <label>知识库<select v-model="categoryId"><option value="" disabled>请选择知识库</option><option v-if="categoryId && !categoryOptions.some((item) => String(item.id) === categoryId)" :value="categoryId" disabled>所选分类不可用</option><option v-for="category in categoryOptions" :key="category.id" :value="String(category.id)">{{ category.name }}</option></select></label>
-          <label>搜索当前范围<input v-model="searchQuery" type="search" placeholder="知识点标题" /></label>
-          <label>掌握状态<select v-model="masteryFilter"><option value="all">全部</option><option value="mastered">已掌握</option><option value="unmastered">未掌握</option></select></label>
-          <p class="filter-note">图中按分类分区，深层分类归入子分区；完整分类见详情。</p>
+          <MSelect v-model="categoryId" aria-label="选择知识库" :options="librarySelectOptions" />
+          <MInput v-model="searchQuery" aria-label="搜索知识点标题" type="search" placeholder="搜索知识点标题" />
+          <div class="mastery-actions"><MButton size="sm" :disabled="!masteryBatchReady" @click="updateLibraryMastery(true)">随机学会</MButton><MButton size="sm" :disabled="!masteryBatchReady" @click="updateLibraryMastery(false)">清空掌握</MButton></div>
           <p v-if="librariesLoading" class="filter-note">正在加载知识库分类…</p>
           <p v-else-if="librariesError" class="storage-error" role="alert">{{ librariesError }} <button type="button" @click="loadLibraries">重试</button></p>
           <p v-else-if="!categoryOptions.length" class="filter-note">暂无可选择的一级知识库分类</p>
           <div v-if="searchQuery.trim()" class="search-results">
-            <div class="search-result-head"><span>{{ currentLibraryName }} · {{ masteryFilter === 'all' ? '全部状态' : masteryFilter === 'mastered' ? '已掌握' : '未掌握' }} · {{ searchResults.length }} 条结果</span><button type="button" @click="searchQuery = ''">清空</button></div>
+            <div class="search-result-head"><span>{{ searchResults.length }} 条结果</span><button type="button" @click="searchQuery = ''">清空</button></div>
             <ul v-if="searchResults.length"><li v-for="item in searchResults.slice(0, 50)" :key="item.id"><button type="button" @click="selectSearchResult(item)">{{ item.title }}</button></li></ul>
             <p v-else class="filter-note">当前范围没有匹配的知识点</p>
             <p v-if="searchResults.length > 50" class="filter-note">显示前 50 条，请继续输入缩小范围</p>
@@ -780,8 +781,8 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(canonicalId(no
         <p v-if="glyphWarning" class="storage-error" role="alert">{{ glyphWarning }}</p>
         <div v-if="selected" class="relation-legend"><span class="key-selected">当前</span><span class="key-before">公开前置</span><span class="key-after">范围内后续</span><span>前置 → 后续</span></div>
       </div>
-      <div ref="canvas" class="map-canvas" :class="{ 'is-topic': currentTopic }" @click="handleMapClick" @mousemove="handleMapHover">
-        <div v-if="!currentTopic && !gpuReady" ref="mapWorld" class="map-world" :style="{ width: `${worldSize}px`, height: `${worldSize}px` }">
+      <div ref="canvas" class="map-canvas" @click="handleMapClick" @mousemove="handleMapHover">
+        <div v-if="!gpuReady" ref="mapWorld" class="map-world" :style="{ width: `${worldSize}px`, height: `${worldSize}px` }">
           <div v-for="group in chipLayout.groups" :key="group.id" :class="['chip-group', `is-${group.kind}`]" :style="group.style"><span class="group-heading"><span class="group-heading-text" :class="{ scrolling: groupScrollDistance(group) > 0 }" :style="{ '--scroll-distance': `-${groupScrollDistance(group)}px` }">{{ group.title }}</span></span></div>
           <button v-for="tile in chipLayout.tiles" :key="tile.node.id" type="button" :data-node-id="tile.node.id" :class="['map-tile', relationClass(tile.node), { mastered: mastered.has(canonicalId(tile.node.id)) }]" :style="tile.style" :title="`${domainById.get(tile.node.domain_id)?.name} / ${topicNames.get(tile.node.topic_id)} · ${tileLabel(tile.node)}`" :aria-label="tileLabel(tile.node)" @click="selectNode(tile.node)" />
           <svg v-if="!gpuReady" ref="labelLayer" class="label-layer" :viewBox="`0 0 ${worldSize} ${worldSize}`" aria-hidden="true">
@@ -789,19 +790,13 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(canonicalId(no
             <text v-for="tile in chipLayout.tiles" :key="tile.node.id" :x="parseFloat(tile.style.left) + 4" :y="parseFloat(tile.style.top) + 14" :clip-path="`url(#knowledge-label-${tile.node.id})`" :class="relationClass(tile.node)">{{ tile.node.title }}</text>
           </svg>
         </div>
-        <section v-if="currentTopic" class="topic-detail">
-          <div class="topic-detail-head"><div><h2>{{ currentTopic.title }}</h2><p v-if="stats(currentTopic.nodes).total">{{ stats(currentTopic.nodes).done }} / {{ stats(currentTopic.nodes).total }} 已掌握</p><p v-else>暂无知识点</p></div></div>
-          <div class="detail-grid">
-            <button v-for="node in currentTopic.nodes" :key="node.id" type="button" :data-node-id="node.id" :class="['detail-tile', relationClass(node)]" :title="tileLabel(node)" :aria-label="tileLabel(node)" @click="selectNode(node)"><i :class="['detail-square', { mastered: mastered.has(canonicalId(node.id)) }]" /><span>{{ node.title }}</span></button>
-          </div>
-        </section>
-        <div v-if="!currentTopic && gpuReady" class="canvas-accessibility" aria-label="知识点列表">
+        <div v-if="gpuReady" class="canvas-accessibility" aria-label="知识点列表">
           <button v-for="tile in chipLayout.tiles" :key="tile.node.id" type="button" :aria-label="tileLabel(tile.node)" @focus="focusTile(tile)" @blur="focusedId = ''" @click="selectNode(tile.node)" />
         </div>
-        <canvas v-show="!currentTopic && gpuReady" ref="gpuCanvas" class="gpu-labels" aria-hidden="true" />
+        <canvas v-show="gpuReady" ref="gpuCanvas" class="gpu-labels" aria-hidden="true" />
       </div>
-      <div v-if="!currentTopic" class="floating-controls"><MButton size="sm" aria-label="缩小画布" @click="zoomCanvas(0.8)">−</MButton><MButton size="sm" aria-label="放大画布" @click="zoomCanvas(1.25)">+</MButton><MButton size="sm" @click="resetCanvas">全览</MButton></div>
-      <div v-if="!currentTopic" class="floating-legend"><span><i class="swatch" />未掌握</span><span><i class="swatch mastered" />已掌握</span><span><i class="boundary-key domain" />分区</span><span><i class="boundary-key topic" />子分区</span><span>{{ totalStats.done }} / {{ totalStats.total }}</span></div>
+      <div class="floating-controls"><MButton size="sm" aria-label="缩小画布" @click="zoomCanvas(0.8)">−</MButton><MButton size="sm" aria-label="放大画布" @click="zoomCanvas(1.25)">+</MButton><MButton size="sm" @click="resetCanvas">全览</MButton></div>
+      <div class="floating-legend"><span><i class="swatch" />未掌握</span><span><i class="swatch mastered" />已掌握</span><span><i class="boundary-key domain" />分区</span><span><i class="boundary-key topic" />子分区</span><span>{{ totalStats.done }} / {{ totalStats.total }}</span></div>
     </main>
     <aside v-if="selected" ref="detailPanel" class="detail-panel" aria-label="知识点详情">
       <div class="detail-top"><span class="eyebrow font-mono">知识点 / {{ selected.id }}</span><MButton size="sm" variant="ghost" @click="closeDetail">关闭</MButton></div>
@@ -829,7 +824,6 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(canonicalId(no
 .library-main { position: relative; display: flex; flex: 1; min-width: 0; min-height: 0; }
 .map-canvas { position: relative; flex: 1; min-width: 0; min-height: 0; overflow: hidden; cursor: grab; touch-action: none; }
 .map-canvas:active { cursor: grabbing; }
-.map-canvas.is-topic { overflow: auto; cursor: auto; touch-action: auto; }
 .map-world { position: absolute; left: 0; top: 0; transform-origin: 0 0; background: var(--bg-app); border-radius: var(--radius-xs); }
 .chip-group { position: absolute; box-sizing: border-box; overflow: hidden; background: var(--bg-surface); border: 1px solid color-mix(in srgb, var(--border-hover) var(--group-border-opacity, 100%), transparent); border-radius: var(--radius-xs); pointer-events: none; }
 .chip-group.is-topic { background: var(--bg-elevated); border-color: color-mix(in srgb, var(--border-subtle) var(--group-border-opacity, 100%), transparent); }
@@ -847,20 +841,16 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(canonicalId(no
 .canvas-accessibility { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .map-tile.mastered { background: color-mix(in srgb, var(--accent-primary) 60%, var(--bg-hover)); }
 .swatch.mastered { background: color-mix(in srgb, var(--accent-primary) 60%, var(--bg-hover)); }
-.detail-square.mastered { background: var(--accent-primary); }
 .map-tile:hover { outline: 1px solid var(--border-focus); outline-offset: -1px; }
-.map-tile.is-dimmed, .detail-tile.is-dimmed { opacity: .4; }
-.map-tile.is-selected, .detail-tile.is-selected { outline: 2px solid var(--text-primary); outline-offset: 1px; }
-.map-tile.is-prerequisite, .detail-tile.is-prerequisite { outline: 2px solid var(--tag-amber); outline-offset: 1px; }
-.map-tile.is-successor, .detail-tile.is-successor { outline: 2px solid var(--tag-purple); outline-offset: 1px; }
-.map-tile:focus-visible, .detail-tile:focus-visible { outline: 2px solid var(--text-primary); outline-offset: 1px; }
+.map-tile.is-dimmed { opacity: .4; }
+.map-tile.is-selected { outline: 2px solid var(--text-primary); outline-offset: 1px; }
+.map-tile.is-prerequisite { outline: 2px solid var(--tag-amber); outline-offset: 1px; }
+.map-tile.is-successor { outline: 2px solid var(--tag-purple); outline-offset: 1px; }
+.map-tile:focus-visible { outline: 2px solid var(--text-primary); outline-offset: 1px; }
 .floating-info { position: absolute; z-index: 3; top: 16px; left: 18px; max-width: min(340px, calc(100% - 36px)); color: var(--text-secondary); font-size: var(--font-size-smallest); }
-.breadcrumbs, .relation-legend, .sample-actions, .floating-legend, .floating-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
-.breadcrumbs button, .auxiliary button { padding: 0; border: 0; background: transparent; color: var(--text-primary); cursor: pointer; text-align: left; }
-.breadcrumbs button:hover, .auxiliary button:hover { color: var(--accent-primary); }
-.knowledge-filters { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; padding: 10px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-xs); }
-.knowledge-filters label { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.knowledge-filters input, .knowledge-filters select { min-width: 0; width: 145px; padding: 4px 6px; color: var(--text-primary); background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-xs); font: inherit; }
+.relation-legend, .floating-legend, .floating-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.knowledge-filters { display: flex; flex-direction: column; gap: 8px; width: min(320px, calc(100vw - 72px)); box-sizing: border-box; padding: 10px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-xs); }
+.mastery-actions { display: flex; gap: 8px; }
 .filter-note { margin: 2px 0; color: var(--text-muted); }
 .search-results { border-top: 1px solid var(--border-subtle); padding-top: 6px; }
 .search-result-head { display: flex; justify-content: space-between; gap: 8px; }
@@ -873,17 +863,10 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(canonicalId(no
 .floating-controls { position: absolute; z-index: 3; right: 18px; bottom: 16px; }
 .floating-legend { position: absolute; z-index: 3; left: 18px; bottom: 16px; color: var(--text-secondary); font-size: var(--font-size-smallest); }
 .floating-legend span { display: inline-flex; align-items: center; gap: 5px; }
-.swatch, .detail-square { display: inline-block; width: 10px; height: 10px; background: var(--text-muted); flex-shrink: 0; }
+.swatch { display: inline-block; width: 10px; height: 10px; background: var(--text-muted); flex-shrink: 0; }
 .swatch { background: color-mix(in srgb, var(--text-muted) 32%, var(--bg-hover)); border: 1px solid var(--border-hover); }
 .boundary-key { width: 14px; height: 0; border-top: 2px solid var(--text-secondary); }
 .boundary-key.domain { border-top: 3px solid var(--text-primary); }
-.topic-detail { min-height: 100%; padding: 86px 24px 24px; background: var(--bg-app); }
-.topic-detail h2 { margin: 0; font-size: var(--font-size); }
-.topic-detail p { margin: 6px 0 16px; color: var(--text-secondary); font-size: var(--font-size-smaller); }
-.detail-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
-.detail-tile { display: flex; flex-direction: column; align-items: center; gap: 8px; min-height: 90px; padding: 10px 6px; border: 0; background: transparent; color: var(--text-primary); text-align: center; font-size: var(--font-size-smaller); cursor: pointer; }
-.detail-square { width: 28px; height: 28px; }
-.auxiliary { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-top: 20px; color: var(--text-muted); font-size: var(--font-size-smaller); }
 .detail-panel { position: absolute; z-index: 5; top: 0; right: 0; bottom: 0; width: min(440px, 100%); overflow: auto; padding: 24px; background: var(--bg-surface); border-left: 1px solid var(--border-subtle); }
 .detail-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .eyebrow { color: var(--text-muted); font-size: var(--font-size-smallest); }

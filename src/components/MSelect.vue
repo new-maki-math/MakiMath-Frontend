@@ -4,6 +4,10 @@ defineProps({
     type: [String, Number],
     default: ''
   },
+  ariaLabel: {
+    type: String,
+    default: ''
+  },
   label: {
     type: String,
     default: ''
@@ -31,6 +35,7 @@ defineEmits(['update:modelValue']);
     <div class="select-shell">
       <select
         class="m-select"
+        :aria-label="ariaLabel || undefined"
         :value="modelValue"
         :disabled="disabled"
         @change="$emit('update:modelValue', $event.target.value)"
@@ -39,6 +44,7 @@ defineEmits(['update:modelValue']);
           v-for="opt in options"
           :key="opt.value"
           :value="opt.value"
+          :disabled="opt.disabled"
         >
           {{ opt.label }}
         </option>

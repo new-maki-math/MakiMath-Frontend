@@ -8,6 +8,10 @@ defineProps({
     type: String,
     default: ''
   },
+  ariaLabel: {
+    type: String,
+    default: ''
+  },
   placeholder: {
     type: String,
     default: ''
@@ -38,6 +42,7 @@ defineEmits(['update:modelValue', 'enter']);
     <span v-if="label" class="field-label"><span v-if="required" class="required-mark" aria-hidden="true">*</span>{{ label }}</span>
     <input
       class="m-input"
+      :aria-label="ariaLabel || undefined"
       :type="type"
       :value="modelValue"
       :placeholder="placeholder"
