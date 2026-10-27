@@ -14,6 +14,7 @@ const searchQuery = ref('');
 const masteryFilter = ref('all');
 const masteryAvailable = ref(false);
 const mapError = ref('');
+const scopeError = ref(false);
 const detail = ref(null);
 const detailLoading = ref(false);
 const detailError = ref('');
@@ -131,12 +132,12 @@ function buildDomains(data) {
   return result;
 }
 
-async function loadMap() {
+async function loadMap({ preserveOnError = false } = {}) {
   const sequence = ++mapSequence;
   mapLoading.value = true;
   mapError.value = '';
-  detailSequence++;
-  selected.value = null;
+  scopeError.value = false;
+  if (!preserveOnError) { detailSequence++; selected.value = null; }
   try {
     const result = await knowledgeApi.map(categoryId.value);
     if (sequence !== mapSequence || disposed) return;
@@ -149,9 +150,12 @@ async function loadMap() {
     return true;
   } catch (error) {
     if (sequence === mapSequence && !disposed) {
-      graph.value = { categories: graph.value.categories, nodes: [], edges: [] };
-      domains.value = [];
-      mapError.value = error.status === 404 ? '分类不存在或已归档，请选择其他分类' : '知识地图加载失败，请重试';
+      if (!preserveOnError) {
+        graph.value = { categories: graph.value.categories, nodes: [], edges: [] };
+        domains.value = [];
+      }
+      scopeError.value = preserveOnError;
+      mapError.value = preserveOnError ? '切换范围失败，请在详情中重试。' : error.status === 404 ? '分类不存在或已归档，请选择其他分类' : '知识地图加载失败，请重试';
     }
     return false;
   } finally {
@@ -392,7 +396,7 @@ function handleGpuLost() {
   gpuError.value = 'WebGPU 设备已断开，当前使用备用显示。';
 }
 watch(categoryId, () => { if (!suppressCategoryWatch) { returnStack.value = []; loadMap(); } });
-watch([chipLayout, selected, mastered, focusedId], rebuildGpuLabels, { flush: 'post' });
+watch([chipLayout, selected, mastered, focusedId, detailPrerequisites], rebuildGpuLabels, { flush: 'post' });
 watch([canvasWidth, canvasHeight], requestGpuDraw, { flush: 'post' });
 onMounted(() => {
   canvasZoom = zoom().scaleExtent([0.1, 8]).filter((event) => {
@@ -611,21 +615,37 @@ function followDependency(node) {
 
 async function switchCategory(value) {
   if (categoryId.value === value) return true;
+  const previousCategory = categoryId.value;
   suppressCategoryWatch = true;
   categoryId.value = value;
   await nextTick();
   suppressCategoryWatch = false;
-  return loadMap();
+  const pending = loadMap({ preserveOnError: true });
+  const sequence = mapSequence;
+  const loaded = await pending;
+  if (disposed || sequence !== mapSequence || categoryId.value !== value) return null;
+  if (!loaded) {
+    suppressCategoryWatch = true;
+    categoryId.value = previousCategory;
+    await nextTick();
+    suppressCategoryWatch = false;
+  }
+  return loaded;
 }
 
 async function locateSelected() {
   const target = selected.value;
   if (!target) return;
+  const previousQuery = searchQuery.value;
+  const previousFilter = masteryFilter.value;
   searchQuery.value = '';
   masteryFilter.value = 'all';
   if (!nodeById.has(target.id)) {
     const loaded = await switchCategory('');
-    if (!loaded) return;
+    if (loaded !== true) {
+      if (loaded === false) { searchQuery.value = previousQuery; masteryFilter.value = previousFilter; }
+      return;
+    }
     const current = nodeById.get(target.id);
     if (!current) {
       await selectNode(target, true);
@@ -641,10 +661,15 @@ async function locateSelected() {
 async function returnToPrevious() {
   const previous = returnStack.value.pop();
   if (!previous) return;
+  const currentQuery = searchQuery.value;
+  const currentFilter = masteryFilter.value;
   searchQuery.value = previous.query;
   masteryFilter.value = previous.filter;
   const loaded = await switchCategory(previous.categoryId);
-  if (!loaded) { returnStack.value.push(previous); return; }
+  if (loaded !== true) {
+    if (loaded === false) { searchQuery.value = currentQuery; masteryFilter.value = currentFilter; returnStack.value.push(previous); }
+    return;
+  }
   selectNode(nodeById.get(previous.node.id) || previous.node, true);
   await nextTick();
   if (canvas.value && canvasZoom) {
@@ -673,7 +698,7 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(canonicalId(no
           <label>搜索当前范围<input v-model="searchQuery" type="search" placeholder="知识点标题" /></label>
           <label>掌握状态<select v-model="masteryFilter"><option value="all">全部</option><option value="mastered">已掌握</option><option value="unmastered">未掌握</option></select></label>
         </div>
-        <p v-if="mapError" class="storage-error" role="alert">{{ mapError }} <button type="button" @click="loadMap">重试</button></p>
+        <p v-if="mapError" class="storage-error" role="alert">{{ mapError }} <button v-if="!scopeError" type="button" @click="loadMap()">重试</button></p>
         <p v-else-if="!mapLoading && !learningNodes.length" class="detail-note">当前分类暂无公开知识点</p>
         <p v-else-if="!mapLoading && !chipNodes.length" class="detail-note">当前筛选没有匹配的知识点</p>
         <p v-if="storageError" class="storage-error" role="alert">{{ storageError }}</p>
