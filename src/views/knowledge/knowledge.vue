@@ -1,7 +1,7 @@
 <script setup>
 import { ref, watch, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
-import { request } from '../../api/client.js';
+import { knowledgeApi } from '../../api/knowledge.js';
 import TypstSource from '../../components/TypstSource.vue';
 import MButton from '../../components/MButton.vue';
 
@@ -17,7 +17,7 @@ const load = async (id) => {
   error.value = '';
   point.value = null;
   try {
-    const result = await request(`/api/knowledge-points/${encodeURIComponent(id)}`);
+    const result = await knowledgeApi.get(encodeURIComponent(id));
     if (current === loadId) point.value = result;
   } catch (err) {
     if (current === loadId) error.value = err.status === 404 ? '知识点不存在' : '知识点加载失败';
@@ -39,7 +39,6 @@ onUnmounted(() => { loadId++; });
     </div>
     <article v-else-if="point">
       <h1>{{ point.title }}</h1>
-      <p v-if="point.summary" class="knowledge-summary">{{ point.summary }}</p>
       <TypstSource :source="point.source || ''" />
     </article>
   </div>
@@ -52,8 +51,4 @@ onUnmounted(() => { loadId++; });
   padding: 28px;
 }
 
-.knowledge-summary {
-  color: var(--text-secondary);
-  margin: 12px 0 24px;
-}
 </style>

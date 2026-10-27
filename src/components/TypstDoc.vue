@@ -211,7 +211,7 @@ function warningText(item) {
   <!-- 递归输出节点流 -->
   <template v-else>
     <template v-for="(node, index) in rootNodes" :key="index">
-      <TypstSource v-if="isType(node, 'typst-source')" :source="node.source || ''" />
+      <TypstSource v-if="isType(node, 'typst-source')" :source="node.source || ''" :resolve-knowledge="Boolean(node.resolveKnowledge)" />
       <!-- 纯文本 -->
       <span v-else-if="isType(node, 'text')" class="td-text">{{ node.value }}</span>
 

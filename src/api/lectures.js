@@ -9,12 +9,12 @@ const mutate = async (url, options) => {
 
 export const lectureApi = {
   list: () => request('/api/lectures'),
-  get: (id) => request(`/api/lectures/${id}`),
+  get: (id) => request(`/api/lectures/${id}`, { cache: 'no-store' }),
   mine: () => request('/api/lectures/mine'),
   create: (body) => mutate('/api/lectures', { method: 'POST', body }),
   revisions: (id) => request(`/api/lectures/${id}/revisions`),
   createRevision: (id, basedOnId) => mutate(`/api/lectures/${id}/revisions`, { method: 'POST', body: { based_on_id: basedOnId } }),
-  getRevision: (id) => request(`/api/lecture-revisions/${id}`),
+  getRevision: (id) => request(`/api/lecture-revisions/${id}`, { cache: 'no-store' }),
   saveRevision: (id, body) => mutate(`/api/lecture-revisions/${id}`, { method: 'PUT', body }),
   submitRevision: (id, version) => mutate(`/api/lecture-revisions/${id}/submit`, { method: 'POST', body: { edit_version: version } }),
   collaborators: (id) => request(`/api/lectures/${id}/collaborators`),
@@ -24,13 +24,6 @@ export const lectureApi = {
 };
 
 export function lectureSaveBody(revision, chapters) {
-  for (const chapter of chapters) {
-    for (const section of chapter.sections) {
-      for (const block of section.blocks) {
-        if (!['author', 'knowledge_reference'].includes(block.block_type)) throw new Error('无法保存未知类型的内容块');
-      }
-    }
-  }
   return {
     edit_version: revision.edit_version,
     title: revision.title,
@@ -52,9 +45,7 @@ export function lectureSaveBody(revision, chapters) {
         tag: section.tag,
         title: section.title,
         summary: section.summary,
-        blocks: section.blocks.map((block) => block.block_type === 'author'
-          ? { occurrence_id: block.occurrence_id, block_type: 'author', source: block.source, animation: block.animation }
-          : { occurrence_id: block.occurrence_id, block_type: 'knowledge_reference', knowledge_point_id: block.knowledge_point_id, knowledge_revision_id: block.knowledge_revision_id })
+        source: section.source
       }))
     }))
   };

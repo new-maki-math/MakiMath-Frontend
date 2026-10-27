@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import ChapterNav from './ChapterNav.vue';
 import OutlineNav from './OutlineNav.vue';
 import DocFooterNav from './DocFooterNav.vue';
-import { fetchCourseTree, toChapters, getCourseSectionContent } from '../../api';
+import { fetchCourseTree, toChapters, getCourseSectionContent, invalidateCourseCaches } from '../../api';
 import { List, MenuScale, EditPencil, ArrowUp, NavArrowLeft, NavArrowRight, Bookmark, BookmarkSolid } from '@iconoir/vue';
 import MSelectionToolbar from '../../components/MSelectionToolbar.vue';
 import LectureViewerEmbed from '../../components/LectureViewerEmbed.vue';
@@ -195,13 +195,26 @@ const isLoading = ref(true);
 const loadError = ref('');
 const reloadKey = ref(0);
 let loadId = 0;
-onUnmounted(() => { loadId++; });
+let preserveScrollOnReload = false;
+const refreshOnVisible = () => {
+  if (document.visibilityState !== 'visible') return;
+  invalidateCourseCaches();
+  preserveScrollOnReload = true;
+  reloadKey.value++;
+};
+onMounted(() => document.addEventListener('visibilitychange', refreshOnVisible));
+onUnmounted(() => {
+  loadId++;
+  document.removeEventListener('visibilitychange', refreshOnVisible);
+});
 
 // 监听路由参数加载讲义
 watch(
   [currentCourseId, currentSectionId, reloadKey],
   async ([courseId, sectionId]) => {
     const id = ++loadId;
+    const preserveScroll = preserveScrollOnReload;
+    preserveScrollOnReload = false;
     isSelectionMode.value = false;
     isLoading.value = true;
     loadError.value = '';
@@ -236,13 +249,13 @@ watch(
         return;
       }
       // 使用数字标识以保证缓存与预设映射命中
-      const content = await getCourseSectionContent(tree.id, secId);
+      const content = await getCourseSectionContent(tree.id, secId, tree);
       if (id !== loadId) return;
       currentContent.value = content;
       contentIdentity.value = { courseId: String(tree.id), sectionId: String(secId) };
 
       // 切换时重置滚动位置
-      if (readingViewportRef.value) {
+      if (readingViewportRef.value && !preserveScroll) {
         readingViewportRef.value.scrollTop = 0;
       }
     } catch (err) {

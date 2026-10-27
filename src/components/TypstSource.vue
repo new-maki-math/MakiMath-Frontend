@@ -1,16 +1,25 @@
 <script setup>
 import { ref, watch, onUnmounted } from 'vue';
+import { knowledgeApi } from '../api/knowledge.js';
+import { findKnowledgeReferences } from '../utils/typst-knowledge-references.js';
+import MButton from './MButton.vue';
 
 const props = defineProps({
   source: {
     type: String,
     default: ''
+  },
+  resolveKnowledge: {
+    type: Boolean,
+    default: false
   }
 });
 
 const pages = ref([]);
 const error = ref('');
 const loading = ref(false);
+const failedKnowledgeIds = ref([]);
+const retryKey = ref(0);
 let project = null;
 let projectPromise = null;
 let generation = 0;
@@ -21,16 +30,46 @@ const clearPages = () => {
   pages.value = [];
 };
 
-watch(() => props.source, async (source) => {
+async function resolveSource(source) {
+  const references = findKnowledgeReferences(source);
+  const ids = [...new Set(references.map((reference) => reference.id))];
+  const results = await Promise.all(ids.map(async (id) => {
+    try {
+      const point = await knowledgeApi.get(id);
+      if (typeof point?.source !== 'string') throw new Error('知识点内容不完整');
+      return { id, source: point.source };
+    } catch (err) {
+      return { id, status: err.status === 404 ? 'missing' : 'error' };
+    }
+  }));
+  const byId = new Map(results.map((result) => [result.id, result]));
+  let resolved = source;
+  for (const reference of references.slice().sort((a, b) => b.from - a.from)) {
+    const result = byId.get(reference.id);
+    const replacement = result.status === 'missing'
+      ? `#box[知识点 ${reference.id} 不存在或不可用]`
+      : result.status === 'error'
+        ? `#box[知识点 ${reference.id} 读取失败，请重试]`
+        : result.source;
+    resolved = resolved.slice(0, reference.from) + replacement + resolved.slice(reference.to);
+  }
+  return { source: resolved, failedIds: results.filter((item) => item.status === 'error').map((item) => item.id) };
+}
+
+watch([() => props.source, () => props.resolveKnowledge, retryKey], async ([source, resolveKnowledge]) => {
   const current = ++generation;
   clearPages();
   error.value = '';
+  failedKnowledgeIds.value = [];
   if (!source) {
     loading.value = false;
     return;
   }
   loading.value = true;
   try {
+    const resolved = resolveKnowledge ? await resolveSource(source) : { source, failedIds: [] };
+    if (current !== generation || disposed) return;
+    failedKnowledgeIds.value = resolved.failedIds;
     if (!projectPromise) {
       projectPromise = (async () => {
         const runtimeUrl = `${import.meta.env.BASE_URL}typst/typst-editor.js`;
@@ -49,7 +88,7 @@ watch(() => props.source, async (source) => {
     }
     await projectPromise;
     if (current !== generation) return;
-    await project.setText('/main.typ', source);
+    await project.setText('/main.typ', resolved.source);
     if (current !== generation || disposed) return;
     const result = await project.compile();
     if (current !== generation || disposed) return;
@@ -81,6 +120,10 @@ onUnmounted(() => {
       <pre>{{ source }}</pre>
     </template>
     <img v-for="(page, index) in pages" :key="page" :src="page" :alt="`讲义第 ${index + 1} 页`" />
+    <div v-if="!loading && failedKnowledgeIds.length" class="knowledge-retry">
+      <span>知识点 {{ failedKnowledgeIds.join('、') }} 读取失败</span>
+      <MButton size="sm" @click="retryKey++">重试</MButton>
+    </div>
   </div>
 </template>
 
@@ -98,5 +141,12 @@ onUnmounted(() => {
 
 .typst-error {
   color: var(--tag-red);
+}
+
+.knowledge-retry {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
 }
 </style>

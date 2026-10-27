@@ -342,7 +342,7 @@ defineExpose({
             <!-- 主内容列 -->
             <div class="result-content-col">
               <span class="result-title">{{ item.title }}</span>
-              <span class="result-excerpt font-mono">
+              <span v-if="item.type !== 'knowledge' && (item.descr || item.summary)" class="result-excerpt font-mono">
                 {{ item.descr || item.summary }}
               </span>
             </div>

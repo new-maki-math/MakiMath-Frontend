@@ -103,13 +103,13 @@ export async function fetchCourseTree(id) {
   const resolvedId = await resolveCourseId(id);
   const key = String(resolvedId);
   const loadTree = async () => {
-    const snapshot = await request(`/api/lectures/${encodeURIComponent(key)}`);
+    const snapshot = await request(`/api/lectures/${encodeURIComponent(key)}`, { cache: 'no-store' });
     const lecture = snapshot.lecture;
     const revision = snapshot.revision;
     if (!lecture || !revision || !Array.isArray(snapshot.chapters)) throw new Error('讲义数据不完整');
     if (snapshot.chapters.some((chapter) =>
       !chapter.occurrence_id || !Array.isArray(chapter.sections) || chapter.sections.some((section) =>
-        !section.occurrence_id || !Array.isArray(section.blocks) || section.blocks.some((block) => !block.occurrence_id)
+        !section.occurrence_id || typeof section.source !== 'string'
       )
     )) throw new Error('讲义目录数据不完整');
     return {
@@ -123,7 +123,7 @@ export async function fetchCourseTree(id) {
         sections: (chapter.sections || []).map((section) => ({
           ...section,
           id: section.occurrence_id,
-          has_source: section.blocks?.length > 0
+          has_source: Boolean(section.source)
         }))
       })),
       edges: []
@@ -131,14 +131,21 @@ export async function fetchCourseTree(id) {
   };
   if (startedVersion !== cacheVersion) return loadTree();
   const version = cacheVersion;
-  return cachedRequest(treeCache, treeRequests, key, async () => {
-    const tree = await loadTree();
-    if (tree.slug && version === cacheVersion) {
-      slugToIdMap.set(tree.slug, String(tree.id));
-      registerPresetMapping(tree.id, tree.slug);
+  if (treeRequests.has(key)) return treeRequests.get(key);
+  const promise = loadTree().then((tree) => {
+    if (version === cacheVersion) {
+      treeCache.set(key, tree);
+      if (tree.slug) {
+        slugToIdMap.set(tree.slug, String(tree.id));
+        registerPresetMapping(tree.id, tree.slug);
+      }
     }
     return tree;
+  }).finally(() => {
+    if (treeRequests.get(key) === promise) treeRequests.delete(key);
   });
+  treeRequests.set(key, promise);
+  return promise;
 }
 
 // 转换章节数据模型
@@ -245,18 +252,14 @@ export function getCachedCourseChapters(id) {
 }
 
 // 获取小节正文文档
-export async function getCourseSectionDoc(sectionId, courseId) {
-  const tree = await fetchCourseTree(courseId);
+export async function getCourseSectionDoc(sectionId, courseId, existingTree = null) {
+  const tree = existingTree || await fetchCourseTree(courseId);
   const section = tree.chapters.flatMap((chapter) => chapter.sections).find((item) => String(item.id) === String(sectionId));
   if (!section) {
     const error = new Error('讲义小节不存在');
     error.status = 404;
     throw error;
   }
-  if ((section.blocks || []).some((block) =>
-    !['author', 'knowledge_reference'].includes(block.block_type) ||
-    (block.block_type === 'knowledge_reference' && typeof block.knowledge_source !== 'string')
-  )) throw new Error('讲义内容块不完整');
   return {
     id: section.id,
     title: section.title,
@@ -264,13 +267,7 @@ export async function getCourseSectionDoc(sectionId, courseId) {
     updated_at: tree.updated_at,
     doc: {
       type: 'doc',
-      children: (section.blocks || []).map((block) => ({
-        type: 'typst-source',
-        source: block.block_type === 'knowledge_reference' ? block.knowledge_source : block.source,
-        occurrenceId: block.occurrence_id,
-        knowledgePointId: block.knowledge_point_id,
-        knowledgeRevisionId: block.knowledge_revision_id
-      }))
+      children: [{ type: 'typst-source', source: section.source, resolveKnowledge: true }]
     }
   };
 }
@@ -348,8 +345,8 @@ function normalizeAnimation(anim) {
 }
 
 // 获取小节正文与大纲模型
-export async function getCourseSectionContent(courseKey, sectionId) {
-  const data = await getCourseSectionDoc(sectionId, courseKey);
+export async function getCourseSectionContent(courseKey, sectionId, existingTree = null) {
+  const data = await getCourseSectionDoc(sectionId, courseKey, existingTree);
   const rawDoc = structuredClone(data.doc ?? { type: 'doc', children: [] });
   const keyStr = String(courseKey || '');
   const cachedTree = treeCache.get(keyStr);

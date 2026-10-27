@@ -1,17 +1,15 @@
 <script setup>
 import { ref, watch } from 'vue';
 import { reviewApi } from '../../api/reviews.js';
-import { knowledgeApi } from '../../api/knowledge.js';
 import { lectureApi } from '../../api/lectures.js';
 import { notify } from '../../components/MNotice.vue';
 import MButton from '../../components/MButton.vue';
 import MModal from '../../components/MModal.vue';
 import MTable from '../../components/MTable.vue';
-import MTabs from '../../components/MTabs.vue';
 import MTextarea from '../../components/MTextarea.vue';
 import TypstSource from '../../components/TypstSource.vue';
 
-const kind = ref('knowledge');
+const kind = ref('lecture');
 const items = ref([]);
 const loading = ref(false);
 const selected = ref(null);
@@ -46,9 +44,7 @@ const showDetail = async (item) => {
   detailError.value = '';
   detailLoading.value = true;
   try {
-    const result = kind.value === 'knowledge'
-      ? await knowledgeApi.getRevision(item.id)
-      : await lectureApi.getRevision(item.id);
+    const result = await lectureApi.getRevision(item.id);
     if (id === detailId) detail.value = result;
   } catch (err) {
     if (id === detailId) detailError.value = err.message || '读取审核内容失败';
@@ -91,7 +87,6 @@ watch(kind, () => {
 <template>
   <section class="review-panel font-mono">
     <h1>内容审核</h1>
-    <MTabs v-model="kind" :tabs="[{ label: '知识点', value: 'knowledge' }, { label: '讲义', value: 'lecture' }]" />
     <MTable :data="items" :loading="loading">
       <template #header><th>版本</th><th>标题</th><th>提交时间</th><th>操作</th></template>
       <template #rows="{ data }">
@@ -106,18 +101,13 @@ watch(kind, () => {
       <p v-else-if="detailError">{{ detailError }}</p>
       <template v-else-if="detail">
         <div class="review-content">
-          <template v-if="kind === 'knowledge'">
-            <h2>{{ detail.title }}</h2>
-            <p>{{ detail.summary }}</p>
-            <TypstSource :source="detail.source || ''" />
-          </template>
-          <template v-else>
+          <template>
             <h2>{{ detail.revision.title }}</h2>
             <section v-for="chapter in detail.chapters" :key="chapter.occurrence_id">
               <h3>{{ chapter.title }}</h3>
               <div v-for="section in chapter.sections" :key="section.occurrence_id">
                 <h4>{{ section.title }}</h4>
-                <TypstSource v-for="block in section.blocks" :key="block.occurrence_id" :source="(block.block_type === 'knowledge_reference' ? block.knowledge_source : block.source) || ''" />
+                <TypstSource :source="section.source || ''" resolve-knowledge />
               </div>
             </section>
           </template>
