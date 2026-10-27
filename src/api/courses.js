@@ -4,10 +4,8 @@ import { adaptDocWithPreset, registerPresetMapping } from '../utils/preset-loade
 
 // 内存单例缓存与 slug 映射
 const treeCache = new Map();
-const docCache = new Map();
 const courseListCache = new Map();
 const treeRequests = new Map();
-const docRequests = new Map();
 const courseListRequests = new Map();
 let cacheVersion = 0;
 // slug -> 数字 id 的动态映射表；不要硬编码，课程 id 由数据库自增决定
@@ -17,15 +15,13 @@ const slugToIdMap = new Map();
 export function invalidateCourseCaches() {
   cacheVersion++;
   treeCache.clear();
-  docCache.clear();
   courseListCache.clear();
   treeRequests.clear();
-  docRequests.clear();
   courseListRequests.clear();
   slugToIdMap.clear();
 }
 
-const fetchCourseList = () => cachedRequest(courseListCache, courseListRequests, 'all', () => request('/api/courses'));
+const fetchCourseList = () => cachedRequest(courseListCache, courseListRequests, 'all', () => request('/api/lectures'));
 
 function cachedRequest(cache, pending, key, load) {
   if (cache.has(key)) return Promise.resolve(cache.get(key));
@@ -65,7 +61,7 @@ export async function resolveCourseId(idOrSlug) {
 export async function getCourseCategories() {
   try {
     const [cats, courses] = await Promise.all([
-      request('/api/categories'),
+      request('/api/categories/lecture'),
       fetchCourseList()
     ]);
     if (!Array.isArray(cats)) return [];
@@ -80,8 +76,8 @@ export async function getCourseCategories() {
         slug: course.slug,
         title: course.title,
         desc: course.descr || course.subtitle || '',
-        live: course.status === 'live',
-        hidden: course.status === 'hidden' || course.status === 'archived'
+        live: true,
+        hidden: false
       });
     }
 
@@ -104,10 +100,32 @@ export async function fetchCourseTree(id) {
   const startedVersion = cacheVersion;
   const resolvedId = await resolveCourseId(id);
   const key = String(resolvedId);
-  if (startedVersion !== cacheVersion) return request(`/api/courses/${encodeURIComponent(key)}/tree`);
+  const loadTree = async () => {
+    const snapshot = await request(`/api/lectures/${encodeURIComponent(key)}`);
+    const lecture = snapshot.lecture;
+    const revision = snapshot.revision;
+    if (!lecture || !revision || !Array.isArray(snapshot.chapters)) throw new Error('讲义数据不完整');
+    return {
+      ...revision,
+      id: lecture.id,
+      slug: lecture.slug,
+      status: 'live',
+      chapters: snapshot.chapters.map((chapter) => ({
+        ...chapter,
+        id: chapter.occurrence_id,
+        sections: (chapter.sections || []).map((section) => ({
+          ...section,
+          id: section.occurrence_id,
+          has_source: section.blocks?.length > 0
+        }))
+      })),
+      edges: []
+    };
+  };
+  if (startedVersion !== cacheVersion) return loadTree();
   const version = cacheVersion;
   return cachedRequest(treeCache, treeRequests, key, async () => {
-    const tree = await request(`/api/courses/${encodeURIComponent(key)}/tree`);
+    const tree = await loadTree();
     if (tree.slug && version === cacheVersion) {
       slugToIdMap.set(tree.slug, String(tree.id));
       registerPresetMapping(tree.id, tree.slug);
@@ -220,9 +238,34 @@ export function getCachedCourseChapters(id) {
 }
 
 // 获取小节正文文档
-export async function getCourseSectionDoc(sectionId) {
-  const key = String(sectionId);
-  return cachedRequest(docCache, docRequests, key, () => request(`/api/sections/${encodeURIComponent(key)}/doc`));
+export async function getCourseSectionDoc(sectionId, courseId) {
+  const tree = await fetchCourseTree(courseId);
+  const section = tree.chapters.flatMap((chapter) => chapter.sections).find((item) => String(item.id) === String(sectionId));
+  if (!section) {
+    const error = new Error('讲义小节不存在');
+    error.status = 404;
+    throw error;
+  }
+  if ((section.blocks || []).some((block) =>
+    !['author', 'knowledge_reference'].includes(block.block_type) ||
+    (block.block_type === 'knowledge_reference' && typeof block.knowledge_source !== 'string')
+  )) throw new Error('讲义内容块不完整');
+  return {
+    id: section.id,
+    title: section.title,
+    summary: section.summary,
+    updated_at: tree.updated_at,
+    doc: {
+      type: 'doc',
+      children: (section.blocks || []).map((block) => ({
+        type: 'typst-source',
+        source: block.block_type === 'knowledge_reference' ? block.knowledge_source : block.source,
+        occurrenceId: block.occurrence_id,
+        knowledgePointId: block.knowledge_point_id,
+        knowledgeRevisionId: block.knowledge_revision_id
+      }))
+    }
+  };
 }
 
 // 提取标题纯文本
@@ -299,7 +342,7 @@ function normalizeAnimation(anim) {
 
 // 获取小节正文与大纲模型
 export async function getCourseSectionContent(courseKey, sectionId) {
-  const data = await getCourseSectionDoc(sectionId);
+  const data = await getCourseSectionDoc(sectionId, courseKey);
   const rawDoc = structuredClone(data.doc ?? { type: 'doc', children: [] });
   const keyStr = String(courseKey || '');
   const cachedTree = treeCache.get(keyStr);
@@ -333,8 +376,8 @@ export async function searchLectures(q, limit = 20) {
 // 获取随机搜索推荐讲义小节
 export async function fetchSearchRecommendations(limit = 6) {
   try {
-    const res = await request(`/api/search/recommendations?limit=${limit}`);
-    return Array.isArray(res?.hits) ? res.hits : [];
+    const list = await fetchCourseList();
+    return list.filter((item) => item.is_recommended).slice(0, limit).map((item) => ({ ...item, type: 'lecture' }));
   } catch (error) {
     console.warn('[API] 获取搜索推荐异常:', error);
     return [];
