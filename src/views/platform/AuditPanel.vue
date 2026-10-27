@@ -21,11 +21,10 @@ const loadAuditLogs = async (page = 1, limit = auditLimit.value) => {
   auditPage.value = page;
   auditLimit.value = limit;
   try {
-    const res = await request(`/api/audit-logs?page=${page}&limit=${limit}`);
-    if (res?.items) {
-      auditLogs.value = res.items;
-      auditTotal.value = res.total || 0;
-    }
+    const res = await request('/api/audit-logs');
+    const items = Array.isArray(res) ? res : [];
+    auditLogs.value = items.slice((page - 1) * limit, page * limit);
+    auditTotal.value = items.length;
   } catch (err) {
     notify(err.message || '加载全站日志失败', 'error');
   } finally {

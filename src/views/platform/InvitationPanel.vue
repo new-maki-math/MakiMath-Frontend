@@ -21,11 +21,9 @@ const loadInvitations = async (page = 1) => {
   isLoadingInvitations.value = true;
   invitePage.value = page;
   try {
-    const res = await request(`/api/invitations?page=${page}&limit=15`);
-    if (res?.items) {
-      invitations.value = res.items;
-      inviteTotal.value = res.total || 0;
-    }
+    const res = await request('/api/invitations');
+    invitations.value = Array.isArray(res) ? res : [];
+    inviteTotal.value = invitations.value.length;
   } catch (err) {
     notify(err.message || '加载邀请码失败', 'error');
   } finally {
@@ -58,12 +56,14 @@ const handleOpenCreateInvite = () => {
 const handleCreateInvite = async () => {
   isCreatingInvite.value = true;
   try {
+    const days = Number(createInviteForm.value.expiresInDays);
+    if (!Number.isFinite(days) || days < 0) throw new Error('有效期天数不正确');
     await request('/api/invitations', {
       method: 'POST',
       body: {
         role: createInviteForm.value.role,
-        maxUses: Number(createInviteForm.value.maxUses) || 1,
-        expiresInDays: Number(createInviteForm.value.expiresInDays) || 0,
+        max_uses: Number(createInviteForm.value.maxUses) || 1,
+        expires_at: days ? new Date(Date.now() + days * 86400000).toISOString() : null,
         note: createInviteForm.value.note.trim()
       }
     });

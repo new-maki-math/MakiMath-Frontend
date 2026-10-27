@@ -12,7 +12,7 @@ import MButton from '../../components/MButton.vue';
 import PlatformAuth from './PlatformAuth.vue';
 import UserPanel from './UserPanel.vue';
 import InvitationPanel from './InvitationPanel.vue';
-import EditorPanel from './EditorPanel.vue';
+import ReviewPanel from './ReviewPanel.vue';
 import AuditPanel from './AuditPanel.vue';
 
 // 当前激活的选项卡
@@ -20,7 +20,7 @@ const activeTab = ref('users');
 const tabs = [
   { id: 'users', label: '用户管理', icon: Group },
   { id: 'invitations', label: '邀请码管理', icon: Key },
-  { id: 'editors', label: '课程授权', icon: BookmarkSolid },
+  { id: 'reviews', label: '内容审核', icon: BookmarkSolid },
   { id: 'audit', label: '全站审计日志', icon: Page }
 ];
 
@@ -65,7 +65,7 @@ onMounted(() => {
     <main class="platform-content">
       <UserPanel v-if="activeTab === 'users'" />
       <InvitationPanel v-else-if="activeTab === 'invitations'" />
-      <EditorPanel v-else-if="activeTab === 'editors'" />
+      <ReviewPanel v-else-if="activeTab === 'reviews'" />
       <AuditPanel v-else-if="activeTab === 'audit'" />
     </main>
   </div>
