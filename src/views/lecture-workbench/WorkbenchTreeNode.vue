@@ -58,7 +58,7 @@ const canMoveDown = computed(() => props.index < props.siblingCount - 1);
   <div class="tree-node">
     <div
       class="node-row"
-      :class="[`type-${node.type}`, { 'is-selected': isSelected }]"
+      :class="[`type-${node.type}`, { 'is-selected': isSelected, 'actions-on-hover': node.actionsOnHover }]"
       :style="{ paddingLeft: indent }"
       @click="emit('select', node)"
     >
@@ -115,7 +115,8 @@ const canMoveDown = computed(() => props.index < props.siblingCount - 1);
           v-if="node.actions.add"
           class="node-action"
           type="button"
-          title="新建子项"
+          :title="node.actions.addLabel || '新建子项'"
+          :aria-label="node.actions.addLabel || '新建子项'"
           @click.stop="emit('add', node)"
         >
           <Plus width="15" height="15" />
@@ -132,7 +133,9 @@ const canMoveDown = computed(() => props.index < props.siblingCount - 1);
           v-if="node.actions.remove"
           class="node-action is-danger"
           type="button"
-          title="删除"
+          :title="node.actions.removeLabel || '删除'"
+          :aria-label="node.actions.removeLabel || '删除'"
+          :disabled="Boolean(node.actions.removeDisabled)"
           @click.stop="emit('remove', node)"
         >
           <Trash width="15" height="15" />
@@ -298,7 +301,7 @@ const canMoveDown = computed(() => props.index < props.siblingCount - 1);
 
 .node-row:hover .node-actions,
 .node-row:focus-within .node-actions,
-.node-row.type-group .node-actions {
+.node-row.type-group:not(.actions-on-hover) .node-actions {
   display: inline-flex;
 }
 

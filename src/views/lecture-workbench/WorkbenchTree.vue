@@ -1,8 +1,7 @@
 <script setup>
 import { ref } from 'vue';
-import { Refresh } from '@iconoir/vue';
+import { Plus, Refresh } from '@iconoir/vue';
 import WorkbenchTreeNode from './WorkbenchTreeNode.vue';
-import MButton from '../../components/MButton.vue';
 
 const props = defineProps({
   nodes: { type: Array, default: () => [] },
@@ -10,9 +9,10 @@ const props = defineProps({
   loading: { type: Boolean, default: false },
   title: { type: String, default: 'LECTURE WORKBENCH' },
   refreshLabel: { type: String, default: '刷新讲义' },
-  emptyText: { type: String, default: '暂无讲义' }
+  emptyText: { type: String, default: '暂无讲义' },
+  addLabel: { type: String, default: '' }
 });
-const emit = defineEmits(['select', 'expand', 'refresh', 'add', 'remove', 'move', 'import']);
+const emit = defineEmits(['select', 'expand', 'refresh', 'add', 'remove', 'move', 'import', 'add-root']);
 const expandedKeys = ref(new Set());
 
 function prepare(nodes) {
@@ -46,6 +46,7 @@ defineExpose({ expand });
     <header class="tree-head">
       <span class="tree-title font-mono">{{ title }}</span>
       <div class="tree-head-actions">
+        <button v-if="addLabel" class="head-icon-btn" type="button" :title="addLabel" :aria-label="addLabel" @click="emit('add-root')"><Plus width="16" height="16" /></button>
         <button class="head-icon-btn" type="button" :title="refreshLabel" :aria-label="refreshLabel" @click="emit('refresh')"><Refresh width="16" height="16" :class="{ 'spin-icon': loading }" /></button>
       </div>
     </header>
@@ -53,7 +54,7 @@ defineExpose({ expand });
     <div class="tree-body">
       <slot name="notice" />
       <div v-if="loading && !nodes.length" class="tree-empty font-mono">加载中...</div>
-      <div v-else-if="!nodes.length" class="tree-empty"><p>{{ emptyText }}</p><MButton size="sm" @click="emit('refresh')">重试</MButton></div>
+      <div v-else-if="!nodes.length" class="tree-empty"><span class="tree-empty-face" aria-hidden="true">（・_・）</span><p>{{ emptyText }}</p></div>
       <WorkbenchTreeNode v-for="(node, index) in prepare(props.nodes)" :key="`${node.type}:${node.id}`" :node="node" :index="index" :sibling-count="nodes.length" :selected-key="selectedKey" @select="emit('select', $event)" @toggle="toggle" @add="emit('add', $event)" @remove="emit('remove', $event)" @move="emit('move', $event)" @import="emit('import', $event)" />
     </div>
   </aside>
@@ -127,12 +128,19 @@ defineExpose({ expand });
 }
 
 .tree-empty {
+  min-height: 100%;
+  box-sizing: border-box;
   padding: 24px 14px;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
   gap: 12px;
   font-size: var(--font-size-smaller);
   color: var(--text-muted);
+}
+.tree-empty-face {
+  font-size: 22px;
 }
 </style>
