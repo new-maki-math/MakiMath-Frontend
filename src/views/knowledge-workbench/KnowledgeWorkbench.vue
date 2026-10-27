@@ -28,9 +28,13 @@ const leaveOpen = ref(false);
 const createForm = ref({ slug: '', title: '', source: '' });
 let loadSequence = 0;
 let listSequence = 0;
+let identityEpoch = 0;
 let leaveResolve = null;
+const contextUserId = ref(null);
 
 const authorized = computed(() => authStatus.value === 'authenticated' && currentUser.value?.role === 'super_admin');
+const ownsContext = computed(() => authorized.value && contextUserId.value === currentUser.value?.id);
+const editable = computed(() => ownsContext.value && !selecting.value && !saving.value && !createOpen.value);
 const snapshot = () => JSON.stringify({ title: point.value?.title || '', source: point.value?.source || '' });
 const dirty = computed(() => Boolean(point.value && baseline.value && snapshot() !== baseline.value));
 watch([dirty, saving], ([changed, busy]) => { workbenchPanelState.value = { dirty: changed, saving: busy }; }, { immediate: true, flush: 'sync' });
@@ -76,7 +80,7 @@ async function loadList() {
   }
 }
 async function selectNode(node) {
-  if (selecting.value || node.type !== 'section' || selectedKey.value === `section:${node.id}`) return;
+  if (!authorized.value || selecting.value || saving.value || createOpen.value || node.type !== 'section' || (ownsContext.value && selectedKey.value === `section:${node.id}`)) return;
   if (!await mayLeave()) return;
   const sequence = ++loadSequence;
   selecting.value = true;
@@ -85,6 +89,7 @@ async function selectNode(node) {
     if (sequence !== loadSequence) return;
     if (!result?.id || typeof result.source !== 'string') throw new Error('知识点数据不完整');
     point.value = result;
+    contextUserId.value = currentUser.value?.id;
     baseline.value = snapshot();
     selectedKey.value = `section:${node.id}`;
   } catch (err) {
@@ -97,12 +102,14 @@ function discard() {
   if (baseline.value && point.value) Object.assign(point.value, JSON.parse(baseline.value));
 }
 async function save() {
-  if (!authorized.value || !point.value || !dirty.value || saving.value || selecting.value) return;
+  if (!editable.value || !point.value || !dirty.value) return;
   const body = { title: point.value.title.trim(), source: point.value.source };
   if (!body.title || !body.source?.trim()) { notify('请填写标题和正文', 'warn'); return; }
   saving.value = true;
+  const epoch = identityEpoch;
   try {
     const result = await knowledgeApi.update(point.value.id, body);
+    if (epoch !== identityEpoch) { notify('账号状态已变化，请重新核对知识点保存结果', 'warn'); return; }
     if (!result?.id || typeof result.source !== 'string') throw new Error('保存响应不完整，请重新读取知识点');
     point.value = { ...point.value, ...result };
     baseline.value = snapshot();
@@ -120,10 +127,13 @@ async function createPoint() {
   const body = { slug: createForm.value.slug.trim(), title: createForm.value.title.trim(), source: createForm.value.source };
   if (!body.slug || !body.title || !body.source.trim()) { notify('请填写标识、标题和正文', 'warn'); return; }
   saving.value = true;
+  const epoch = identityEpoch;
   try {
     const result = await knowledgeApi.create(body);
+    if (epoch !== identityEpoch) { notify('知识点已创建，账号状态已变化，请刷新列表', 'warn'); return; }
     if (!result?.id || typeof result.source !== 'string') throw new Error('创建响应不完整，请刷新列表');
     point.value = result;
+    contextUserId.value = currentUser.value?.id;
     baseline.value = snapshot();
     selectedKey.value = `section:${result.id}`;
     treeRef.value?.expand('group', 'points');
@@ -135,10 +145,12 @@ async function createPoint() {
   finally { saving.value = false; }
 }
 async function changeStatus() {
-  if (!authorized.value || !point.value || !statusTarget.value || saving.value || dirty.value) return;
+  if (!ownsContext.value || !point.value || !statusTarget.value || saving.value || dirty.value) return;
   saving.value = true;
+  const epoch = identityEpoch;
   try {
     const result = await knowledgeApi.setStatus(point.value.id, statusTarget.value);
+    if (epoch !== identityEpoch) { notify('账号状态已变化，请重新核对知识点状态', 'warn'); return; }
     if (!result?.id || !result.status) throw new Error('状态响应不完整，请重新读取知识点');
     point.value = { ...point.value, ...result };
     statusTarget.value = '';
@@ -147,7 +159,17 @@ async function changeStatus() {
   } catch (err) { notify(err.message || '更新状态失败', 'error'); }
   finally { saving.value = false; }
 }
-watch(authorized, (allowed) => { if (allowed) loadList(); }, { immediate: true });
+watch([authStatus, () => currentUser.value?.id, () => currentUser.value?.role], () => {
+  identityEpoch++;
+  loadSequence++;
+  listSequence++;
+  selecting.value = false;
+  loading.value = false;
+  points.value = [];
+  createOpen.value = false;
+  statusTarget.value = '';
+  if (authorized.value) loadList();
+}, { immediate: true, flush: 'sync' });
 onMounted(async () => { window.addEventListener('beforeunload', beforeUnload); await initAuth(); });
 onUnmounted(() => {
   loadSequence++;
@@ -160,16 +182,17 @@ onUnmounted(() => {
 
 <template>
   <div class="knowledge-workbench">
-    <WorkbenchTree ref="treeRef" title="KNOWLEDGE WORKBENCH" refresh-label="刷新知识点" :nodes="treeNodes" :selected-key="selectedKey" :loading="loading" @select="selectNode" @refresh="authorized && loadList()" @add="openCreate" />
+    <WorkbenchTree :inert="selecting || saving || createOpen" ref="treeRef" title="KNOWLEDGE WORKBENCH" refresh-label="刷新知识点" :nodes="treeNodes" :selected-key="selectedKey" :loading="loading" @select="selectNode" @refresh="authorized && loadList()" @add="openCreate" />
     <main class="workbench-main">
-      <WorkbenchPanel v-if="point" kind="KNOWLEDGE" :title="point.title || '未命名知识点'" :dirty="dirty" :saving="saving || selecting" :editable="authorized" :can-save="dirty" @save="save" @reset="discard">
+      <div v-if="point && !ownsContext" class="workbench-empty"><h2>当前账号无法访问此编辑内容</h2><p>请使用原账号重新登录，或离开后选择其他知识点。</p></div>
+      <WorkbenchPanel v-else-if="point" kind="KNOWLEDGE" :title="point.title || '未命名知识点'" :dirty="dirty" :saving="saving || selecting || createOpen" :editable="editable" :can-save="dirty" @save="save" @reset="discard">
         <template #actions>
           <MButton v-if="authorized && point.status !== 'active'" size="sm" :disabled="saving || selecting || dirty" @click="statusTarget = 'active'">恢复</MButton>
           <MButton v-if="authorized && point.status === 'active'" size="sm" :disabled="saving || selecting || dirty" @click="statusTarget = 'disabled'">停用</MButton>
           <MButton v-if="authorized && point.status !== 'archived'" size="sm" :disabled="saving || selecting || dirty" @click="statusTarget = 'archived'">归档</MButton>
         </template>
         <div class="status-notice">状态：{{ statusLabels[point.status] || '未提供' }}。保存后立即生效，内容以最后一次成功保存为准。</div>
-        <div class="wb-block" :inert="!authorized">
+        <div class="wb-block" :inert="!editable">
           <div class="wb-form-grid">
             <MInput v-model="point.title" label="知识点标题" required />
             <MInput :model-value="point.slug || ''" label="知识点标识" disabled />
@@ -178,7 +201,7 @@ onUnmounted(() => {
         <div class="wb-block">
           <div class="wb-block-head"><span class="wb-block-title">知识点内容</span></div>
           <div class="content-layout">
-            <MCodeEditor :key="authorized" v-model="point.source" label="Typst 源码" height="max(600px, calc(100vh - 300px))" :show-language="false" :readonly="!authorized" @save="authorized && save()" />
+            <MCodeEditor :key="editable" v-model="point.source" label="Typst 源码" height="max(600px, calc(100vh - 300px))" :show-language="false" :readonly="!editable" @save="editable && save()" />
             <div class="preview-column"><div class="preview-heading">预览</div><div class="content-preview font-mono">COOMING SOON</div></div>
           </div>
         </div>

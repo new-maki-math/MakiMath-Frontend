@@ -50,7 +50,7 @@ async function resolveSource(source) {
       ? `#box[知识点 ${reference.id} 不存在或不可用]`
       : result.status === 'error'
         ? `#box[知识点 ${reference.id} 读取失败，请重试]`
-        : result.source;
+        : `#[\n${result.source}\n]`;
     resolved = resolved.slice(0, reference.from) + replacement + resolved.slice(reference.to);
   }
   return { source: resolved, failedIds: results.filter((item) => item.status === 'error').map((item) => item.id) };
@@ -72,19 +72,27 @@ watch([() => props.source, () => props.resolveKnowledge, retryKey], async ([sour
     failedKnowledgeIds.value = resolved.failedIds;
     if (!projectPromise) {
       projectPromise = (async () => {
-        const runtimeUrl = `${import.meta.env.BASE_URL}typst/typst-editor.js`;
-        const { TypstProject } = await import(/* @vite-ignore */ runtimeUrl);
-        const instance = await TypstProject.create();
-        if (disposed) {
-          instance.destroy();
-          throw new Error('页面已关闭');
+        let instance;
+        try {
+          const runtimeUrl = `${import.meta.env.BASE_URL}typst/typst-editor.js`;
+          const { TypstProject } = await import(/* @vite-ignore */ runtimeUrl);
+          instance = await TypstProject.create();
+          if (disposed) {
+            instance.destroy();
+            throw new Error('页面已关闭');
+          }
+          project = instance;
+          const response = await fetch(`${import.meta.env.BASE_URL}typst/fonts/NotoSansSC.otf`);
+          if (!response.ok) throw new Error('无法加载讲义字体');
+          await project.addFont(await response.arrayBuffer());
+          return project;
+        } catch (err) {
+          if (instance && !disposed) instance.destroy();
+          if (project === instance) project = null;
+          throw err;
         }
-        project = instance;
-        const response = await fetch(`${import.meta.env.BASE_URL}typst/fonts/NotoSansSC.otf`);
-        if (!response.ok) throw new Error('无法加载讲义字体');
-        await project.addFont(await response.arrayBuffer());
-        return project;
       })();
+      projectPromise.catch(() => { projectPromise = null; });
     }
     await projectPromise;
     if (current !== generation) return;
@@ -117,6 +125,7 @@ onUnmounted(() => {
     <p v-if="loading">正在排版讲义</p>
     <template v-else-if="error">
       <p class="typst-error">排版失败：{{ error }}</p>
+      <MButton size="sm" @click="retryKey++">重试</MButton>
       <pre>{{ source }}</pre>
     </template>
     <img v-for="(page, index) in pages" :key="page" :src="page" :alt="`讲义第 ${index + 1} 页`" />
