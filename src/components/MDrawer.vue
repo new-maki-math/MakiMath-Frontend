@@ -41,6 +41,10 @@ const props = defineProps({
     type: Boolean,
     default: true
   },
+  modal: {
+    type: Boolean,
+    default: true
+  },
   closeOnClickBackdrop: {
     type: Boolean,
     default: true
@@ -106,12 +110,13 @@ onBeforeUnmount(() => {
     class="m-drawer-container"
     :class="[
       fixed ? 'is-fixed' : 'is-absolute',
-      { 'is-open': isOpen }
+      { 'is-open': isOpen, 'is-modal': modal }
     ]"
     :style="{ zIndex: panelZIndex }"
   >
     <!-- 压暗遮罩（仅限容器内容区或全局） -->
     <MBackdrop
+      v-if="modal"
       :open="isOpen"
       :teleport="teleport"
       :fixed="fixed"
@@ -187,7 +192,7 @@ onBeforeUnmount(() => {
   height: 100vh;
 }
 
-.m-drawer-container.is-open {
+.m-drawer-container.is-open.is-modal {
   pointer-events: auto;
 }
 

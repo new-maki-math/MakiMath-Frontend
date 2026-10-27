@@ -32,8 +32,8 @@ export async function createKnowledgeRenderer(canvas, onLost, onLoading, onMissi
     }
   `;
   const shapeShader = device.createShaderModule({ code: common + `
-    struct Input { @location(0) position: vec2f, @location(1) bounds: vec4f, @location(2) color: vec4f, @location(3) border: f32 }
-    struct Output { @builtin(position) position: vec4f, @location(0) world: vec2f, @location(1) bounds: vec4f, @location(2) color: vec4f, @location(3) border: f32 }
+    struct Input { @location(0) position: vec2f, @location(1) bounds: vec4f, @location(2) color: vec4f, @location(3) border: f32, @location(4) transition: f32 }
+    struct Output { @builtin(position) position: vec4f, @location(0) world: vec2f, @location(1) bounds: vec4f, @location(2) color: vec4f, @location(3) border: f32, @location(4) transition: f32 }
     @vertex fn vs(input: Input) -> Output {
       var out: Output;
       out.position = clipPosition(input.position);
@@ -41,6 +41,7 @@ export async function createKnowledgeRenderer(canvas, onLost, onLoading, onMissi
       out.bounds = input.bounds;
       out.color = input.color;
       out.border = input.border;
+      out.transition = input.transition;
       return out;
     }
     @fragment fn fs(input: Output) -> @location(0) vec4f {
@@ -56,14 +57,17 @@ export async function createKnowledgeRenderer(canvas, onLost, onLoading, onMissi
         coverage *= (1.0 - smoothstep(input.border - transition, input.border + transition, innerPixels)) * smoothstep(0.2, 0.4, u.transform.z);
       }
       if (input.border < 0.0) { coverage *= 1.0 - smoothstep(0.4, 0.8, u.transform.z); }
-      let alpha = input.color.a * coverage;
+      var transitionAlpha = 1.0;
+      if (input.transition > 0.5) { transitionAlpha = u.labelAlpha.w; }
+      else if (input.transition < -0.5) { transitionAlpha = 1.0 - u.labelAlpha.w; }
+      let alpha = input.color.a * coverage * transitionAlpha;
       return vec4f(input.color.rgb * alpha, alpha);
     }
   ` });
   const textShader = device.createShaderModule({ code: common + `
     @group(0) @binding(1) var atlas: texture_2d<f32>;
     @group(0) @binding(2) var atlasSampler: sampler;
-    struct Input { @location(0) position: vec2f, @location(1) uv: vec2f, @location(2) alpha: f32, @location(3) level: f32, @location(4) anchor: vec2f, @location(5) scroll: vec3f }
+    struct Input { @location(0) position: vec2f, @location(1) uv: vec2f, @location(2) alpha: f32, @location(3) level: f32, @location(4) anchor: vec2f, @location(5) scroll: vec3f, @location(6) previousAlpha: f32 }
     struct Output { @builtin(position) position: vec4f, @location(0) uv: vec2f, @location(1) alpha: f32, @location(2) worldX: f32, @location(3) bounds: vec2f }
     @vertex fn vs(input: Input) -> Output {
       var out: Output;
@@ -83,7 +87,7 @@ export async function createKnowledgeRenderer(canvas, onLost, onLoading, onMissi
       var levelAlpha = u.labelAlpha.z;
       if (input.level < 0.5) { levelAlpha = u.labelAlpha.x; }
       else if (input.level < 1.5) { levelAlpha = u.labelAlpha.y; }
-      out.alpha = input.alpha * levelAlpha;
+      out.alpha = mix(input.previousAlpha, input.alpha, u.labelAlpha.w) * levelAlpha;
       return out;
     }
     @fragment fn fs(input: Output) -> @location(0) vec4f {
@@ -99,14 +103,14 @@ export async function createKnowledgeRenderer(canvas, onLost, onLoading, onMissi
   ` });
   const blend = { color: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha' }, alpha: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha' } };
   const [shapePipeline, textPipeline] = await Promise.all([
-    device.createRenderPipelineAsync({ layout: 'auto', vertex: { module: shapeShader, entryPoint: 'vs', buffers: [{ arrayStride: 44, attributes: [
+    device.createRenderPipelineAsync({ layout: 'auto', vertex: { module: shapeShader, entryPoint: 'vs', buffers: [{ arrayStride: 48, attributes: [
       { shaderLocation: 0, offset: 0, format: 'float32x2' }, { shaderLocation: 1, offset: 8, format: 'float32x4' },
-      { shaderLocation: 2, offset: 24, format: 'float32x4' }, { shaderLocation: 3, offset: 40, format: 'float32' }
+      { shaderLocation: 2, offset: 24, format: 'float32x4' }, { shaderLocation: 3, offset: 40, format: 'float32' }, { shaderLocation: 4, offset: 44, format: 'float32' }
     ] }] }, fragment: { module: shapeShader, entryPoint: 'fs', targets: [{ format, blend }] }, primitive: { topology: 'triangle-list' } }),
-    device.createRenderPipelineAsync({ layout: 'auto', vertex: { module: textShader, entryPoint: 'vs', buffers: [{ arrayStride: 44, attributes: [
+    device.createRenderPipelineAsync({ layout: 'auto', vertex: { module: textShader, entryPoint: 'vs', buffers: [{ arrayStride: 48, attributes: [
       { shaderLocation: 0, offset: 0, format: 'float32x2' }, { shaderLocation: 1, offset: 8, format: 'float32x2' },
       { shaderLocation: 2, offset: 16, format: 'float32' }, { shaderLocation: 3, offset: 20, format: 'float32' },
-      { shaderLocation: 4, offset: 24, format: 'float32x2' }, { shaderLocation: 5, offset: 32, format: 'float32x3' }
+      { shaderLocation: 4, offset: 24, format: 'float32x2' }, { shaderLocation: 5, offset: 32, format: 'float32x3' }, { shaderLocation: 6, offset: 44, format: 'float32' }
     ] }] }, fragment: { module: textShader, entryPoint: 'fs', targets: [{ format, blend }] }, primitive: { topology: 'triangle-list' } })
   ]).catch((error) => { device.destroy(); throw error; });
   console.info(`[知识地图] WebGPU 初始化完成，耗时 ${Math.round(performance.now() - rendererStart)} ms`);
@@ -253,6 +257,10 @@ export async function createKnowledgeRenderer(canvas, onLost, onLoading, onMissi
   let shapeBuffer = null;
   let shapeCount = 0;
   let scrollLevels = new Set();
+  let previousStates = new Map();
+  let transitionFromStates = new Map();
+  let transitionStarted = 0;
+  const transitionDuration = 200;
 
   function makeBuffer(values) {
     const data = new Float32Array(values);
@@ -263,9 +271,13 @@ export async function createKnowledgeRenderer(canvas, onLost, onLoading, onMissi
   async function setTiles(tiles, relation, fontFamily, groups, mastered, palette) {
     if (disposed) return false;
     const sequence = ++sceneSequence;
+    const nextStates = new Map(tiles.map((tile) => [tile.node.id, relation(tile.node)]));
+    const changed = tiles.some((tile) => previousStates.has(tile.node.id) && previousStates.get(tile.node.id) !== nextStates.get(tile.node.id));
+    const ongoing = transitionStarted && performance.now() - transitionStarted < transitionDuration;
+    const fromStates = changed || !ongoing ? previousStates : transitionFromStates;
     const labels = [
-      ...tiles.map((tile) => ({ ...tile, text: tile.node.title, fontSize: 10, level: 2, alpha: relation(tile.node) === 'is-dimmed' ? 0.4 : 1 })),
-      ...groups.map((group) => ({ style: group.style, text: group.title, fontSize: group.fontSize, level: group.kind === 'domain' ? 0 : 1, alpha: 1 }))
+      ...tiles.map((tile) => ({ ...tile, text: tile.node.title, fontSize: 10, level: 2, alpha: nextStates.get(tile.node.id) === 'is-dimmed' ? 0.4 : 1, previousAlpha: (fromStates.get(tile.node.id) ?? nextStates.get(tile.node.id)) === 'is-dimmed' ? 0.4 : 1 })),
+      ...groups.map((group) => ({ style: group.style, text: group.title, fontSize: group.fontSize, level: group.kind === 'domain' ? 0 : 1, alpha: 1, previousAlpha: 1 }))
     ];
     const codepoints = [...new Set(labels.flatMap((label) => Array.from(label.text, (character) => character.codePointAt(0))))];
     if (codepoints.length && !codepoints.includes(63)) codepoints.push(63);
@@ -274,24 +286,27 @@ export async function createKnowledgeRenderer(canvas, onLost, onLoading, onMissi
     await job;
     if (disposed || sequence !== sceneSequence) return false;
     const shapes = [];
-    const shape = (style, color, inset = 0, border = 0) => {
+    let hasTransition = false;
+    const shape = (style, color, inset = 0, border = 0, transition = 0) => {
       const x = parseFloat(style.left) + inset;
       const y = parseFloat(style.top) + inset;
       const width = Math.max(0, parseFloat(style.width) - inset * 2);
       const height = Math.max(0, parseFloat(style.height) - inset * 2);
       if (!width || !height) return;
-      const push = (px, py) => shapes.push(px, py, x, y, width, height, ...color, border);
+      const push = (px, py) => shapes.push(px, py, x, y, width, height, ...color, border, transition);
       push(x, y); push(x + width, y); push(x, y + height);
       push(x, y + height); push(x + width, y); push(x + width, y + height);
     };
     for (const group of groups) shape(group.style, group.kind === 'domain' ? palette.domain : palette.topic);
     const regions = new Map();
     for (const tile of tiles) {
-      const state = relation(tile.node);
+      const state = nextStates.get(tile.node.id);
       if (state !== '') continue;
       const known = mastered(tile.node);
-      const key = JSON.stringify([tile.node.domain_id, tile.node.topic_id, known]);
-      if (!regions.has(key)) regions.set(key, { color: known ? palette.mastered : palette.unmastered, rectangles: [] });
+      const previous = fromStates.get(tile.node.id);
+      const transition = previous !== undefined && previous !== state ? 1 : 0;
+      const key = JSON.stringify([tile.node.domain_id, tile.node.topic_id, known, transition]);
+      if (!regions.has(key)) regions.set(key, { color: known ? palette.mastered : palette.unmastered, rectangles: [], transition });
       const x = parseFloat(tile.style.left);
       const y = parseFloat(tile.style.top);
       regions.get(key).rectangles.push({ left: x - 1, top: y - 1, right: x + parseFloat(tile.style.width) + 1, bottom: y + parseFloat(tile.style.height) + 1 });
@@ -317,30 +332,38 @@ export async function createKnowledgeRenderer(canvas, onLost, onLoading, onMissi
           next.set(key, previous ? { ...previous, right } : { left, right, top, bottom });
         }
         for (const [key, rect] of active) {
-          if (!next.has(key)) shape({ left: rect.left, top: rect.top, width: rect.right - rect.left, height: rect.bottom - rect.top }, region.color, 0, -1);
+          if (!next.has(key)) shape({ left: rect.left, top: rect.top, width: rect.right - rect.left, height: rect.bottom - rect.top }, region.color, 0, -1, region.transition);
         }
         active = next;
       }
-      for (const rect of active.values()) shape({ left: rect.left, top: rect.top, width: rect.right - rect.left, height: rect.bottom - rect.top }, region.color, 0, -1);
+      for (const rect of active.values()) shape({ left: rect.left, top: rect.top, width: rect.right - rect.left, height: rect.bottom - rect.top }, region.color, 0, -1, region.transition);
     }
-    for (const tile of tiles) {
-      const state = relation(tile.node);
+    const drawTile = (tile, state, transition) => {
       const outline = state === 'is-selected' ? palette.selected : state === 'is-prerequisite' ? palette.before : state === 'is-successor' ? palette.after : null;
-      if (outline) shape(tile.style, outline);
+      if (outline) shape(tile.style, outline, 0, 0, transition);
       const base = mastered(tile.node) ? palette.mastered : palette.unmastered;
-      shape(tile.style, state === 'is-dimmed' ? [base[0], base[1], base[2], base[3] * 0.4] : base, outline ? 2 : 0);
+      shape(tile.style, state === 'is-dimmed' ? [base[0], base[1], base[2], base[3] * 0.4] : base, outline ? 2 : 0, 0, transition);
+    };
+    for (const tile of tiles) {
+      const state = nextStates.get(tile.node.id);
+      const previous = fromStates.get(tile.node.id);
+      if (previous !== undefined && previous !== state) {
+        hasTransition = true;
+        drawTile(tile, previous, -1);
+        drawTile(tile, state, 1);
+      } else drawTile(tile, state, 0);
     }
     for (const group of [...groups].sort((a, b) => Number(a.kind === 'domain') - Number(b.kind === 'domain'))) {
       shape(group.style, group.kind === 'domain' ? palette.domainBorder : palette.topicBorder, 0, group.kind === 'domain' ? 1.5 : 0.8);
     }
-    shapeCount = shapes.length / 11;
+    shapeCount = shapes.length / 12;
     const nextShapes = makeBuffer(shapes);
     shapeBuffer?.destroy();
     shapeBuffer = nextShapes;
 
     const vertices = pages.map(() => []);
     const nextScrollLevels = new Set();
-    const push = (page, x, y, u, v, alpha, level, anchorX, anchorY, clipLeft, clipRight, scroll) => vertices[page].push(x, y, u, v, alpha, level, anchorX, anchorY, clipLeft, clipRight, scroll);
+    const push = (page, x, y, u, v, alpha, level, anchorX, anchorY, clipLeft, clipRight, scroll, previousAlpha) => vertices[page].push(x, y, u, v, alpha, level, anchorX, anchorY, clipLeft, clipRight, scroll, previousAlpha);
     for (const label of labels) {
       const x = parseFloat(label.style.left);
       const y = parseFloat(label.style.top);
@@ -381,19 +404,22 @@ export async function createKnowledgeRenderer(canvas, onLost, onLoading, onMissi
           const v0 = (glyph.atlasBounds.top + (clippedTop - top) / glyphHeight * atlasGlyphHeight) / atlasHeight;
           const u1 = (glyph.atlasBounds.left + (clippedRight - left) / glyphWidth * atlasGlyphWidth) / atlasWidth;
           const v1 = (glyph.atlasBounds.top + (clippedBottom - top) / glyphHeight * atlasGlyphHeight) / atlasHeight;
-          push(glyph.page, clippedLeft, clippedTop, u0, v0, label.alpha, label.level, anchorX, anchorY, x + margin, right, scroll); push(glyph.page, clippedRight, clippedTop, u1, v0, label.alpha, label.level, anchorX, anchorY, x + margin, right, scroll); push(glyph.page, clippedLeft, clippedBottom, u0, v1, label.alpha, label.level, anchorX, anchorY, x + margin, right, scroll);
-          push(glyph.page, clippedLeft, clippedBottom, u0, v1, label.alpha, label.level, anchorX, anchorY, x + margin, right, scroll); push(glyph.page, clippedRight, clippedTop, u1, v0, label.alpha, label.level, anchorX, anchorY, x + margin, right, scroll); push(glyph.page, clippedRight, clippedBottom, u1, v1, label.alpha, label.level, anchorX, anchorY, x + margin, right, scroll);
+          push(glyph.page, clippedLeft, clippedTop, u0, v0, label.alpha, label.level, anchorX, anchorY, x + margin, right, scroll, label.previousAlpha); push(glyph.page, clippedRight, clippedTop, u1, v0, label.alpha, label.level, anchorX, anchorY, x + margin, right, scroll, label.previousAlpha); push(glyph.page, clippedLeft, clippedBottom, u0, v1, label.alpha, label.level, anchorX, anchorY, x + margin, right, scroll, label.previousAlpha);
+          push(glyph.page, clippedLeft, clippedBottom, u0, v1, label.alpha, label.level, anchorX, anchorY, x + margin, right, scroll, label.previousAlpha); push(glyph.page, clippedRight, clippedTop, u1, v0, label.alpha, label.level, anchorX, anchorY, x + margin, right, scroll, label.previousAlpha); push(glyph.page, clippedRight, clippedBottom, u1, v1, label.alpha, label.level, anchorX, anchorY, x + margin, right, scroll, label.previousAlpha);
         }
         cursorX += advance;
       }
     }
     for (let i = 0; i < pages.length; i++) {
       const page = pages[i];
-      page.count = vertices[i].length / 11;
+      page.count = vertices[i].length / 12;
       page.buffer?.destroy();
       page.buffer = makeBuffer(vertices[i]);
     }
     scrollLevels = nextScrollLevels;
+    if (changed) { transitionFromStates = previousStates; transitionStarted = performance.now(); }
+    else if (!hasTransition) transitionStarted = 0;
+    previousStates = nextStates;
     return true;
   }
   function draw(transform, width, height, color, labelAlpha, animate) {
@@ -402,7 +428,9 @@ export async function createKnowledgeRenderer(canvas, onLost, onLoading, onMissi
     const pixelWidth = Math.max(1, Math.round(width * ratio));
     const pixelHeight = Math.max(1, Math.round(height * ratio));
     if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) { canvas.width = pixelWidth; canvas.height = pixelHeight; }
-    const values = new Float32Array([transform.x, transform.y, transform.k, 0.75 / (transform.k * ratio), width, height, ratio, animate ? performance.now() / 1000 : 0, ...color, ...labelAlpha, 0]);
+    const now = performance.now();
+    const transition = animate && transitionStarted ? Math.min(1, (now - transitionStarted) / transitionDuration) : 1;
+    const values = new Float32Array([transform.x, transform.y, transform.k, 0.75 / (transform.k * ratio), width, height, ratio, animate ? now / 1000 : 0, ...color, ...labelAlpha, transition]);
     device.queue.writeBuffer(uniform, 0, values);
     const encoder = device.createCommandEncoder();
     const pass = encoder.beginRenderPass({ colorAttachments: [{ view: context.getCurrentTexture().createView(), clearValue: [0, 0, 0, 0], loadOp: 'clear', storeOp: 'store' }] });
@@ -421,7 +449,7 @@ export async function createKnowledgeRenderer(canvas, onLost, onLoading, onMissi
     }
     pass.end();
     device.queue.submit([encoder.finish()]);
-    return animate && [...scrollLevels].some((level) => labelAlpha[level] > 0);
+    return animate && (transition < 1 || [...scrollLevels].some((level) => labelAlpha[level] > 0));
   }
   function dispose() {
     if (disposed) return;

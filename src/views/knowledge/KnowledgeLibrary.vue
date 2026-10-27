@@ -5,10 +5,10 @@ import { knowledgeApi } from '../../api/knowledge.js';
 import { managementApi } from '../../api/management.js';
 import { getMasteredIds, setMastered, setMasteredBatch } from '../../utils/knowledge-mastery.js';
 import MButton from '../../components/MButton.vue';
+import MDrawer from '../../components/MDrawer.vue';
 import MInput from '../../components/MInput.vue';
 import MSelect from '../../components/MSelect.vue';
 import MLoadingMask from '../../components/MLoadingMask.vue';
-import TypstSource from '../../components/TypstSource.vue';
 import { createKnowledgeRenderer } from './knowledge-webgpu-renderer.js';
 
 const mapLoading = ref(false);
@@ -208,12 +208,14 @@ const chipNodes = computed(() => {
     const id = canonicalId(node.id);
     if (seen.has(id)) return false;
     seen.add(id);
-    const term = searchQuery.value.trim().toLocaleLowerCase();
-    const matches = !term || node.title.toLocaleLowerCase().includes(term);
-    return matches;
+    return true;
   });
 });
-const searchResults = computed(() => searchQuery.value.trim() ? chipNodes.value : []);
+const searchResults = computed(() => {
+  const term = searchQuery.value.trim().toLocaleLowerCase();
+  return term ? chipNodes.value.filter((node) => node.title.toLocaleLowerCase().includes(term)) : [];
+});
+const searchResultIds = computed(() => new Set(searchResults.value.map((node) => node.id)));
 function selectSearchResult(node) {
   selectNode(node);
   const tile = chipLayout.value.tiles.find((item) => item.node.id === node.id);
@@ -430,9 +432,15 @@ function handleGpuLost() {
   gpuError.value = 'WebGPU 设备已断开，当前使用备用显示。';
 }
 watch(categoryId, () => { if (!suppressCategoryWatch && categoryId.value) { returnStack.value = []; searchQuery.value = ''; loadMap(); } });
-watch([chipLayout, selected, mastered, focusedId, detailPrerequisites], rebuildGpuLabels, { flush: 'post' });
+watch([chipLayout, selected, mastered, focusedId, detailPrerequisites, searchResultIds], rebuildGpuLabels, { flush: 'post' });
 watch([canvasWidth, canvasHeight], requestGpuDraw, { flush: 'post' });
+function handleOutsideDetailClick(event) {
+  if (!selected.value) return;
+  const panel = detailPanel.value?.closest('.m-drawer-panel');
+  if (panel && !panel.contains(event.target)) closeDetail();
+}
 onMounted(() => {
+  document.addEventListener('click', handleOutsideDetailClick, true);
   canvasZoom = zoom().scaleExtent([0.1, 8]).filter((event) => {
     if (event.button) return false;
     return true;
@@ -458,6 +466,7 @@ onMounted(() => {
 });
 onUnmounted(() => {
   disposed = true;
+  document.removeEventListener('click', handleOutsideDetailClick, true);
   gpuInitSequence++;
   mapSequence++;
   librariesSequence++;
@@ -491,6 +500,7 @@ function related(direction) {
 }
 const successors = computed(() => related('after'));
 const relationClass = (node) => {
+  if (searchQuery.value.trim()) return searchResultIds.value.has(node.id) ? 'is-selected' : 'is-dimmed';
   if (!selected.value) return canonicalId(node.id) === canonicalId(focusedId.value) ? 'is-selected' : '';
   const id = canonicalId(node.id);
   if (id === canonicalId(selected.value.id)) return 'is-selected';
@@ -591,7 +601,7 @@ function zoomCanvas(factor) {
   scaleAt(factor, canvasWidth.value / 2, canvasHeight.value / 2);
 }
 function resetDetailScroll() {
-  nextTick(() => { if (detailPanel.value) detailPanel.value.scrollTop = 0; });
+  nextTick(() => { if (detailPanel.value?.parentElement) detailPanel.value.parentElement.scrollTop = 0; });
 }
 async function selectNode(node, preserveHistory = false) {
   const sequence = ++detailSequence;
@@ -779,7 +789,7 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(canonicalId(no
         <p v-if="storageError" class="storage-error" role="alert">{{ storageError }}</p>
         <p v-if="gpuError" class="storage-error" role="alert">{{ gpuError }}</p>
         <p v-if="glyphWarning" class="storage-error" role="alert">{{ glyphWarning }}</p>
-        <div v-if="selected" class="relation-legend"><span class="key-selected">当前</span><span class="key-before">公开前置</span><span class="key-after">范围内后续</span><span>前置 → 后续</span></div>
+        <div v-if="selected && !searchQuery.trim()" class="relation-legend"><span class="key-selected">当前</span><span class="key-before">公开前置</span><span class="key-after">范围内后续</span><span>前置 → 后续</span></div>
       </div>
       <div ref="canvas" class="map-canvas" @click="handleMapClick" @mousemove="handleMapHover">
         <div v-if="!gpuReady" ref="mapWorld" class="map-world" :style="{ width: `${worldSize}px`, height: `${worldSize}px` }">
@@ -798,8 +808,8 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(canonicalId(no
       <div class="floating-controls"><MButton size="sm" aria-label="缩小画布" @click="zoomCanvas(0.8)">−</MButton><MButton size="sm" aria-label="放大画布" @click="zoomCanvas(1.25)">+</MButton><MButton size="sm" @click="resetCanvas">全览</MButton></div>
       <div class="floating-legend"><span><i class="swatch" />未掌握</span><span><i class="swatch mastered" />已掌握</span><span><i class="boundary-key domain" />分区</span><span><i class="boundary-key topic" />子分区</span><span>{{ totalStats.done }} / {{ totalStats.total }}</span></div>
     </main>
-    <aside v-if="selected" ref="detailPanel" class="detail-panel" aria-label="知识点详情">
-      <div class="detail-top"><span class="eyebrow font-mono">知识点 / {{ selected.id }}</span><MButton size="sm" variant="ghost" @click="closeDetail">关闭</MButton></div>
+    <MDrawer :open="Boolean(selected)" placement="right" :title="selected ? `知识点 / ${selected.id}` : '知识点'" width="360px" :z-index="10" :modal="false" @close="closeDetail">
+      <div v-if="selected" ref="detailPanel" class="detail-content">
       <MButton v-if="returnStack.length" size="sm" variant="ghost" @click="returnToPrevious">返回上一知识点</MButton>
       <h2>{{ detail?.title || selected.title }}</h2>
       <p v-if="!selectedTile" class="detail-note">{{ selectedOutsideMap ? '该知识点不在当前知识库范围内。' : '该知识点被当前筛选隐藏。' }} <button type="button" @click="locateSelected">切换范围并定位</button></p>
@@ -810,12 +820,13 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(canonicalId(no
       <p v-if="detailError" class="storage-error" role="alert">{{ detailError }} <button type="button" @click="selectNode(selected, true)">重试</button></p>
       <template v-if="detail">
         <p v-if="detail.categories?.length" class="detail-note">分类：{{ detail.categories.map((category) => category.name).join('、') }}<template v-if="detail.categories.length > 1"> · 地图只展示一次</template></p>
-        <section class="detail-section"><h3>正文</h3><TypstSource :key="detail.id" :source="detail.source" /></section>
+        <section class="detail-section"><h3>正文源码</h3><pre class="knowledge-source">{{ detail.source }}</pre></section>
         <p class="detail-note">加入讲义功能待接入</p>
       </template>
       <section class="detail-section"><h3>直接前置</h3><p v-if="prerequisitesError" class="storage-error" role="alert">{{ prerequisitesError }}</p><p v-else-if="!detailLoading && !detailPrerequisites.length" class="detail-note">暂无公开前置知识点。</p><button v-for="item in detailPrerequisites" :key="item.id" class="dependency" type="button" @click="followDependency(item)"><span>{{ item.title }}</span></button></section>
       <section class="detail-section"><h3>当前地图范围内的直接后续</h3><p v-if="!successors.length" class="detail-note">当前范围内没有直接后续。</p><button v-for="item in successors" :key="item.node.id" class="dependency" type="button" @click="followDependency(item.node)"><span>{{ item.node.title }}</span></button></section>
-    </aside>
+      </div>
+    </MDrawer>
   </section>
 </template>
 
@@ -833,9 +844,9 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(canonicalId(no
 @keyframes title-scroll { 0%, 15% { transform: translateX(0); } 85%, 100% { transform: translateX(var(--scroll-distance)); } }
 @media (prefers-reduced-motion: reduce) { .group-heading-text.scrolling { animation: none; } }
 .chip-group.is-topic > .group-heading { padding: 5px 8px; color: var(--text-secondary); font-size: 14px; opacity: var(--topic-label-opacity, 0); }
-.map-tile { position: absolute; box-sizing: border-box; min-width: 0; min-height: 0; padding: 4px; overflow: hidden; border: 0; border-radius: var(--radius-xs); background: color-mix(in srgb, var(--text-muted) 32%, var(--bg-hover)); color: var(--text-primary); text-align: left; cursor: pointer; }
+.map-tile { position: absolute; box-sizing: border-box; min-width: 0; min-height: 0; padding: 4px; overflow: hidden; border: 0; outline: 2px solid transparent; outline-offset: 1px; border-radius: var(--radius-xs); background: color-mix(in srgb, var(--text-muted) 32%, var(--bg-hover)); color: var(--text-primary); text-align: left; cursor: pointer; transition: opacity 200ms ease, outline-color 200ms ease; }
 .label-layer { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; visibility: hidden; }
-.label-layer text { fill: var(--text-primary); font-family: var(--font-ui, sans-serif); font-size: 10px; }
+.label-layer text { transition: opacity 200ms ease; fill: var(--text-primary); font-family: var(--font-ui, sans-serif); font-size: 10px; }
 .label-layer text.is-dimmed { opacity: .4; }
 .gpu-labels { position: absolute; inset: 0; width: 100%; height: 100%; color: var(--text-primary); }
 .canvas-accessibility { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
@@ -847,9 +858,9 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(canonicalId(no
 .map-tile.is-prerequisite { outline: 2px solid var(--tag-amber); outline-offset: 1px; }
 .map-tile.is-successor { outline: 2px solid var(--tag-purple); outline-offset: 1px; }
 .map-tile:focus-visible { outline: 2px solid var(--text-primary); outline-offset: 1px; }
-.floating-info { position: absolute; z-index: 3; top: 16px; left: 18px; max-width: min(340px, calc(100% - 36px)); color: var(--text-secondary); font-size: var(--font-size-smallest); }
+.floating-info { position: absolute; z-index: 3; top: 16px; left: 18px; max-width: min(260px, calc(100% - 36px)); color: var(--text-secondary); font-size: var(--font-size-smallest); }
 .relation-legend, .floating-legend, .floating-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
-.knowledge-filters { display: flex; flex-direction: column; gap: 8px; width: min(320px, calc(100vw - 72px)); box-sizing: border-box; padding: 10px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-xs); }
+.knowledge-filters { display: flex; flex-direction: column; gap: 8px; width: min(260px, calc(100vw - 72px)); box-sizing: border-box; padding: 10px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-xs); }
 .mastery-actions { display: flex; gap: 8px; }
 .filter-note { margin: 2px 0; color: var(--text-muted); }
 .search-results { border-top: 1px solid var(--border-subtle); padding-top: 6px; }
@@ -867,15 +878,15 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(canonicalId(no
 .swatch { background: color-mix(in srgb, var(--text-muted) 32%, var(--bg-hover)); border: 1px solid var(--border-hover); }
 .boundary-key { width: 14px; height: 0; border-top: 2px solid var(--text-secondary); }
 .boundary-key.domain { border-top: 3px solid var(--text-primary); }
-.detail-panel { position: absolute; z-index: 5; top: 0; right: 0; bottom: 0; width: min(440px, 100%); overflow: auto; padding: 24px; background: var(--bg-surface); border-left: 1px solid var(--border-subtle); }
-.detail-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.detail-content { padding: 16px; user-select: text; }
 .eyebrow { color: var(--text-muted); font-size: var(--font-size-smallest); }
 .detail-path, .detail-note { margin: 8px 0; color: var(--text-secondary); font-size: var(--font-size-smaller); line-height: 1.6; }
-.detail-panel h2 { font-size: var(--font-size-larger); line-height: 1.5; }
+.detail-content h2 { font-size: var(--font-size-larger); line-height: 1.5; }
 .detail-section { margin-top: 26px; padding-top: 20px; border-top: 1px solid var(--border-subtle); }
 .detail-section h3 { font-size: var(--font-size); } .detail-section h3 span { color: var(--text-muted); font-weight: normal; }
-.detail-section :deep(.typst-source) { margin-top: 12px; overflow-wrap: anywhere; }
+.knowledge-source { margin-top: 12px; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; }
 .dependency { display: flex; flex-direction: column; gap: 4px; width: 100%; padding: 10px 0; border: 0; border-bottom: 1px solid var(--border-subtle); background: transparent; color: var(--text-primary); text-align: left; cursor: pointer; font-size: var(--font-size-smaller); }
 .dependency:hover { color: var(--accent-primary); } .dependency small { color: var(--text-muted); line-height: 1.5; }
-@media (max-width: 760px) { .detail-panel { width: 100%; } .floating-legend { bottom: 56px; } }
+@media (prefers-reduced-motion: reduce) { .map-tile, .label-layer text { transition: none; } }
+@media (max-width: 760px) { .floating-legend { bottom: 56px; } }
 </style>

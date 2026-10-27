@@ -2,7 +2,6 @@
 import { ref, watch, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { knowledgeApi } from '../../api/knowledge.js';
-import TypstSource from '../../components/TypstSource.vue';
 import MButton from '../../components/MButton.vue';
 
 const route = useRoute();
@@ -39,7 +38,7 @@ onUnmounted(() => { loadId++; });
     </div>
     <article v-else-if="point">
       <h1>{{ point.title }}</h1>
-      <TypstSource :source="point.source || ''" />
+      <pre class="knowledge-source">{{ point.source || '' }}</pre>
     </article>
   </div>
 </template>
@@ -51,4 +50,5 @@ onUnmounted(() => { loadId++; });
   padding: 28px;
 }
 
+.knowledge-source { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; }
 </style>
