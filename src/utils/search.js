@@ -53,6 +53,7 @@ export function useLectureSearch(options = {}) {
   const query = ref('');
   const results = ref([]);
   const isSearching = ref(false);
+  const searchError = ref('');
   const activeIndex = ref(-1);
 
   let debounceTimer = null;
@@ -69,6 +70,7 @@ export function useLectureSearch(options = {}) {
     }
 
     isSearching.value = true;
+    searchError.value = '';
 
     try {
       const hits = await searchLectures(q, limit);
@@ -76,6 +78,8 @@ export function useLectureSearch(options = {}) {
       if (reqId === currentReqId) {
         results.value = hits;
       }
+    } catch (err) {
+      if (reqId === currentReqId) searchError.value = '搜索失败，请重试';
     } finally {
       if (reqId === currentReqId) {
         isSearching.value = false;
@@ -88,6 +92,7 @@ export function useLectureSearch(options = {}) {
     clearTimeout(debounceTimer);
     currentReqId++;
     results.value = [];
+    searchError.value = '';
     isSearching.value = false;
     if (!newVal.trim()) return;
     debounceTimer = setTimeout(() => {
@@ -184,6 +189,7 @@ export function useLectureSearch(options = {}) {
     query,
     results,
     isSearching,
+    searchError,
     activeIndex,
     displayResults,
     clear,

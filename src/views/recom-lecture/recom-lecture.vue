@@ -1,12 +1,44 @@
 <script setup>
+import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { fetchSearchRecommendations } from '../../api/courses.js';
+import MButton from '../../components/MButton.vue';
+
+const router = useRouter();
+const lectures = ref([]);
+const loading = ref(true);
+const error = ref('');
+
+const load = async () => {
+  loading.value = true;
+  error.value = '';
+  try {
+    lectures.value = await fetchSearchRecommendations(100);
+  } catch {
+    error.value = '推荐讲义加载失败';
+  } finally {
+    loading.value = false;
+  }
+};
+
+onMounted(load);
 </script>
 
 <template>
   <div class="recom-lecture-view">
     <div class="coming-soon-box font-mono">
       <span class="coming-soon-tag">RECOMMENDED // 讲义推荐</span>
-      <h1 class="coming-soon-title">COMING SOON</h1>
-      <p class="coming-soon-desc">精选公理化讲义推荐路线正在精心编排中，敬请期待</p>
+      <p v-if="loading" class="coming-soon-desc">正在加载推荐讲义</p>
+      <template v-else-if="error">
+        <p class="coming-soon-desc">{{ error }}</p>
+        <MButton size="sm" @click="load">重试</MButton>
+      </template>
+      <p v-else-if="lectures.length === 0" class="coming-soon-desc">暂无推荐讲义</p>
+      <div v-else class="recommended-list">
+        <MButton v-for="lecture in lectures" :key="lecture.id" variant="secondary" @click="router.push(`/course/${lecture.id}`)">
+          {{ lecture.title }}
+        </MButton>
+      </div>
     </div>
   </div>
 </template>
@@ -55,5 +87,12 @@
   font-size: var(--font-size, 14px);
   color: var(--text-muted, #808080);
   letter-spacing: 0.5px;
+}
+
+.recommended-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
 }
 </style>

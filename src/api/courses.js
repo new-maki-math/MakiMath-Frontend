@@ -366,22 +366,12 @@ export async function getCourseSectionContent(courseKey, sectionId) {
 export async function searchLectures(q, limit = 20) {
   const trimmed = String(q || '').trim();
   if (!trimmed) return [];
-  try {
-    const res = await request(`/api/search?q=${encodeURIComponent(trimmed)}&limit=${limit}`);
-    return Array.isArray(res?.hits) ? res.hits : [];
-  } catch (error) {
-    console.warn('[API] 全文检索请求异常:', error);
-    return [];
-  }
+  const res = await request(`/api/search?q=${encodeURIComponent(trimmed)}&limit=${limit}`);
+  return Array.isArray(res?.hits) ? res.hits : [];
 }
 
 // 获取随机搜索推荐讲义小节
 export async function fetchSearchRecommendations(limit = 6) {
-  try {
-    const list = await fetchCourseList();
-    return list.filter((item) => item.is_recommended).slice(0, limit).map((item) => ({ ...item, type: 'lecture' }));
-  } catch (error) {
-    console.warn('[API] 获取搜索推荐异常:', error);
-    return [];
-  }
+  const list = await fetchCourseList();
+  return list.filter((item) => item.is_recommended).slice(0, limit).map((item) => ({ ...item, type: 'lecture' }));
 }

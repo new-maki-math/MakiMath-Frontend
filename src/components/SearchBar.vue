@@ -60,9 +60,11 @@ const defaultLectures = ref([]);
 const {
   query,
   isSearching,
+  searchError,
   activeIndex,
   displayResults,
   clear: clearQuery,
+  executeSearch,
   handleKeyNavigation
 } = useLectureSearch({
   defaultItems: () => defaultLectures.value,
@@ -350,8 +352,13 @@ defineExpose({
         </div>
 
         <!-- 空状态 -->
+        <div v-else-if="searchError" class="empty-state">
+          <span>{{ searchError }}</span>
+          <button type="button" @mousedown.prevent.stop="executeSearch(query)">重试</button>
+        </div>
+        <div v-else-if="isSearching" class="empty-state">正在搜索</div>
         <div v-else class="empty-state">
-          <span>未检索到与 "{{ query }}" 相关的数学节点</span>
+          <span>{{ query ? `未找到与「${query}」相关的内容` : '暂无推荐讲义' }}</span>
         </div>
 
         <!-- 底部快捷键指南 -->
