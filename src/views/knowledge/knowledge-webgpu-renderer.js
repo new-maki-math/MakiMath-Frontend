@@ -169,29 +169,28 @@ export async function createKnowledgeRenderer(canvas, onLost, onLoading, onMissi
     return entry;
   }
 
-  async function loadWorkers() {
+  async function loadWorkers(taskCount) {
     if (!workersPromise) {
       workersPromise = (async () => {
         const started = performance.now();
-        const workerCount = Math.max(1, Math.floor(navigator.hardwareConcurrency || 1));
-        console.info(`[知识地图] 开始下载字体并初始化 ${workerCount} 个字形线程`);
+        console.info('[知识地图] 开始下载字体文件');
         const response = await fetch(`${import.meta.env.BASE_URL}typst/fonts/NotoSansSC.otf`);
         if (!response.ok) throw new Error(`无法读取字体文件，HTTP ${response.status}`);
         const bytes = await response.arrayBuffer();
         console.info(`[知识地图] 字体下载完成，大小 ${(bytes.byteLength / 1024 / 1024).toFixed(2)} MB，耗时 ${Math.round(performance.now() - started)} ms`);
-        if (disposed) return [];
-        const pool = Array.from({ length: workerCount }, () => createWorker());
-        await Promise.all(pool.map((worker) => worker.request('initialize', { bytes })));
-        console.info(`[知识地图] ${workerCount} 个字形线程初始化完成，总耗时 ${Math.round(performance.now() - started)} ms`);
-        return pool;
-      })().catch((error) => {
-        for (const worker of workers.splice(0)) worker.dispose();
-        workersPromise = null;
-        console.error('[知识地图] 字形线程初始化失败', error);
-        throw error;
-      });
+        return bytes;
+      })().catch((error) => { workersPromise = null; throw error; });
     }
-    return workersPromise;
+    const bytes = await workersPromise;
+    if (disposed) return [];
+    const workerCount = Math.min(taskCount, Math.max(1, Math.floor(navigator.hardwareConcurrency || 1)));
+    const added = Array.from({ length: Math.max(0, workerCount - workers.length) }, () => createWorker());
+    if (added.length) {
+      const started = performance.now();
+      await Promise.all(added.map((worker) => worker.request('initialize', { bytes })));
+      console.info(`[知识地图] 新增 ${added.length} 个字形线程，耗时 ${Math.round(performance.now() - started)} ms`);
+    }
+    return workers.slice(0, workerCount);
   }
 
   async function generateMissing(codepoints) {
@@ -202,7 +201,7 @@ export async function createKnowledgeRenderer(canvas, onLost, onLoading, onMissi
     onLoading?.(true);
     try {
       await new Promise((resolve) => setTimeout(resolve, 0));
-      const pool = await loadWorkers();
+      const pool = await loadWorkers(missing.length);
       if (!pool.length || disposed) return;
       const size = 64;
       const slot = size + 2;
@@ -268,7 +267,8 @@ export async function createKnowledgeRenderer(canvas, onLost, onLoading, onMissi
       ...tiles.map((tile) => ({ ...tile, text: tile.node.title, fontSize: 10, level: 2, alpha: relation(tile.node) === 'is-dimmed' ? 0.4 : 1 })),
       ...groups.map((group) => ({ style: group.style, text: group.title, fontSize: group.fontSize, level: group.kind === 'domain' ? 0 : 1, alpha: 1 }))
     ];
-    const codepoints = [...new Set([63, ...labels.flatMap((label) => Array.from(label.text, (character) => character.codePointAt(0)))])];
+    const codepoints = [...new Set(labels.flatMap((label) => Array.from(label.text, (character) => character.codePointAt(0))))];
+    if (codepoints.length && !codepoints.includes(63)) codepoints.push(63);
     const job = generationQueue.then(() => generateMissing(codepoints));
     generationQueue = job.catch(() => {});
     await job;
