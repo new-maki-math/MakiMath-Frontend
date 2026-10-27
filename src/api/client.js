@@ -11,6 +11,11 @@ const env = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.
 
 // API 基地址
 const API_BASE = env.VITE_API_BASE ?? '';
+let unauthorizedHandler = null;
+
+export function setUnauthorizedHandler(handler) {
+  unauthorizedHandler = handler;
+}
 
 // 请求拦截处理器
 export async function requestInterceptor(config) {
@@ -104,6 +109,9 @@ export async function request(url, options = {}) {
       const error = new Error(errData.error || errData.message || `HTTP Error ${res.status}`);
       error.status = res.status;
       error.data = errData;
+      if (res.status === 401 && token && !url.startsWith('/api/auth/login') && !url.startsWith('/api/auth/register') && !url.startsWith('/api/auth/logout')) {
+        unauthorizedHandler?.(token);
+      }
       throw error;
     }
     if (res.status === 204) {

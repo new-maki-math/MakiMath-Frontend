@@ -1,8 +1,13 @@
 <script setup>
-import { provide, onMounted } from 'vue';
+import { provide, onMounted, ref } from 'vue';
 import ProgressBar from '../components/ProgressBar.vue';
 import MNotice from '../components/MNotice.vue';
 import MUserModal from '../components/MUserModal.vue';
+import MModal from '../components/MModal.vue';
+import MInput from '../components/MInput.vue';
+import MButton from '../components/MButton.vue';
+import { authStatus, authenticate } from '../utils/auth.js';
+import { notify } from '../components/MNotice.vue';
 import LayoutDesktop from './LayoutDesktop.vue';
 import LayoutMobile from './LayoutMobile.vue';
 import { useLayoutState } from './useLayoutState.js';
@@ -18,6 +23,25 @@ const {
   currentUser,
   closeUserModal
 } = layoutState;
+
+const reauthPassword = ref('');
+const reauthBusy = ref(false);
+const reauthenticate = async () => {
+  if (reauthBusy.value || !reauthPassword.value) return;
+  reauthBusy.value = true;
+  try {
+    await authenticate('/api/auth/login', {
+      username: currentUser.value.username,
+      password: reauthPassword.value
+    });
+    reauthPassword.value = '';
+    notify('登录已恢复，请继续编辑', 'success');
+  } catch (err) {
+    notify(err.message || '重新登录失败', 'error');
+  } finally {
+    reauthBusy.value = false;
+  }
+};
 
 // 深度向下 provide 布局状态，供 LayoutDesktop 与 LayoutMobile 复用
 provide('layoutState', layoutState);
@@ -43,6 +67,19 @@ onMounted(() => {
       :user="currentUser"
       @close="closeUserModal"
     />
+
+    <MModal
+      :open="authStatus === 'expired'"
+      title="登录已过期"
+      desc="请使用当前账号重新登录，正在编辑的内容会保留"
+      hide-footer
+    >
+      <form @submit.prevent="reauthenticate">
+        <MInput :model-value="currentUser?.username || ''" label="账号" disabled />
+        <MInput v-model="reauthPassword" label="密码" type="password" :disabled="reauthBusy" />
+        <MButton type="submit" variant="primary" :disabled="reauthBusy || !reauthPassword">重新登录</MButton>
+      </form>
+    </MModal>
 
     <!-- 根据当前视口设备渲染对应布局组件 -->
     <LayoutMobile v-if="isMobile">

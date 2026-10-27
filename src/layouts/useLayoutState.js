@@ -9,7 +9,7 @@ import {
   currentUser,
   isLoggedIn,
   isSuperAdmin,
-  clearAuth,
+  logout,
   initAuth
 } from '../utils';
 import { notify } from '../components/MNotice.vue';
@@ -130,8 +130,12 @@ export function useLayoutState() {
       if (result) return;
     }
     isUserModalOpen.value = false;
-    clearAuth();
-    notify('已退出登录', 'info');
+    try {
+      const revoked = await logout();
+      notify(revoked ? '已退出登录' : '已在本地退出，服务端会话状态未确认', revoked ? 'info' : 'warn');
+    } catch {
+      notify('已在本地退出，服务端会话撤销失败', 'warn');
+    }
     if (route.path === '/platform') {
       router.push('/start');
     }

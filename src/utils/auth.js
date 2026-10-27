@@ -1,6 +1,6 @@
 // 用户认证与权限状态管理
 import { ref, computed } from 'vue';
-import { request } from '../api/client.js';
+import { request, setUnauthorizedHandler } from '../api/client.js';
 import { invalidateCourseCaches } from '../api/courses.js';
 
 // 当前登录用户对象响应式
@@ -8,6 +8,7 @@ export const currentUser = ref(null);
 export const authStatus = ref('initializing');
 let initialization = null;
 let authVersion = 0;
+const REFRESH_TOKEN_KEY = 'maki_refresh_token';
 
 export function getAuthToken() {
   if (typeof localStorage === 'undefined') return null;
@@ -68,16 +69,52 @@ export function setAuth(token, user) {
 
 // 清除登录态
 export function clearAuth() {
+  if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(REFRESH_TOKEN_KEY);
   setAuth(null, null);
 }
 
 export async function authenticate(path, credentials, requiredRole = '') {
   const result = await request(path, { method: 'POST', body: credentials });
   if (!result?.token || !result?.user) throw new Error('登录响应不完整');
+  if (authStatus.value === 'expired' && currentUser.value && String(result.user.id) !== String(currentUser.value.id)) {
+    throw new Error('请使用原账号重新登录，以继续当前编辑');
+  }
   if (requiredRole && result.user.role !== requiredRole) throw new Error('当前账号无权访问平台管理控制台');
+  if (typeof sessionStorage !== 'undefined') {
+    if (result.refreshToken) sessionStorage.setItem(REFRESH_TOKEN_KEY, result.refreshToken);
+    else sessionStorage.removeItem(REFRESH_TOKEN_KEY);
+  }
   setAuth(result.token, result.user);
   return result.user;
 }
+
+export async function logout() {
+  const refreshToken = typeof sessionStorage === 'undefined' ? null : sessionStorage.getItem(REFRESH_TOKEN_KEY);
+  let revoked = false;
+  try {
+    if (refreshToken && getAuthToken()) {
+      await request('/api/auth/logout', { method: 'POST', body: { refreshToken } });
+      revoked = true;
+    }
+  } finally {
+    clearAuth();
+  }
+  return revoked;
+}
+
+setUnauthorizedHandler((token) => {
+  if (token !== getAuthToken()) return;
+  if (!currentUser.value) {
+    clearAuth();
+    return;
+  }
+  authVersion++;
+  localStorage.removeItem('maki_auth_token');
+  localStorage.removeItem('token');
+  localStorage.removeItem('auth_token');
+  invalidateCourseCaches();
+  authStatus.value = 'expired';
+});
 
 // 是否已登录
 export const isLoggedIn = computed(() => {
