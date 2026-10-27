@@ -1,6 +1,7 @@
 <script setup>
 import { computed, inject } from 'vue';
 import { renderToString } from 'typlet';
+import TypstSource from './TypstSource.vue';
 import { Bookmark, BookmarkSolid } from '@iconoir/vue';
 
 // 递归渲染依赖组件名
@@ -210,8 +211,9 @@ function warningText(item) {
   <!-- 递归输出节点流 -->
   <template v-else>
     <template v-for="(node, index) in rootNodes" :key="index">
+      <TypstSource v-if="isType(node, 'typst-source')" :source="node.source || ''" />
       <!-- 纯文本 -->
-      <span v-if="isType(node, 'text')" class="td-text">{{ node.value }}</span>
+      <span v-else-if="isType(node, 'text')" class="td-text">{{ node.value }}</span>
 
       <!-- 加粗 -->
       <strong v-else-if="isType(node, 'strong')" class="td-strong">

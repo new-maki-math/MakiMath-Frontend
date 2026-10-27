@@ -7,7 +7,8 @@ const RecomLectureView = () => import('../views/recom-lecture/recom-lecture.vue'
 const MyLectureView = () => import('../views/my-lecture/my-lecture.vue');
 const CourseHomeView = () => import('../views/course-home/course-home.vue');
 const LectureDocView = () => import('../views/lecture-doc/lecture-doc.vue');
-const WorkbenchView = () => import('../views/workbench/workbench.vue');
+const KnowledgeView = () => import('../views/knowledge/knowledge.vue');
+const WorkbenchView = () => import('../views/workbench/RevisionWorkbench.vue');
 const PlatformView = () => import('../views/platform/platform.vue');
 
 export const routes = [
@@ -36,6 +37,12 @@ export const routes = [
     name: 'lecture-doc',
     component: LectureDocView,
     meta: { title: '讲义阅读', tag: 'DOC' }
+  },
+  {
+    path: '/knowledge/:knowledgeId',
+    name: 'knowledge',
+    component: KnowledgeView,
+    meta: { title: '知识点', tag: 'KNOWLEDGE' }
   },
   {
     path: '/recom-lecture',

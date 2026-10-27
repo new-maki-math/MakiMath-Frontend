@@ -129,8 +129,12 @@ const handleSelect = (item) => {
   emit('select', item);
 
   // 后端已返回 /course/:courseId/doc/:sectionId；缺失时按 courseId 兜底，避免跳错课程
-  const targetPath = item.path
-    || (item.courseId ? `/course/${item.courseId}/doc/${item.id}` : '/start');
+  const targetPath = item.type === 'knowledge'
+    ? `/knowledge/${item.id}`
+    : item.type === 'lecture'
+      ? `/course/${item.id}`
+      : item.path;
+  if (!targetPath) return;
   emit('navigate', targetPath);
   router.push(targetPath);
 };
@@ -303,7 +307,7 @@ defineExpose({
 
         <!-- 结果列表头部统计 -->
         <div class="dropdown-header">
-          <span>{{ query ? '匹配数学讲义与小节' : '推荐核心数学定理与章节' }}</span>
+          <span>{{ query ? '匹配知识点与讲义' : '推荐讲义' }}</span>
           <span class="count-tag font-mono">{{ displayResults.length }} 节点</span>
         </div>
 
@@ -311,7 +315,7 @@ defineExpose({
         <div ref="listRef" v-if="displayResults.length" class="dropdown-list">
           <div
             v-for="(item, idx) in displayResults"
-            :key="item.id"
+            :key="`${item.type}:${item.id}`"
             class="result-row"
             :class="{ 'is-active': activeIndex === idx }"
             @mousedown.prevent="handleSelect(item)"
@@ -319,8 +323,8 @@ defineExpose({
           >
             <!-- 标签列：课程名称 + 小节标签（使用 MTag 原生无边框大号样式） -->
             <div class="result-tag-col">
-              <MTag :variant="getBrightTagVariant(item.courseTitle || item.course)" size="md" :mono="false">
-                {{ item.courseTitle || item.course }}
+              <MTag :variant="getBrightTagVariant(item.type)" size="md" :mono="false">
+                {{ item.type === 'knowledge' ? '知识点' : '讲义' }}
               </MTag>
               <MTag
                 v-for="(st, stIdx) in getSectionTags(item.tag)"
@@ -337,7 +341,7 @@ defineExpose({
             <div class="result-content-col">
               <span class="result-title">{{ item.title }}</span>
               <span class="result-excerpt font-mono">
-                {{ item.excerpt || item.summary || item.chapterTitle }}
+                {{ item.descr || item.summary }}
               </span>
             </div>
 

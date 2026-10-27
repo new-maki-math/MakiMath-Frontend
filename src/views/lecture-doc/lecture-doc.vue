@@ -42,6 +42,10 @@ const toggleDrawer = () => {
 const isSelectionMode = ref(false);
 
 const toggleSelectionMode = () => {
+  if (currentContent.value?.doc?.children?.some((node) => node.type === 'typst-source')) {
+    notify.warn('当前讲义暂不支持正文划选');
+    return;
+  }
   isSelectionMode.value = !isSelectionMode.value;
   if (!isSelectionMode.value) {
     window.getSelection()?.removeAllRanges();

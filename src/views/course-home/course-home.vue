@@ -199,8 +199,8 @@ onUnmounted(() => { loadId++; });
             </div>
             <div class="spec-body">
               <p class="guide-text">
-                本课程基于公理化网络构建，各章节与定义按严谨的偏序依赖图编排。
-                建议顺着知识图谱的前置泡泡逐步推进，避免跳跃性阅读。
+                本讲义按章节和小节组织内容。
+                你可以从目录中选择小节开始阅读。
               </p>
               <div class="guide-note font-mono">
                 TIP: 点击下方目录中的任一讲次即可直接进入全屏讲义阅读。
@@ -215,7 +215,7 @@ onUnmounted(() => { loadId++; });
         <div class="roadmap-header">
           <div class="section-title-wrap">
             <span class="section-kicker font-mono">RELATIONSHIP GRAPH</span>
-            <h2 class="section-heading">知识谱系与路线图</h2>
+            <h2 class="section-heading">讲义目录结构</h2>
           </div>
           <div class="roadmap-meta font-mono">
             <span>OBSIDIAN-STYLE INTERACTIVE MAP</span>
