@@ -1,9 +1,12 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import {
   NavArrowRight,
   NavArrowUp,
   NavArrowDown,
+  Folder,
+  Book,
+  Journal,
   Page,
   Plus,
   Trash
@@ -39,9 +42,13 @@ const props = defineProps({
 const emit = defineEmits(['select', 'toggle', 'add', 'remove', 'move']);
 
 const isSelected = computed(() => `${props.node.type}:${props.node.id}` === props.selectedKey);
-const isBranch = computed(() => props.node.type !== 'section');
-const indent = computed(() => `${10 + props.depth * 18}px`);
-const childIndent = computed(() => `${10 + (props.depth + 1) * 18}px`);
+const isBranch = computed(() => Array.isArray(props.node.children));
+const hasOpened = ref(props.node.type === 'group' || Boolean(props.node.expanded));
+watch(() => props.node.expanded, (expanded) => {
+  if (expanded) hasOpened.value = true;
+});
+const indent = computed(() => `${4 + props.depth * 14}px`);
+const childIndent = computed(() => `${4 + (props.depth + 1) * 14}px`);
 const isEmpty = computed(() => props.node.children && props.node.children.length === 0);
 const canMoveUp = computed(() => props.index > 0);
 const canMoveDown = computed(() => props.index < props.siblingCount - 1);
@@ -61,71 +68,72 @@ const canMoveDown = computed(() => props.index < props.siblingCount - 1);
         :class="{ 'is-open': node.expanded }"
         type="button"
         :title="node.expanded ? '收起' : '展开'"
+        :aria-label="`${node.expanded ? '收起' : '展开'}${node.label}`"
+        :aria-expanded="Boolean(node.expanded)"
         @click.stop="emit('toggle', node)"
       >
-        <NavArrowRight width="12" height="12" />
+        <NavArrowRight width="16" height="16" />
       </button>
       <span v-else class="node-caret is-leaf"></span>
 
-      <!-- 仅小节显示图标，其余层级不占位，标题紧跟展开箭头 -->
-      <Page
-        v-if="node.type === 'section'"
+      <component
+        :is="node.type === 'group' ? Folder : node.type === 'chapter' ? Journal : node.type === 'lecture' || node.type === 'version' || node.type === 'notebook' ? Book : Page"
         class="node-icon"
-        width="15"
-        height="15"
+        width="16"
+        height="16"
       />
 
       <span class="node-label">{{ node.label }}</span>
 
       <span
-        v-if="node.type === 'section' && !node.hasSource"
+        v-if="node.type === 'section' && node.hasSource === false"
         class="node-flag font-mono"
       >空</span>
 
-      <span class="node-actions">
+      <span v-if="node.actions" class="node-actions">
         <button
+          v-if="node.actions.move"
           class="node-action"
           type="button"
           title="上移"
           :disabled="!canMoveUp"
           @click.stop="emit('move', { node, delta: -1 })"
         >
-          <NavArrowUp width="14" height="14" />
+          <NavArrowUp width="15" height="15" />
         </button>
         <button
+          v-if="node.actions.move"
           class="node-action"
           type="button"
           title="下移"
           :disabled="!canMoveDown"
           @click.stop="emit('move', { node, delta: 1 })"
         >
-          <NavArrowDown width="14" height="14" />
+          <NavArrowDown width="15" height="15" />
         </button>
         <button
-          v-if="isBranch"
+          v-if="node.actions.add"
           class="node-action"
           type="button"
           title="新建子项"
           @click.stop="emit('add', node)"
         >
-          <Plus width="14" height="14" />
+          <Plus width="15" height="15" />
         </button>
         <button
+          v-if="node.actions.remove"
           class="node-action is-danger"
           type="button"
           title="删除"
           @click.stop="emit('remove', node)"
         >
-          <Trash width="14" height="14" />
+          <Trash width="15" height="15" />
         </button>
       </span>
     </div>
 
-    <MCollapse
-      v-if="isBranch"
-      :open="Boolean(node.expanded)"
-    >
-      <div class="node-children">
+    <MCollapse v-if="isBranch" :open="Boolean(node.expanded)" :fade="false">
+      <div v-if="hasOpened" class="node-children">
         <WorkbenchTreeNode
           v-for="(child, childIdx) in node.children || []"
           :key="`${child.type}:${child.id}`"
@@ -163,8 +171,8 @@ const canMoveDown = computed(() => props.index < props.siblingCount - 1);
 .node-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  height: 32px;
+  gap: 4px;
+  min-height: 34px;
   padding-right: 6px;
   border-radius: var(--radius-xs);
   color: var(--text-secondary);
@@ -204,17 +212,32 @@ const canMoveDown = computed(() => props.index < props.siblingCount - 1);
 
 .node-caret {
   flex-shrink: 0;
-  width: 16px;
-  height: 16px;
+  width: 26px;
+  height: 26px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   color: var(--text-muted);
-  transition: transform 160ms cubic-bezier(0.16, 1, 0.3, 1), color 120ms ease;
+  border-radius: var(--radius-xs);
+  transition: color 120ms ease, background-color 120ms ease;
 }
 
-.node-caret.is-open {
+.node-caret svg {
+  transition: transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.node-caret.is-open svg {
   transform: rotate(90deg);
+}
+
+.node-caret:not(.is-leaf):hover {
+  background-color: var(--bg-elevated);
+}
+
+.node-caret:focus-visible,
+.node-action:focus-visible {
+  outline: 1px solid var(--accent-primary);
+  outline-offset: -1px;
 }
 
 .node-caret.is-leaf {
@@ -231,6 +254,10 @@ const canMoveDown = computed(() => props.index < props.siblingCount - 1);
 }
 
 .node-row.type-section .node-icon { color: var(--tag-green); }
+.node-row.type-group .node-icon { color: var(--tag-purple); }
+.node-row.type-lecture .node-icon { color: var(--tag-blue); }
+.node-row.type-version .node-icon { color: var(--tag-teal); }
+.node-row.type-chapter .node-icon { color: var(--tag-orange); }
 
 .node-row.is-selected .node-icon {
   opacity: 1;
@@ -258,13 +285,15 @@ const canMoveDown = computed(() => props.index < props.siblingCount - 1);
   flex-shrink: 0;
 }
 
-.node-row:hover .node-actions {
+.node-row:hover .node-actions,
+.node-row:focus-within .node-actions,
+.node-row.type-group .node-actions {
   display: inline-flex;
 }
 
 .node-action {
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   border-radius: var(--radius-xs);
   color: var(--text-muted);
   display: inline-flex;

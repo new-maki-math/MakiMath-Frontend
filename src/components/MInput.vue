@@ -23,6 +23,10 @@ defineProps({
   disabled: {
     type: Boolean,
     default: false
+  },
+  required: {
+    type: Boolean,
+    default: false
   }
 });
 
@@ -31,13 +35,14 @@ defineEmits(['update:modelValue', 'enter']);
 
 <template>
   <label class="m-field">
-    <span v-if="label" class="field-label">{{ label }}</span>
+    <span v-if="label" class="field-label"><span v-if="required" class="required-mark" aria-hidden="true">*</span>{{ label }}</span>
     <input
       class="m-input"
       :type="type"
       :value="modelValue"
       :placeholder="placeholder"
       :disabled="disabled"
+      :required="required"
       spellcheck="false"
       autocomplete="off"
       @input="$emit('update:modelValue', $event.target.value)"
@@ -66,6 +71,11 @@ defineEmits(['update:modelValue', 'enter']);
   margin-top: 5px;
   font-size: var(--font-size-smaller);
   color: var(--text-muted);
+}
+
+.required-mark {
+  margin-right: 4px;
+  color: var(--tag-red);
 }
 
 .m-input {

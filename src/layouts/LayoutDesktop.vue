@@ -79,6 +79,19 @@ const handleNavClick = (item) => {
       </div>
 
       <div class="topbar-right">
+        <div class="user-profile-anchor font-mono">
+          <span v-if="isLoggedIn" class="user-name" :title="userDisplayName">{{ userDisplayName }}</span>
+          <button
+            class="topbar-action-btn"
+            :class="{ active: isUserModalOpen }"
+            :title="isLoggedIn ? '用户设置与详情' : '登录或注册'"
+            :aria-label="isLoggedIn ? '查看用户设置与详情' : '登录或注册'"
+            @click="openUserModal"
+          >
+            <UserCircle width="20" height="20" />
+          </button>
+        </div>
+
         <button
           type="button"
           class="topbar-action-btn"
@@ -87,20 +100,8 @@ const handleNavClick = (item) => {
           aria-label="如何使用"
           @click="openHelpModal"
         >
-          <HelpCircle width="16" height="16" />
+          <HelpCircle width="20" height="20" />
         </button>
-        <div v-if="isLoggedIn" class="user-profile-anchor font-mono">
-          <span class="user-name" :title="userDisplayName">{{ userDisplayName }}</span>
-          <button
-            class="topbar-action-btn"
-            :class="{ active: isUserModalOpen }"
-            title="用户设置与详情"
-            aria-label="查看用户设置与详情"
-            @click="openUserModal"
-          >
-            <UserCircle width="16" height="16" />
-          </button>
-        </div>
 
         <button
           v-if="isLoggedIn"
@@ -109,7 +110,7 @@ const handleNavClick = (item) => {
           aria-label="退出登录"
           @click="handleLogout"
         >
-          <LogOut width="16" height="16" />
+          <LogOut width="20" height="20" />
         </button>
 
         <button
@@ -118,8 +119,8 @@ const handleNavClick = (item) => {
           aria-label="切换浅色/深色模式"
           @click="toggleTheme"
         >
-          <SunLight v-if="isDark" width="16" height="16" />
-          <HalfMoon v-else width="16" height="16" />
+          <SunLight v-if="isDark" width="20" height="20" />
+          <HalfMoon v-else width="20" height="20" />
         </button>
       </div>
     </header>

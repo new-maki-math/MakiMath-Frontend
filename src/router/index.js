@@ -8,8 +8,9 @@ const MyLectureView = () => import('../views/my-lecture/my-lecture.vue');
 const CourseHomeView = () => import('../views/course-home/course-home.vue');
 const LectureDocView = () => import('../views/lecture-doc/lecture-doc.vue');
 const KnowledgeView = () => import('../views/knowledge/knowledge.vue');
-const KnowledgeLibrary = () => import('../views/knowledge/KnowledgeLibrary.vue');
-const WorkbenchView = () => import('../views/workbench/RevisionWorkbench.vue');
+const KnowledgeLibrary = () => import('../views/knowledge/KnowledgeMapPending.vue');
+const WorkbenchView = () => import('../views/lecture-workbench/workbench.vue');
+const KnowledgeWorkbenchView = () => import('../views/knowledge-workbench/KnowledgeWorkbench.vue');
 const PlatformView = () => import('../views/platform/platform.vue');
 
 export const routes = [
@@ -64,8 +65,18 @@ export const routes = [
     meta: { title: '我的讲义', tag: 'LOCAL' }
   },
   {
+    path: '/knowledge-workbench',
+    name: 'knowledge-workbench',
+    component: KnowledgeWorkbenchView,
+    meta: { title: '知识点工作台', tag: 'WORKBENCH' }
+  },
+  {
     path: '/workbench',
-    name: 'workbench',
+    redirect: '/lecture-workbench'
+  },
+  {
+    path: '/lecture-workbench',
+    name: 'lecture-workbench',
     component: WorkbenchView,
     meta: { title: '讲义工作台', tag: 'WORKBENCH' }
   },

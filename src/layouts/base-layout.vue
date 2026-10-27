@@ -4,6 +4,7 @@ import ProgressBar from '../components/ProgressBar.vue';
 import MNotice from '../components/MNotice.vue';
 import MUserModal from '../components/MUserModal.vue';
 import MHelpModal from '../components/MHelpModal.vue';
+import MAuthForm from '../components/MAuthForm.vue';
 import MModal from '../components/MModal.vue';
 import MInput from '../components/MInput.vue';
 import MButton from '../components/MButton.vue';
@@ -21,6 +22,7 @@ const {
   isMobile,
   progressBarRef,
   isUserModalOpen,
+  userModalMode,
   isHelpModalOpen,
   currentUser,
   closeUserModal,
@@ -66,10 +68,14 @@ onMounted(() => {
 
     <!-- 全局用户详情与安全设置弹窗 -->
     <MUserModal
-      :open="isUserModalOpen"
+      :open="isUserModalOpen && userModalMode === 'profile'"
       :user="currentUser"
       @close="closeUserModal"
     />
+
+    <MModal :open="isUserModalOpen && userModalMode === 'login'" title="登录或注册" hide-footer show-close @close="closeUserModal">
+      <MAuthForm v-if="isUserModalOpen && userModalMode === 'login'" @success="closeUserModal" />
+    </MModal>
 
     <MHelpModal
       :open="isHelpModalOpen"

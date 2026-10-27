@@ -59,7 +59,7 @@ const handleWindowResize = () => {
 const quickShortcuts = [
   { label: '讲义推荐路线', path: '/recom-lecture', icon: Compass },
   { label: '我的讲义', path: '/my-lecture', icon: Bookmark },
-  { label: '讲义工作台', path: '/workbench', icon: Terminal }
+  { label: '讲义工作台', path: '/lecture-workbench', icon: Terminal }
 ];
 
 // 点击快捷导航卡片跳转

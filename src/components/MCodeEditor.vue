@@ -44,6 +44,10 @@ const props = defineProps({
     type: Boolean,
     default: true
   },
+  showLanguage: {
+    type: Boolean,
+    default: true
+  },
   showPreview: {
     type: Boolean,
     default: false // 按照要求暂时屏蔽实时预览
@@ -117,6 +121,12 @@ onMounted(() => {
   // 双向绑定输入监听
   editorInstance.onDidChangeModelContent(() => {
     if (isSettingValue) return;
+    if (props.readonly) {
+      isSettingValue = true;
+      editorInstance.setValue(props.modelValue || '');
+      isSettingValue = false;
+      return;
+    }
     const val = editorInstance.getValue();
     emit('update:modelValue', val);
   });
@@ -186,7 +196,7 @@ onBeforeUnmount(() => {
         </span>
       </div>
 
-      <div class="code-head-right">
+      <div v-if="showLanguage" class="code-head-right">
         <MTag size="md" :variant="tagVariant">{{ resolvedLanguage }}</MTag>
       </div>
     </div>

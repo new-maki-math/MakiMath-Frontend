@@ -3,6 +3,8 @@ import { ref, inject, watch } from 'vue';
 import ViewportHeader from '../components/ViewportHeader.vue';
 import SearchBar from '../components/SearchBar.vue';
 import MDrawer from '../components/MDrawer.vue';
+import MTag from '../components/MTag.vue';
+import MButton from '../components/MButton.vue';
 import { useLayoutState } from './useLayoutState.js';
 import {
   Menu,
@@ -103,16 +105,6 @@ watch(
       </div>
 
       <div class="topbar-right">
-        <button
-          type="button"
-          class="mobile-icon-btn"
-          :class="{ active: isHelpModalOpen }"
-          title="如何使用"
-          aria-label="如何使用"
-          @click="openHelpModal"
-        >
-          <HelpCircle width="18" height="18" />
-        </button>
         <!-- 搜索呼出按钮（欢迎页中央已有大搜索舱，此处自适应隐藏） -->
         <button
           v-if="!isStartRoute"
@@ -122,7 +114,7 @@ watch(
           aria-label="搜索数学节点或公式"
           @click="openSearch"
         >
-          <Search width="18" height="18" />
+          <Search width="20" height="20" />
         </button>
 
         <!-- 深浅主题切换 -->
@@ -133,21 +125,30 @@ watch(
           aria-label="切换浅色/深色模式"
           @click="toggleTheme"
         >
-          <SunLight v-if="isDark" width="18" height="18" />
-          <HalfMoon v-else width="18" height="18" />
+          <SunLight v-if="isDark" width="20" height="20" />
+          <HalfMoon v-else width="20" height="20" />
         </button>
 
         <!-- 用户登录状态 / 头像 -->
         <button
-          v-if="isLoggedIn"
           type="button"
           class="mobile-icon-btn user-btn"
           :class="{ active: isUserModalOpen }"
-          title="个人中心"
-          aria-label="个人中心"
+          :title="isLoggedIn ? '个人中心' : '登录或注册'"
+          :aria-label="isLoggedIn ? '个人中心' : '登录或注册'"
           @click="openUserModal"
         >
-          <UserCircle width="18" height="18" />
+          <UserCircle width="20" height="20" />
+        </button>
+        <button
+          type="button"
+          class="mobile-icon-btn"
+          :class="{ active: isHelpModalOpen }"
+          title="如何使用"
+          aria-label="如何使用"
+          @click="openHelpModal"
+        >
+          <HelpCircle width="20" height="20" />
         </button>
       </div>
     </header>
@@ -196,7 +197,7 @@ watch(
           >
             <component :is="item.icon" width="18" height="18" class="item-icon" />
             <span class="item-text">{{ item.label }}</span>
-            <span v-if="item.desktopOnly" class="pc-badge font-mono">电脑端</span>
+            <MTag v-if="item.desktopOnly" variant="muted" size="sm">电脑端</MTag>
           </button>
 
         </nav>
@@ -241,14 +242,20 @@ watch(
     <!-- 移动端主内容视口 (全屏单列，原生平滑滚动) -->
     <main class="mobile-viewport">
       <ViewportHeader
-        v-if="showViewportHeader"
+        v-if="showViewportHeader && !currentItem.desktopOnly"
         :title="currentCourse ? currentCourse.title : currentItem.label"
         :breadcrumbs="currentBreadcrumbs"
         @refresh="handleRefreshDoc"
       />
 
       <div class="mobile-content-container">
-        <slot :current-item="currentItem">
+        <div v-if="currentItem.desktopOnly" class="desktop-only-notice">
+          <span class="desktop-only-label font-mono">DESKTOP ONLY</span>
+          <h2>请在电脑端使用</h2>
+          <p>{{ currentItem.label }}暂不支持移动端，请使用电脑访问。</p>
+          <MButton size="sm" @click="handleNavClick('/start')">返回首页</MButton>
+        </div>
+        <slot v-else :current-item="currentItem">
           <router-view :key="docRefreshKey" />
         </slot>
       </div>
@@ -402,15 +409,6 @@ watch(
   white-space: nowrap;
 }
 
-.pc-badge {
-  font-size: 10px;
-  padding: 2px 6px;
-  border-radius: var(--radius-xs);
-  background-color: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-muted);
-}
-
 .drawer-divider {
   height: 1px;
   background-color: var(--border-subtle);
@@ -526,4 +524,9 @@ watch(
   min-height: 100%;
   position: relative;
 }
+
+.desktop-only-notice { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 24px; text-align: center; }
+.desktop-only-label { margin-bottom: 16px; color: var(--text-muted); font-size: var(--font-size-smaller); letter-spacing: 0.08em; }
+.desktop-only-notice h2 { margin: 0; color: var(--text-primary); font-size: var(--font-size-larger); font-weight: var(--font-weight-medium); }
+.desktop-only-notice p { margin: 12px 0 20px; color: var(--text-secondary); font-size: var(--font-size); line-height: 1.6; }
 </style>

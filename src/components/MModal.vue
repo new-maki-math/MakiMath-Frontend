@@ -1,6 +1,7 @@
 <script setup>
 import MBackdrop from './MBackdrop.vue';
 import MButton from './MButton.vue';
+import { Xmark } from '@iconoir/vue';
 
 defineProps({
   open: {
@@ -38,6 +39,10 @@ defineProps({
   hideFooter: {
     type: Boolean,
     default: false
+  },
+  showClose: {
+    type: Boolean,
+    default: false
   }
 });
 
@@ -61,6 +66,7 @@ const emit = defineEmits(['close', 'confirm']);
       >
         <header class="modal-head">
           <h2 class="modal-title">{{ title }}</h2>
+          <button v-if="showClose" type="button" class="modal-close" aria-label="关闭窗口" @click="emit('close')"><Xmark width="16" height="16" /></button>
           <p v-if="desc" class="modal-desc">{{ desc }}</p>
         </header>
 
@@ -111,7 +117,22 @@ const emit = defineEmits(['close', 'confirm']);
 }
 
 .modal-head {
+  position: relative;
   padding: 18px 20px 0;
+}
+
+.modal-close {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
+
+.modal-close:hover {
+  color: var(--text-primary);
 }
 
 .modal-title {

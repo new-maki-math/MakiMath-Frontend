@@ -29,7 +29,8 @@ export const navItems = [
   { id: 'knowledge', label: '知识库', path: '/knowledge', icon: DatabaseSolid, tag: 'KNOWLEDGE', group: 'primary' },
   { id: 'recom-lecture', label: '讲义推荐', path: '/recom-lecture', icon: StarSolid, tag: 'HOT', group: 'reader' },
   { id: 'my-lecture', label: '我的讲义', path: '/my-lecture', icon: BookmarkSolid, tag: 'LOCAL', group: 'reader' },
-  { id: 'workbench', label: '讲义工作台', path: '/workbench', icon: FlaskSolid, tag: 'WORKBENCH', group: 'management', desktopOnly: true },
+  { id: 'knowledge-workbench', label: '知识点工作台', path: '/knowledge-workbench', icon: FlaskSolid, tag: 'WORKBENCH', group: 'management', desktopOnly: true, adminOnly: true },
+  { id: 'lecture-workbench', label: '讲义工作台', path: '/lecture-workbench', icon: FlaskSolid, tag: 'WORKBENCH', group: 'management', desktopOnly: true },
   { id: 'platform', label: '平台管理', path: '/platform', icon: CubeScanSolid, tag: 'PLATFORM', group: 'management', desktopOnly: true, adminOnly: true },
 ];
 
@@ -48,11 +49,12 @@ export function useLayoutState() {
   const isMobile = ref(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
   const updateBreakpoint = () => {
     if (typeof window !== 'undefined') {
-      if (route.name === 'workbench' && (workbenchPanelState.value.dirty || workbenchPanelState.value.saving)) return;
+      if (['lecture-workbench', 'knowledge-workbench'].includes(route.name) && (workbenchPanelState.value.dirty || workbenchPanelState.value.saving)) return;
       isMobile.value = window.innerWidth < 768;
     }
   };
   watch(workbenchPanelState, updateBreakpoint);
+  watch(() => route.name, updateBreakpoint);
 
   // 2. 主题模式控制
   const isDark = ref(true);
@@ -93,6 +95,7 @@ export function useLayoutState() {
   });
 
   const isUserModalOpen = ref(false);
+  const userModalMode = ref('login');
   const isHelpModalOpen = ref(false);
 
   const openHelpModal = () => {
@@ -104,6 +107,7 @@ export function useLayoutState() {
   };
 
   const openUserModal = () => {
+    userModalMode.value = isLoggedIn.value ? 'profile' : 'login';
     isUserModalOpen.value = true;
   };
 
@@ -112,7 +116,7 @@ export function useLayoutState() {
   };
 
   const handleLogout = async () => {
-    if (route.name === 'workbench') {
+    if (route.name === 'lecture-workbench') {
       const result = await router.push('/start');
       if (result) return;
     }
@@ -214,7 +218,8 @@ export function useLayoutState() {
       route.path !== '/start' &&
       route.name !== 'start' &&
       route.name !== 'knowledge-library' &&
-      route.name !== 'workbench' &&
+      route.name !== 'knowledge-workbench' &&
+      route.name !== 'lecture-workbench' &&
       route.name !== 'platform' &&
       route.path !== '/platform'
     );
@@ -222,7 +227,7 @@ export function useLayoutState() {
 
   const isViewportLocked = computed(() => {
     return (
-      route.name === 'workbench' ||
+      route.name === 'lecture-workbench' ||
       route.name === 'platform' ||
       route.path === '/platform' ||
       route.name === 'start' ||
@@ -272,7 +277,7 @@ export function useLayoutState() {
 
     removeAfterHook = router.afterEach((to, from, failure) => {
       endNavigation();
-      if (!failure && ['workbench', 'platform'].includes(from.name)) loadCategories();
+      if (!failure && ['lecture-workbench', 'platform'].includes(from.name)) loadCategories();
     });
   });
 
@@ -296,6 +301,7 @@ export function useLayoutState() {
     isSuperAdmin,
     userDisplayName,
     isUserModalOpen,
+    userModalMode,
     isHelpModalOpen,
     openHelpModal,
     closeHelpModal,

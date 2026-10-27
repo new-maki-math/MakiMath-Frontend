@@ -32,6 +32,10 @@ const props = defineProps({
   duration: {
     type: [Number, String],
     default: 220
+  },
+  fade: {
+    type: Boolean,
+    default: true
   }
 });
 
@@ -60,7 +64,7 @@ const opacityDurationMs = computed(() => {
     class="m-collapse"
     :class="[
       drawer ? 'is-drawer' : (isHorizontal ? 'is-horizontal' : 'is-vertical'),
-      { 'is-open': isOpen }
+      { 'is-open': isOpen, 'no-fade': !fade }
     ]"
     :style="{
       '--collapse-duration': `${durationMs}ms`,
@@ -164,5 +168,13 @@ const opacityDurationMs = computed(() => {
     transform var(--collapse-duration, 220ms) cubic-bezier(0.16, 1, 0.3, 1),
     opacity var(--collapse-opacity-duration, 180ms) ease,
     visibility 0s var(--collapse-duration, 220ms);
+}
+
+.m-collapse.is-vertical.no-fade > .m-collapse-inner {
+  opacity: 1;
+  transform: none;
+  visibility: visible;
+  transition: none;
+  will-change: auto;
 }
 </style>
