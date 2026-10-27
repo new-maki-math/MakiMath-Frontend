@@ -1,5 +1,6 @@
 <script setup>
-import { computed, ref, onMounted } from 'vue';
+import { computed, ref, onMounted, onUnmounted, provide } from 'vue';
+import { onBeforeRouteLeave } from 'vue-router';
 import { workbenchApi, COURSE_STATUSES } from '../../api/workbench.js';
 import { isLoggedIn, initAuth } from '../../utils/auth.js';
 import './workbench.css';
@@ -28,6 +29,45 @@ const KIND_LABEL = { category: '分类', course: '课程', chapter: '章节', se
 
 const treeRef = ref(null);
 const selected = ref(null);
+const panelState = ref({ dirty: false, saving: false });
+const leaveOpen = ref(false);
+let resolveLeave = null;
+
+provide('reportWorkbenchPanelState', (state) => {
+  panelState.value = state;
+});
+
+const finishLeave = (confirmed) => {
+  leaveOpen.value = false;
+  const resolve = resolveLeave;
+  resolveLeave = null;
+  resolve?.(confirmed);
+};
+
+const confirmLeave = () => {
+  if (panelState.value.saving) {
+    notify('正在保存，请稍候', 'warn');
+    return Promise.resolve(false);
+  }
+  if (!panelState.value.dirty) return Promise.resolve(true);
+  if (resolveLeave) return Promise.resolve(false);
+  leaveOpen.value = true;
+  return new Promise((resolve) => { resolveLeave = resolve; });
+};
+
+onBeforeRouteLeave(() => confirmLeave());
+
+const handleBeforeUnload = (event) => {
+  if (!panelState.value.dirty && !panelState.value.saving) return;
+  event.preventDefault();
+  event.returnValue = '';
+};
+
+onMounted(() => window.addEventListener('beforeunload', handleBeforeUnload));
+onUnmounted(() => {
+  window.removeEventListener('beforeunload', handleBeforeUnload);
+  finishLeave(false);
+});
 
 const createOpen = ref(false);
 const creating = ref(false);
@@ -87,12 +127,15 @@ const deleteWarning = computed(() => {
 
 const handleError = (err) => notify(err?.message || String(err), 'error');
 
-const selectNode = (node) => {
+const selectNode = async (node) => {
+  if (selected.value?.type === node.type && selected.value?.id === node.id) return true;
+  if (!await confirmLeave()) return false;
   selected.value = {
     type: node.type,
     id: node.id,
     label: node.label ?? node.title ?? ''
   };
+  return true;
 };
 
 const openCreate = (parent) => {
@@ -168,6 +211,7 @@ const askDelete = (node) => {
 const runDelete = async () => {
   const target = deleteTarget.value;
   if (!target) return;
+  if (!await confirmLeave()) return;
 
   deleting.value = true;
   try {
@@ -233,7 +277,7 @@ const handleChanged = async (payload) => {
 
 // 跳转选中节点并展开树
 const navigateTo = async (target) => {
-  selectNode(target);
+  if (!await selectNode(target)) return;
   try {
     if (target.categoryId) {
       await treeRef.value.expandTo('category', target.categoryId);
@@ -354,6 +398,16 @@ onMounted(async () => {
         :options="COURSE_STATUSES"
       />
     </MModal>
+
+    <MModal
+      :open="leaveOpen"
+      title="放弃未保存的修改"
+      desc="离开后当前修改将丢失"
+      confirm-text="放弃修改"
+      confirm-variant="danger"
+      @close="finishLeave(false)"
+      @confirm="finishLeave(true)"
+    />
 
     <MModal
       :open="Boolean(deleteTarget)"

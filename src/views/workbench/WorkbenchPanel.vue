@@ -1,7 +1,8 @@
 <script setup>
+import { inject, onUnmounted, watch } from 'vue';
 import MButton from '../../components/MButton.vue';
 
-defineProps({
+const props = defineProps({
   kind: {
     type: String,
     default: ''
@@ -33,6 +34,12 @@ defineProps({
 });
 
 defineEmits(['save', 'reset']);
+
+const reportPanelState = inject('reportWorkbenchPanelState', null);
+watch(() => [props.dirty, props.saving], ([dirty, saving]) => {
+  reportPanelState?.({ dirty, saving });
+}, { immediate: true, flush: 'sync' });
+onUnmounted(() => reportPanelState?.({ dirty: false, saving: false }));
 </script>
 
 <template>
@@ -80,7 +87,7 @@ defineEmits(['save', 'reset']);
       </div>
     </header>
 
-    <div class="panel-body">
+    <div class="panel-body" :inert="saving">
       <slot />
     </div>
   </section>

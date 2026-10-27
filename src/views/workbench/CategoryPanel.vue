@@ -115,6 +115,7 @@ const load = async () => {
 };
 
 const save = async () => {
+  if (saving.value || loading.value) return;
   const patch = diff();
   if (Object.keys(patch).length === 0) return;
 

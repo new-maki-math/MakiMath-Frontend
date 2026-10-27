@@ -75,6 +75,7 @@ const discard = () => {
 };
 
 const save = async () => {
+  if (saving.value || loading.value) return;
   saving.value = true;
   try {
     const patch = diff();

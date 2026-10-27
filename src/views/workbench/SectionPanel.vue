@@ -165,56 +165,61 @@ const discard = () => {
 };
 
 const save = async () => {
+  if (saving.value || loading.value) return;
   saving.value = true;
   // 缓存课程标识以供父级刷新树
   const courseId = record.value?.course_id;
+  const completed = [];
   try {
+    let animation = null;
+    if (animDirty.value) {
+      const values = {};
+      for (const [field, label] of [['cues', '字幕'], ['parts', '大纲'], ['steps', '步骤']]) {
+        try {
+          values[field] = JSON.parse(animForm.value[`${field}_str`] || '[]');
+        } catch {
+          throw new Error(`${label}不是合法的 JSON 格式`);
+        }
+        if (!Array.isArray(values[field])) throw new Error(`${label}必须是数组`);
+      }
+      animation = {
+        enabled: animForm.value.enabled,
+        title: animForm.value.title || form.title || '',
+        ...values,
+        scenes_code: animForm.value.scenes_code || ''
+      };
+    }
     const patch = diff();
     if (Object.keys(patch).length > 0) {
       record.value = await workbenchApi.sections.update(props.node.id, patch);
       commit();
+      completed.push('基本信息');
     }
     if (source.dirty.value) {
       const res = await workbenchApi.sections.setSource(props.node.id, source.state.text);
       record.value = { ...record.value, ...res };
       source.commit();
+      completed.push('源码');
     }
     if (prereqsDirty.value) {
       await workbenchApi.sections.setPrereqs(props.node.id, prereqs.value);
       prereqBaseline.value = [...prereqs.value];
+      completed.push('前置小节');
     }
-    if (animDirty.value) {
-      let parsedCues = [], parsedParts = [], parsedSteps = [];
-      try {
-        parsedCues = JSON.parse(animForm.value.cues_str || '[]');
-      } catch (e) {
-        throw new Error('字幕 Cues 不是合法的 JSON 格式');
-      }
-      try {
-        parsedParts = JSON.parse(animForm.value.parts_str || '[]');
-      } catch (e) {
-        throw new Error('大纲 Parts 不是合法的 JSON 格式');
-      }
-      try {
-        parsedSteps = JSON.parse(animForm.value.steps_str || '[]');
-      } catch (e) {
-        throw new Error('步骤 Steps 不是合法的 JSON 格式');
-      }
-
-      await workbenchApi.sections.setAnimation(props.node.id, {
-        enabled: animForm.value.enabled,
-        title: animForm.value.title || form.title || '',
-        cues: parsedCues,
-        parts: parsedParts,
-        steps: parsedSteps,
-        scenes_code: animForm.value.scenes_code || ''
-      });
+    if (animation) {
+      await workbenchApi.sections.setAnimation(props.node.id, animation);
       animBaseline.value = JSON.stringify(animForm.value);
+      completed.push('动画');
     }
     emit('saved', '小节已保存');
     emit('changed', { scope: 'section', courseId, sectionId: props.node.id, label: form.title });
   } catch (err) {
-    emit('error', err);
+    if (completed.length) {
+      emit('changed', { scope: 'section', courseId, sectionId: props.node.id, label: form.title });
+      emit('error', new Error(`已保存${completed.join('、')}，其余内容未保存：${err.message}`));
+    } else {
+      emit('error', err);
+    }
   } finally {
     saving.value = false;
   }
