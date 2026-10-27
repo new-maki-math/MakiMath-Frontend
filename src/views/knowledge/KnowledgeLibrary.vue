@@ -23,6 +23,7 @@ const scopeError = ref(false);
 const detail = ref(null);
 const detailLoading = ref(false);
 const detailError = ref('');
+const locateError = ref('');
 const detailPrerequisites = ref([]);
 const prerequisitesError = ref('');
 const masteryLoading = ref(true);
@@ -74,7 +75,7 @@ const learningNodes = computed(() => graph.value.nodes);
 const currentDomain = computed(() => domainById.get(activeDomain.value));
 const currentTopic = computed(() => currentDomain.value?.topics.find((topic) => topic.id === activeTopic.value));
 const categoryOptions = computed(() => libraries.value.filter((item) => item.parent_id === null));
-const currentLibraryName = computed(() => categoryOptions.value.find((item) => String(item.id) === categoryId.value)?.name || (categoryId.value ? '所选知识库' : '全部知识库'));
+const currentLibraryName = computed(() => categoryOptions.value.find((item) => String(item.id) === categoryId.value)?.name || (categoryId.value ? '所选知识库不可用' : '请选择知识库'));
 async function loadLibraries() {
   const sequence = ++librariesSequence;
   librariesLoading.value = true;
@@ -84,6 +85,19 @@ async function loadLibraries() {
     if (disposed || sequence !== librariesSequence) return;
     if (!Array.isArray(result)) throw new Error('知识分类数据不完整');
     libraries.value = result;
+    const roots = result.filter((item) => item.parent_id === null);
+    if (!categoryId.value && roots.length) categoryId.value = String(roots[0].id);
+    else if (categoryId.value && !roots.some((item) => String(item.id) === categoryId.value)) {
+      mapSequence++;
+      detailSequence++;
+      mapLoading.value = false;
+      graph.value = { categories: [], nodes: [], edges: [] };
+      domains.value = [];
+      nodeById.clear();
+      selected.value = null;
+      returnStack.value = [];
+      mapError.value = '所选知识库不存在或已归档，请重新选择。';
+    }
   } catch {
     if (!disposed && sequence === librariesSequence) librariesError.value = '知识库分类加载失败';
   } finally {
@@ -139,6 +153,7 @@ function buildDomains(data) {
 }
 
 async function loadMap({ preserveOnError = false } = {}) {
+  if (!categoryId.value) return false;
   const sequence = ++mapSequence;
   mapLoading.value = true;
   mapError.value = '';
@@ -252,7 +267,12 @@ function orderedTreemap(node, x0, y0, x1, y1) {
 }
 const chipLayout = computed(() => {
   const entries = chipNodes.value;
-  if (!entries.length) return { groups: [], tiles: [] };
+  const libraryGroup = categoryId.value && !mapError.value ? {
+    id: `library-${categoryId.value}`, kind: 'domain', title: currentLibraryName.value,
+    nodes: entries, fontSize: 18,
+    style: { left: '0px', top: '0px', width: `${worldSize}px`, height: `${worldSize}px` }
+  } : null;
+  if (!entries.length) return { groups: libraryGroup ? [libraryGroup] : [], tiles: [] };
   const children = visibleDomains.value.map((domain) => {
     const topics = domain.topics.map((topic) => {
       const nodes = entries.filter((node) => node.domain_id === domain.id && node.topic_id === topic.id);
@@ -262,19 +282,19 @@ const chipLayout = computed(() => {
     return { title: domain.name, kind: 'domain', children: topics };
   }).filter((domain) => domain.children.length);
   const root = hierarchy({ children }).sum((item) => item.weight || 0);
-  treemap().size([worldSize, worldSize]).tile(orderedTreemap)
+  treemap().size([worldSize - 32, worldSize - 70]).tile(orderedTreemap)
     .paddingOuter((node) => node.depth === 1 ? 8 : node.depth === 2 ? 5 : 0)
     .paddingTop((node) => node.depth === 1 ? 42 : node.depth === 2 ? 28 : 0)
     .paddingInner((node) => node.depth === 0 ? 9 : node.depth === 1 ? 5 : 2)
     .round(true)(root);
-  const style = (node) => ({ left: `${node.x0}px`, top: `${node.y0}px`, width: `${Math.max(0, node.x1 - node.x0)}px`, height: `${Math.max(0, node.y1 - node.y0)}px` });
+  const style = (node) => ({ left: `${node.x0 + 16}px`, top: `${node.y0 + 54}px`, width: `${Math.max(0, node.x1 - node.x0)}px`, height: `${Math.max(0, node.y1 - node.y0)}px` });
   return {
-    groups: root.descendants().filter((node) => node.depth === 1 || node.depth === 2).map((node) => ({
+    groups: [...(libraryGroup ? [libraryGroup] : []), ...root.descendants().filter((node) => node.depth === 1 || node.depth === 2).map((node) => ({
       id: `${node.depth}-${node.data.title}`, kind: node.data.kind, title: node.data.title,
       nodes: node.leaves().map((leaf) => leaf.data.node),
       fontSize: node.depth === 1 ? 18 : 14,
       style: style(node)
-    })),
+    }))],
     tiles: root.leaves().map((node) => ({ node: node.data.node, style: style(node) }))
   };
 });
@@ -411,7 +431,7 @@ function handleGpuLost() {
   gpuReady.value = false;
   gpuError.value = 'WebGPU 设备已断开，当前使用备用显示。';
 }
-watch(categoryId, () => { if (!suppressCategoryWatch) { returnStack.value = []; searchQuery.value = ''; loadMap(); } });
+watch(categoryId, () => { if (!suppressCategoryWatch && categoryId.value) { returnStack.value = []; searchQuery.value = ''; loadMap(); } });
 watch([chipLayout, selected, mastered, focusedId, detailPrerequisites], rebuildGpuLabels, { flush: 'post' });
 watch([canvasWidth, canvasHeight], requestGpuDraw, { flush: 'post' });
 onMounted(() => {
@@ -434,7 +454,6 @@ onMounted(() => {
   if (canvas.value) resizeObserver.observe(canvas.value);
   loadMastery();
   loadLibraries();
-  loadMap();
   initializeGpu();
   themeObserver = new MutationObserver(() => { updateGpuColor(); rebuildGpuLabels(); });
   themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
@@ -571,6 +590,7 @@ async function selectNode(node, preserveHistory = false) {
   selected.value = node;
   if (!preserveHistory) returnStack.value = [];
   detail.value = null;
+  locateError.value = '';
   detailPrerequisites.value = [];
   detailError.value = '';
   prerequisitesError.value = '';
@@ -632,6 +652,10 @@ function followDependency(node) {
 }
 
 async function switchCategory(value) {
+  if (!value || !categoryOptions.value.some((item) => String(item.id) === value)) {
+    locateError.value = '目标知识库不存在或已归档，请重新选择。';
+    return false;
+  }
   if (categoryId.value === value) return true;
   const previousCategory = categoryId.value;
   suppressCategoryWatch = true;
@@ -651,29 +675,51 @@ async function switchCategory(value) {
   return loaded;
 }
 
+function findLibraryForDetail() {
+  if (!detail.value || detail.value.id !== selected.value?.id) return null;
+  const categories = new Map(libraries.value.map((item) => [item.id, item]));
+  for (const linked of detail.value.categories || []) {
+    const seen = new Set();
+    let category = categories.get(linked.id);
+    while (category && !seen.has(category.id)) {
+      seen.add(category.id);
+      if (category.parent_id === null) return String(category.id);
+      category = categories.get(category.parent_id);
+    }
+  }
+  return null;
+}
 async function locateSelected() {
   const target = selected.value;
   if (!target) return;
+  locateError.value = '';
   const previousQuery = searchQuery.value;
   const previousFilter = masteryFilter.value;
-  searchQuery.value = '';
-  masteryFilter.value = 'all';
   if (!nodeById.has(target.id)) {
-    const loaded = await switchCategory('');
-    if (loaded !== true) {
-      if (loaded === false) { searchQuery.value = previousQuery; masteryFilter.value = previousFilter; }
-      return;
-    }
+    if (detailLoading.value) { locateError.value = '请等待知识点详情加载完成。'; return; }
+    if (librariesError.value || librariesLoading.value) { locateError.value = '知识库分类尚未加载，请先重试分类加载。'; return; }
+    const targetLibrary = findLibraryForDetail();
+    if (!targetLibrary) { locateError.value = '无法确定该知识点所属的有效一级知识库。'; return; }
+    const loaded = await switchCategory(targetLibrary);
+    if (loaded !== true) return;
     const current = nodeById.get(target.id);
     if (!current) {
       await selectNode(target, true);
+      locateError.value = '该知识点未出现在所选知识库的公开地图中，无法定位。';
       return;
     }
     selectNode(current, true);
   }
+  searchQuery.value = '';
+  masteryFilter.value = 'all';
   await nextTick();
   const tile = chipLayout.value.tiles.find((item) => item.node.id === target.id);
   if (tile) focusTile(tile);
+  else {
+    searchQuery.value = previousQuery;
+    masteryFilter.value = previousFilter;
+    locateError.value = '当前知识库中无法定位该知识点。';
+  }
 }
 
 async function returnToPrevious() {
@@ -712,7 +758,7 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(canonicalId(no
       <div class="floating-info">
         <nav class="breadcrumbs" aria-label="知识库层级"><button type="button" @click="openOverview">{{ currentLibraryName }}</button><template v-if="currentDomain"><span>/</span><button type="button" @click="openDomain(currentDomain.id)">{{ currentDomain.name }}</button></template><template v-if="currentTopic"><span>/</span><span aria-current="page">{{ currentTopic.title }}</span></template></nav>
         <div class="knowledge-filters">
-          <label>知识库<select v-model="categoryId"><option value="">全部知识库</option><option v-if="categoryId && !categoryOptions.some((item) => String(item.id) === categoryId)" :value="categoryId" disabled>所选分类不可用</option><option v-for="category in categoryOptions" :key="category.id" :value="String(category.id)">{{ category.name }}</option></select></label>
+          <label>知识库<select v-model="categoryId"><option value="" disabled>请选择知识库</option><option v-if="categoryId && !categoryOptions.some((item) => String(item.id) === categoryId)" :value="categoryId" disabled>所选分类不可用</option><option v-for="category in categoryOptions" :key="category.id" :value="String(category.id)">{{ category.name }}</option></select></label>
           <label>搜索当前范围<input v-model="searchQuery" type="search" placeholder="知识点标题" /></label>
           <label>掌握状态<select v-model="masteryFilter"><option value="all">全部</option><option value="mastered">已掌握</option><option value="unmastered">未掌握</option></select></label>
           <p class="filter-note">图中按分类分区，深层分类归入子分区；完整分类见详情。</p>
@@ -727,8 +773,8 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(canonicalId(no
           </div>
         </div>
         <p v-if="mapError" class="storage-error" role="alert">{{ mapError }} <button v-if="!scopeError" type="button" @click="loadMap()">重试</button></p>
-        <p v-else-if="!mapLoading && !learningNodes.length" class="detail-note">当前分类暂无公开知识点</p>
-        <p v-else-if="!mapLoading && !chipNodes.length" class="detail-note">当前筛选没有匹配的知识点</p>
+        <p v-else-if="categoryId && !mapLoading && !learningNodes.length" class="detail-note">当前分类暂无公开知识点</p>
+        <p v-else-if="categoryId && !mapLoading && !chipNodes.length" class="detail-note">当前筛选没有匹配的知识点</p>
         <p v-if="storageError" class="storage-error" role="alert">{{ storageError }}</p>
         <p v-if="gpuError" class="storage-error" role="alert">{{ gpuError }}</p>
         <p v-if="glyphWarning" class="storage-error" role="alert">{{ glyphWarning }}</p>
@@ -761,7 +807,8 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(canonicalId(no
       <div class="detail-top"><span class="eyebrow font-mono">知识点 / {{ selected.id }}</span><MButton size="sm" variant="ghost" @click="closeDetail">关闭</MButton></div>
       <MButton v-if="returnStack.length" size="sm" variant="ghost" @click="returnToPrevious">返回上一知识点</MButton>
       <h2>{{ detail?.title || selected.title }}</h2>
-      <p v-if="!selectedTile" class="detail-note">{{ selectedOutsideMap ? (categoryId ? '该知识点不在当前分类范围内。' : '当前公开地图中没有该知识点。') : '该知识点被当前筛选隐藏。' }} <button type="button" @click="locateSelected">切换范围并定位</button></p>
+      <p v-if="!selectedTile" class="detail-note">{{ selectedOutsideMap ? '该知识点不在当前知识库范围内。' : '该知识点被当前筛选隐藏。' }} <button type="button" @click="locateSelected">切换范围并定位</button></p>
+      <p v-if="locateError" class="storage-error" role="alert">{{ locateError }}</p>
       <p class="detail-note">{{ mastered.has(selected.id) ? '已掌握' : '未掌握' }} · 保存在本浏览器</p>
       <MButton size="sm" :disabled="masteryLoading || masterySaving || !masteryAvailable" :variant="mastered.has(selected.id) ? 'secondary' : 'primary'" @click="toggleMastery(selected)">{{ mastered.has(selected.id) ? '标记为未掌握' : '标记为已掌握' }}</MButton>
       <p v-if="detailLoading" class="detail-note">正在加载知识点…</p>
