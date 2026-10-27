@@ -1,8 +1,7 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { getCourseCategories, getCourseChapters, getCachedCourseChapters } from '../api';
+import { getCourseCategories, getCourseChapters, getCachedCourseChapters, invalidateCourseCaches } from '../api';
 import {
-  transformCourseCategories,
   registerProgressBar,
   beginNavigation,
   endNavigation,
@@ -14,6 +13,7 @@ import {
   initAuth
 } from '../utils';
 import { notify } from '../components/MNotice.vue';
+import { workbenchPanelState } from '../utils/workbench-state.js';
 import {
   PlaySolid,
   HelpCircleSolid,
@@ -25,26 +25,34 @@ import {
 
 // 基础页面导航项配置
 export const navItems = [
-  { id: 'start', label: '开始', path: '/start', icon: PlaySolid, tag: 'INIT' },
-  { id: 'how-to-use', label: '如何使用', path: '/how-to-use', icon: HelpCircleSolid, tag: 'DOCS' },
-  { id: 'recom-lecture', label: '讲义推荐', path: '/recom-lecture', icon: StarSolid, tag: 'HOT' },
-  { id: 'my-lecture', label: '我的讲义', path: '/my-lecture', icon: BookmarkSolid, tag: 'LOCAL' },
-  { id: 'workbench', label: '讲义工作台', path: '/workbench', icon: FlaskSolid, tag: 'WORKBENCH' },
-  { id: 'platform', label: '平台管理', path: '/platform', icon: CubeScanSolid, tag: 'PLATFORM' },
+  { id: 'start', label: '开始', path: '/start', icon: PlaySolid, tag: 'INIT', group: 'primary' },
+  { id: 'how-to-use', label: '如何使用', path: '/how-to-use', icon: HelpCircleSolid, tag: 'DOCS', group: 'primary' },
+  { id: 'recom-lecture', label: '讲义推荐', path: '/recom-lecture', icon: StarSolid, tag: 'HOT', group: 'reader' },
+  { id: 'my-lecture', label: '我的讲义', path: '/my-lecture', icon: BookmarkSolid, tag: 'LOCAL', group: 'reader' },
+  { id: 'workbench', label: '讲义工作台', path: '/workbench', icon: FlaskSolid, tag: 'WORKBENCH', group: 'management', desktopOnly: true },
+  { id: 'platform', label: '平台管理', path: '/platform', icon: CubeScanSolid, tag: 'PLATFORM', group: 'management', desktopOnly: true, adminOnly: true },
 ];
 
 export function useLayoutState() {
   const route = useRoute();
   const router = useRouter();
+  let removeBeforeHook;
+  let removeAfterHook;
   const progressBarRef = ref(null);
+  const navigationGroups = computed(() => {
+    const visible = navItems.filter((item) => !item.adminOnly || isSuperAdmin.value);
+    return ['primary', 'reader', 'management'].map((group) => visible.filter((item) => item.group === group));
+  });
 
   // 1. 移动端断点响应式监听 (<768px 为手机端)
   const isMobile = ref(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
   const updateBreakpoint = () => {
     if (typeof window !== 'undefined') {
+      if (route.name === 'workbench' && (workbenchPanelState.value.dirty || workbenchPanelState.value.saving)) return;
       isMobile.value = window.innerWidth < 768;
     }
   };
+  watch(workbenchPanelState, updateBreakpoint);
 
   // 2. 主题模式控制
   const isDark = ref(true);
@@ -93,8 +101,7 @@ export function useLayoutState() {
   const loadCategories = async () => {
     isLoadingCats.value = true;
     try {
-      const rawCats = await getCourseCategories();
-      const transformed = transformCourseCategories(rawCats);
+      const transformed = await getCourseCategories();
       categories.value = transformed;
       expandedCategories.value = new Set(transformed.map(c => c.id));
     } finally {
@@ -117,7 +124,11 @@ export function useLayoutState() {
     isUserModalOpen.value = false;
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    if (route.name === 'workbench') {
+      const result = await router.push('/start');
+      if (result) return;
+    }
     isUserModalOpen.value = false;
     clearAuth();
     notify('已退出登录', 'info');
@@ -143,7 +154,7 @@ export function useLayoutState() {
     const courseId = route.params.courseId;
     if (!courseId) return null;
     for (const cat of categories.value) {
-      const found = cat.courses?.find(c => c.id === courseId);
+      const found = cat.courses?.find(c => c.id === courseId || c.slug === courseId);
       if (found) return { ...found, categoryName: cat.name };
     }
     return null;
@@ -153,14 +164,18 @@ export function useLayoutState() {
 
   watch(
     () => [route.params.courseId, route.name],
-    async ([courseId, name]) => {
+    async ([courseId, name], oldValue, onCleanup) => {
+      let active = true;
+      onCleanup(() => { active = false; });
       if (name === 'lecture-doc' || name === 'course-home' || courseId) {
-        const cid = courseId || '1';
         try {
-          layoutChapters.value = await getCourseChapters(cid);
+          const chapters = await getCourseChapters(courseId);
+          if (active) layoutChapters.value = chapters;
         } catch (e) {
-          layoutChapters.value = [];
+          if (active) layoutChapters.value = [];
         }
+      } else {
+        layoutChapters.value = [];
       }
     },
     { immediate: true }
@@ -168,8 +183,8 @@ export function useLayoutState() {
 
   const currentBreadcrumbs = computed(() => {
     if (route.name === 'lecture-doc') {
-      const courseId = route.params.courseId || '1';
-      const courseTitle = currentCourse.value?.title || (courseId === '1' ? '考研数学' : courseId);
+      const courseId = route.params.courseId;
+      const courseTitle = currentCourse.value?.title || courseId;
       const chapters = layoutChapters.value.length ? layoutChapters.value : getCachedCourseChapters(courseId);
       const sectionId = String(route.params.sectionId || '').trim();
 
@@ -237,10 +252,10 @@ export function useLayoutState() {
 
   const isItemActive = (item) => route.path === item.path;
 
-  const isCourseActive = (courseId) => {
+  const isCourseActive = (courseId, slug) => {
     return (
       (route.name === 'course-home' || route.name === 'lecture-doc' || route.path.startsWith('/course/')) &&
-      route.params.courseId === courseId
+      (route.params.courseId === courseId || route.params.courseId === slug)
     );
   };
 
@@ -256,6 +271,7 @@ export function useLayoutState() {
   // 6. 讲义刷新 Key 控制
   const docRefreshKey = ref(0);
   const handleRefreshDoc = () => {
+    invalidateCourseCaches();
     startProgress();
     docRefreshKey.value++;
   };
@@ -272,7 +288,7 @@ export function useLayoutState() {
       registerProgressBar(progressBarRef.value);
     }
 
-    router.beforeEach((to, from, next) => {
+    removeBeforeHook = router.beforeEach((to, from, next) => {
       isUserModalOpen.value = false;
       if (to.path !== from.path) {
         beginNavigation();
@@ -280,13 +296,15 @@ export function useLayoutState() {
       next();
     });
 
-    router.afterEach(() => {
+    removeAfterHook = router.afterEach(() => {
       endNavigation();
     });
   });
 
   onUnmounted(() => {
     window.removeEventListener('resize', updateBreakpoint);
+    removeBeforeHook?.();
+    removeAfterHook?.();
   });
 
   return {
@@ -311,6 +329,7 @@ export function useLayoutState() {
     closeUserModal,
     handleLogout,
     navItems,
+    navigationGroups,
     currentItem,
     currentCourse,
     layoutChapters,

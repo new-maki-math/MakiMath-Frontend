@@ -39,7 +39,7 @@ const {
   isUserModalOpen,
   openUserModal,
   handleLogout,
-  navItems,
+  navigationGroups,
   currentItem,
   currentCourse,
   currentBreadcrumbs,
@@ -171,24 +171,15 @@ watch(
       <div class="drawer-nav-container">
         <!-- 基础导航分组 -->
         <nav class="drawer-nav-list">
-          <!-- 1. 开始 -->
           <button
+            v-for="item in navigationGroups[0]"
+            :key="item.id"
             class="drawer-nav-item"
-            :class="{ active: isItemActive(navItems[0]) }"
-            @click="handleNavClick(navItems[0].path)"
+            :class="{ active: isItemActive(item) }"
+            @click="handleNavClick(item.path)"
           >
-            <component :is="navItems[0].icon" width="18" height="18" class="item-icon" />
-            <span class="item-text">{{ navItems[0].label }}</span>
-          </button>
-
-          <!-- 2. 如何使用 -->
-          <button
-            class="drawer-nav-item"
-            :class="{ active: isItemActive(navItems[1]) }"
-            @click="handleNavClick(navItems[1].path)"
-          >
-            <component :is="navItems[1].icon" width="18" height="18" class="item-icon" />
-            <span class="item-text">{{ navItems[1].label }}</span>
+            <component :is="item.icon" width="18" height="18" class="item-icon" />
+            <span class="item-text">{{ item.label }}</span>
           </button>
 
           <!-- 3. 知识库折叠分类树 -->
@@ -240,7 +231,7 @@ watch(
                         class="drawer-course-item"
                         :class="{
                           'is-offline': !course.live,
-                          active: isCourseActive(course.id)
+                          active: isCourseActive(course.id, course.slug)
                         }"
                         @click="handleCourseClick(course)"
                       >
@@ -254,51 +245,31 @@ watch(
             </MCollapse>
           </div>
 
-          <!-- 4. 讲义推荐 -->
           <button
+            v-for="item in navigationGroups[1]"
+            :key="item.id"
             class="drawer-nav-item"
-            :class="{ active: isItemActive(navItems[2]) }"
-            @click="handleNavClick(navItems[2].path)"
+            :class="{ active: isItemActive(item) }"
+            @click="handleNavClick(item.path)"
           >
-            <component :is="navItems[2].icon" width="18" height="18" class="item-icon" />
-            <span class="item-text">{{ navItems[2].label }}</span>
+            <component :is="item.icon" width="18" height="18" class="item-icon" />
+            <span class="item-text">{{ item.label }}</span>
           </button>
 
-          <!-- 5. 我的讲义 -->
-          <button
-            class="drawer-nav-item"
-            :class="{ active: isItemActive(navItems[3]) }"
-            @click="handleNavClick(navItems[3].path)"
-          >
-            <component :is="navItems[3].icon" width="18" height="18" class="item-icon" />
-            <span class="item-text">{{ navItems[3].label }}</span>
-          </button>
-
-          <!-- 分割线 -->
           <div class="drawer-divider"></div>
 
-          <!-- 6. 讲义工作台 (附带电脑端提示标签) -->
           <button
+            v-for="item in navigationGroups[2]"
+            :key="item.id"
             class="drawer-nav-item"
-            :class="{ active: isItemActive(navItems[4]) }"
-            @click="handleNavClick(navItems[4].path)"
+            :class="{ active: isItemActive(item) }"
+            @click="handleNavClick(item.path)"
           >
-            <component :is="navItems[4].icon" width="18" height="18" class="item-icon" />
-            <span class="item-text">{{ navItems[4].label }}</span>
-            <span class="pc-badge font-mono">电脑端</span>
+            <component :is="item.icon" width="18" height="18" class="item-icon" />
+            <span class="item-text">{{ item.label }}</span>
+            <span v-if="item.desktopOnly" class="pc-badge font-mono">电脑端</span>
           </button>
 
-          <!-- 7. 平台管理 -->
-          <button
-            v-if="isSuperAdmin"
-            class="drawer-nav-item"
-            :class="{ active: isItemActive(navItems[5]) }"
-            @click="handleNavClick(navItems[5].path)"
-          >
-            <component :is="navItems[5].icon" width="18" height="18" class="item-icon" />
-            <span class="item-text">{{ navItems[5].label }}</span>
-            <span class="pc-badge font-mono">电脑端</span>
-          </button>
         </nav>
 
         <!-- 抽屉底部用户账户栏 -->

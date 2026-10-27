@@ -34,7 +34,7 @@ const {
   isUserModalOpen,
   openUserModal,
   handleLogout,
-  navItems,
+  navigationGroups,
   currentItem,
   currentCourse,
   currentBreadcrumbs,
@@ -154,33 +154,19 @@ const handleKbClick = () => {
         </div>
 
         <nav class="sidebar-nav">
-          <!-- 1. 开始 -->
           <button
+            v-for="item in navigationGroups[0]"
+            :key="item.id"
             class="nav-button"
-            :class="{ active: isItemActive(navItems[0]) }"
-            :title="isSidebarCollapsed ? navItems[0].label : undefined"
-            @click="handleNavClick(navItems[0])"
+            :class="{ active: isItemActive(item) }"
+            :title="isSidebarCollapsed ? item.label : undefined"
+            @click="handleNavClick(item)"
           >
             <div class="nav-icon-wrap">
-              <component :is="navItems[0].icon" width="18" height="18" class="nav-icon" />
+              <component :is="item.icon" width="18" height="18" class="nav-icon" />
             </div>
             <MCollapse horizontal :open="!isSidebarCollapsed" class="nav-label-collapse">
-              <span class="nav-label">{{ navItems[0].label }}</span>
-            </MCollapse>
-          </button>
-
-          <!-- 2. 如何使用 -->
-          <button
-            class="nav-button"
-            :class="{ active: isItemActive(navItems[1]) }"
-            :title="isSidebarCollapsed ? navItems[1].label : undefined"
-            @click="handleNavClick(navItems[1])"
-          >
-            <div class="nav-icon-wrap">
-              <component :is="navItems[1].icon" width="18" height="18" class="nav-icon" />
-            </div>
-            <MCollapse horizontal :open="!isSidebarCollapsed" class="nav-label-collapse">
-              <span class="nav-label">{{ navItems[1].label }}</span>
+              <span class="nav-label">{{ item.label }}</span>
             </MCollapse>
           </button>
 
@@ -239,7 +225,7 @@ const handleKbClick = () => {
                         class="kb-course-row"
                         :class="{
                           'is-offline': !course.live,
-                          active: isCourseActive(course.id)
+                          active: isCourseActive(course.id, course.slug)
                         }"
                         :title="getCourseTooltip(course)"
                         @click="selectCourse(course)"
@@ -253,66 +239,22 @@ const handleKbClick = () => {
             </MCollapse>
           </div>
 
-          <!-- 4. 讲义推荐 -->
           <button
+            v-for="item in navigationGroups[1].concat(navigationGroups[2])"
+            :key="item.id"
             class="nav-button"
-            :class="{ active: isItemActive(navItems[2]) }"
-            :title="isSidebarCollapsed ? navItems[2].label : undefined"
-            @click="handleNavClick(navItems[2])"
+            :class="{ active: isItemActive(item) }"
+            :title="isSidebarCollapsed ? item.label : undefined"
+            @click="handleNavClick(item)"
           >
             <div class="nav-icon-wrap">
-              <component :is="navItems[2].icon" width="18" height="18" class="nav-icon" />
+              <component :is="item.icon" width="18" height="18" class="nav-icon" />
             </div>
             <MCollapse horizontal :open="!isSidebarCollapsed" class="nav-label-collapse">
-              <span class="nav-label">{{ navItems[2].label }}</span>
+              <span class="nav-label">{{ item.label }}</span>
             </MCollapse>
           </button>
 
-          <!-- 5. 我的讲义 -->
-          <button
-            class="nav-button"
-            :class="{ active: isItemActive(navItems[3]) }"
-            :title="isSidebarCollapsed ? navItems[3].label : undefined"
-            @click="handleNavClick(navItems[3])"
-          >
-            <div class="nav-icon-wrap">
-              <component :is="navItems[3].icon" width="18" height="18" class="nav-icon" />
-            </div>
-            <MCollapse horizontal :open="!isSidebarCollapsed" class="nav-label-collapse">
-              <span class="nav-label">{{ navItems[3].label }}</span>
-            </MCollapse>
-          </button>
-
-          <!-- 6. 讲义工作台 -->
-          <button
-            class="nav-button"
-            :class="{ active: isItemActive(navItems[4]) }"
-            :title="isSidebarCollapsed ? navItems[4].label : undefined"
-            @click="handleNavClick(navItems[4])"
-          >
-            <div class="nav-icon-wrap">
-              <component :is="navItems[4].icon" width="18" height="18" class="nav-icon" />
-            </div>
-            <MCollapse horizontal :open="!isSidebarCollapsed" class="nav-label-collapse">
-              <span class="nav-label">{{ navItems[4].label }}</span>
-            </MCollapse>
-          </button>
-
-          <!-- 7. 平台管理 -->
-          <button
-            v-if="isSuperAdmin"
-            class="nav-button"
-            :class="{ active: isItemActive(navItems[5]) }"
-            :title="isSidebarCollapsed ? navItems[5].label : undefined"
-            @click="handleNavClick(navItems[5])"
-          >
-            <div class="nav-icon-wrap">
-              <component :is="navItems[5].icon" width="18" height="18" class="nav-icon" />
-            </div>
-            <MCollapse horizontal :open="!isSidebarCollapsed" class="nav-label-collapse">
-              <span class="nav-label">{{ navItems[5].label }}</span>
-            </MCollapse>
-          </button>
         </nav>
 
         <MCollapse horizontal :open="!isSidebarCollapsed">

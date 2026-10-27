@@ -2,7 +2,8 @@
 import { computed, ref, onMounted, onUnmounted, provide } from 'vue';
 import { onBeforeRouteLeave } from 'vue-router';
 import { workbenchApi, COURSE_STATUSES } from '../../api/workbench.js';
-import { isLoggedIn, initAuth } from '../../utils/auth.js';
+import { authStatus, isLoggedIn, initAuth } from '../../utils/auth.js';
+import { workbenchPanelState } from '../../utils/workbench-state.js';
 import './workbench.css';
 import WorkbenchAuth from './WorkbenchAuth.vue';
 import WorkbenchTree from './WorkbenchTree.vue';
@@ -29,7 +30,7 @@ const KIND_LABEL = { category: '分类', course: '课程', chapter: '章节', se
 
 const treeRef = ref(null);
 const selected = ref(null);
-const panelState = ref({ dirty: false, saving: false });
+const panelState = workbenchPanelState;
 const leaveOpen = ref(false);
 let resolveLeave = null;
 
@@ -305,7 +306,12 @@ onMounted(async () => {
 </script>
 
 <template>
-  <WorkbenchAuth v-if="!isLoggedIn" @success="handleAuthSuccess" />
+  <div v-if="authStatus === 'initializing'" class="wb-empty font-mono">正在验证登录状态</div>
+  <div v-else-if="authStatus === 'error'" class="wb-empty font-mono">
+    <p>登录状态验证失败，请重试</p>
+    <MButton @click="initAuth">重试</MButton>
+  </div>
+  <WorkbenchAuth v-else-if="!isLoggedIn" @success="handleAuthSuccess" />
 
   <div v-else class="workbench-workspace">
     <WorkbenchTree
