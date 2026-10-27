@@ -381,7 +381,8 @@ function deletionConflict(error, type) {
     : [['category_ids', '关联分类'], ['prerequisite_ids', '前置知识点'], ['dependent_ids', '后续知识点']];
   const links = fields.map(([key, label]) => Array.isArray(details[key]) && details[key].length ? `${label} ID：${details[key].join('、')}` : '').filter(Boolean);
   if (details.truncated) links.push('关联结果已截断，请处理后再次检查');
-  return ['存在关联，须先手动解除才能删除。', ...links].join('\n');
+  const message = type === 'group' ? '存在关联，当前接口拒绝删除。' : '当前后端未完成关联清理，请确认接口版本。';
+  return [message, ...links].join('\n');
 }
 async function confirmDelete() {
   const target = deleteTarget.value;
@@ -505,7 +506,7 @@ onUnmounted(() => {
       <div class="delete-fields">
         <p>确定永久删除“{{ deleteTarget?.label }}”吗？此操作不可撤销。</p>
         <p v-if="deleteTarget?.type === 'group'">须先移走子分类并解除知识点关联。</p>
-        <p v-else>须先解除分类、前置和后续依赖。讲义源码不会修改，引用处将显示缺失占位；本地掌握记录和批注不会自动清理。</p>
+        <p v-else>删除将同时清理此知识点的分类关联和前置、后续关系，其他知识点保留。讲义源码不会修改，引用处将显示缺失占位；本地掌握记录和批注不会自动清理。</p>
         <p v-if="deleteError" class="delete-error" role="alert">{{ deleteError }}</p>
         <div class="import-actions"><MButton variant="ghost" :disabled="saving" @click="closeDelete">取消</MButton><MButton variant="danger" :disabled="saving || deleteUncertain" @click="confirmDelete">{{ saving ? '删除中…' : '永久删除' }}</MButton></div>
       </div>
