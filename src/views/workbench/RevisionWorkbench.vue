@@ -14,9 +14,7 @@ import MInput from '../../components/MInput.vue';
 import MTextarea from '../../components/MTextarea.vue';
 import MSelect from '../../components/MSelect.vue';
 import MModal from '../../components/MModal.vue';
-import MTabs from '../../components/MTabs.vue';
 
-const mode = ref('knowledge');
 const items = ref([]);
 const selectedId = ref('');
 const selectedLecture = ref(null);
@@ -33,7 +31,7 @@ const loading = ref(false);
 const saving = ref(false);
 const error = ref('');
 const createOpen = ref(false);
-const createForm = ref({ slug: '', title: '', source: '' });
+const createForm = ref({ slug: '', title: '' });
 const leaveOpen = ref(false);
 const conflict = ref(null);
 const conflictLoading = ref(false);
@@ -48,10 +46,9 @@ const canEdit = computed(() => {
 });
 const hasEditPermission = computed(() => {
   if (!revision.value) return false;
-  if (mode.value === 'knowledge') return isSuperAdmin.value || revision.value.contributor_id === currentUser.value?.id;
   return isSuperAdmin.value || selectedLecture.value?.owner_id === currentUser.value?.id || collaborators.value.some((item) => item.user_id === currentUser.value?.id && item.permission === 'edit');
 });
-const canManageLecture = computed(() => mode.value === 'lecture' && (isSuperAdmin.value || selectedLecture.value?.owner_id === currentUser.value?.id));
+const canManageLecture = computed(() => isSuperAdmin.value || selectedLecture.value?.owner_id === currentUser.value?.id);
 const selectedCategory = computed({
   get: () => revision.value?.category_id == null ? '' : String(revision.value.category_id),
   set: (value) => { revision.value.category_id = value ? Number(value) : null; }
@@ -98,7 +95,7 @@ const loadItems = async () => {
   loading.value = true;
   error.value = '';
   try {
-    const result = mode.value === 'knowledge' ? await knowledgeApi.mine() : await lectureApi.mine();
+    const result = await lectureApi.mine();
     if (id === loadId) items.value = result;
   } catch (err) {
     if (id === loadId) error.value = err.message || '加载列表失败';
@@ -111,26 +108,15 @@ watch(isLoggedIn, (loggedIn) => {
   if (loggedIn) loadItems();
 }, { immediate: true });
 
-const changeMode = async (next) => {
-  if (next === mode.value || !await confirmLeave()) return;
-  mode.value = next;
-  selectedId.value = '';
-  selectedLecture.value = null;
-  revision.value = null;
-  chapters.value = [];
-  baseline.value = '';
-  await loadItems();
-};
-
-const loadRevision = async (id, kind = mode.value) => {
+const loadRevision = async (id) => {
   const current = ++loadId;
   loading.value = true;
   error.value = '';
   try {
-    const data = kind === 'knowledge' ? await knowledgeApi.getRevision(id) : await lectureApi.getRevision(id);
+    const data = await lectureApi.getRevision(id);
     if (current !== loadId) return;
-    revision.value = kind === 'knowledge' ? data : data.revision;
-    chapters.value = kind === 'knowledge' ? [] : data.chapters;
+    revision.value = data.revision;
+    chapters.value = data.chapters;
     selectedRevisionId.value = String(id);
     baseline.value = snapshot();
   } catch (err) {
@@ -146,10 +132,6 @@ const selectItem = async (item) => {
   revision.value = null;
   chapters.value = [];
   baseline.value = '';
-  if (mode.value === 'knowledge') {
-    await loadRevision(item.id);
-    return;
-  }
   const current = ++loadId;
   loading.value = true;
   error.value = '';
@@ -166,7 +148,7 @@ const selectItem = async (item) => {
     collaborators.value = editors;
     points.value = knowledge;
     categories.value = categoryList;
-    if (versions.length) await loadRevision(versions[0].id, 'lecture');
+    if (versions.length) await loadRevision(versions[0].id);
   } catch (err) {
     if (current === loadId) error.value = err.message || '加载讲义失败';
   } finally {
@@ -188,14 +170,10 @@ const create = async () => {
   saving.value = true;
   try {
     const body = { slug: createForm.value.slug.trim(), title: createForm.value.title.trim() };
-    const result = mode.value === 'knowledge'
-      ? await knowledgeApi.create({ ...body, source: createForm.value.source })
-      : await lectureApi.create(body);
+    const result = await lectureApi.create(body);
     createOpen.value = false;
     await loadItems();
-    const item = mode.value === 'knowledge'
-      ? items.value.find((entry) => entry.id === result.revision.id)
-      : items.value.find((entry) => entry.id === result.lecture.id);
+    const item = items.value.find((entry) => entry.id === result.lecture.id);
     saving.value = false;
     if (item) await selectItem(item);
     notify('草稿已创建', 'success');
@@ -211,20 +189,9 @@ const save = async () => {
   saving.value = true;
   const submitted = snapshot();
   try {
-    let savedRevision;
-    let savedChapters;
-    if (mode.value === 'knowledge') {
-      const value = revision.value;
-      savedRevision = await knowledgeApi.saveRevision(value.id, {
-        edit_version: value.edit_version, title: value.title, summary: value.summary,
-        source: value.source, animation: value.animation, metadata: value.metadata, change_note: value.change_note
-      });
-      savedChapters = [];
-    } else {
-      const result = await lectureApi.saveRevision(revision.value.id, lectureSaveBody(revision.value, chapters.value));
-      savedRevision = result.revision;
-      savedChapters = result.chapters;
-    }
+    const result = await lectureApi.saveRevision(revision.value.id, lectureSaveBody(revision.value, chapters.value));
+    const savedRevision = result.revision;
+    const savedChapters = result.chapters;
     if (snapshot() === submitted) {
       revision.value = savedRevision;
       chapters.value = savedChapters;
@@ -249,7 +216,6 @@ const save = async () => {
 };
 
 const describeContent = (value, tree) => {
-  if (mode.value === 'knowledge') return `${value.title}\n\n${value.summary}\n\n${value.source}`;
   return [value.title, value.subtitle, value.descr, ...tree.flatMap((chapter) => [
     chapter.title,
     ...chapter.sections.flatMap((section) => [section.title, ...section.blocks.map((block) =>
@@ -262,11 +228,9 @@ const inspectConflict = async () => {
   if (!revision.value || conflictLoading.value) return;
   conflictLoading.value = true;
   try {
-    const latest = mode.value === 'knowledge'
-      ? await knowledgeApi.getRevision(revision.value.id)
-      : await lectureApi.getRevision(revision.value.id);
-    const latestRevision = mode.value === 'knowledge' ? latest : latest.revision;
-    const latestChapters = mode.value === 'knowledge' ? [] : latest.chapters;
+    const latest = await lectureApi.getRevision(revision.value.id);
+    const latestRevision = latest.revision;
+    const latestChapters = latest.chapters;
     conflict.value = {
       revision: latestRevision,
       chapters: latestChapters,
@@ -292,9 +256,7 @@ const submit = async () => {
   if (!canEdit.value || saving.value || dirty.value) return;
   saving.value = true;
   try {
-    revision.value = mode.value === 'knowledge'
-      ? await knowledgeApi.submitRevision(revision.value.id, revision.value.edit_version)
-      : await lectureApi.submitRevision(revision.value.id, revision.value.edit_version);
+    revision.value = await lectureApi.submitRevision(revision.value.id, revision.value.edit_version);
     baseline.value = snapshot();
     notify('已提交审核', 'success');
   } catch (err) {
@@ -308,12 +270,10 @@ const copyRevision = async () => {
   if (!revision.value || !hasEditPermission.value || revision.value.status === 'draft' || saving.value) return;
   saving.value = true;
   try {
-    const result = mode.value === 'knowledge'
-      ? await knowledgeApi.createRevision(revision.value.knowledge_point_id, revision.value.id)
-      : await lectureApi.createRevision(selectedLecture.value.id, revision.value.id);
-    const newId = mode.value === 'knowledge' ? result.id : result.revision.id;
+    const result = await lectureApi.createRevision(selectedLecture.value.id, revision.value.id);
+    const newId = result.revision.id;
     await loadItems();
-    if (mode.value === 'lecture') revisions.value = await lectureApi.revisions(selectedLecture.value.id);
+    revisions.value = await lectureApi.revisions(selectedLecture.value.id);
     await loadRevision(newId);
     notify('已创建新草稿', 'success');
   } catch (err) {
@@ -352,8 +312,7 @@ const move = (list, index, offset) => {
   <WorkbenchAuth v-else-if="!isLoggedIn" />
   <div v-else class="revision-workbench">
     <aside class="revision-sidebar">
-      <MTabs :model-value="mode" :tabs="[{ label: '知识点', value: 'knowledge' }, { label: '讲义', value: 'lecture' }]" @update:model-value="changeMode" />
-      <MButton variant="primary" size="sm" @click="createForm = { slug: '', title: '', source: '' }; createOpen = true">新建</MButton>
+      <MButton variant="primary" size="sm" @click="createForm = { slug: '', title: '' }; createOpen = true">新建</MButton>
       <p v-if="loading">加载中</p>
       <p v-if="error">{{ error }}</p>
       <button v-for="item in items" :key="item.id" class="revision-item" :class="{ active: selectedId === String(item.id) }" @click="selectItem(item)">
@@ -371,44 +330,40 @@ const move = (list, index, offset) => {
             <MButton v-if="canEdit" variant="primary" :disabled="saving || dirty" @click="submit">提交审核</MButton>
           </div>
         </header>
-        <label v-if="mode === 'lecture'">版本 <select :value="selectedRevisionId" :disabled="saving" @change="changeRevision"><option v-for="item in revisions" :key="item.id" :value="String(item.id)">{{ item.revision_no }} · {{ item.status }}</option></select></label>
+        <label>版本 <select :value="selectedRevisionId" :disabled="saving" @change="changeRevision"><option v-for="item in revisions" :key="item.id" :value="String(item.id)">{{ item.revision_no }} · {{ item.status }}</option></select></label>
         <div class="revision-body" :inert="saving || !canEdit">
           <MInput v-model="revision.title" label="标题" />
-          <MTextarea v-if="mode === 'knowledge'" v-model="revision.summary" label="摘要" :rows="2" />
-          <MTextarea v-if="mode === 'knowledge'" v-model="revision.source" label="正文" :rows="18" />
-          <template v-else>
-            <MInput v-model="revision.subtitle" label="副标题" />
-            <MTextarea v-model="revision.descr" label="简介" :rows="2" />
-            <MSelect v-model="selectedCategory" label="讲义分类" :options="[{ value: '', label: '未分类' }, ...categories.map((category) => ({ value: String(category.id), label: category.name }))]" />
-            <MInput v-model="revision.typst_version" label="排版版本" />
-            <div v-for="chapter in chapters" :key="chapter.occurrence_id" class="revision-block">
-              <MInput v-model="chapter.title" label="章节标题" />
-              <MInput v-model="chapter.slug" label="章节标识" />
-              <MInput v-model="chapter.tag" label="章节标签" />
-              <MTextarea v-model="chapter.summary" label="章节摘要" :rows="2" />
-              <div v-for="section in chapter.sections" :key="section.occurrence_id" class="revision-block">
-                <MInput v-model="section.title" label="小节标题" />
-                <MInput v-model="section.slug" label="小节标识" />
-                <MInput v-model="section.tag" label="小节标签" />
-                <MTextarea v-model="section.summary" label="小节摘要" :rows="2" />
-                <div v-for="block in section.blocks" :key="block.occurrence_id" class="revision-block">
-                  <MTextarea v-if="block.block_type === 'author'" v-model="block.source" label="作者正文" :rows="8" />
-                  <p v-else>公共知识点引用：{{ block.knowledge_title || block.knowledge_point_id }} · 版本 {{ block.knowledge_revision_id }}</p>
-                  <div class="revision-actions"><MButton size="sm" @click="move(section.blocks, section.blocks.indexOf(block), -1)">上移</MButton><MButton size="sm" @click="move(section.blocks, section.blocks.indexOf(block), 1)">下移</MButton></div>
-                  <MButton size="sm" variant="danger" @click="section.blocks.splice(section.blocks.indexOf(block), 1)">移除内容块</MButton>
-                </div>
-                <MButton size="sm" @click="addAuthor(section)">添加作者内容</MButton>
-                <MSelect v-model="newPointId" label="公共知识点" :options="[{ value: '', label: '请选择知识点' }, ...points.map((point) => ({ value: String(point.id), label: point.title }))]" />
-                <MButton size="sm" :disabled="!newPointId" @click="addReference(section)">添加引用</MButton>
-                <MButton size="sm" variant="danger" @click="chapter.sections.splice(chapter.sections.indexOf(section), 1)">移除小节</MButton>
-                <div class="revision-actions"><MButton size="sm" @click="move(chapter.sections, chapter.sections.indexOf(section), -1)">小节上移</MButton><MButton size="sm" @click="move(chapter.sections, chapter.sections.indexOf(section), 1)">小节下移</MButton></div>
+          <MInput v-model="revision.subtitle" label="副标题" />
+          <MTextarea v-model="revision.descr" label="简介" :rows="2" />
+          <MSelect v-model="selectedCategory" label="讲义分类" :options="[{ value: '', label: '未分类' }, ...categories.map((category) => ({ value: String(category.id), label: category.name }))]" />
+          <MInput v-model="revision.typst_version" label="排版版本" />
+          <div v-for="chapter in chapters" :key="chapter.occurrence_id" class="revision-block">
+            <MInput v-model="chapter.title" label="章节标题" />
+            <MInput v-model="chapter.slug" label="章节标识" />
+            <MInput v-model="chapter.tag" label="章节标签" />
+            <MTextarea v-model="chapter.summary" label="章节摘要" :rows="2" />
+            <div v-for="section in chapter.sections" :key="section.occurrence_id" class="revision-block">
+              <MInput v-model="section.title" label="小节标题" />
+              <MInput v-model="section.slug" label="小节标识" />
+              <MInput v-model="section.tag" label="小节标签" />
+              <MTextarea v-model="section.summary" label="小节摘要" :rows="2" />
+              <div v-for="block in section.blocks" :key="block.occurrence_id" class="revision-block">
+                <MTextarea v-if="block.block_type === 'author'" v-model="block.source" label="作者正文" :rows="8" />
+                <p v-else>公共知识点引用：{{ block.knowledge_title || block.knowledge_point_id }} · 版本 {{ block.knowledge_revision_id }}</p>
+                <div class="revision-actions"><MButton size="sm" @click="move(section.blocks, section.blocks.indexOf(block), -1)">上移</MButton><MButton size="sm" @click="move(section.blocks, section.blocks.indexOf(block), 1)">下移</MButton></div>
+                <MButton size="sm" variant="danger" @click="section.blocks.splice(section.blocks.indexOf(block), 1)">移除内容块</MButton>
               </div>
-              <MButton size="sm" @click="addSection(chapter)">添加小节</MButton>
-              <MButton size="sm" variant="danger" @click="chapters.splice(chapters.indexOf(chapter), 1)">移除章节</MButton>
-              <div class="revision-actions"><MButton size="sm" @click="move(chapters, chapters.indexOf(chapter), -1)">章节上移</MButton><MButton size="sm" @click="move(chapters, chapters.indexOf(chapter), 1)">章节下移</MButton></div>
+              <MButton size="sm" @click="addAuthor(section)">添加作者内容</MButton>
+              <MSelect v-model="newPointId" label="公共知识点" :options="[{ value: '', label: '请选择知识点' }, ...points.map((point) => ({ value: String(point.id), label: point.title }))]" />
+              <MButton size="sm" :disabled="!newPointId" @click="addReference(section)">添加引用</MButton>
+              <MButton size="sm" variant="danger" @click="chapter.sections.splice(chapter.sections.indexOf(section), 1)">移除小节</MButton>
+              <div class="revision-actions"><MButton size="sm" @click="move(chapter.sections, chapter.sections.indexOf(section), -1)">小节上移</MButton><MButton size="sm" @click="move(chapter.sections, chapter.sections.indexOf(section), 1)">小节下移</MButton></div>
             </div>
-            <MButton size="sm" @click="addChapter">添加章节</MButton>
-          </template>
+            <MButton size="sm" @click="addSection(chapter)">添加小节</MButton>
+            <MButton size="sm" variant="danger" @click="chapters.splice(chapters.indexOf(chapter), 1)">移除章节</MButton>
+            <div class="revision-actions"><MButton size="sm" @click="move(chapters, chapters.indexOf(chapter), -1)">章节上移</MButton><MButton size="sm" @click="move(chapters, chapters.indexOf(chapter), 1)">章节下移</MButton></div>
+          </div>
+          <MButton size="sm" @click="addChapter">添加章节</MButton>
           <MTextarea v-model="revision.change_note" label="修改说明" :rows="2" />
         </div>
         <LectureAccessPanel
@@ -424,7 +379,6 @@ const move = (list, index, offset) => {
     <MModal :open="createOpen" title="新建草稿" :busy="saving" @close="createOpen = false" @confirm="create">
       <MInput v-model="createForm.title" label="标题" />
       <MInput v-model="createForm.slug" label="标识" />
-      <MTextarea v-if="mode === 'knowledge'" v-model="createForm.source" label="正文" :rows="5" />
     </MModal>
     <MModal :open="leaveOpen" title="放弃未保存的修改" confirm-text="放弃修改" confirm-variant="danger" @close="finishLeave(false)" @confirm="finishLeave(true)" />
     <MModal :open="Boolean(conflict)" title="保存冲突" desc="当前修改仍保留。载入最新版本会丢弃当前修改，请先复制需要保留的内容。" confirm-text="载入最新版本" confirm-variant="danger" @close="conflict = null" @confirm="useLatest">
