@@ -158,6 +158,11 @@ onBeforeUnmount(() => { mapRequest++; detailRequest++; });
         <option value="mastered">已掌握</option>
         <option value="unmastered">未掌握</option>
       </select>
+      <p>当前分类范围：已掌握 {{ masteredCount }} / {{ map.nodes.length }}<span v-if="map.nodes.length">（{{ Math.round(masteredCount / map.nodes.length * 100) }}%）</span></p>
+      <div class="legend"><span><i class="dot idle" />未掌握</span><span><i class="dot mastered" />已掌握</span></div>
+      <p>箭头指向后续知识</p>
+      <div class="controls"><MButton size="sm" aria-label="缩小" @click="graph?.zoomBy(0.8)">−</MButton><MButton size="sm" aria-label="放大" @click="graph?.zoomBy(1.25)">+</MButton><MButton size="sm" @click="graph?.fit()">全览</MButton></div>
+      <div v-if="masteryError" role="alert">{{ masteryError }} <MButton size="sm" @click="loadMastery">重试</MButton></div>
       <p v-if="loading">正在加载地图</p>
       <div v-else-if="error"><p role="alert">{{ error }}</p><MButton size="sm" @click="loadMap">重试</MButton></div>
       <p v-else-if="!map.nodes.length">当前范围暂无知识点</p>
@@ -184,44 +189,35 @@ onBeforeUnmount(() => { mapRequest++; detailRequest++; });
         <p class="pending">加入讲义功能待新工作台接入</p>
       </template>
     </aside>
-    <div class="map-panel toolbar">
-      <div class="statistics">当前分类范围：已掌握 {{ masteredCount }} / {{ map.nodes.length }}<span v-if="map.nodes.length">（{{ Math.round(masteredCount / map.nodes.length * 100) }}%）</span></div>
-      <div class="legend"><span><i class="dot idle" />未掌握</span><span><i class="dot mastered" />已掌握</span><span>箭头指向后续知识</span></div>
-      <div class="controls"><MButton size="sm" aria-label="缩小" @click="graph?.zoomBy(0.8)">−</MButton><MButton size="sm" aria-label="放大" @click="graph?.zoomBy(1.25)">+</MButton><MButton size="sm" @click="graph?.fit()">全览</MButton></div>
-      <div v-if="masteryError" class="storage-error" role="alert">{{ masteryError }} <MButton size="sm" @click="loadMastery">重试</MButton></div>
-    </div>
   </section>
 </template>
 
 <style scoped>
 .knowledge-library { position: relative; height: calc(100vh - 120px); min-height: 520px; overflow: hidden; background: var(--bg-app); }
 .map-panel { position: absolute; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-primary); }
-.filters { top: 16px; left: 16px; width: 270px; padding: 16px; display: flex; flex-direction: column; gap: 8px; max-height: calc(100% - 125px); overflow: auto; }
+.filters { top: 16px; left: 16px; width: 270px; padding: 16px; display: flex; flex-direction: column; gap: 8px; max-height: calc(100% - 32px); overflow: auto; }
 h1 { font-size: 18px; margin: 0 0 8px; }
 label, .version, .pending, .filters p, .detail p, .legend { color: var(--text-secondary); font-size: 12px; }
 input, select { width: 100%; padding: 8px; color: var(--text-primary); background: var(--bg-app); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); }
 .search-results { display: flex; flex-direction: column; gap: 4px; }
 .search-results button { text-align: left; padding: 6px; border: 0; border-radius: var(--radius-sm); background: var(--bg-app); color: var(--text-primary); cursor: pointer; }
 .search-results button:hover { background: var(--bg-hover); }
-.detail { top: 16px; right: 16px; bottom: 94px; width: min(420px, calc(100% - 32px)); padding: 16px; overflow: auto; }
+.detail { top: 16px; right: 16px; bottom: 16px; width: min(420px, calc(100% - 32px)); padding: 16px; overflow: auto; }
 .detail-heading { display: flex; justify-content: space-between; align-items: center; }
 .detail h2 { margin: 16px 0 8px; font-size: 20px; }
 .detail h3 { margin: 20px 0 8px; font-size: 14px; }
 .detail ul { padding-left: 18px; font-size: 13px; }
 .detail li span { color: var(--text-muted); }
 .pending { margin-top: 24px; }
-.toolbar { bottom: 16px; left: 16px; right: 16px; display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; padding: 10px 12px; font-size: 13px; }
 .legend, .controls { display: flex; align-items: center; gap: 12px; }
-.controls { margin-left: auto; gap: 6px; }
+.controls { gap: 6px; }
 .dot { display: inline-block; width: 8px; height: 8px; margin-right: 5px; border-radius: 50%; }
 .idle { background: #858b91; }
 .mastered { background: #20a997; }
-.storage-error { color: var(--text-primary); }
 @media (max-width: 700px) {
   .knowledge-library { height: calc(100vh - 100px); }
   .filters { width: 220px; max-height: 42%; }
-  .detail { top: auto; bottom: 112px; max-height: 55%; }
-  .toolbar { gap: 8px; }
+  .detail { top: auto; bottom: 16px; max-height: 55%; }
   .legend { font-size: 11px; }
 }
 </style>
