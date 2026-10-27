@@ -138,8 +138,12 @@ setUnauthorizedHandler(async (token) => {
       setAuth(result.access_token, result.user);
       return true;
     } catch (err) {
-      if (version === authVersion && err.status === 401) expireSession();
-      return false;
+      if (version !== authVersion) return Boolean(getAuthToken());
+      if (err.status === 401) {
+        expireSession();
+        return false;
+      }
+      throw err;
     }
   })().finally(() => { refreshInFlight = null; });
   return refreshInFlight;

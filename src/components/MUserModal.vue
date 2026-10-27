@@ -48,12 +48,6 @@ const passwordForm = ref({
 });
 const isSavingPassword = ref(false);
 
-// 操作日志列表状态
-const auditLogs = ref([]);
-const isLoadingLogs = ref(false);
-const logTotal = ref(0);
-const logPage = ref(1);
-
 // 同步初始化表单数据
 watch(
   () => props.open,
@@ -73,13 +67,6 @@ watch(
   },
   { immediate: true }
 );
-
-// 切换标签联动加载日志
-watch(currentTab, (val) => {
-  if (val === 'logs') {
-    loadAuditLogs();
-  }
-});
 
 // 用户角色标签配置
 const roleMeta = computed(() => {
@@ -151,36 +138,6 @@ const handleSavePassword = async () => {
   }
 };
 
-// 获取操作审计日志
-const loadAuditLogs = async (page = 1) => {
-  isLoadingLogs.value = true;
-  logPage.value = page;
-  try {
-    const res = await request(`/api/auth/audit-logs?page=${page}&limit=12`);
-    if (res?.items) {
-      auditLogs.value = res.items;
-      logTotal.value = res.total || 0;
-    }
-  } catch (err) {
-    notify(err.message || '加载操作日志失败', 'error');
-  } finally {
-    isLoadingLogs.value = false;
-  }
-};
-
-// 格式化时间字符串
-const formatDate = (isoStr) => {
-  if (!isoStr) return '-';
-  const d = new Date(isoStr);
-  if (Number.isNaN(d.getTime())) return isoStr;
-  const pad = (n) => String(n).padStart(2, '0');
-  const month = pad(d.getMonth() + 1);
-  const day = pad(d.getDate());
-  const hours = pad(d.getHours());
-  const minutes = pad(d.getMinutes());
-  const seconds = pad(d.getSeconds());
-  return `${month}-${day} ${hours}:${minutes}:${seconds}`;
-};
 </script>
 
 <template>
@@ -298,43 +255,7 @@ const formatDate = (isoStr) => {
               </form>
             </section>
 
-            <section v-else-if="currentTab === 'logs'" class="tab-pane">
-              <div v-if="isLoadingLogs" class="logs-empty">加载审计日志中...</div>
-              <div v-else-if="auditLogs.length === 0" class="logs-empty">暂无操作日志记录</div>
-              <div v-else class="logs-table-wrap">
-                <table class="logs-table">
-                  <thead>
-                    <tr>
-                      <th>时间</th>
-                      <th>动作</th>
-                      <th>路径</th>
-                      <th>状态</th>
-                      <th>耗时</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="item in auditLogs" :key="item.id">
-                      <td class="log-time">{{ formatDate(item.created_at) }}</td>
-                      <td>
-                        <span class="method-tag" :class="`is-${item.method.toLowerCase()}`">
-                          {{ item.method }}
-                        </span>
-                      </td>
-                      <td class="log-path" :title="item.path">{{ item.path }}</td>
-                      <td>
-                        <span
-                          class="status-dot"
-                          :class="item.status_code < 400 ? 'status-ok' : 'status-err'"
-                        >
-                          {{ item.status_code }}
-                        </span>
-                      </td>
-                      <td class="log-duration">{{ item.duration_ms }}ms</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </section>
+
           </div>
         </div>
       </div>

@@ -109,7 +109,11 @@ export async function request(url, options = {}) {
       error.data = errData;
       const authEndpoint = ['/api/auth/login', '/api/auth/register', '/api/auth/refresh', '/api/auth/logout', '/api/auth/password'].some((path) => url.split('?')[0] === path);
       if (res.status === 401 && token && retryAuth && !authEndpoint && unauthorizedHandler) {
-        if (await unauthorizedHandler(token)) return await request(url, { ...options, retryAuth: false });
+        if (await unauthorizedHandler(token)) {
+          const result = await request(url, { ...options, retryAuth: false });
+          succeeded = true;
+          return result;
+        }
       }
       throw error;
     }
