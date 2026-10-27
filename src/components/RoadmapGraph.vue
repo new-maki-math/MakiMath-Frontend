@@ -25,7 +25,7 @@ const props = defineProps({
   // 课程 ID
   courseId: {
     type: [String, Number],
-    default: '1'
+    default: ''
   },
   // 初始视图模式：'chapter' (显示课程+章节) 或 'section' (全部显示)
   initialMode: {
