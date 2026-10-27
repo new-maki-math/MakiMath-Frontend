@@ -119,8 +119,8 @@ function buildDomains(data) {
     const projected = rootIndex >= 0 ? path.slice(rootIndex + 1) : path;
     const rootDirect = rootIndex >= 0 && !projected.length;
     const incompletePath = selectedRoot !== null && rootIndex < 0;
-    const domain = incompletePath ? { id: 'incomplete-path', name: '其他分类或路径不完整' } : projected[0] || (rootDirect ? { id: `root-direct-${selectedRoot}`, name: '直属本知识库' } : { id: 'uncategorized', name: '未分类' });
-    const topic = incompletePath && projected.length ? projected[projected.length - 1] : projected.length > 1 ? projected[1] : { id: `direct-${domain.id}`, name: projected.length ? '直属此分类' : rootDirect ? '直属知识点' : '未分类知识点' };
+    const domain = incompletePath ? { id: 'incomplete-path', name: '未显示分类或路径不完整' } : projected[0] || (rootDirect ? { id: `root-direct-${selectedRoot}`, name: '直属本知识库' } : { id: 'uncategorized', name: '无有效分类' });
+    const topic = incompletePath && projected.length ? projected[projected.length - 1] : projected.length > 1 ? projected[1] : { id: `direct-${domain.id}`, name: projected.length ? '直属此分类' : rootDirect ? '直属知识点' : '未显示分类' };
     const item = { ...node, domain_id: domain.id, topic_id: topic.id };
     nodeById.set(item.id, item);
     if (!grouped.has(domain.id)) grouped.set(domain.id, { id: domain.id, name: domain.name, nodes: [], topics: [] });
