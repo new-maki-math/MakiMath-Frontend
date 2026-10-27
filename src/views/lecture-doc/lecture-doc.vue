@@ -177,6 +177,7 @@ const currentSectionId = computed(() => {
 // 讲义正文与目录数据
 const courseChapters = ref([]);
 const courseTitle = ref('');
+const contentIdentity = ref(null);
 const currentContent = ref({
   id: '',
   title: '讲义加载中...',
@@ -200,6 +201,7 @@ watch(
     isSelectionMode.value = false;
     isLoading.value = true;
     loadError.value = '';
+    contentIdentity.value = null;
     currentContent.value = { id: '', title: '', lead: '', outlines: [], doc: null, animation: null };
     courseChapters.value = [];
     courseTitle.value = '';
@@ -208,6 +210,7 @@ watch(
       // 内部通过解析器将别名解析为对应数字编号
       const tree = await fetchCourseTree(courseId);
       if (id !== loadId) return;
+      if (tree.id == null) throw new Error('课程标识缺失');
       courseTitle.value = tree.title || '';
       const chaps = toChapters(tree);
       courseChapters.value = chaps;
@@ -232,6 +235,7 @@ watch(
       const content = await getCourseSectionContent(tree.id, secId);
       if (id !== loadId) return;
       currentContent.value = content;
+      contentIdentity.value = { courseId: String(tree.id), sectionId: String(secId) };
 
       // 切换时重置滚动位置
       if (readingViewportRef.value) {
@@ -248,7 +252,7 @@ watch(
 
 // 当前小节与所属章节
 const currentSection = computed(() => {
-  const targetId = currentSectionId.value;
+  const targetId = String(currentContent.value.id || currentSectionId.value);
   for (const chap of courseChapters.value) {
     const sec = chap.sections?.find(s => String(s.id) === targetId || (s.slug && String(s.slug) === targetId));
     if (sec) {
@@ -377,8 +381,9 @@ watch(() => currentSectionId.value, () => {
 
 // 是否整节已收录
 const isSectionCollected = computed(() => {
-  const cId = String(currentCourseId.value || '');
-  const sId = String(currentSectionId.value || '');
+  const cId = contentIdentity.value?.courseId;
+  const sId = contentIdentity.value?.sectionId;
+  if (!cId || !sId) return false;
   return currentNotebookItems.value.some(
     (it) => it.courseId === cId && it.sectionId === sId && it.scope === 'section'
   );
@@ -386,8 +391,9 @@ const isSectionCollected = computed(() => {
 
 // 检查某个大纲考点是否已精确收录
 const isOutlineCollected = (outlineId) => {
-  const cId = String(currentCourseId.value || '');
-  const sId = String(currentSectionId.value || '');
+  const cId = contentIdentity.value?.courseId;
+  const sId = contentIdentity.value?.sectionId;
+  if (!cId || !sId) return false;
   return currentNotebookItems.value.some(
     (it) => it.courseId === cId && it.sectionId === sId && it.scope === 'outline' && it.scopeId === outlineId
   );
@@ -400,8 +406,9 @@ const isOutlineAbsorbed = (outlineId) => {
 
 // 检查某个卡片是否已精确收录
 const isCardCollected = (cardId) => {
-  const cId = String(currentCourseId.value || '');
-  const sId = String(currentSectionId.value || '');
+  const cId = contentIdentity.value?.courseId;
+  const sId = contentIdentity.value?.sectionId;
+  if (!cId || !sId) return false;
   return currentNotebookItems.value.some(
     (it) => it.courseId === cId && it.sectionId === sId && it.scope === 'card' && it.scopeId === cardId
   );
@@ -410,8 +417,9 @@ const isCardCollected = (cardId) => {
 // 检查某个卡片是否已被父大纲考点或整节吸收
 const isCardAbsorbed = (cardId) => {
   if (isSectionCollected.value) return true;
-  const cId = String(currentCourseId.value || '');
-  const sId = String(currentSectionId.value || '');
+  const cId = contentIdentity.value?.courseId;
+  const sId = contentIdentity.value?.sectionId;
+  if (!cId || !sId) return false;
   const doc = currentContent.value?.doc;
 
   const collectedOutlineIds = currentNotebookItems.value
@@ -431,8 +439,9 @@ const isCardAbsorbed = (cardId) => {
 
 // 收藏 / 移出整小节 (一键收录并自动吸收该小节下的全部碎片)
 const handleToggleSectionCollect = async () => {
-  const cId = String(currentCourseId.value || '');
-  const sId = String(currentSectionId.value || '');
+  const cId = contentIdentity.value?.courseId;
+  const sId = contentIdentity.value?.sectionId;
+  if (!cId || !sId) return;
   const existing = currentNotebookItems.value.find(
     (it) => it.courseId === cId && it.sectionId === sId && it.scope === 'section'
   );
@@ -466,8 +475,9 @@ const handleToggleSectionCollect = async () => {
 
 // 收藏 / 移出大纲考点节 (自动合并下属真题卡片)
 const handleCollectOutline = async (outlineItem) => {
-  const cId = String(currentCourseId.value || '');
-  const sId = String(currentSectionId.value || '');
+  const cId = contentIdentity.value?.courseId;
+  const sId = contentIdentity.value?.sectionId;
+  if (!cId || !sId) return;
   const existing = currentNotebookItems.value.find(
     (it) => it.courseId === cId && it.sectionId === sId && it.scope === 'outline' && it.scopeId === outlineItem.id
   );
@@ -505,8 +515,9 @@ const handleCollectOutline = async (outlineItem) => {
 
 // 收藏 / 移出独立卡片 (真题 / 知识盒)
 const handleCollectCard = async (cardNode) => {
-  const cId = String(currentCourseId.value || '');
-  const sId = String(currentSectionId.value || '');
+  const cId = contentIdentity.value?.courseId;
+  const sId = contentIdentity.value?.sectionId;
+  if (!cId || !sId) return;
   const existing = currentNotebookItems.value.find(
     (it) => it.courseId === cId && it.sectionId === sId && it.scope === 'card' && it.scopeId === cardNode.cardId
   );
