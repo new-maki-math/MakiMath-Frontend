@@ -52,6 +52,7 @@ export async function request(url, options = {}) {
     method = 'GET',
     headers = {},
     body,
+    retryAuth = true,
     ...rest
   } = options;
 
@@ -80,18 +81,15 @@ export async function request(url, options = {}) {
       ...defaultHeaders,
       ...headers
     },
-    credentials: 'include',
+    credentials: 'omit',
     body,
     ...rest
   };
 
   // 注入公钥
-  try {
-    const cp = await getClientPublicKey();
-    if (cp) {
-      config.headers['x-cp'] = cp;
-    }
-  } catch {}
+  const cp = await getClientPublicKey();
+  if (!cp) throw new Error('无法建立安全通信');
+  config.headers['x-cp'] = cp;
 
   // 混淆加密
   if (hasBody) {
@@ -109,8 +107,9 @@ export async function request(url, options = {}) {
       const error = new Error(errData.error || errData.message || `HTTP Error ${res.status}`);
       error.status = res.status;
       error.data = errData;
-      if (res.status === 401 && token && !url.startsWith('/api/auth/login') && !url.startsWith('/api/auth/register') && !url.startsWith('/api/auth/logout')) {
-        unauthorizedHandler?.(token);
+      const authEndpoint = ['/api/auth/login', '/api/auth/register', '/api/auth/refresh', '/api/auth/logout', '/api/auth/password'].some((path) => url.split('?')[0] === path);
+      if (res.status === 401 && token && retryAuth && !authEndpoint && unauthorizedHandler) {
+        if (await unauthorizedHandler(token)) return await request(url, { ...options, retryAuth: false });
       }
       throw error;
     }

@@ -7,6 +7,7 @@ import { invalidateCourseCaches } from '../api/courses.js';
 export const currentUser = ref(null);
 export const authStatus = ref('initializing');
 let initialization = null;
+let refreshInFlight = null;
 let authVersion = 0;
 const REFRESH_TOKEN_KEY = 'maki_refresh_token';
 
@@ -75,16 +76,15 @@ export function clearAuth() {
 
 export async function authenticate(path, credentials, requiredRole = '') {
   const result = await request(path, { method: 'POST', body: credentials });
-  if (!result?.token || !result?.user) throw new Error('登录响应不完整');
+  if (!result?.access_token || !result?.refresh_token || !result?.user) throw new Error('登录响应不完整');
   if (authStatus.value === 'expired' && currentUser.value && String(result.user.id) !== String(currentUser.value.id)) {
     throw new Error('请使用原账号重新登录，以继续当前编辑');
   }
   if (requiredRole && result.user.role !== requiredRole) throw new Error('当前账号无权访问平台管理控制台');
   if (typeof sessionStorage !== 'undefined') {
-    if (result.refreshToken) sessionStorage.setItem(REFRESH_TOKEN_KEY, result.refreshToken);
-    else sessionStorage.removeItem(REFRESH_TOKEN_KEY);
+    sessionStorage.setItem(REFRESH_TOKEN_KEY, result.refresh_token);
   }
-  setAuth(result.token, result.user);
+  setAuth(result.access_token, result.user);
   return result.user;
 }
 
@@ -93,7 +93,7 @@ export async function logout() {
   let revoked = false;
   try {
     if (refreshToken && getAuthToken()) {
-      await request('/api/auth/logout', { method: 'POST', body: { refreshToken } });
+      await request('/api/auth/logout', { method: 'POST', body: { refresh_token: refreshToken } });
       revoked = true;
     }
   } finally {
@@ -102,8 +102,7 @@ export async function logout() {
   return revoked;
 }
 
-setUnauthorizedHandler((token) => {
-  if (token !== getAuthToken()) return;
+const expireSession = () => {
   if (!currentUser.value) {
     clearAuth();
     return;
@@ -114,6 +113,36 @@ setUnauthorizedHandler((token) => {
   localStorage.removeItem('auth_token');
   invalidateCourseCaches();
   authStatus.value = 'expired';
+};
+
+export function invalidateSession() {
+  if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(REFRESH_TOKEN_KEY);
+  expireSession();
+}
+
+setUnauthorizedHandler(async (token) => {
+  if (token !== getAuthToken()) return Boolean(getAuthToken());
+  if (refreshInFlight) return refreshInFlight;
+  const refreshToken = typeof sessionStorage === 'undefined' ? null : sessionStorage.getItem(REFRESH_TOKEN_KEY);
+  if (!refreshToken) {
+    expireSession();
+    return false;
+  }
+  const version = authVersion;
+  refreshInFlight = (async () => {
+    try {
+      const result = await request('/api/auth/refresh', { method: 'POST', body: { refresh_token: refreshToken } });
+      if (version !== authVersion) return Boolean(getAuthToken());
+      if (!result?.access_token || !result?.refresh_token || !result?.user) throw new Error('刷新登录响应不完整');
+      sessionStorage.setItem(REFRESH_TOKEN_KEY, result.refresh_token);
+      setAuth(result.access_token, result.user);
+      return true;
+    } catch (err) {
+      if (version === authVersion && err.status === 401) expireSession();
+      return false;
+    }
+  })().finally(() => { refreshInFlight = null; });
+  return refreshInFlight;
 });
 
 // 是否已登录
@@ -141,7 +170,7 @@ export function initAuth() {
     try {
       const res = await request('/api/auth/me');
       if (version !== authVersion) return currentUser.value;
-      if (res?.ok && res?.user) setAuth(token, res.user);
+      if (res?.user) setAuth(token, res.user);
       else authStatus.value = 'error';
     } catch (err) {
       if (version !== authVersion) return currentUser.value;

@@ -2,6 +2,7 @@
 // 讲义工作台登录与邀请注册组件
 import { ref, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import { authenticate } from '../../utils/auth.js';
+import { request } from '../../api/client.js';
 import { notify } from '../../components/MNotice.vue';
 import MInput from '../../components/MInput.vue';
 import MButton from '../../components/MButton.vue';
@@ -101,8 +102,8 @@ const handleRegister = async () => {
     notify('用户名至少需要三个字符', 'error');
     return;
   }
-  if (registerForm.value.password.length < 6) {
-    notify('密码至少需要六位字符', 'error');
+  if (registerForm.value.password.length < 8 || new TextEncoder().encode(registerForm.value.password).length > 72) {
+    notify('密码至少需要八位字符且不能超过七十二字节', 'error');
     return;
   }
   if (registerForm.value.password !== registerForm.value.confirmPassword) {
@@ -111,14 +112,15 @@ const handleRegister = async () => {
   }
   isSubmitting.value = true;
   try {
-    const user = await authenticate('/api/auth/register', {
-      inviteCode: registerForm.value.inviteCode.trim(),
+    await request('/api/auth/register', { method: 'POST', body: {
+      invite_code: registerForm.value.inviteCode.trim(),
       username: registerForm.value.username.trim(),
-      displayName: registerForm.value.displayName.trim(),
+      display_name: registerForm.value.displayName.trim(),
       password: registerForm.value.password
-    });
-    notify('注册成功并已登录', 'success');
-    emit('success', user);
+    } });
+    loginForm.value.username = registerForm.value.username.trim();
+    mode.value = 'login';
+    notify('注册成功，请登录', 'success');
   } catch (err) {
     notify(err.message || '注册失败，请检查邀请码或输入信息', 'error');
   } finally {

@@ -1,10 +1,10 @@
 <script setup>
 // 用户中心模态窗口组件
 import { ref, computed, watch } from 'vue';
-import { UserCircle, User, Lock, Page, Xmark } from '@iconoir/vue';
+import { UserCircle, User, Lock, Xmark } from '@iconoir/vue';
 import { request } from '../api/client.js';
 import { notify } from './MNotice.vue';
-import { setAuth } from '../utils/auth.js';
+import { setAuth, getAuthToken, invalidateSession } from '../utils/auth.js';
 import MBackdrop from './MBackdrop.vue';
 import MInput from './MInput.vue';
 import MButton from './MButton.vue';
@@ -27,8 +27,7 @@ const emit = defineEmits(['close', 'updated']);
 // 侧边标签栏列表
 const tabs = [
   { id: 'info', label: '基本信息', icon: User },
-  { id: 'security', label: '账号安全', icon: Lock },
-  { id: 'logs', label: '操作日志', icon: Page }
+  { id: 'security', label: '账号安全', icon: Lock }
 ];
 
 // 当前选中的 Tab 项
@@ -70,7 +69,6 @@ watch(
         newPassword: '',
         confirmPassword: ''
       };
-      loadAuditLogs();
     }
   },
   { immediate: true }
@@ -104,10 +102,10 @@ const handleSaveProfile = async () => {
   try {
     const res = await request('/api/auth/profile', {
       method: 'PATCH',
-      body: { displayName: profileForm.value.displayName.trim() }
+      body: { display_name: profileForm.value.displayName.trim() }
     });
-    if (res?.ok && res?.user) {
-      const token = localStorage.getItem('maki_auth_token');
+    if (res?.user) {
+      const token = getAuthToken();
       setAuth(token, res.user);
       notify('基本信息已更新', 'success');
       emit('updated', res.user);
@@ -125,8 +123,8 @@ const handleSavePassword = async () => {
     notify('请输入原密码', 'error');
     return;
   }
-  if (passwordForm.value.newPassword.length < 6) {
-    notify('新密码至少需要六位字符', 'error');
+  if (passwordForm.value.newPassword.length < 8 || new TextEncoder().encode(passwordForm.value.newPassword).length > 72) {
+    notify('新密码至少需要八位字符且不能超过七十二字节', 'error');
     return;
   }
   if (passwordForm.value.newPassword !== passwordForm.value.confirmPassword) {
@@ -135,17 +133,17 @@ const handleSavePassword = async () => {
   }
   isSavingPassword.value = true;
   try {
-    const res = await request('/api/auth/password', {
+    await request('/api/auth/password', {
       method: 'PATCH',
       body: {
-        oldPassword: passwordForm.value.oldPassword,
-        newPassword: passwordForm.value.newPassword
+        old_password: passwordForm.value.oldPassword,
+        new_password: passwordForm.value.newPassword
       }
     });
-    if (res?.ok) {
-      notify('密码修改成功', 'success');
-      passwordForm.value = { oldPassword: '', newPassword: '', confirmPassword: '' };
-    }
+    passwordForm.value = { oldPassword: '', newPassword: '', confirmPassword: '' };
+    emit('close');
+    invalidateSession();
+    notify('密码修改成功，请重新登录', 'success');
   } catch (err) {
     notify(err.message || '修改密码失败', 'error');
   } finally {
