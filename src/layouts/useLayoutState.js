@@ -213,6 +213,7 @@ export function useLayoutState() {
     return (
       route.path !== '/start' &&
       route.name !== 'start' &&
+      route.name !== 'knowledge-library' &&
       route.name !== 'workbench' &&
       route.name !== 'platform' &&
       route.path !== '/platform'

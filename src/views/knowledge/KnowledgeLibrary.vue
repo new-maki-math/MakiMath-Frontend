@@ -193,7 +193,7 @@ onBeforeUnmount(() => { mapRequest++; detailRequest++; });
 </template>
 
 <style scoped>
-.knowledge-library { position: relative; height: calc(100vh - 120px); min-height: 520px; overflow: hidden; background: var(--bg-app); }
+.knowledge-library { position: relative; height: calc(100vh - var(--topbar-height, 54px)); min-height: 0; overflow: hidden; background: var(--bg-app); }
 .map-panel { position: absolute; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-primary); }
 .filters { top: 16px; left: 16px; width: 270px; padding: 16px; display: flex; flex-direction: column; gap: 8px; max-height: calc(100% - 32px); overflow: auto; }
 h1 { font-size: 18px; margin: 0 0 8px; }
@@ -215,7 +215,7 @@ input, select { width: 100%; padding: 8px; color: var(--text-primary); backgroun
 .idle { background: #858b91; }
 .mastered { background: #20a997; }
 @media (max-width: 700px) {
-  .knowledge-library { height: calc(100vh - 100px); }
+  .knowledge-library { height: calc(100vh - 48px); }
   .filters { width: 220px; max-height: 42%; }
   .detail { top: auto; bottom: 16px; max-height: 55%; }
   .legend { font-size: 11px; }
