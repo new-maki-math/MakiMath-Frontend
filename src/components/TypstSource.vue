@@ -25,7 +25,10 @@ watch(() => props.source, async (source) => {
   const current = ++generation;
   clearPages();
   error.value = '';
-  if (!source) return;
+  if (!source) {
+    loading.value = false;
+    return;
+  }
   loading.value = true;
   try {
     if (!projectPromise) {
