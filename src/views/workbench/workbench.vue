@@ -205,14 +205,15 @@ const createChild = async () => {
   }
 };
 
-const askDelete = (node) => {
+const askDelete = async (node) => {
+  if (!node || deleting.value || deleteTarget.value) return;
+  if (!await confirmLeave()) return;
   deleteTarget.value = node;
 };
 
 const runDelete = async () => {
   const target = deleteTarget.value;
-  if (!target) return;
-  if (!await confirmLeave()) return;
+  if (!target || deleting.value) return;
 
   deleting.value = true;
   try {
@@ -423,7 +424,7 @@ onMounted(async () => {
       confirm-text="删除"
       confirm-variant="danger"
       :busy="deleting"
-      @close="deleteTarget = null"
+      @close="!deleting && (deleteTarget = null)"
       @confirm="runDelete"
     >
       <div class="wb-note">{{ deleteWarning }}</div>
