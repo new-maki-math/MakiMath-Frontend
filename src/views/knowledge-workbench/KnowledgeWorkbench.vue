@@ -42,6 +42,7 @@ const statusTarget = ref('');
 const deleteTarget = ref(null);
 const deleteError = ref('');
 const deleteUncertain = ref(false);
+const pendingPointVerification = ref(null);
 const leaveOpen = ref(false);
 const createForm = ref({ slug: '', title: '', source: '' });
 let loadSequence = 0;
@@ -52,7 +53,7 @@ const contextUserId = ref(null);
 
 const authorized = computed(() => authStatus.value === 'authenticated' && currentUser.value?.role === 'super_admin');
 const ownsContext = computed(() => authorized.value && contextUserId.value === currentUser.value?.id);
-const editable = computed(() => ownsContext.value && !selecting.value && !saving.value && !createOpen.value && !categoryOpen.value && !importTarget.value && !deleteTarget.value);
+const editable = computed(() => ownsContext.value && !selecting.value && !saving.value && !createOpen.value && !categoryOpen.value && !importTarget.value && !deleteTarget.value && pendingPointVerification.value === null);
 const snapshot = () => JSON.stringify({ title: point.value?.title || '', source: point.value?.source || '' });
 const dirty = computed(() => Boolean(point.value && baseline.value && snapshot() !== baseline.value));
 watch([dirty, saving], ([changed, busy]) => { workbenchPanelState.value = { dirty: changed, saving: busy }; }, { immediate: true, flush: 'sync' });
@@ -124,8 +125,24 @@ async function loadList() {
   try {
     const [pointResult, categoryResult] = await Promise.allSettled([knowledgeApi.manage(), managementApi.categories('knowledge')]);
     if (sequence !== listSequence) return;
-    if (pointResult.status === 'fulfilled' && Array.isArray(pointResult.value)) points.value = pointResult.value;
-    else { points.value = []; listError.value = '知识点管理列表加载失败，请重试。'; }
+    if (pointResult.status === 'fulfilled' && Array.isArray(pointResult.value)) {
+      points.value = pointResult.value;
+      if (pendingPointVerification.value !== null && contextUserId.value === currentUser.value?.id) {
+        const id = pendingPointVerification.value;
+        const current = points.value.find((item) => item.id === id);
+        if (point.value?.id === id) {
+          if (current) point.value = { ...point.value, category_ids: current.category_ids };
+          else {
+            point.value = null;
+            baseline.value = '';
+            contextUserId.value = null;
+            if (selectedKey.value === `section:${id}`) selectedKey.value = '';
+            notify('当前编辑的知识点已随分类删除', 'warn');
+          }
+        }
+        pendingPointVerification.value = null;
+      }
+    } else { points.value = []; listError.value = '知识点管理列表加载失败，请重试。'; }
     if (categoryResult.status === 'fulfilled' && Array.isArray(categoryResult.value)) categories.value = categoryResult.value;
     else { categories.value = []; categoryError.value = '分类加载失败，当前无法按分类展示知识点。'; }
   } finally {
@@ -360,7 +377,7 @@ async function createPoint() {
 async function openDelete(node) {
   if (!authorized.value || saving.value || selecting.value || deleteTarget.value || !['group', 'section'].includes(node.type)) return;
   const epoch = identityEpoch;
-  if (node.type === 'section' && point.value?.id === node.id && ownsContext.value && !await mayLeave()) return;
+  if (ownsContext.value && (node.type === 'group' || point.value?.id === node.id) && !await mayLeave()) return;
   if (epoch !== identityEpoch || !authorized.value) return;
   const exists = node.type === 'group' ? categories.value.some((item) => item.id === node.id) : points.value.some((item) => item.id === node.id);
   if (!exists) { notify('目标已不在列表中，请刷新后重试', 'warn'); return; }
@@ -381,7 +398,7 @@ function deletionConflict(error, type) {
     : [['category_ids', '关联分类'], ['prerequisite_ids', '前置知识点'], ['dependent_ids', '后续知识点']];
   const links = fields.map(([key, label]) => Array.isArray(details[key]) && details[key].length ? `${label} ID：${details[key].join('、')}` : '').filter(Boolean);
   if (details.truncated) links.push('关联结果已截断，请处理后再次检查');
-  const message = type === 'group' ? '存在关联，当前接口拒绝删除。' : '当前后端未完成关联清理，请确认接口版本。';
+  const message = '当前后端未完成关联清理，请确认接口版本。';
   return [message, ...links].join('\n');
 }
 async function confirmDelete() {
@@ -399,6 +416,7 @@ async function confirmDelete() {
       baseline.value = '';
       contextUserId.value = null;
     }
+    if (target.type === 'group' && point.value) pendingPointVerification.value = point.value.id;
     if (selectedKey.value === `${target.type}:${target.id}`) selectedKey.value = '';
     deleteTarget.value = null;
     notify('已永久删除', 'success');
@@ -469,6 +487,7 @@ onUnmounted(() => {
           <MButton v-if="authorized && point.status === 'archived'" size="sm" :disabled="saving || selecting || dirty" @click="statusTarget = 'active'">恢复</MButton>
           <MButton v-if="authorized && point.status === 'active'" size="sm" :disabled="saving || selecting || dirty" @click="statusTarget = 'archived'">归档</MButton>
         </template>
+        <div v-if="pendingPointVerification !== null" class="status-notice">分类已删除，正在核对当前知识点。若列表加载失败，请刷新后再继续编辑。</div>
         <div class="status-notice">状态：{{ statusLabels[point.status] || '未提供' }}。保存后立即生效，内容以最后一次成功保存为准。</div>
         <div class="wb-block" :inert="!editable">
           <div class="wb-form-grid">
@@ -505,7 +524,7 @@ onUnmounted(() => {
     <MModal :open="Boolean(deleteTarget)" :title="deleteTarget?.type === 'group' ? '永久删除分类' : '永久删除知识点'" :hide-footer="true" :show-close="!saving" @close="closeDelete">
       <div class="delete-fields">
         <p>确定永久删除“{{ deleteTarget?.label }}”吗？此操作不可撤销。</p>
-        <p v-if="deleteTarget?.type === 'group'">须先移走子分类并解除知识点关联。</p>
+        <p v-if="deleteTarget?.type === 'group'">将删除此分类及全部子分类，并删除仅属于这些分类的知识点。还关联范围外分类的知识点会保留，仅移除范围内的分类关联。涉及被删除知识点的前置关系也会清理，讲义中的相关引用可能显示缺失占位。本地掌握记录和批注不会自动清理。</p>
         <p v-else>删除将同时清理此知识点的分类关联和前置、后续关系，其他知识点保留。讲义源码不会修改，引用处将显示缺失占位；本地掌握记录和批注不会自动清理。</p>
         <p v-if="deleteError" class="delete-error" role="alert">{{ deleteError }}</p>
         <div class="import-actions"><MButton variant="ghost" :disabled="saving" @click="closeDelete">取消</MButton><MButton variant="danger" :disabled="saving || deleteUncertain" @click="confirmDelete">{{ saving ? '删除中…' : '永久删除' }}</MButton></div>
