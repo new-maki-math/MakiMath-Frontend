@@ -6,9 +6,7 @@ const adapterCache = new Map();
 const injectedStyleIds = new Set();
 
 // 课程 ID 与预设标识映射表
-const idToSlugMap = new Map([
-  ['1', 'kaoyan']
-]);
+const idToSlugMap = new Map();
 
 export function registerPresetMapping(id, slug) {
   if (id && slug) idToSlugMap.set(String(id).trim(), String(slug).trim().toLowerCase());

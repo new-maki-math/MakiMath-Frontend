@@ -10,8 +10,8 @@ export function transformCourseCategories(rawCats = []) {
       totalCourses: cat.totalCourses !== undefined ? cat.totalCourses : courses.length,
       liveCount: cat.liveCount !== undefined ? cat.liveCount : courses.filter(c => c.live).length,
       courses: courses.map(course => ({
-        id: course.id || course.slug,
-        slug: course.id || course.slug,
+        id: course.id ?? '',
+        slug: course.slug || '',
         title: course.title || '',
         desc: course.desc || course.descr || '',
         live: !!course.live,

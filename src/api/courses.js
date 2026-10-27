@@ -1,29 +1,64 @@
 import { request } from './client.js';
-import { transformCourseCategories, adaptDocWithPreset, registerPresetMapping } from '../utils/index.js';
+import { transformCourseCategories } from '../utils/course-adapter.js';
+import { adaptDocWithPreset, registerPresetMapping } from '../utils/preset-loader.js';
 
 // 内存单例缓存与 slug 映射
 const treeCache = new Map();
 const docCache = new Map();
+const courseListCache = new Map();
+const treeRequests = new Map();
+const docRequests = new Map();
+const courseListRequests = new Map();
+let cacheVersion = 0;
 // slug -> 数字 id 的动态映射表；不要硬编码，课程 id 由数据库自增决定
 const slugToIdMap = new Map();
 
+// 清除内容缓存并使进行中的请求失效
+export function invalidateCourseCaches() {
+  cacheVersion++;
+  treeCache.clear();
+  docCache.clear();
+  courseListCache.clear();
+  treeRequests.clear();
+  docRequests.clear();
+  courseListRequests.clear();
+  slugToIdMap.clear();
+}
+
+const fetchCourseList = () => cachedRequest(courseListCache, courseListRequests, 'all', () => request('/api/courses'));
+
+function cachedRequest(cache, pending, key, load) {
+  if (cache.has(key)) return Promise.resolve(cache.get(key));
+  if (pending.has(key)) return pending.get(key);
+  const version = cacheVersion;
+  const promise = load().then((value) => {
+    if (version === cacheVersion) cache.set(key, value);
+    return value;
+  }).finally(() => {
+    if (pending.get(key) === promise) pending.delete(key);
+  });
+  pending.set(key, promise);
+  return promise;
+}
+
 // 规范化课程 id 传入 slug 则解析为后端数字 ID
 export async function resolveCourseId(idOrSlug) {
-  if (!idOrSlug) return '1';
+  if (!idOrSlug) throw new Error('缺少课程标识');
   const str = String(idOrSlug).trim();
   if (/^\d+$/.test(str)) return str;
   if (slugToIdMap.has(str)) return slugToIdMap.get(str);
-  try {
-    const list = await request('/api/courses');
-    if (Array.isArray(list)) {
-      for (const c of list) {
-        if (c.slug) slugToIdMap.set(c.slug, String(c.id));
-      }
+  const version = cacheVersion;
+  const list = await fetchCourseList();
+  if (Array.isArray(list)) {
+    for (const course of list) {
+      if (course.slug && version === cacheVersion) slugToIdMap.set(course.slug, String(course.id));
     }
-    return slugToIdMap.get(str) || '1';
-  } catch {
-    return '1';
   }
+  const course = Array.isArray(list) ? list.find((item) => item.slug === str) : null;
+  if (course) return String(course.id);
+  const error = new Error('课程不存在');
+  error.status = 404;
+  throw error;
 }
 
 // 获取分类与课程列表
@@ -31,7 +66,7 @@ export async function getCourseCategories() {
   try {
     const [cats, courses] = await Promise.all([
       request('/api/categories'),
-      request('/api/courses')
+      fetchCourseList()
     ]);
     if (!Array.isArray(cats)) return [];
 
@@ -66,19 +101,19 @@ export async function getCourseCategories() {
 // 获取课程目录树
 export async function fetchCourseTree(id) {
   if (!id) throw new Error('缺少课程 id');
+  const startedVersion = cacheVersion;
   const resolvedId = await resolveCourseId(id);
   const key = String(resolvedId);
-  if (treeCache.has(key)) return treeCache.get(key);
-
-  const tree = await request(`/api/courses/${encodeURIComponent(key)}/tree`);
-  treeCache.set(key, tree);
-  if (tree.slug) {
-    slugToIdMap.set(tree.slug, String(tree.id));
-    if (typeof registerPresetMapping === 'function') {
+  if (startedVersion !== cacheVersion) return request(`/api/courses/${encodeURIComponent(key)}/tree`);
+  const version = cacheVersion;
+  return cachedRequest(treeCache, treeRequests, key, async () => {
+    const tree = await request(`/api/courses/${encodeURIComponent(key)}/tree`);
+    if (tree.slug && version === cacheVersion) {
+      slugToIdMap.set(tree.slug, String(tree.id));
       registerPresetMapping(tree.id, tree.slug);
     }
-  }
-  return tree;
+    return tree;
+  });
 }
 
 // 转换章节数据模型
@@ -128,7 +163,7 @@ export function toChapters(tree) {
 }
 
 // 获取课程数据包
-export async function fetchCourseBundle(id = '1') {
+export async function fetchCourseBundle(id) {
   const tree = await fetchCourseTree(id);
   const chapters = toChapters(tree);
 
@@ -153,7 +188,7 @@ export async function fetchCourseBundle(id = '1') {
 }
 
 // 获取课程详情
-export async function getCourseById(id = '1') {
+export async function getCourseById(id) {
   try {
     const bundle = await fetchCourseBundle(id);
     return bundle.course;
@@ -165,7 +200,7 @@ export async function getCourseById(id = '1') {
 }
 
 // 获取课程章节树
-export async function getCourseChapters(id = '1') {
+export async function getCourseChapters(id) {
   try {
     const bundle = await fetchCourseBundle(id);
     return bundle.chapters;
@@ -176,21 +211,18 @@ export async function getCourseChapters(id = '1') {
 }
 
 // 获取缓存的章节树
-export function getCachedCourseChapters(id = '1') {
-  const key = String(id);
+export function getCachedCourseChapters(id) {
+  if (!id) return [];
+  const key = slugToIdMap.get(String(id)) || String(id);
   if (treeCache.has(key)) return toChapters(treeCache.get(key));
-  fetchCourseBundle(key);
+  fetchCourseBundle(key).catch(() => {});
   return [];
 }
 
 // 获取小节正文文档
 export async function getCourseSectionDoc(sectionId) {
   const key = String(sectionId);
-  if (docCache.has(key)) return docCache.get(key);
-
-  const data = await request(`/api/sections/${encodeURIComponent(key)}/doc`);
-  docCache.set(key, data);
-  return data;
+  return cachedRequest(docCache, docRequests, key, () => request(`/api/sections/${encodeURIComponent(key)}/doc`));
 }
 
 // 提取标题纯文本
@@ -268,10 +300,10 @@ function normalizeAnimation(anim) {
 // 获取小节正文与大纲模型
 export async function getCourseSectionContent(courseKey, sectionId) {
   const data = await getCourseSectionDoc(sectionId);
-  const rawDoc = data.doc ?? { type: 'doc', children: [] };
+  const rawDoc = structuredClone(data.doc ?? { type: 'doc', children: [] });
   const keyStr = String(courseKey || '');
   const cachedTree = treeCache.get(keyStr);
-  const slug = cachedTree?.slug || (keyStr === '1' ? 'kaoyan' : keyStr);
+  const slug = data.course_slug || cachedTree?.slug || keyStr;
   const doc = await adaptDocWithPreset(rawDoc, slug);
 
   return {

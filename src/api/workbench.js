@@ -1,10 +1,16 @@
 // 讲义工作台接口
 import { request } from './client.js';
+import { invalidateCourseCaches } from './courses.js';
 
-const post = (url, body) => request(url, { method: 'POST', body });
-const patch = (url, body) => request(url, { method: 'PATCH', body });
-const put = (url, body) => request(url, { method: 'PUT', body });
-const del = (url) => request(url, { method: 'DELETE' });
+const mutate = async (url, options) => {
+  const result = await request(url, options);
+  invalidateCourseCaches();
+  return result;
+};
+const post = (url, body) => mutate(url, { method: 'POST', body });
+const patch = (url, body) => mutate(url, { method: 'PATCH', body });
+const put = (url, body) => mutate(url, { method: 'PUT', body });
+const del = (url) => mutate(url, { method: 'DELETE' });
 
 const qs = (params) => {
   const sp = new URLSearchParams();
