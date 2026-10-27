@@ -77,20 +77,30 @@ const discard = () => {
 const save = async () => {
   if (saving.value || loading.value) return;
   saving.value = true;
+  const completed = [];
   try {
     const patch = diff();
     if (Object.keys(patch).length > 0) {
+      const savedForm = { ...form };
       record.value = await workbenchApi.courses.update(props.node.id, patch);
-      commit();
+      commit(savedForm);
+      completed.push('课程信息');
     }
     if (prereqsDirty.value) {
-      await workbenchApi.courses.setPrereqs(props.node.id, prereqs.value);
-      prereqBaseline.value = [...prereqs.value];
+      const savedPrereqs = [...prereqs.value];
+      await workbenchApi.courses.setPrereqs(props.node.id, savedPrereqs);
+      prereqBaseline.value = savedPrereqs;
+      completed.push('前置课程');
     }
     emit('saved', '课程已保存');
     emit('changed', { scope: 'course', courseId: props.node.id, label: form.title });
   } catch (err) {
-    emit('error', err);
+    if (completed.length) {
+      emit('changed', { scope: 'course', courseId: props.node.id, label: form.title });
+      emit('error', new Error(`已保存${completed.join('、')}，其余内容未保存：${err.message}`));
+    } else {
+      emit('error', err);
+    }
   } finally {
     saving.value = false;
   }

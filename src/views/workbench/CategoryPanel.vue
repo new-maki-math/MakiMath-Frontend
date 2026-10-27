@@ -117,12 +117,13 @@ const load = async () => {
 const save = async () => {
   if (saving.value || loading.value) return;
   const patch = diff();
+  const savedForm = { ...form };
   if (Object.keys(patch).length === 0) return;
 
   saving.value = true;
   try {
     record.value = await workbenchApi.categories.update(props.node.id, patch);
-    commit();
+    commit(savedForm);
     emit('saved', '分类已保存');
     emit('changed', { scope: 'category', categoryId: props.node.id, label: form.name });
   } catch (err) {

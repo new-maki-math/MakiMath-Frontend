@@ -27,8 +27,8 @@ export function useForm(fields) {
     return out;
   };
 
-  const commit = () => {
-    for (const key of fields) baseline[key] = form[key];
+  const commit = (saved = form) => {
+    for (const key of fields) baseline[key] = saved[key];
   };
 
   return { form, fill, dirty, reset, diff, commit };
@@ -41,7 +41,7 @@ export function useText(initial = '') {
   const dirty = computed(() => value.text !== value.baseline);
   const reset = () => { value.text = value.baseline; };
   const set = (text) => { value.text = text; value.baseline = text; };
-  const commit = () => { value.baseline = value.text; };
+  const commit = (saved = value.text) => { value.baseline = saved; };
 
   return { state: value, dirty, reset, set, commit };
 }

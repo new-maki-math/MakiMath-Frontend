@@ -172,7 +172,9 @@ const save = async () => {
   const completed = [];
   try {
     let animation = null;
+    let savedAnimation = null;
     if (animDirty.value) {
+      savedAnimation = JSON.stringify(animForm.value);
       const values = {};
       for (const [field, label] of [['cues', '字幕'], ['parts', '大纲'], ['steps', '步骤']]) {
         try {
@@ -191,24 +193,27 @@ const save = async () => {
     }
     const patch = diff();
     if (Object.keys(patch).length > 0) {
+      const savedForm = { ...form };
       record.value = await workbenchApi.sections.update(props.node.id, patch);
-      commit();
+      commit(savedForm);
       completed.push('基本信息');
     }
     if (source.dirty.value) {
-      const res = await workbenchApi.sections.setSource(props.node.id, source.state.text);
+      const savedSource = source.state.text;
+      const res = await workbenchApi.sections.setSource(props.node.id, savedSource);
       record.value = { ...record.value, ...res };
-      source.commit();
+      source.commit(savedSource);
       completed.push('源码');
     }
     if (prereqsDirty.value) {
-      await workbenchApi.sections.setPrereqs(props.node.id, prereqs.value);
-      prereqBaseline.value = [...prereqs.value];
+      const savedPrereqs = [...prereqs.value];
+      await workbenchApi.sections.setPrereqs(props.node.id, savedPrereqs);
+      prereqBaseline.value = savedPrereqs;
       completed.push('前置小节');
     }
     if (animation) {
       await workbenchApi.sections.setAnimation(props.node.id, animation);
-      animBaseline.value = JSON.stringify(animForm.value);
+      animBaseline.value = savedAnimation;
       completed.push('动画');
     }
     emit('saved', '小节已保存');

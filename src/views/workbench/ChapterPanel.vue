@@ -220,8 +220,9 @@ const save = async () => {
   try {
     const patch = diff();
     if (Object.keys(patch).length > 0) {
+      const savedForm = { ...form };
       record.value = await workbenchApi.chapters.update(props.node.id, patch);
-      commit();
+      commit(savedForm);
     }
     emit('saved', '章节已保存');
     emit('changed', {
