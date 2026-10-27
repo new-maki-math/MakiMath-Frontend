@@ -1,10 +1,18 @@
 // 用户认证与权限状态管理
 import { ref, computed } from 'vue';
 import { request } from '../api/client.js';
+import { invalidateCourseCaches } from '../api/courses.js';
 
 // 当前登录用户对象响应式
 export const currentUser = ref(null);
-const isInitialized = ref(false);
+export const authStatus = ref('initializing');
+let initialization = null;
+let authVersion = 0;
+
+export function getAuthToken() {
+  if (typeof localStorage === 'undefined') return null;
+  return localStorage.getItem('maki_auth_token') || localStorage.getItem('token') || localStorage.getItem('auth_token');
+}
 
 // 读取本地存储的用户信息
 export function getStoredUser() {
@@ -34,7 +42,12 @@ export function normalizeUser(rawUser) {
 // 设置认证凭据与用户信息
 export function setAuth(token, user) {
   if (typeof localStorage === 'undefined') return;
+  const previousToken = getAuthToken();
+  authVersion++;
+  if (previousToken !== token || currentUser.value?.id !== user?.id || currentUser.value?.role !== user?.role) invalidateCourseCaches();
 
+  localStorage.removeItem('token');
+  localStorage.removeItem('auth_token');
   if (token) {
     localStorage.setItem('maki_auth_token', token);
   } else {
@@ -50,11 +63,20 @@ export function setAuth(token, user) {
     localStorage.removeItem('maki_auth_user');
     currentUser.value = null;
   }
+  authStatus.value = token && user ? 'authenticated' : 'anonymous';
 }
 
 // 清除登录态
 export function clearAuth() {
   setAuth(null, null);
+}
+
+export async function authenticate(path, credentials, requiredRole = '') {
+  const result = await request(path, { method: 'POST', body: credentials });
+  if (!result?.token || !result?.user) throw new Error('登录响应不完整');
+  if (requiredRole && result.user.role !== requiredRole) throw new Error('当前账号无权访问平台管理控制台');
+  setAuth(result.token, result.user);
+  return result.user;
 }
 
 // 是否已登录
@@ -68,30 +90,28 @@ export const isSuperAdmin = computed(() => {
 });
 
 // 初始化鉴权信息
-export async function initAuth() {
-  if (typeof localStorage === 'undefined') return null;
-  if (isInitialized.value) return currentUser.value;
-  isInitialized.value = true;
-
-  const stored = getStoredUser();
-  if (stored) {
-    currentUser.value = normalizeUser(stored);
+export function initAuth() {
+  if (initialization) return initialization;
+  if (authStatus.value === 'authenticated' || authStatus.value === 'anonymous') return Promise.resolve(currentUser.value);
+  const token = getAuthToken();
+  if (!token) {
+    authStatus.value = 'anonymous';
+    return Promise.resolve(null);
   }
-
-  const token = localStorage.getItem('maki_auth_token') || localStorage.getItem('token') || localStorage.getItem('auth_token');
-  if (token) {
+  const version = authVersion;
+  authStatus.value = 'initializing';
+  initialization = (async () => {
     try {
       const res = await request('/api/auth/me');
-      if (res?.ok && res?.user) {
-        setAuth(token, res.user);
-        return res.user;
-      }
+      if (version !== authVersion) return currentUser.value;
+      if (res?.ok && res?.user) setAuth(token, res.user);
+      else authStatus.value = 'error';
     } catch (err) {
-      if (err.status === 401) {
-        clearAuth();
-      }
+      if (version !== authVersion) return currentUser.value;
+      if (err.status === 401) clearAuth();
+      else authStatus.value = 'error';
     }
-  }
-
-  return currentUser.value;
+    return currentUser.value;
+  })().finally(() => { initialization = null; });
+  return initialization;
 }

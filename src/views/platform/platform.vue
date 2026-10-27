@@ -7,7 +7,8 @@ import {
   BookmarkSolid,
   Page
 } from '@iconoir/vue';
-import { isSuperAdmin, initAuth } from '../../utils/auth.js';
+import { authStatus, isSuperAdmin, initAuth } from '../../utils/auth.js';
+import MButton from '../../components/MButton.vue';
 import PlatformAuth from './PlatformAuth.vue';
 import UserPanel from './UserPanel.vue';
 import InvitationPanel from './InvitationPanel.vue';
@@ -34,7 +35,12 @@ onMounted(() => {
 </script>
 
 <template>
-  <PlatformAuth v-if="!isSuperAdmin" @success="handleAuthSuccess" />
+  <div v-if="authStatus === 'initializing'" class="platform-content">正在验证登录状态</div>
+  <div v-else-if="authStatus === 'error'" class="platform-content">
+    <p>登录状态验证失败，请重试</p>
+    <MButton @click="initAuth">重试</MButton>
+  </div>
+  <PlatformAuth v-else-if="!isSuperAdmin" @success="handleAuthSuccess" />
 
   <div v-else class="platform-layout font-mono">
     <aside class="platform-sidebar">

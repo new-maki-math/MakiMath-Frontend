@@ -1,8 +1,7 @@
 <script setup>
 // 平台管理超级管理员登录组件
 import { ref } from 'vue';
-import { request } from '../../api/client.js';
-import { setAuth } from '../../utils/auth.js';
+import { authenticate } from '../../utils/auth.js';
 import { notify } from '../../components/MNotice.vue';
 import MInput from '../../components/MInput.vue';
 import MButton from '../../components/MButton.vue';
@@ -26,23 +25,12 @@ const handleLogin = async () => {
   }
   isSubmitting.value = true;
   try {
-    const res = await request('/api/auth/login', {
-      method: 'POST',
-      body: {
-        username: form.value.username.trim(),
-        password: form.value.password
-      }
-    });
-
-    if (res?.token && res?.user) {
-      if (res.user.role !== 'super_admin') {
-        notify('当前账号非超级管理员，无权访问平台管理控制台', 'error');
-        return;
-      }
-      setAuth(res.token, res.user);
-      notify('超级管理员认证成功', 'success');
-      emit('success', res.user);
-    }
+    const user = await authenticate('/api/auth/login', {
+      username: form.value.username.trim(),
+      password: form.value.password
+    }, 'super_admin');
+    notify('超级管理员认证成功', 'success');
+    emit('success', user);
   } catch (err) {
     notify(err.message || '登录失败，请检查账号密码', 'error');
   } finally {

@@ -1,8 +1,7 @@
 <script setup>
 // 讲义工作台登录与邀请注册组件
 import { ref, watch, nextTick, onMounted, onUnmounted } from 'vue';
-import { request } from '../../api/client.js';
-import { setAuth } from '../../utils/auth.js';
+import { authenticate } from '../../utils/auth.js';
 import { notify } from '../../components/MNotice.vue';
 import MInput from '../../components/MInput.vue';
 import MButton from '../../components/MButton.vue';
@@ -79,18 +78,12 @@ const handleLogin = async () => {
   }
   isSubmitting.value = true;
   try {
-    const res = await request('/api/auth/login', {
-      method: 'POST',
-      body: {
-        username: loginForm.value.username.trim(),
-        password: loginForm.value.password
-      }
+    const user = await authenticate('/api/auth/login', {
+      username: loginForm.value.username.trim(),
+      password: loginForm.value.password
     });
-    if (res?.token && res?.user) {
-      setAuth(res.token, res.user);
-      notify('登录成功', 'success');
-      emit('success', res.user);
-    }
+    notify('登录成功', 'success');
+    emit('success', user);
   } catch (err) {
     notify(err.message || '登录失败，请检查账号密码', 'error');
   } finally {
@@ -118,20 +111,14 @@ const handleRegister = async () => {
   }
   isSubmitting.value = true;
   try {
-    const res = await request('/api/auth/register', {
-      method: 'POST',
-      body: {
-        inviteCode: registerForm.value.inviteCode.trim(),
-        username: registerForm.value.username.trim(),
-        displayName: registerForm.value.displayName.trim(),
-        password: registerForm.value.password
-      }
+    const user = await authenticate('/api/auth/register', {
+      inviteCode: registerForm.value.inviteCode.trim(),
+      username: registerForm.value.username.trim(),
+      displayName: registerForm.value.displayName.trim(),
+      password: registerForm.value.password
     });
-    if (res?.token && res?.user) {
-      setAuth(res.token, res.user);
-      notify('注册成功并已登录', 'success');
-      emit('success', res.user);
-    }
+    notify('注册成功并已登录', 'success');
+    emit('success', user);
   } catch (err) {
     notify(err.message || '注册失败，请检查邀请码或输入信息', 'error');
   } finally {
