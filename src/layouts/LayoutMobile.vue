@@ -1,11 +1,8 @@
 <script setup>
 import { ref, inject, watch } from 'vue';
-import { useRoute } from 'vue-router';
 import ViewportHeader from '../components/ViewportHeader.vue';
 import SearchBar from '../components/SearchBar.vue';
 import MDrawer from '../components/MDrawer.vue';
-import MCollapse from '../components/MCollapse.vue';
-import MTag from '../components/MTag.vue';
 import { useLayoutState } from './useLayoutState.js';
 import {
   Menu,
@@ -16,9 +13,7 @@ import {
   HalfMoon,
   HelpCircle,
   UserCircle,
-  LogOut,
-  DatabaseSolid,
-  NavArrowRight
+  LogOut
 } from '@iconoir/vue';
 
 // 注入共享布局状态
@@ -28,14 +23,7 @@ const {
   route,
   isDark,
   toggleTheme,
-  categories,
-  isLoadingCats,
-  expandedCategories,
-  toggleCategory,
-  getCourseTooltip,
-  currentUser,
   isLoggedIn,
-  isSuperAdmin,
   userDisplayName,
   isUserModalOpen,
   isHelpModalOpen,
@@ -48,11 +36,8 @@ const {
   currentBreadcrumbs,
   showViewportHeader,
   isStartRoute,
-  isKbActive,
   isItemActive,
-  isCourseActive,
   navigateTo,
-  selectCourse,
   docRefreshKey,
   handleRefreshDoc
 } = state;
@@ -60,7 +45,6 @@ const {
 // 移动端专属 UI 交互状态
 const isDrawerOpen = ref(false);
 const isSearchOpen = ref(false);
-const isKbExpanded = ref(true);
 
 const openDrawer = () => {
   isDrawerOpen.value = true;
@@ -81,11 +65,6 @@ const closeSearch = () => {
 const handleNavClick = (path) => {
   closeDrawer();
   navigateTo(path);
-};
-
-const handleCourseClick = (course) => {
-  closeDrawer();
-  selectCourse(course);
 };
 
 // 路由变化时自动收起抽屉和搜索
@@ -194,69 +173,6 @@ watch(
             <component :is="item.icon" width="18" height="18" class="item-icon" />
             <span class="item-text">{{ item.label }}</span>
           </button>
-
-          <!-- 3. 知识库折叠分类树 -->
-          <div class="drawer-kb-section">
-            <button
-              class="drawer-nav-item kb-parent-btn"
-              :class="{ active: isKbActive }"
-              @click="isKbExpanded = !isKbExpanded"
-            >
-              <DatabaseSolid width="18" height="18" class="item-icon" />
-              <span class="item-text">讲义库</span>
-              <NavArrowRight
-                width="14"
-                height="14"
-                class="kb-arrow"
-                :class="{ 'is-open': isKbExpanded }"
-              />
-            </button>
-
-            <MCollapse :open="isKbExpanded">
-              <div class="drawer-kb-tree">
-                <div v-if="isLoadingCats" class="drawer-kb-loading font-mono">
-                  加载知识库分类...
-                </div>
-
-                <div
-                  v-for="cat in categories"
-                  :key="cat.id"
-                  class="drawer-cat-block"
-                >
-                  <div
-                    class="drawer-cat-title"
-                    @click="toggleCategory(cat.id)"
-                  >
-                    <NavArrowRight
-                      width="12"
-                      height="12"
-                      class="cat-arrow"
-                      :class="{ 'is-open': expandedCategories.has(cat.id) }"
-                    />
-                    <span>{{ cat.name }}</span>
-                  </div>
-
-                  <MCollapse :open="expandedCategories.has(cat.id)">
-                    <div class="drawer-course-sublist">
-                      <div
-                        v-for="course in cat.courses"
-                        :key="course.id"
-                        class="drawer-course-item"
-                        :class="{
-                          'is-offline': !course.live,
-                          active: isCourseActive(course.id, course.slug)
-                        }"
-                        @click="handleCourseClick(course)"
-                      >
-                        <span class="course-title">{{ course.title }}</span>
-                        <MTag v-if="!course.live" variant="muted" size="sm">待上线</MTag>
-                      </div>
-                    </div>
-                  </MCollapse>
-                </div>
-              </div>
-            </MCollapse>
-          </div>
 
           <button
             v-for="item in navigationGroups[1]"
@@ -493,113 +409,6 @@ watch(
   background-color: var(--bg-elevated);
   border: 1px solid var(--border-subtle);
   color: var(--text-muted);
-}
-
-.kb-parent-btn {
-  justify-content: space-between;
-}
-
-.kb-arrow {
-  color: var(--text-muted);
-  transition: transform 160ms ease;
-}
-
-.kb-arrow.is-open {
-  transform: rotate(90deg);
-}
-
-.drawer-kb-section {
-  display: flex;
-  flex-direction: column;
-}
-
-.drawer-kb-tree {
-  margin: 2px 0 4px 18px;
-  padding-left: 10px;
-  border-left: 1px solid var(--border-subtle);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.drawer-kb-loading {
-  font-size: 12px;
-  color: var(--text-muted);
-  padding: 8px 12px;
-}
-
-.drawer-cat-block {
-  display: flex;
-  flex-direction: column;
-}
-
-.drawer-cat-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  font-size: var(--font-size-smaller);
-  color: var(--text-muted);
-  cursor: pointer;
-  border-radius: var(--radius-xs);
-  user-select: none;
-}
-
-.drawer-cat-title:hover {
-  color: var(--text-primary);
-}
-
-.cat-arrow {
-  transition: transform 160ms ease;
-}
-
-.cat-arrow.is-open {
-  transform: rotate(90deg);
-}
-
-.drawer-course-sublist {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin-left: 16px;
-  padding-left: 8px;
-  border-left: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.drawer-course-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 36px;
-  padding: 0 10px;
-  border-radius: var(--radius-xs);
-  font-size: var(--font-size-smaller);
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-
-.drawer-course-item:hover,
-.drawer-course-item:active {
-  background-color: var(--bg-hover);
-  color: var(--text-primary);
-}
-
-.drawer-course-item.active {
-  color: var(--accent-primary);
-  font-weight: var(--font-weight-medium);
-  background-color: var(--bg-hover);
-}
-
-.drawer-course-item.is-offline {
-  opacity: 0.45;
-  cursor: default;
-}
-
-.course-title {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .drawer-divider {

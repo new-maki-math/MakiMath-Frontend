@@ -12,8 +12,7 @@ import {
   HalfMoon,
   HelpCircle,
   LogOut,
-  UserCircle,
-  DatabaseSolid
+  UserCircle
 } from '@iconoir/vue';
 
 // 注入共享布局状态（若外层 provide，则直接复用；否则独立兜底调用）
@@ -23,14 +22,7 @@ const {
   route,
   isDark,
   toggleTheme,
-  categories,
-  isLoadingCats,
-  expandedCategories,
-  toggleCategory,
-  getCourseTooltip,
-  currentUser,
   isLoggedIn,
-  isSuperAdmin,
   userDisplayName,
   isUserModalOpen,
   isHelpModalOpen,
@@ -44,26 +36,18 @@ const {
   showViewportHeader,
   isViewportLocked,
   isStartRoute,
-  isKbActive,
   isItemActive,
-  isCourseActive,
   navigateTo,
-  selectCourse,
   docRefreshKey,
   handleRefreshDoc
 } = state;
 
-// 桌面端专属 UI 交互状态：侧边栏折叠与知识库折叠
+// 桌面端侧边栏折叠状态
 const isSidebarCollapsed = ref(localStorage.getItem('maki_sidebar_collapsed') === 'true');
-const isKbOpen = ref(true);
 
 const toggleSidebar = () => {
   isSidebarCollapsed.value = !isSidebarCollapsed.value;
   localStorage.setItem('maki_sidebar_collapsed', String(isSidebarCollapsed.value));
-};
-
-const toggleKb = () => {
-  isKbOpen.value = !isKbOpen.value;
 };
 
 const handleNavClick = (item) => {
@@ -75,15 +59,6 @@ const handleNavClick = (item) => {
   navigateTo(item.path);
 };
 
-const handleKbClick = () => {
-  if (isSidebarCollapsed.value) {
-    isSidebarCollapsed.value = false;
-    isKbOpen.value = true;
-    localStorage.setItem('maki_sidebar_collapsed', 'false');
-    return;
-  }
-  toggleKb();
-};
 </script>
 
 <template>
@@ -182,75 +157,6 @@ const handleKbClick = () => {
               <span class="nav-label">{{ item.label }}</span>
             </MCollapse>
           </button>
-
-          <!-- 3. 知识库折叠组 -->
-          <div class="kb-nav-group">
-            <button
-              class="nav-button kb-toggle-button"
-              :class="{
-                'is-open': isKbOpen && !isSidebarCollapsed,
-                active: isKbActive
-              }"
-              :title="isSidebarCollapsed ? '讲义库' : undefined"
-              @click="handleKbClick"
-            >
-              <div class="nav-icon-wrap">
-                <DatabaseSolid width="18" height="18" class="nav-icon" />
-              </div>
-              <MCollapse horizontal :open="!isSidebarCollapsed" class="nav-label-collapse">
-                <div class="kb-label-group">
-                  <span class="nav-label">讲义库</span>
-                  <div class="kb-chevron-wrap" :class="{ 'is-open': isKbOpen }">
-                    <NavArrowRight width="13" height="13" class="kb-chevron-icon" />
-                  </div>
-                </div>
-              </MCollapse>
-            </button>
-
-            <!-- 知识库展开子分类与课程树 -->
-            <MCollapse :open="isKbOpen && !isSidebarCollapsed">
-              <div class="kb-tree-container">
-                <div v-if="isLoadingCats" class="kb-loading font-mono">
-                  LOADING CATEGORIES...
-                </div>
-
-                <div
-                  v-for="cat in categories"
-                  :key="cat.id"
-                  class="kb-category-group"
-                >
-                  <div
-                    class="kb-category-row"
-                    :class="{ 'is-open': expandedCategories.has(cat.id) }"
-                    @click="toggleCategory(cat.id)"
-                  >
-                    <div class="kb-cat-chevron" :class="{ 'is-open': expandedCategories.has(cat.id) }">
-                      <NavArrowRight width="11" height="11" class="kb-cat-chevron-icon" />
-                    </div>
-                    <span class="kb-cat-name">{{ cat.name }}</span>
-                  </div>
-
-                  <MCollapse :open="expandedCategories.has(cat.id)">
-                    <div class="kb-course-list">
-                      <div
-                        v-for="course in cat.courses"
-                        :key="course.id"
-                        class="kb-course-row"
-                        :class="{
-                          'is-offline': !course.live,
-                          active: isCourseActive(course.id, course.slug)
-                        }"
-                        :title="getCourseTooltip(course)"
-                        @click="selectCourse(course)"
-                      >
-                        <span class="course-name">{{ course.title }}</span>
-                      </div>
-                    </div>
-                  </MCollapse>
-                </div>
-              </div>
-            </MCollapse>
-          </div>
 
           <button
             v-for="item in navigationGroups[1].concat(navigationGroups[2])"
@@ -517,11 +423,6 @@ const handleKbClick = () => {
   align-items: center;
 }
 
-.maki-sidebar.is-collapsed .kb-nav-group {
-  width: 100%;
-  align-items: center;
-}
-
 .nav-button {
   display: flex;
   align-items: center;
@@ -605,149 +506,6 @@ const handleKbClick = () => {
 .nav-label-collapse {
   flex: 1 1 auto;
   min-width: 0;
-}
-
-.kb-label-group {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-}
-
-/* 知识库折叠组 */
-.kb-nav-group {
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-}
-
-.kb-toggle-button {
-  user-select: none;
-}
-
-.kb-chevron-wrap {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-muted);
-  width: 16px;
-  height: 16px;
-}
-
-.kb-chevron-icon,
-.kb-cat-chevron-icon {
-  display: block;
-  transform-origin: center;
-  transition: transform 160ms cubic-bezier(0.2, 0, 0, 1);
-}
-
-.kb-chevron-wrap.is-open .kb-chevron-icon,
-.kb-cat-chevron.is-open .kb-cat-chevron-icon {
-  transform: rotate(90deg);
-}
-
-.kb-tree-container {
-  display: flex;
-  flex-direction: column;
-  margin: 2px 0 6px 14px;
-  padding-left: 10px;
-  border-left: 1px solid var(--border-subtle);
-  gap: 2px;
-}
-
-.kb-loading {
-  font-size: var(--font-size-smallest);
-  color: var(--text-muted);
-  padding: 6px 8px;
-}
-
-.kb-category-group {
-  display: flex;
-  flex-direction: column;
-}
-
-.kb-category-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  height: 28px;
-  padding: 0 8px;
-  border-radius: var(--radius-xs);
-  cursor: pointer;
-  user-select: none;
-  color: var(--text-muted);
-  transition: background-color 120ms ease, color 120ms ease;
-}
-
-.kb-category-row:hover {
-  background-color: var(--bg-hover);
-  color: var(--text-primary);
-}
-
-.kb-cat-chevron {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-muted);
-  width: 12px;
-  flex-shrink: 0;
-}
-
-.kb-cat-name {
-  font-size: var(--font-size-smaller);
-  font-weight: var(--font-weight-medium);
-  flex: 1 1 auto;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.kb-course-list {
-  display: flex;
-  flex-direction: column;
-  margin-left: 14px;
-  padding-left: 8px;
-  border-left: 1px solid rgba(255, 255, 255, 0.04);
-  gap: 1px;
-}
-
-.kb-course-row {
-  display: flex;
-  align-items: center;
-  height: 27px;
-  padding: 0 8px;
-  border-radius: var(--radius-xs);
-  font-size: var(--font-size-smaller);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: background-color 120ms ease, color 120ms ease;
-}
-
-.kb-course-row:hover {
-  background-color: var(--bg-hover);
-  color: var(--text-primary);
-}
-
-.kb-course-row.is-offline {
-  opacity: 0.45;
-  cursor: default;
-}
-
-.kb-course-row.active {
-  background-color: var(--bg-hover);
-  color: var(--text-primary);
-  font-weight: var(--font-weight-medium);
-}
-
-.kb-course-row.active .course-name {
-  color: var(--accent-primary);
-}
-
-.course-name {
-  flex: 1 1 auto;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .sidebar-footer {

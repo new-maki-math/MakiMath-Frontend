@@ -82,31 +82,9 @@ export function useLayoutState() {
 
   // 3. 知识库分类数据
   const categories = ref([]);
-  const isLoadingCats = ref(false);
-  const expandedCategories = ref(new Set());
-
-  const toggleCategory = (catId) => {
-    if (expandedCategories.value.has(catId)) {
-      expandedCategories.value.delete(catId);
-    } else {
-      expandedCategories.value.add(catId);
-    }
-  };
-
-  const getCourseTooltip = (course) => {
-    const desc = course.desc || course.title;
-    return !course.live ? `[筹划中] ${desc}` : desc;
-  };
 
   const loadCategories = async () => {
-    isLoadingCats.value = true;
-    try {
-      const transformed = await getCourseCategories();
-      categories.value = transformed;
-      expandedCategories.value = new Set(transformed.map(c => c.id));
-    } finally {
-      isLoadingCats.value = false;
-    }
+    categories.value = await getCourseCategories();
   };
 
   // 4. 用户信息与弹窗状态
@@ -219,14 +197,14 @@ export function useLayoutState() {
         sectionName = firstChap.sections?.[0]?.title || '讲义阅读';
       }
 
-      const crumbs = ['APP', '讲义库', courseTitle];
+      const crumbs = ['APP', '讲义', courseTitle];
       if (chapterName) crumbs.push(chapterName);
       if (sectionName) crumbs.push(sectionName);
       return crumbs;
     }
     if (route.name === 'course-home' || route.params.courseId) {
       const courseTitle = currentCourse.value?.title || route.params.courseId || '课程';
-      return ['APP', '讲义库', courseTitle];
+      return ['APP', '讲义', courseTitle];
     }
     return ['APP', currentItem.value.label];
   });
@@ -255,30 +233,11 @@ export function useLayoutState() {
 
   const isStartRoute = computed(() => route.path === '/start' || route.name === 'start');
 
-  const isKbActive = computed(() => {
-    return (
-      route.name === 'course-home' ||
-      route.name === 'lecture-doc' ||
-      route.path.startsWith('/course/')
-    );
-  });
-
   const isItemActive = (item) => route.path === item.path || (item.id === 'knowledge' && route.name === 'knowledge');
-
-  const isCourseActive = (courseId, slug) => {
-    return (
-      (route.name === 'course-home' || route.name === 'lecture-doc' || route.path.startsWith('/course/')) &&
-      (route.params.courseId === courseId || route.params.courseId === slug)
-    );
-  };
 
   const navigateTo = (targetPath) => {
     if (route.path === targetPath) return;
     router.push(targetPath);
-  };
-
-  const selectCourse = (course) => {
-    navigateTo(`/course/${course.id}`);
   };
 
   // 6. 讲义刷新 Key 控制
@@ -330,10 +289,6 @@ export function useLayoutState() {
     isDark,
     toggleTheme,
     categories,
-    isLoadingCats,
-    expandedCategories,
-    toggleCategory,
-    getCourseTooltip,
     loadCategories,
     currentUser,
     isLoggedIn,
@@ -355,11 +310,8 @@ export function useLayoutState() {
     showViewportHeader,
     isViewportLocked,
     isStartRoute,
-    isKbActive,
     isItemActive,
-    isCourseActive,
     navigateTo,
-    selectCourse,
     docRefreshKey,
     handleRefreshDoc
   };

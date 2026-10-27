@@ -262,9 +262,9 @@ const handlePrint = () => {
   window.print();
 };
 
-// 跳转官方讲义库挑选
+// 跳转讲义推荐
 const handleBrowseOfficial = () => {
-  router.push('/course/1');
+  router.push('/recom-lecture');
 };
 
 // 滚动定位到指定条目
@@ -492,7 +492,7 @@ onMounted(async () => {
                 <template #icon>
                   <Compass width="15" height="15" />
                 </template>
-                <span>前往讲义库开始挑选 // BROWSE</span>
+                <span>前往讲义推荐 // BROWSE</span>
               </MButton>
             </div>
           </div>
