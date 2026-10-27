@@ -1,4 +1,4 @@
-import { ref, computed, watch, nextTick } from 'vue';
+import { ref, computed, watch, nextTick, onScopeDispose } from 'vue';
 import { searchLectures } from '../api';
 
 // 明亮鲜艳的标签色彩变体（排除 gray、muted 等暗色）
@@ -61,13 +61,13 @@ export function useLectureSearch(options = {}) {
   // 执行底层全文检索
   const executeSearch = async (val) => {
     const q = String(val ?? '').trim();
+    const reqId = ++currentReqId;
     if (!q) {
       results.value = [];
       isSearching.value = false;
       return;
     }
 
-    const reqId = ++currentReqId;
     isSearching.value = true;
 
     try {
@@ -86,9 +86,18 @@ export function useLectureSearch(options = {}) {
   // 监听输入词防抖查询
   watch(query, (newVal) => {
     clearTimeout(debounceTimer);
+    currentReqId++;
+    results.value = [];
+    isSearching.value = false;
+    if (!newVal.trim()) return;
     debounceTimer = setTimeout(() => {
       executeSearch(newVal);
     }, debounceDelay);
+  }, { flush: 'sync' });
+
+  onScopeDispose(() => {
+    clearTimeout(debounceTimer);
+    currentReqId++;
   });
 
   // 展示列表结果计算
@@ -102,6 +111,9 @@ export function useLectureSearch(options = {}) {
 
   // 清空输入内容
   const clear = () => {
+    clearTimeout(debounceTimer);
+    currentReqId++;
+    isSearching.value = false;
     query.value = '';
     results.value = [];
     activeIndex.value = -1;

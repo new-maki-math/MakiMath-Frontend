@@ -167,7 +167,7 @@ onUnmounted(() => {
 
 // 当前路由参数
 const currentCourseId = computed(() => {
-  return route.params.courseId || '1';
+  return route.params.courseId;
 });
 
 const currentSectionId = computed(() => {
@@ -176,6 +176,7 @@ const currentSectionId = computed(() => {
 
 // 讲义正文与目录数据
 const courseChapters = ref([]);
+const courseTitle = ref('');
 const currentContent = ref({
   id: '',
   title: '讲义加载中...',
@@ -186,38 +187,60 @@ const currentContent = ref({
   animation: null
 });
 const isLoading = ref(true);
+const loadError = ref('');
+const reloadKey = ref(0);
+let loadId = 0;
+onUnmounted(() => { loadId++; });
 
 // 监听路由参数加载讲义
 watch(
-  [currentCourseId, currentSectionId],
+  [currentCourseId, currentSectionId, reloadKey],
   async ([courseId, sectionId]) => {
+    const id = ++loadId;
     isSelectionMode.value = false;
     isLoading.value = true;
+    loadError.value = '';
+    currentContent.value = { id: '', title: '', lead: '', outlines: [], doc: null, animation: null };
+    courseChapters.value = [];
+    courseTitle.value = '';
     try {
       // 通过统一课程目录树接口加载数据
       // 内部通过解析器将别名解析为对应数字编号
-      const tree = await fetchCourseTree(courseId || '1');
+      const tree = await fetchCourseTree(courseId);
+      if (id !== loadId) return;
+      courseTitle.value = tree.title || '';
       const chaps = toChapters(tree);
       courseChapters.value = chaps;
 
       // 加载讲义正文与大纲
-      const secId = sectionId || (chaps[0]?.sections?.[0]?.id ? String(chaps[0].sections[0].id) : '');
+      const sections = chaps.flatMap((chapter) => chapter.sections || []);
+      const section = sectionId
+        ? sections.find((item) => String(item.id) === sectionId || item.slug === sectionId)
+        : sections[0];
+      if (sectionId && !section) {
+        const error = new Error('讲义不存在');
+        error.status = 404;
+        throw error;
+      }
+      const secId = section?.id || '';
       if (!secId) {
         // 无有效小节时设为空状态
         currentContent.value = { id: '', title: '暂无讲义', lead: '', outlines: [], doc: null, animation: null };
         return;
       }
       // 使用数字标识以保证缓存与预设映射命中
-      currentContent.value = await getCourseSectionContent(tree.id, secId);
+      const content = await getCourseSectionContent(tree.id, secId);
+      if (id !== loadId) return;
+      currentContent.value = content;
 
       // 切换时重置滚动位置
       if (readingViewportRef.value) {
         readingViewportRef.value.scrollTop = 0;
       }
     } catch (err) {
-      console.error('[DocView] 加载讲义数据失败:', err);
+      if (id === loadId) loadError.value = err.status === 404 ? '讲义不存在' : '讲义加载失败，请重试';
     } finally {
-      isLoading.value = false;
+      if (id === loadId) isLoading.value = false;
     }
   },
   { immediate: true }
@@ -316,7 +339,7 @@ const handleSelectSection = (section) => {
   router.push({
     name: 'lecture-doc',
     params: {
-      courseId: currentCourseId.value || '1',
+      courseId: currentCourseId.value || '',
       sectionId: targetId
     }
   });
@@ -354,7 +377,7 @@ watch(() => currentSectionId.value, () => {
 
 // 是否整节已收录
 const isSectionCollected = computed(() => {
-  const cId = String(currentCourseId.value || '1');
+  const cId = String(currentCourseId.value || '');
   const sId = String(currentSectionId.value || '');
   return currentNotebookItems.value.some(
     (it) => it.courseId === cId && it.sectionId === sId && it.scope === 'section'
@@ -363,7 +386,7 @@ const isSectionCollected = computed(() => {
 
 // 检查某个大纲考点是否已精确收录
 const isOutlineCollected = (outlineId) => {
-  const cId = String(currentCourseId.value || '1');
+  const cId = String(currentCourseId.value || '');
   const sId = String(currentSectionId.value || '');
   return currentNotebookItems.value.some(
     (it) => it.courseId === cId && it.sectionId === sId && it.scope === 'outline' && it.scopeId === outlineId
@@ -377,7 +400,7 @@ const isOutlineAbsorbed = (outlineId) => {
 
 // 检查某个卡片是否已精确收录
 const isCardCollected = (cardId) => {
-  const cId = String(currentCourseId.value || '1');
+  const cId = String(currentCourseId.value || '');
   const sId = String(currentSectionId.value || '');
   return currentNotebookItems.value.some(
     (it) => it.courseId === cId && it.sectionId === sId && it.scope === 'card' && it.scopeId === cardId
@@ -387,7 +410,7 @@ const isCardCollected = (cardId) => {
 // 检查某个卡片是否已被父大纲考点或整节吸收
 const isCardAbsorbed = (cardId) => {
   if (isSectionCollected.value) return true;
-  const cId = String(currentCourseId.value || '1');
+  const cId = String(currentCourseId.value || '');
   const sId = String(currentSectionId.value || '');
   const doc = currentContent.value?.doc;
 
@@ -408,7 +431,7 @@ const isCardAbsorbed = (cardId) => {
 
 // 收藏 / 移出整小节 (一键收录并自动吸收该小节下的全部碎片)
 const handleToggleSectionCollect = async () => {
-  const cId = String(currentCourseId.value || '1');
+  const cId = String(currentCourseId.value || '');
   const sId = String(currentSectionId.value || '');
   const existing = currentNotebookItems.value.find(
     (it) => it.courseId === cId && it.sectionId === sId && it.scope === 'section'
@@ -423,7 +446,7 @@ const handleToggleSectionCollect = async () => {
 
   const res = await addOrUpgradeNotebookItem({
     courseId: cId,
-    courseTitle: currentSection.value.chapterTitle || '考研数学',
+    courseTitle: courseTitle.value,
     sectionId: sId,
     sectionTitle: currentSection.value.title,
     scope: 'section',
@@ -443,7 +466,7 @@ const handleToggleSectionCollect = async () => {
 
 // 收藏 / 移出大纲考点节 (自动合并下属真题卡片)
 const handleCollectOutline = async (outlineItem) => {
-  const cId = String(currentCourseId.value || '1');
+  const cId = String(currentCourseId.value || '');
   const sId = String(currentSectionId.value || '');
   const existing = currentNotebookItems.value.find(
     (it) => it.courseId === cId && it.sectionId === sId && it.scope === 'outline' && it.scopeId === outlineItem.id
@@ -460,7 +483,7 @@ const handleCollectOutline = async (outlineItem) => {
 
   const res = await addOrUpgradeNotebookItem({
     courseId: cId,
-    courseTitle: currentSection.value.chapterTitle || '考研数学',
+    courseTitle: courseTitle.value,
     sectionId: sId,
     sectionTitle: currentSection.value.title,
     scope: 'outline',
@@ -482,7 +505,7 @@ const handleCollectOutline = async (outlineItem) => {
 
 // 收藏 / 移出独立卡片 (真题 / 知识盒)
 const handleCollectCard = async (cardNode) => {
-  const cId = String(currentCourseId.value || '1');
+  const cId = String(currentCourseId.value || '');
   const sId = String(currentSectionId.value || '');
   const existing = currentNotebookItems.value.find(
     (it) => it.courseId === cId && it.sectionId === sId && it.scope === 'card' && it.scopeId === cardNode.cardId
@@ -497,7 +520,7 @@ const handleCollectCard = async (cardNode) => {
 
   const res = await addOrUpgradeNotebookItem({
     courseId: cId,
-    courseTitle: currentSection.value.chapterTitle || '考研数学',
+    courseTitle: courseTitle.value,
     sectionId: sId,
     sectionTitle: currentSection.value.title,
     scope: 'card',
@@ -599,7 +622,12 @@ provide('lectureCollectContext', {
     <main ref="readingViewportRef" class="reading-viewport">
       <!-- 讲义核心正文容器 -->
       <div class="reading-content-wrap">
-        <article class="markdown-article">
+        <div v-if="isLoading" class="font-mono">正在加载讲义</div>
+        <div v-else-if="loadError" class="font-mono">
+          <p>{{ loadError }}</p>
+          <MButton variant="secondary" @click="reloadKey++">重试</MButton>
+        </div>
+        <article v-else class="markdown-article">
           <!-- 讲义大标题与元信息 -->
           <header class="doc-header">
             <div class="doc-kicker font-mono">
@@ -650,6 +678,7 @@ provide('lectureCollectContext', {
 
         <!-- 底部翻页导航栏 -->
         <DocFooterNav
+          v-if="!isLoading && !loadError"
           :prev-section="prevSection"
           :next-section="nextSection"
           @select-section="handleSelectSection"

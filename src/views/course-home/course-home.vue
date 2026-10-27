@@ -1,18 +1,20 @@
 <script setup>
-import { computed, ref, watch, onMounted } from 'vue';
+import { computed, ref, watch, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { getCourseById, getCourseChapters } from '../../api';
+import { fetchCourseBundle } from '../../api';
 import { NavArrowRight } from '@iconoir/vue';
 import RoadmapGraph from '../../components/RoadmapGraph.vue';
 
 const route = useRoute();
 const router = useRouter();
 
-const courseId = computed(() => route.params.courseId || '1');
+const courseId = computed(() => route.params.courseId);
 const course = ref(null);
 const chapters = ref([]);
 const openChapters = ref(new Set());
 const isLoading = ref(true);
+const loadError = ref('');
+let loadId = 0;
 
 const totalSectionsCount = computed(() => {
   return chapters.value.reduce((acc, c) => acc + (c.sections?.length || 0), 0);
@@ -75,25 +77,27 @@ const scrollToChapter = (chapterId) => {
 
 const loadCourseData = async (slug) => {
   if (!slug) return;
+  const id = ++loadId;
   isLoading.value = true;
+  loadError.value = '';
+  course.value = null;
+  chapters.value = [];
   try {
-    course.value = await getCourseById(slug);
-    const chaps = await getCourseChapters(slug);
-    chapters.value = chaps;
+    const bundle = await fetchCourseBundle(slug);
+    if (id !== loadId) return;
+    course.value = bundle.course;
+    chapters.value = bundle.chapters;
     // 默认展开所有章节
-    openChapters.value = new Set(chaps.map(c => c.id));
+    openChapters.value = new Set(bundle.chapters.map(c => c.id));
+  } catch (err) {
+    if (id === loadId) loadError.value = err.status === 404 ? '课程不存在' : '课程加载失败，请重试';
   } finally {
-    isLoading.value = false;
+    if (id === loadId) isLoading.value = false;
   }
 };
 
-onMounted(() => {
-  loadCourseData(courseId.value);
-});
-
-watch(courseId, (newId) => {
-  loadCourseData(newId);
-});
+watch(courseId, loadCourseData, { immediate: true });
+onUnmounted(() => { loadId++; });
 </script>
 
 <template>
@@ -104,6 +108,10 @@ watch(courseId, (newId) => {
     </div>
 
     <!-- 课程详情 -->
+    <div v-else-if="loadError" class="course-not-found font-mono">
+      <p>{{ loadError }}</p>
+      <MButton variant="secondary" @click="loadCourseData(courseId)">重试</MButton>
+    </div>
     <template v-else-if="course">
       <!-- 课程头部 -->
       <header class="course-header">

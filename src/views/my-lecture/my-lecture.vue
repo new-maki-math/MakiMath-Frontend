@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   Bookmark,
@@ -44,6 +44,10 @@ const activeFilter = ref('all'); // 'all' | 'card' | 'outline' | 'section'
 const isLoading = ref(true);
 const isAssembling = ref(false);
 const isReordering = ref(false);
+const loadError = ref('');
+let itemsLoadId = 0;
+let assemblyId = 0;
+onUnmounted(() => { itemsLoadId++; assemblyId++; });
 
 // 拼装虚拟文档
 const virtualDoc = ref(null);
@@ -54,9 +58,6 @@ const isNewNotebookModalOpen = ref(false);
 const newNotebookTitle = ref('');
 const isClearConfirmModalOpen = ref(false);
 const isMobileDrawerOpen = ref(false);
-
-// 缓存已拉取的小节内容，避免对同一小节重复网络请求
-const sectionContentCache = new Map();
 
 // 条目卡片所显示的 TAG：直接使用小节标题（若本身为整节则标为小节）
 const getItemTag = (item) => {
@@ -113,53 +114,54 @@ const loadNotebooks = async () => {
 
 // 加载当前笔记本条目并触发拼装
 const loadItemsAndAssemble = async () => {
+  const id = ++itemsLoadId;
+  assemblyId++;
   isLoading.value = true;
-  isAssembling.value = true;
+  loadError.value = '';
+  rawItems.value = [];
+  virtualDoc.value = null;
   try {
-    rawItems.value = await getNotebookItems(activeNotebookId.value);
+    const items = await getNotebookItems(activeNotebookId.value);
+    if (id !== itemsLoadId) return;
+    rawItems.value = items;
     await assembleDocument();
   } catch (err) {
-    console.error('[MyLecture] 读取讲义条目失败:', err);
-    notify.error('读取自定义讲义失败');
+    if (id === itemsLoadId) loadError.value = '读取自定义讲义失败';
   } finally {
-    isLoading.value = false;
-    isAssembling.value = false;
+    if (id === itemsLoadId) isLoading.value = false;
   }
 };
 
 // 拼装文档核心逻辑（支持按选项卡动态筛选并联动右侧渲染）
 const assembleDocument = async () => {
-  const targetItems = filteredItems.value;
+  const id = ++assemblyId;
+  const targetItems = [...filteredItems.value];
+  virtualDoc.value = null;
+  loadError.value = '';
+  isAssembling.value = true;
   if (!targetItems || targetItems.length === 0) {
-    virtualDoc.value = null;
+    isAssembling.value = false;
     return;
   }
 
   const slices = [];
+  try {
+    for (const item of targetItems) {
+      const sectionData = await getCourseSectionContent(item.courseId, item.sectionId);
+      if (id !== assemblyId) return;
 
-  for (const item of targetItems) {
-    const cId = item.courseId || '1';
-    const sId = item.sectionId;
-    const cacheKey = `${cId}:${sId}`;
-
-    let sectionData = sectionContentCache.get(cacheKey);
-    if (!sectionData) {
-      try {
-        sectionData = await getCourseSectionContent(cId, sId);
-        sectionContentCache.set(cacheKey, sectionData);
-      } catch (err) {
-        console.warn(`[MyLecture] 获取小节 ${cacheKey} 失败:`, err);
-        continue;
+      if (sectionData && sectionData.doc) {
+        const nodes = extractItemSlice(sectionData.doc, item);
+        slices.push({ item, nodes });
       }
     }
 
-    if (sectionData && sectionData.doc) {
-      const nodes = extractItemSlice(sectionData.doc, item);
-      slices.push({ item, nodes });
-    }
+    if (id === assemblyId) virtualDoc.value = assembleVirtualDoc(slices);
+  } catch (err) {
+    if (id === assemblyId) loadError.value = '讲义内容加载失败，请重试';
+  } finally {
+    if (id === assemblyId) isAssembling.value = false;
   }
-
-  virtualDoc.value = assembleVirtualDoc(slices);
 };
 
 // 切换笔记本
@@ -192,6 +194,7 @@ const handleCreateNotebook = async () => {
 // 移除单个条目
 const handleRemoveItem = async (itemId, title) => {
   if (isReordering.value) return;
+  isReordering.value = true;
   try {
     await removeNotebookItem(itemId);
     rawItems.value = rawItems.value.filter((it) => it.id !== itemId);
@@ -199,20 +202,27 @@ const handleRemoveItem = async (itemId, title) => {
     notify.info(`已移出《${title || '条目'}》`);
   } catch (err) {
     notify.error('移出条目失败');
+  } finally {
+    isReordering.value = false;
   }
 };
 
 // 清空当前讲义册
 const handleClearAll = async () => {
   if (isReordering.value) return;
+  isReordering.value = true;
   try {
     await clearNotebook(activeNotebookId.value);
     rawItems.value = [];
+    assemblyId++;
+    isAssembling.value = false;
     virtualDoc.value = null;
     isClearConfirmModalOpen.value = false;
     notify.info('已清空当前讲义册');
   } catch (err) {
     notify.error('清空失败');
+  } finally {
+    isReordering.value = false;
   }
 };
 
@@ -270,9 +280,14 @@ const scrollToItem = (index) => {
 
 onMounted(async () => {
   isMounted.value = true;
-  await openDB();
-  await loadNotebooks();
-  await loadItemsAndAssemble();
+  try {
+    await openDB();
+    await loadNotebooks();
+    await loadItemsAndAssemble();
+  } catch (err) {
+    isLoading.value = false;
+    loadError.value = '本地讲义加载失败，请重试';
+  }
 });
 </script>
 
@@ -284,6 +299,7 @@ onMounted(async () => {
         <div class="notebook-select-wrap">
           <select
             class="notebook-selector font-mono"
+            :disabled="isReordering"
             :value="activeNotebookId"
             @change="handleSwitchNotebook($event.target.value)"
           >
@@ -452,7 +468,13 @@ onMounted(async () => {
       <!-- 右侧：无缝装订虚拟文档渲染区 -->
       <main class="document-viewport">
         <!-- 暂无收藏为空状态 -->
-        <div v-if="!isLoading && (!virtualDoc || virtualDoc.children.length === 0)" class="empty-viewport font-mono">
+        <div v-if="loadError" class="empty-viewport font-mono">
+          <div class="empty-card">
+            <p>{{ loadError }}</p>
+            <MButton variant="secondary" @click="loadItemsAndAssemble">重试</MButton>
+          </div>
+        </div>
+        <div v-else-if="!isLoading && !isAssembling && (!virtualDoc || virtualDoc.children.length === 0)" class="empty-viewport font-mono">
           <div class="empty-card">
             <span class="empty-tag">NOTEBOOK EMPTY // 讲义册为空</span>
             <h2 class="empty-title">尚未挑选任何考点或真题</h2>
@@ -501,7 +523,7 @@ onMounted(async () => {
         </div>
 
         <!-- 仅针对内容区域的内容拼装加载遮罩 -->
-        <MLoadingMask :visible="isLoading" text="正在拼装自定义讲义..." />
+        <MLoadingMask :visible="isLoading || isAssembling" text="正在拼装自定义讲义..." />
       </main>
     </div>
 
