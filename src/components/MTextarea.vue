@@ -23,6 +23,10 @@ defineProps({
   disabled: {
     type: Boolean,
     default: false
+  },
+  readonly: {
+    type: Boolean,
+    default: false
   }
 });
 
@@ -38,6 +42,7 @@ defineEmits(['update:modelValue']);
       :value="modelValue"
       :placeholder="placeholder"
       :disabled="disabled"
+      :readonly="readonly"
       spellcheck="false"
       @input="$emit('update:modelValue', $event.target.value)"
     ></textarea>
