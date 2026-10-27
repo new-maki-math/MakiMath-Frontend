@@ -2,6 +2,7 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { hierarchy, select, treemap, treemapBinary, treemapSquarify, zoom, zoomIdentity } from 'd3';
 import { knowledgeApi } from '../../api/knowledge.js';
+import { managementApi } from '../../api/management.js';
 import { getMasteredIds, setMastered } from '../../utils/knowledge-mastery.js';
 import MButton from '../../components/MButton.vue';
 import MLoadingMask from '../../components/MLoadingMask.vue';
@@ -10,6 +11,10 @@ import { createKnowledgeRenderer } from './knowledge-webgpu-renderer.js';
 
 const mapLoading = ref(false);
 const categoryId = ref('');
+const libraries = ref([]);
+const librariesLoading = ref(false);
+const librariesError = ref('');
+let librariesSequence = 0;
 const searchQuery = ref('');
 const masteryFilter = ref('all');
 const masteryAvailable = ref(false);
@@ -68,27 +73,23 @@ const canonicalId = (id) => id;
 const learningNodes = computed(() => graph.value.nodes);
 const currentDomain = computed(() => domainById.get(activeDomain.value));
 const currentTopic = computed(() => currentDomain.value?.topics.find((topic) => topic.id === activeTopic.value));
-const categoryOptions = computed(() => {
-  const items = graph.value.categories;
-  const ids = new Set(items.map((item) => item.id));
-  const children = new Map();
-  for (const item of items) {
-    const parent = ids.has(item.parent_id) && item.parent_id !== item.id ? item.parent_id : null;
-    if (!children.has(parent)) children.set(parent, []);
-    children.get(parent).push(item);
+const categoryOptions = computed(() => libraries.value.filter((item) => item.parent_id === null));
+const currentLibraryName = computed(() => categoryOptions.value.find((item) => String(item.id) === categoryId.value)?.name || (categoryId.value ? '所选知识库' : '全部知识库'));
+async function loadLibraries() {
+  const sequence = ++librariesSequence;
+  librariesLoading.value = true;
+  librariesError.value = '';
+  try {
+    const result = await managementApi.categories('knowledge');
+    if (disposed || sequence !== librariesSequence) return;
+    if (!Array.isArray(result)) throw new Error('知识分类数据不完整');
+    libraries.value = result;
+  } catch {
+    if (!disposed && sequence === librariesSequence) librariesError.value = '知识库分类加载失败';
+  } finally {
+    if (!disposed && sequence === librariesSequence) librariesLoading.value = false;
   }
-  const result = [];
-  const visited = new Set();
-  const append = (item, depth) => {
-    if (visited.has(item.id)) return;
-    visited.add(item.id);
-    result.push({ ...item, depth });
-    for (const child of children.get(item.id) || []) append(child, depth + 1);
-  };
-  for (const item of children.get(null) || []) append(item, 0);
-  for (const item of items) append(item, 0);
-  return result;
-});
+}
 const visibleDomains = computed(() => activeDomain.value ? domains.value.filter((domain) => domain.id === activeDomain.value) : domains.value);
 const mastered = ref(new Set());
 
@@ -113,8 +114,13 @@ function buildDomains(data) {
       const score = candidate.length + (categoryId.value && candidate.some((item) => item.id === Number(categoryId.value)) ? 100000 : 0);
       if (score > bestScore) { bestScore = score; path = candidate; }
     }
-    const domain = path[0] || { id: 'uncategorized', name: '未分类' };
-    const topic = path.length > 1 ? path[1] : { id: `direct-${domain.id}`, name: path.length ? '本分类知识点' : '未分类知识点' };
+    const selectedRoot = categoryId.value ? Number(categoryId.value) : null;
+    const rootIndex = selectedRoot === null ? -1 : path.findIndex((item) => item.id === selectedRoot);
+    const projected = rootIndex >= 0 ? path.slice(rootIndex + 1) : path;
+    const rootDirect = rootIndex >= 0 && !projected.length;
+    const incompletePath = selectedRoot !== null && rootIndex < 0;
+    const domain = incompletePath ? { id: 'incomplete-path', name: '其他分类或路径不完整' } : projected[0] || (rootDirect ? { id: `root-direct-${selectedRoot}`, name: '直属本知识库' } : { id: 'uncategorized', name: '未分类' });
+    const topic = incompletePath && projected.length ? projected[projected.length - 1] : projected.length > 1 ? projected[1] : { id: `direct-${domain.id}`, name: projected.length ? '直属此分类' : rootDirect ? '直属知识点' : '未分类知识点' };
     const item = { ...node, domain_id: domain.id, topic_id: topic.id };
     nodeById.set(item.id, item);
     if (!grouped.has(domain.id)) grouped.set(domain.id, { id: domain.id, name: domain.name, nodes: [], topics: [] });
@@ -147,6 +153,10 @@ async function loadMap({ preserveOnError = false } = {}) {
     activeTopic.value = '';
     selected.value = null;
     detailSequence++;
+    focusedId.value = '';
+    await nextTick();
+    if (sequence !== mapSequence || disposed) return;
+    resetCanvas(false);
     return true;
   } catch (error) {
     if (sequence === mapSequence && !disposed) {
@@ -189,6 +199,12 @@ const chipNodes = computed(() => {
     return masteryFilter.value === 'mastered' ? isMastered : !isMastered;
   });
 });
+const searchResults = computed(() => searchQuery.value.trim() ? chipNodes.value : []);
+function selectSearchResult(node) {
+  selectNode(node);
+  const tile = chipLayout.value.tiles.find((item) => item.node.id === node.id);
+  if (tile) focusTile(tile);
+}
 function visualWeight(id) {
   const hash = [...String(id)].reduce((value, char) => (value * 31 + char.charCodeAt(0)) >>> 0, 0);
   return 0.7 + (hash % 61) / 100;
@@ -395,7 +411,7 @@ function handleGpuLost() {
   gpuReady.value = false;
   gpuError.value = 'WebGPU 设备已断开，当前使用备用显示。';
 }
-watch(categoryId, () => { if (!suppressCategoryWatch) { returnStack.value = []; loadMap(); } });
+watch(categoryId, () => { if (!suppressCategoryWatch) { returnStack.value = []; searchQuery.value = ''; loadMap(); } });
 watch([chipLayout, selected, mastered, focusedId, detailPrerequisites], rebuildGpuLabels, { flush: 'post' });
 watch([canvasWidth, canvasHeight], requestGpuDraw, { flush: 'post' });
 onMounted(() => {
@@ -417,6 +433,7 @@ onMounted(() => {
   });
   if (canvas.value) resizeObserver.observe(canvas.value);
   loadMastery();
+  loadLibraries();
   loadMap();
   initializeGpu();
   themeObserver = new MutationObserver(() => { updateGpuColor(); rebuildGpuLabels(); });
@@ -426,6 +443,7 @@ onUnmounted(() => {
   disposed = true;
   gpuInitSequence++;
   mapSequence++;
+  librariesSequence++;
   detailSequence++;
   resizeObserver?.disconnect();
   themeObserver?.disconnect();
@@ -692,11 +710,21 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(canonicalId(no
     <MLoadingMask :visible="mapLoading || gpuInitializing || glyphLoading" :text="mapLoading ? '正在加载知识地图…' : '正在准备知识点字形…'" :z-index="50" />
     <main ref="libraryMain" class="library-main">
       <div class="floating-info">
-        <nav class="breadcrumbs" aria-label="知识库层级"><button type="button" @click="openOverview">全部分类</button><template v-if="currentDomain"><span>/</span><button type="button" @click="openDomain(currentDomain.id)">{{ currentDomain.name }}</button></template><template v-if="currentTopic"><span>/</span><span aria-current="page">{{ currentTopic.title }}</span></template></nav>
+        <nav class="breadcrumbs" aria-label="知识库层级"><button type="button" @click="openOverview">{{ currentLibraryName }}</button><template v-if="currentDomain"><span>/</span><button type="button" @click="openDomain(currentDomain.id)">{{ currentDomain.name }}</button></template><template v-if="currentTopic"><span>/</span><span aria-current="page">{{ currentTopic.title }}</span></template></nav>
         <div class="knowledge-filters">
-          <label>分类<select v-model="categoryId"><option value="">全部分类</option><option v-for="category in categoryOptions" :key="category.id" :value="String(category.id)">{{ '　'.repeat(category.depth) }}{{ category.name }}</option></select></label>
+          <label>知识库<select v-model="categoryId"><option value="">全部知识库</option><option v-if="categoryId && !categoryOptions.some((item) => String(item.id) === categoryId)" :value="categoryId" disabled>所选分类不可用</option><option v-for="category in categoryOptions" :key="category.id" :value="String(category.id)">{{ category.name }}</option></select></label>
           <label>搜索当前范围<input v-model="searchQuery" type="search" placeholder="知识点标题" /></label>
           <label>掌握状态<select v-model="masteryFilter"><option value="all">全部</option><option value="mastered">已掌握</option><option value="unmastered">未掌握</option></select></label>
+          <p class="filter-note">图中按分类分区，深层分类归入子分区；完整分类见详情。</p>
+          <p v-if="librariesLoading" class="filter-note">正在加载知识库分类…</p>
+          <p v-else-if="librariesError" class="storage-error" role="alert">{{ librariesError }} <button type="button" @click="loadLibraries">重试</button></p>
+          <p v-else-if="!categoryOptions.length" class="filter-note">暂无可选择的一级知识库分类</p>
+          <div v-if="searchQuery.trim()" class="search-results">
+            <div class="search-result-head"><span>{{ currentLibraryName }} · {{ masteryFilter === 'all' ? '全部状态' : masteryFilter === 'mastered' ? '已掌握' : '未掌握' }} · {{ searchResults.length }} 条结果</span><button type="button" @click="searchQuery = ''">清空</button></div>
+            <ul v-if="searchResults.length"><li v-for="item in searchResults.slice(0, 50)" :key="item.id"><button type="button" @click="selectSearchResult(item)">{{ item.title }}</button></li></ul>
+            <p v-else class="filter-note">当前范围没有匹配的知识点</p>
+            <p v-if="searchResults.length > 50" class="filter-note">显示前 50 条，请继续输入缩小范围</p>
+          </div>
         </div>
         <p v-if="mapError" class="storage-error" role="alert">{{ mapError }} <button v-if="!scopeError" type="button" @click="loadMap()">重试</button></p>
         <p v-else-if="!mapLoading && !learningNodes.length" class="detail-note">当前分类暂无公开知识点</p>
@@ -727,7 +755,7 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(canonicalId(no
         <canvas v-show="!currentTopic && gpuReady" ref="gpuCanvas" class="gpu-labels" aria-hidden="true" />
       </div>
       <div v-if="!currentTopic" class="floating-controls"><MButton size="sm" aria-label="缩小画布" @click="zoomCanvas(0.8)">−</MButton><MButton size="sm" aria-label="放大画布" @click="zoomCanvas(1.25)">+</MButton><MButton size="sm" @click="resetCanvas">全览</MButton></div>
-      <div v-if="!currentTopic" class="floating-legend"><span><i class="swatch" />未掌握</span><span><i class="swatch mastered" />已掌握</span><span><i class="boundary-key domain" />一级分类</span><span><i class="boundary-key topic" />二级分类</span><span>{{ totalStats.done }} / {{ totalStats.total }}</span></div>
+      <div v-if="!currentTopic" class="floating-legend"><span><i class="swatch" />未掌握</span><span><i class="swatch mastered" />已掌握</span><span><i class="boundary-key domain" />分区</span><span><i class="boundary-key topic" />子分区</span><span>{{ totalStats.done }} / {{ totalStats.total }}</span></div>
     </main>
     <aside v-if="selected" ref="detailPanel" class="detail-panel" aria-label="知识点详情">
       <div class="detail-top"><span class="eyebrow font-mono">知识点 / {{ selected.id }}</span><MButton size="sm" variant="ghost" @click="closeDetail">关闭</MButton></div>
@@ -786,6 +814,12 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(canonicalId(no
 .knowledge-filters { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; padding: 10px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-xs); }
 .knowledge-filters label { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .knowledge-filters input, .knowledge-filters select { min-width: 0; width: 145px; padding: 4px 6px; color: var(--text-primary); background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-xs); font: inherit; }
+.filter-note { margin: 2px 0; color: var(--text-muted); }
+.search-results { border-top: 1px solid var(--border-subtle); padding-top: 6px; }
+.search-result-head { display: flex; justify-content: space-between; gap: 8px; }
+.search-results ul { list-style: none; max-height: 200px; overflow: auto; margin: 6px 0 0; padding: 0; }
+.search-results li button { width: 100%; padding: 5px 4px; color: var(--text-primary); text-align: left; overflow-wrap: anywhere; }
+.search-results li button:hover { background: var(--bg-hover); }
 .storage-error { color: var(--tag-red); }
 .relation-legend { margin-top: 8px; }
 .key-selected { color: var(--text-primary); } .key-before { color: var(--tag-amber); } .key-after { color: var(--tag-purple); }
