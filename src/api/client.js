@@ -96,6 +96,7 @@ export async function request(url, options = {}) {
   const fullUrl = API_BASE ? `${API_BASE}${url}` : url;
 
   beginApiRequest();
+  let succeeded = false;
   try {
     const res = await fetch(fullUrl, config);
     if (!res.ok) {
@@ -106,25 +107,31 @@ export async function request(url, options = {}) {
       throw error;
     }
     if (res.status === 204) {
-      endApiRequest(true);
+      succeeded = true;
       return null;
     }
     const text = await res.text();
-    endApiRequest(true);
-    if (!text) return null;
+    if (!text) {
+      succeeded = true;
+      return null;
+    }
 
     let parsed;
     try {
       parsed = JSON.parse(text);
     } catch {
+      succeeded = true;
       return text;
     }
 
     // 解密混淆
-    return await responseInterceptor(parsed);
+    const result = await responseInterceptor(parsed);
+    succeeded = true;
+    return result;
   } catch (err) {
-    endApiRequest(false);
     console.warn(`[API] 请求 ${url} 失败:`, err.message);
     throw err;
+  } finally {
+    endApiRequest(succeeded);
   }
 }
