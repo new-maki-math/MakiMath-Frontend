@@ -449,14 +449,17 @@ export async function reorderNotebookItems(notebookId, orderedItemIds) {
     orderedItemIds.forEach((id, index) => {
       const getReq = store.get(id);
       getReq.onsuccess = () => {
-        if (getReq.result) {
+        if (getReq.result && getReq.result.notebookId === notebookId) {
           getReq.result.order = index + 1;
           store.put(getReq.result);
+        } else {
+          tx.abort();
         }
       };
     });
 
     tx.oncomplete = () => resolve(true);
     tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error || new Error('调整顺序失败'));
   });
 }

@@ -43,6 +43,7 @@ const rawItems = ref([]);
 const activeFilter = ref('all'); // 'all' | 'card' | 'outline' | 'section'
 const isLoading = ref(true);
 const isAssembling = ref(false);
+const isReordering = ref(false);
 
 // 拼装虚拟文档
 const virtualDoc = ref(null);
@@ -163,6 +164,7 @@ const assembleDocument = async () => {
 
 // 切换笔记本
 const handleSwitchNotebook = (nbId) => {
+  if (isReordering.value) return;
   if (nbId === activeNotebookId.value) return;
   activeNotebookId.value = nbId;
   loadItemsAndAssemble();
@@ -189,6 +191,7 @@ const handleCreateNotebook = async () => {
 
 // 移除单个条目
 const handleRemoveItem = async (itemId, title) => {
+  if (isReordering.value) return;
   try {
     await removeNotebookItem(itemId);
     rawItems.value = rawItems.value.filter((it) => it.id !== itemId);
@@ -201,6 +204,7 @@ const handleRemoveItem = async (itemId, title) => {
 
 // 清空当前讲义册
 const handleClearAll = async () => {
+  if (isReordering.value) return;
   try {
     await clearNotebook(activeNotebookId.value);
     rawItems.value = [];
@@ -212,30 +216,31 @@ const handleClearAll = async () => {
   }
 };
 
-// 调整顺序：上移
-const handleMoveUp = async (index) => {
-  if (index <= 0) return;
+// 调整当前筛选结果中的相邻条目
+const moveItem = async (id, direction) => {
+  if (isReordering.value || isLoading.value) return;
+  const visible = filteredItems.value;
+  const index = visible.findIndex((item) => item.id === id);
+  const neighbor = visible[index + direction];
+  if (index < 0 || !neighbor) return;
   const list = [...rawItems.value];
-  const temp = list[index - 1];
-  list[index - 1] = list[index];
-  list[index] = temp;
-  rawItems.value = list;
-
-  await reorderNotebookItems(activeNotebookId.value, list.map((it) => it.id));
-  await assembleDocument();
-};
-
-// 调整顺序：下移
-const handleMoveDown = async (index) => {
-  if (index >= rawItems.value.length - 1) return;
-  const list = [...rawItems.value];
-  const temp = list[index + 1];
-  list[index + 1] = list[index];
-  list[index] = temp;
-  rawItems.value = list;
-
-  await reorderNotebookItems(activeNotebookId.value, list.map((it) => it.id));
-  await assembleDocument();
+  const from = list.findIndex((item) => item.id === id);
+  const to = list.findIndex((item) => item.id === neighbor.id);
+  if (from < 0 || to < 0) return;
+  [list[from], list[to]] = [list[to], list[from]];
+  const notebookId = activeNotebookId.value;
+  isReordering.value = true;
+  try {
+    await reorderNotebookItems(notebookId, list.map((item) => item.id));
+    if (activeNotebookId.value === notebookId) {
+      rawItems.value = list;
+      await assembleDocument();
+    }
+  } catch (err) {
+    notify.error('调整顺序失败，原顺序已保留');
+  } finally {
+    isReordering.value = false;
+  }
 };
 
 // 打印 / 导出讲义
@@ -412,8 +417,8 @@ onMounted(async () => {
                   type="button"
                   class="action-btn"
                   title="上移"
-                  :disabled="idx === 0"
-                  @click.stop="handleMoveUp(idx)"
+                  :disabled="idx === 0 || isReordering || isLoading"
+                  @click.stop="moveItem(item.id, -1)"
                 >
                   <NavArrowUp width="12" height="12" />
                 </button>
@@ -421,8 +426,8 @@ onMounted(async () => {
                   type="button"
                   class="action-btn"
                   title="下移"
-                  :disabled="idx === filteredItems.length - 1"
-                  @click.stop="handleMoveDown(idx)"
+                  :disabled="idx === filteredItems.length - 1 || isReordering || isLoading"
+                  @click.stop="moveItem(item.id, 1)"
                 >
                   <NavArrowDown width="12" height="12" />
                 </button>
