@@ -8,7 +8,7 @@ const MyLectureView = () => import('../views/my-lecture/my-lecture.vue');
 const CourseHomeView = () => import('../views/course-home/course-home.vue');
 const LectureDocView = () => import('../views/lecture-doc/lecture-doc.vue');
 const KnowledgeView = () => import('../views/knowledge/knowledge.vue');
-const KnowledgeLibrary = () => import('../views/knowledge/KnowledgeMapPending.vue');
+const KnowledgeLibrary = () => import('../views/knowledge/KnowledgeLibrary.vue');
 const WorkbenchView = () => import('../views/lecture-workbench/workbench.vue');
 const KnowledgeWorkbenchView = () => import('../views/knowledge-workbench/KnowledgeWorkbench.vue');
 const PlatformView = () => import('../views/platform/platform.vue');

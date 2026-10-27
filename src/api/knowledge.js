@@ -8,7 +8,7 @@ const mutate = async (url, options) => {
 };
 
 export const knowledgeApi = {
-  map: (categoryId) => request(`/api/knowledge-map${categoryId ? `?category_id=${encodeURIComponent(categoryId)}` : ''}`),
+  map: (categoryId) => request(`/api/knowledge-map${categoryId ? `?category_id=${encodeURIComponent(categoryId)}` : ''}`, { cache: 'no-store' }),
   list: () => request('/api/knowledge-points', { cache: 'no-store' }),
   get: (id) => request(`/api/knowledge-points/${id}`, { cache: 'no-store' }),
   manage: () => request('/api/knowledge-points/manage', { cache: 'no-store' }),
