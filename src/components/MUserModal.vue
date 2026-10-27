@@ -81,8 +81,8 @@ const roleMeta = computed(() => {
 
 // 保存基本信息修改
 const handleSaveProfile = async () => {
-  if (!profileForm.value.displayName.trim()) {
-    notify('昵称不能为空', 'error');
+  if (profileForm.value.displayName.trim().length > 100) {
+    notify('昵称不能超过一百个字符', 'error');
     return;
   }
   isSavingProfile.value = true;
