@@ -14,6 +14,7 @@ import {
   Search,
   SunLight,
   HalfMoon,
+  HelpCircle,
   UserCircle,
   LogOut,
   DatabaseSolid,
@@ -37,6 +38,8 @@ const {
   isSuperAdmin,
   userDisplayName,
   isUserModalOpen,
+  isHelpModalOpen,
+  openHelpModal,
   openUserModal,
   handleLogout,
   navigationGroups,
@@ -121,6 +124,16 @@ watch(
       </div>
 
       <div class="topbar-right">
+        <button
+          type="button"
+          class="mobile-icon-btn"
+          :class="{ active: isHelpModalOpen }"
+          title="如何使用"
+          aria-label="如何使用"
+          @click="openHelpModal"
+        >
+          <HelpCircle width="18" height="18" />
+        </button>
         <!-- 搜索呼出按钮（欢迎页中央已有大搜索舱，此处自适应隐藏） -->
         <button
           v-if="!isStartRoute"

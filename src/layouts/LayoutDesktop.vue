@@ -10,6 +10,7 @@ import {
   NavArrowLeft,
   SunLight,
   HalfMoon,
+  HelpCircle,
   LogOut,
   UserCircle,
   DatabaseSolid
@@ -32,6 +33,8 @@ const {
   isSuperAdmin,
   userDisplayName,
   isUserModalOpen,
+  isHelpModalOpen,
+  openHelpModal,
   openUserModal,
   handleLogout,
   navigationGroups,
@@ -101,6 +104,16 @@ const handleKbClick = () => {
       </div>
 
       <div class="topbar-right">
+        <button
+          type="button"
+          class="topbar-action-btn"
+          :class="{ active: isHelpModalOpen }"
+          title="如何使用"
+          aria-label="如何使用"
+          @click="openHelpModal"
+        >
+          <HelpCircle width="16" height="16" />
+        </button>
         <div v-if="isLoggedIn" class="user-profile-anchor font-mono">
           <span class="user-name" :title="userDisplayName">{{ userDisplayName }}</span>
           <button

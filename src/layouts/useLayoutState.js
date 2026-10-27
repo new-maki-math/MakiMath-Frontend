@@ -16,7 +16,6 @@ import { notify } from '../components/MNotice.vue';
 import { workbenchPanelState } from '../utils/workbench-state.js';
 import {
   PlaySolid,
-  HelpCircleSolid,
   StarSolid,
   BookmarkSolid,
   FlaskSolid,
@@ -26,7 +25,6 @@ import {
 // 基础页面导航项配置
 export const navItems = [
   { id: 'start', label: '开始', path: '/start', icon: PlaySolid, tag: 'INIT', group: 'primary' },
-  { id: 'how-to-use', label: '如何使用', path: '/how-to-use', icon: HelpCircleSolid, tag: 'DOCS', group: 'primary' },
   { id: 'recom-lecture', label: '讲义推荐', path: '/recom-lecture', icon: StarSolid, tag: 'HOT', group: 'reader' },
   { id: 'my-lecture', label: '我的讲义', path: '/my-lecture', icon: BookmarkSolid, tag: 'LOCAL', group: 'reader' },
   { id: 'workbench', label: '讲义工作台', path: '/workbench', icon: FlaskSolid, tag: 'WORKBENCH', group: 'management', desktopOnly: true },
@@ -115,6 +113,15 @@ export function useLayoutState() {
   });
 
   const isUserModalOpen = ref(false);
+  const isHelpModalOpen = ref(false);
+
+  const openHelpModal = () => {
+    isHelpModalOpen.value = true;
+  };
+
+  const closeHelpModal = () => {
+    isHelpModalOpen.value = false;
+  };
 
   const openUserModal = () => {
     isUserModalOpen.value = true;
@@ -294,6 +301,7 @@ export function useLayoutState() {
 
     removeBeforeHook = router.beforeEach((to, from, next) => {
       isUserModalOpen.value = false;
+      isHelpModalOpen.value = false;
       if (to.path !== from.path) {
         beginNavigation();
       }
@@ -329,6 +337,9 @@ export function useLayoutState() {
     isSuperAdmin,
     userDisplayName,
     isUserModalOpen,
+    isHelpModalOpen,
+    openHelpModal,
+    closeHelpModal,
     openUserModal,
     closeUserModal,
     handleLogout,

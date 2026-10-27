@@ -3,7 +3,6 @@ import { isSuperAdmin, initAuth } from '../utils/auth.js';
 
 // 页面视图
 const StartView = () => import('../views/start/start.vue');
-const HowToUseView = () => import('../views/how-to-use/how-to-use.vue');
 const RecomLectureView = () => import('../views/recom-lecture/recom-lecture.vue');
 const MyLectureView = () => import('../views/my-lecture/my-lecture.vue');
 const CourseHomeView = () => import('../views/course-home/course-home.vue');
@@ -24,9 +23,7 @@ export const routes = [
   },
   {
     path: '/how-to-use',
-    name: 'how-to-use',
-    component: HowToUseView,
-    meta: { title: '如何使用', tag: 'DOCS' }
+    redirect: '/start'
   },
   {
     path: '/course/:courseId',

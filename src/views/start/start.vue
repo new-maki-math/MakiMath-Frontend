@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { Terminal, Compass, Sparks, Bookmark } from '@iconoir/vue';
+import { Terminal, Compass, Bookmark } from '@iconoir/vue';
 import StartBackground from './StartBackground.vue';
 import SearchBar from '../../components/SearchBar.vue';
 
@@ -59,7 +59,6 @@ const handleWindowResize = () => {
 const quickShortcuts = [
   { label: '讲义推荐路线', path: '/recom-lecture', icon: Compass },
   { label: '我的讲义', path: '/my-lecture', icon: Bookmark },
-  { label: '如何使用平台', path: '/how-to-use', icon: Sparks },
   { label: '讲义工作台', path: '/workbench', icon: Terminal }
 ];
 
