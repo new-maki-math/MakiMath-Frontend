@@ -391,16 +391,6 @@ function closeDelete() {
   deleteError.value = '';
   deleteUncertain.value = false;
 }
-function deletionConflict(error, type) {
-  const details = error.data?.details || {};
-  const fields = type === 'group'
-    ? [['child_category_ids', '子分类'], ['knowledge_point_ids', '关联知识点']]
-    : [['category_ids', '关联分类'], ['prerequisite_ids', '前置知识点'], ['dependent_ids', '后续知识点']];
-  const links = fields.map(([key, label]) => Array.isArray(details[key]) && details[key].length ? `${label} ID：${details[key].join('、')}` : '').filter(Boolean);
-  if (details.truncated) links.push('关联结果已截断，请处理后再次检查');
-  const message = '当前后端未完成关联清理，请确认接口版本。';
-  return [message, ...links].join('\n');
-}
 async function confirmDelete() {
   const target = deleteTarget.value;
   if (!target || !authorized.value || saving.value || deleteUncertain.value) return;
@@ -423,7 +413,7 @@ async function confirmDelete() {
     await loadList();
   } catch (error) {
     if (epoch !== identityEpoch) { notify('账号状态已变化，请刷新列表核对删除结果', 'warn'); return; }
-    if (error.status === 409) deleteError.value = deletionConflict(error, target.type);
+    if (error.status === 409) { deleteUncertain.value = true; deleteError.value = '操作发生并发冲突，请关闭后刷新列表并核对，再决定是否删除。'; }
     else if ([400, 401, 403, 404].includes(error.status)) deleteError.value = error.status === 404 ? '目标不存在，请关闭后刷新列表。' : (error.message || '删除失败，请检查权限。');
     else { deleteUncertain.value = true; deleteError.value = '删除结果未确认，请关闭后刷新列表核对，避免重复操作。'; }
   } finally { saving.value = false; }
