@@ -107,6 +107,11 @@ export async function fetchCourseTree(id) {
     const lecture = snapshot.lecture;
     const revision = snapshot.revision;
     if (!lecture || !revision || !Array.isArray(snapshot.chapters)) throw new Error('讲义数据不完整');
+    if (snapshot.chapters.some((chapter) =>
+      !chapter.occurrence_id || !Array.isArray(chapter.sections) || chapter.sections.some((section) =>
+        !section.occurrence_id || !Array.isArray(section.blocks) || section.blocks.some((block) => !block.occurrence_id)
+      )
+    )) throw new Error('讲义目录数据不完整');
     return {
       ...revision,
       id: lecture.id,
