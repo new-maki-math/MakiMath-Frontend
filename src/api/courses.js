@@ -81,13 +81,15 @@ export async function getCourseCategories() {
       });
     }
 
-    return transformCourseCategories(
-      cats.map((cat) => ({
+    const knownIds = new Set(cats.map((cat) => String(cat.id)));
+    const uncategorized = [...grouped].filter(([id]) => !knownIds.has(id)).flatMap(([, entries]) => entries);
+    const groups = cats.map((cat) => ({
         id: cat.id,
         name: cat.name,
         courses: grouped.get(String(cat.id)) || []
-      }))
-    );
+      }));
+    if (uncategorized.length) groups.push({ id: 'uncategorized', name: '未分类', courses: uncategorized });
+    return transformCourseCategories(groups);
   } catch (error) {
     console.error('[API] 从服务器获取课程大类失败:', error);
     return [];

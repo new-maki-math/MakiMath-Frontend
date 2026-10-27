@@ -308,8 +308,9 @@ export function useLayoutState() {
       next();
     });
 
-    removeAfterHook = router.afterEach(() => {
+    removeAfterHook = router.afterEach((to, from, failure) => {
       endNavigation();
+      if (!failure && ['workbench', 'platform'].includes(from.name)) loadCategories();
     });
   });
 
