@@ -13,7 +13,6 @@ import PlatformAuth from './PlatformAuth.vue';
 import UserPanel from './UserPanel.vue';
 import InvitationPanel from './InvitationPanel.vue';
 import ReviewPanel from './ReviewPanel.vue';
-import CategoryManagement from './CategoryManagement.vue';
 import AuditPanel from './AuditPanel.vue';
 
 // 当前激活的选项卡
@@ -22,7 +21,6 @@ const tabs = [
   { id: 'users', label: '用户管理', icon: Group },
   { id: 'invitations', label: '邀请码管理', icon: Key },
   { id: 'reviews', label: '内容审核', icon: BookmarkSolid },
-  { id: 'categories', label: '分类管理', icon: BookmarkSolid },
   { id: 'audit', label: '全站审计日志', icon: Page }
 ];
 
@@ -68,7 +66,6 @@ onMounted(() => {
       <UserPanel v-if="activeTab === 'users'" />
       <InvitationPanel v-else-if="activeTab === 'invitations'" />
       <ReviewPanel v-else-if="activeTab === 'reviews'" />
-      <CategoryManagement v-else-if="activeTab === 'categories'" />
       <AuditPanel v-else-if="activeTab === 'audit'" />
     </main>
   </div>

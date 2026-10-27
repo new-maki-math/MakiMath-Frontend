@@ -2,8 +2,6 @@ import { request } from './client.js';
 
 export const managementApi = {
   categories: (kind) => request(`/api/categories/${kind}`),
-  createCategory: (kind, body) => request(`/api/categories/${kind}`, { method: 'POST', body }),
-  updateCategory: (kind, id, body) => request(`/api/categories/${kind}/${id}`, { method: 'PUT', body }),
   invitations: () => request('/api/invitations'),
   createInvitation: (body) => request('/api/invitations', { method: 'POST', body }),
   revokeInvitation: (id) => request(`/api/invitations/${id}`, { method: 'DELETE' }),
