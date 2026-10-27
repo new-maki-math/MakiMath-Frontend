@@ -16,6 +16,7 @@ import { notify } from '../components/MNotice.vue';
 import { workbenchPanelState } from '../utils/workbench-state.js';
 import {
   PlaySolid,
+  DatabaseSolid,
   StarSolid,
   BookmarkSolid,
   FlaskSolid,
@@ -25,6 +26,7 @@ import {
 // 基础页面导航项配置
 export const navItems = [
   { id: 'start', label: '开始', path: '/start', icon: PlaySolid, tag: 'INIT', group: 'primary' },
+  { id: 'knowledge', label: '知识库', path: '/knowledge', icon: DatabaseSolid, tag: 'KNOWLEDGE', group: 'primary' },
   { id: 'recom-lecture', label: '讲义推荐', path: '/recom-lecture', icon: StarSolid, tag: 'HOT', group: 'reader' },
   { id: 'my-lecture', label: '我的讲义', path: '/my-lecture', icon: BookmarkSolid, tag: 'LOCAL', group: 'reader' },
   { id: 'workbench', label: '讲义工作台', path: '/workbench', icon: FlaskSolid, tag: 'WORKBENCH', group: 'management', desktopOnly: true },
@@ -217,14 +219,14 @@ export function useLayoutState() {
         sectionName = firstChap.sections?.[0]?.title || '讲义阅读';
       }
 
-      const crumbs = ['APP', '知识库', courseTitle];
+      const crumbs = ['APP', '讲义库', courseTitle];
       if (chapterName) crumbs.push(chapterName);
       if (sectionName) crumbs.push(sectionName);
       return crumbs;
     }
     if (route.name === 'course-home' || route.params.courseId) {
       const courseTitle = currentCourse.value?.title || route.params.courseId || '课程';
-      return ['APP', '知识库', courseTitle];
+      return ['APP', '讲义库', courseTitle];
     }
     return ['APP', currentItem.value.label];
   });
@@ -261,7 +263,7 @@ export function useLayoutState() {
     );
   });
 
-  const isItemActive = (item) => route.path === item.path;
+  const isItemActive = (item) => route.path === item.path || (item.id === 'knowledge' && route.name === 'knowledge');
 
   const isCourseActive = (courseId, slug) => {
     return (

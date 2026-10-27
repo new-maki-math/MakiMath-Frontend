@@ -203,7 +203,7 @@ watch(
               @click="isKbExpanded = !isKbExpanded"
             >
               <DatabaseSolid width="18" height="18" class="item-icon" />
-              <span class="item-text">知识库</span>
+              <span class="item-text">讲义库</span>
               <NavArrowRight
                 width="14"
                 height="14"

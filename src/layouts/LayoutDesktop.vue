@@ -191,7 +191,7 @@ const handleKbClick = () => {
                 'is-open': isKbOpen && !isSidebarCollapsed,
                 active: isKbActive
               }"
-              :title="isSidebarCollapsed ? '知识库' : undefined"
+              :title="isSidebarCollapsed ? '讲义库' : undefined"
               @click="handleKbClick"
             >
               <div class="nav-icon-wrap">
@@ -199,7 +199,7 @@ const handleKbClick = () => {
               </div>
               <MCollapse horizontal :open="!isSidebarCollapsed" class="nav-label-collapse">
                 <div class="kb-label-group">
-                  <span class="nav-label">知识库</span>
+                  <span class="nav-label">讲义库</span>
                   <div class="kb-chevron-wrap" :class="{ 'is-open': isKbOpen }">
                     <NavArrowRight width="13" height="13" class="kb-chevron-icon" />
                   </div>
