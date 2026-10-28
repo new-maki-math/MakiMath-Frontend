@@ -126,6 +126,8 @@ export function parseTable(parts, positioned, convertChildren) {
   let columns = 1;
   let hasColumns = false;
   let widths = null;
+  let fractional = false;
+  let mixedColumns = false;
   let hasHeader = false;
   const tableStyle = {};
   const columnStyles = {};
@@ -142,7 +144,19 @@ export function parseTable(parts, positioned, convertChildren) {
         if (hasColumns) return { error: '重复指定表格列数' };
         if (named.value.node.kind === K.Array) {
           const tracks = valuesOf(named.value, positioned);
-          widths = tracks.map(({ node }) => node.kind === K.Auto ? 'auto' : staticLength(node));
+          const fractions = tracks.map(({ node }) => {
+            const text = node.fullText();
+            return node.kind === K.Numeric && /^(?:\d+(?:\.\d+)?|\.\d+)fr$/.test(text) ? Number.parseFloat(text) : null;
+          });
+          if (fractions.some((value) => value !== null)) {
+            const total = fractions.reduce((sum, value) => sum + (value ?? 0), 0);
+            if (!Number.isFinite(total) || total <= 0) return { error: '表格比例列宽总和必须大于零' };
+            widths = tracks.map(({ node }, index) => fractions[index] === null
+              ? (node.kind === K.Auto ? 'auto' : staticLength(node))
+              : `${fractions[index] / total * 100}%`);
+            fractional = true;
+            mixedColumns = fractions.some((value) => value === null);
+          } else widths = tracks.map(({ node }) => node.kind === K.Auto ? 'auto' : staticLength(node));
           if (!widths.length || widths.length > 1000 || widths.some((width) => width === null)) return { error: '暂不支持此表格列宽' };
           columns = widths.length;
         } else {
@@ -299,7 +313,7 @@ export function parseTable(parts, positioned, convertChildren) {
     }
   }
   const hasBottomLine = rows.some((row) => row.some((cell) => cell.bottomLine));
-  return { widths, hasBottomLine, rows: rows.map((row) => row.map((cell) => {
+  return { widths, fractional, mixedColumns, hasBottomLine, rows: rows.map((row) => row.map((cell) => {
     const columnStyle = Object.values(columnStyles).reduce((style, values) => Object.assign(style, values[cell.col % values.length]), {});
     const style = { ...tableStyle, ...columnStyle, ...cell.style, ...cell.lineStyle };
     if (cell.bottomLine) style['--typst-bottom-line'] = cell.bottomLine;

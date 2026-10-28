@@ -155,7 +155,7 @@ export function parseDocument(source) {
           if (name === 'table') {
             const table = parseTable(parts, positioned, convertChildren);
             if (table.error) output.push(unsupported(range, table.error));
-            else output.push({ type: 'table', rows: table.rows, widths: table.widths, hasBottomLine: table.hasBottomLine, ...range });
+            else output.push({ type: 'table', rows: table.rows, widths: table.widths, fractional: table.fractional, mixedColumns: table.mixedColumns, hasBottomLine: table.hasBottomLine, ...range });
             continue;
           }
           const argsOnly = parts.filter((item) => ![K.LeftParen, K.RightParen, K.Comma].includes(item.node.kind));
