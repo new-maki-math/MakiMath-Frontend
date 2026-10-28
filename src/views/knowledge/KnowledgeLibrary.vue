@@ -76,7 +76,6 @@ watch(selected, (node) => { if (!node && reading.value) closeReading(); });
 const focusedId = ref('');
 const hoverNode = ref(null);
 const hoverPrerequisites = ref([]);
-const hoverLoading = ref(false);
 const hoverError = ref(false);
 let hoverTarget = null;
 let hoverTimer = 0;
@@ -706,7 +705,6 @@ function clearHover() {
   hoverSequence++;
   hoverNode.value = null;
   hoverPrerequisites.value = [];
-  hoverLoading.value = false;
   hoverError.value = false;
 }
 function handleMapHover(event) {
@@ -726,15 +724,12 @@ function handleMapHover(event) {
     if (disposed || reading.value || sequence !== hoverSequence) return;
     hoverNode.value = tile.node;
     hoverPrerequisites.value = related('before', tile.node).map((item) => item.node);
-    hoverLoading.value = true;
     try {
       const result = await knowledgeApi.prerequisites(id);
       if (disposed || sequence !== hoverSequence) return;
       hoverPrerequisites.value = result;
     } catch {
       if (!disposed && sequence === hoverSequence) hoverError.value = true;
-    } finally {
-      if (!disposed && sequence === hoverSequence) hoverLoading.value = false;
     }
   }, 500);
 }
@@ -904,7 +899,7 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(canonicalId(no
         <p v-if="storageError" class="storage-error" role="alert">{{ storageError }}</p>
         <p v-if="gpuError" class="storage-error" role="alert">{{ gpuError }}</p>
         <p v-if="glyphWarning" class="storage-error" role="alert">{{ glyphWarning }}</p>
-        <div v-if="hoverNode && !reading" class="relation-legend"><span class="key-selected">当前</span><span class="key-before">公开前置</span><span class="key-after">范围内后续</span><span>前置 → 后续</span><span v-if="hoverLoading">正在加载前置</span><span v-else-if="hoverError">完整前置加载失败</span></div>
+        <p v-if="hoverError && !reading" class="storage-error" role="alert">完整前置加载失败</p>
       </div>
       <div ref="canvas" class="map-canvas" tabindex="-1" :inert="reading" @click="handleMapClick" @mousemove="handleMapHover" @mouseleave="clearHover">
         <div v-if="!gpuReady" ref="mapWorld" class="map-world" :style="{ width: `${worldSize}px`, height: `${worldSize}px` }">
@@ -964,7 +959,7 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(canonicalId(no
 .map-tile.is-successor::after { background: var(--chip-after); }
 .map-tile:focus-visible { outline: 2px solid var(--text-primary); outline-offset: 1px; }
 .floating-info { position: absolute; z-index: 3; top: 16px; left: 18px; max-width: min(260px, calc(100% - 36px)); color: var(--text-secondary); font-size: var(--font-size-smallest); }
-.relation-legend, .floating-legend, .floating-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.floating-legend, .floating-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .knowledge-filters { display: flex; flex-direction: column; gap: 10px; width: min(260px, calc(100vw - 72px)); box-sizing: border-box; padding: 12px; background: var(--chip-panel); border: 1px solid var(--chip-panel-border); border-radius: var(--radius-xs); }
 .filter-note { margin: 2px 0; color: var(--text-muted); }
 .search-results { border-top: 1px solid var(--border-subtle); padding-top: 6px; }
@@ -974,8 +969,6 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(canonicalId(no
 .search-results li button:hover { background: var(--bg-hover); }
 .search-results li button:focus-visible, .dependency:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: -2px; }
 .storage-error { color: var(--tag-red); }
-.relation-legend { margin-top: 8px; }
-.key-selected { color: var(--text-primary); } .key-before { color: var(--chip-before); } .key-after { color: var(--chip-after); }
 .floating-controls { position: absolute; z-index: 3; right: 18px; bottom: 16px; gap: 4px; padding: 5px; background: var(--chip-panel); border: 1px solid var(--chip-panel-border); border-radius: var(--radius-xs); }
 .floating-legend { position: absolute; z-index: 3; left: 18px; bottom: 16px; gap: 12px; padding: 9px 10px; background: var(--chip-panel); border: 1px solid var(--chip-panel-border); border-radius: var(--radius-xs); color: var(--text-secondary); font-size: var(--font-size-smallest); }
 .floating-legend span { display: inline-flex; align-items: center; gap: 5px; }
