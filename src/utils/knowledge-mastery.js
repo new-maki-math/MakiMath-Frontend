@@ -1,6 +1,26 @@
 const DB_NAME = 'MakiMath_KnowledgeMastery';
 const STORE_NAME = 'mastered';
 let dbPromise;
+const listeners = new Set();
+let channel;
+function masteryChannel() {
+  if (!channel && typeof BroadcastChannel !== 'undefined') {
+    try {
+      channel = new BroadcastChannel('maki-knowledge-mastery');
+      channel.onmessage = () => { for (const listener of listeners) listener(); };
+    } catch { channel = null; }
+  }
+  return channel;
+}
+function notifyMasteryChanged() {
+  for (const listener of listeners) listener();
+  try { masteryChannel()?.postMessage('changed'); } catch {}
+}
+export function subscribeMasteryChanges(listener) {
+  listeners.add(listener);
+  masteryChannel();
+  return () => listeners.delete(listener);
+}
 
 function openMasteryDB() {
   if (!dbPromise) {
@@ -35,7 +55,7 @@ export async function setMastered(id, mastered) {
     const store = transaction.objectStore(STORE_NAME);
     if (mastered) store.put({ id });
     else store.delete(id);
-    transaction.oncomplete = () => resolve();
+    transaction.oncomplete = () => { notifyMasteryChanged(); resolve(); };
     transaction.onerror = () => reject(transaction.error);
     transaction.onabort = () => reject(transaction.error || new Error('保存掌握状态失败'));
   });
@@ -46,7 +66,7 @@ export async function setMasteredBatch(changes) {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(STORE_NAME, 'readwrite');
     const store = transaction.objectStore(STORE_NAME);
-    transaction.oncomplete = () => resolve();
+    transaction.oncomplete = () => { notifyMasteryChanged(); resolve(); };
     transaction.onerror = () => reject(transaction.error || new Error('保存掌握状态失败'));
     transaction.onabort = () => reject(transaction.error || new Error('保存掌握状态失败'));
     try {
@@ -58,5 +78,23 @@ export async function setMasteredBatch(changes) {
       transaction.abort();
       reject(error);
     }
+  });
+}
+
+export async function toggleMastered(id) {
+  const db = await openMasteryDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, 'readwrite');
+    const store = transaction.objectStore(STORE_NAME);
+    let mastered = false;
+    const request = store.get(id);
+    request.onsuccess = () => {
+      mastered = !request.result;
+      if (mastered) store.put({ id });
+      else store.delete(id);
+    };
+    transaction.oncomplete = () => { notifyMasteryChanged(); resolve(mastered); };
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error || new Error('保存掌握状态失败'));
   });
 }

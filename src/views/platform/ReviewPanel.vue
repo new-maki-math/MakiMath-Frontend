@@ -1,4 +1,5 @@
 <script setup>
+import TypstDoc from '../../components/Renderer/TypstDoc.vue';
 import { ref, watch } from 'vue';
 import { reviewApi } from '../../api/reviews.js';
 import { lectureApi } from '../../api/lectures.js';
@@ -7,7 +8,6 @@ import MButton from '../../components/MButton.vue';
 import MModal from '../../components/MModal.vue';
 import MTable from '../../components/MTable.vue';
 import MTextarea from '../../components/MTextarea.vue';
-import TypstSource from '../../components/TypstSource.vue';
 
 const kind = ref('lecture');
 const items = ref([]);
@@ -103,11 +103,16 @@ watch(kind, () => {
         <div class="review-content">
           <template>
             <h2>{{ detail.revision.title }}</h2>
+            <p class="review-note">当前仅支持部分语法，未支持的内容请结合源码及诊断审核。</p>
             <section v-for="chapter in detail.chapters" :key="chapter.occurrence_id">
               <h3>{{ chapter.title }}</h3>
               <div v-for="section in chapter.sections" :key="section.occurrence_id">
                 <h4>{{ section.title }}</h4>
-                <TypstSource :source="section.source || ''" resolve-knowledge />
+                <template v-if="section.source">
+                  <TypstDoc :source="section.source" />
+                  <details class="review-source"><summary>查看原始源码</summary><pre>{{ section.source }}</pre></details>
+                </template>
+                <p v-else>暂无源码</p>
               </div>
             </section>
           </template>
@@ -133,6 +138,10 @@ watch(kind, () => {
   max-height: 45vh;
   overflow: auto;
 }
+
+.review-note { color: var(--text-secondary); font-size: var(--font-size-smaller); }
+
+.review-source pre { white-space: pre-wrap; overflow-wrap: anywhere; }
 
 .review-actions {
   display: flex;

@@ -11,6 +11,7 @@ export const knowledgeApi = {
   map: (categoryId) => request(`/api/knowledge-map${categoryId ? `?category_id=${encodeURIComponent(categoryId)}` : ''}`, { cache: 'no-store' }),
   list: () => request('/api/knowledge-points', { cache: 'no-store' }),
   get: (id) => request(`/api/knowledge-points/${id}`, { cache: 'no-store' }),
+  getBySlug: (slug) => request(`/api/knowledge-points/by-slug/${encodeURIComponent(slug)}`, { cache: 'no-store' }),
   manage: () => request('/api/knowledge-points/manage', { cache: 'no-store' }),
   getManaged: (id) => request(`/api/knowledge-points/manage/${id}`, { cache: 'no-store' }),
   create: (body) => mutate('/api/knowledge-points', { method: 'POST', body }),

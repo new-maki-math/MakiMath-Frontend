@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { monaco } from '../utils/monaco.js';
 import MTag from './MTag.vue';
+import { findKnowledgeInsertion } from '../utils/knowledge-reference-editor.js';
 
 const props = defineProps({
   modelValue: {
@@ -48,13 +49,14 @@ const props = defineProps({
     type: Boolean,
     default: true
   },
+  knowledgeReferences: { type: Boolean, default: false },
   showPreview: {
     type: Boolean,
     default: false // 按照要求暂时屏蔽实时预览
   }
 });
 
-const emit = defineEmits(['update:modelValue', 'save']);
+const emit = defineEmits(['update:modelValue', 'save', 'scroll', 'knowledge-trigger']);
 
 const editorMountRef = ref(null);
 let editorInstance = null;
@@ -131,6 +133,19 @@ onMounted(() => {
     emit('update:modelValue', val);
   });
 
+  editorInstance.onDidScrollChange((event) => {
+    if (!event.scrollTopChanged) return;
+    const position = getScrollPosition();
+    if (position) emit('scroll', position);
+  });
+
+  editorInstance.onDidType((text) => {
+    if (!props.knowledgeReferences || props.readonly || !['e', '('].includes(text)) return;
+    const model = editorInstance.getModel();
+    const range = findKnowledgeInsertion(model, editorInstance.getSelection(), true);
+    if (range) emit('knowledge-trigger', { range, version: model.getVersionId(), model });
+  });
+
   // 绑定 Ctrl / Cmd + S 保存快捷键
   editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
     emit('save');
@@ -177,6 +192,44 @@ watch(
     editorInstance?.updateOptions({ readOnly: isRo });
   }
 );
+
+function getScrollPosition() {
+  const model = editorInstance?.getModel();
+  const range = editorInstance?.getVisibleRanges()[0];
+  if (!model || !range) return null;
+  const line = range.startLineNumber;
+  const scrollTop = editorInstance.getScrollTop();
+  const lineHeight = editorInstance.getOption(monaco.editor.EditorOption.lineHeight);
+  const fraction = Math.max(0, Math.min(1, (scrollTop - editorInstance.getTopForLineNumber(line)) / lineHeight));
+  const start = model.getOffsetAt({ lineNumber: line, column: 1 });
+  const end = model.getOffsetAt({ lineNumber: line, column: model.getLineMaxColumn(line) });
+  return { offset: start + (end - start) * fraction, scrollTop };
+}
+
+defineExpose({
+  getScrollPosition,
+  insertKnowledge(target, slug) {
+    const editor = editorInstance;
+    const model = editor?.getModel();
+    if (props.readonly || !props.knowledgeReferences || !model || model !== target?.model || model.getVersionId() !== target.version || typeof slug !== 'string' || slug.length > 100 || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) return false;
+    const start = model.getPositionAt(target.range.start);
+    const end = model.getPositionAt(target.range.end);
+    editor.pushUndoStop();
+    editor.executeEdits('knowledge-reference', [{ range: new monaco.Range(start.lineNumber, start.column, end.lineNumber, end.column), text: `#mm-knowledge(slug: "${slug}")`, forceMoveMarkers: true }]);
+    editor.pushUndoStop();
+    editor.focus();
+    return true;
+  },
+  focus() { editorInstance?.focus(); },
+  scrollToOffset(offset) {
+    const model = editorInstance?.getModel();
+    if (!model) return null;
+    const position = model.getPositionAt(Math.max(0, Math.min(model.getValueLength(), Math.floor(offset))));
+    const target = editorInstance.getTopForLineNumber(position.lineNumber);
+    editorInstance.setScrollTop(target, monaco.editor.ScrollType.Immediate);
+    return editorInstance.getScrollTop();
+  }
+});
 
 onBeforeUnmount(() => {
   if (editorInstance) {

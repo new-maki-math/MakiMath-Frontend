@@ -2,6 +2,7 @@
 import WorkbenchPanel from './WorkbenchPanel.vue';
 import MInput from '../../components/MInput.vue';
 import MTextarea from '../../components/MTextarea.vue';
+import SectionImport from './SectionImport.vue';
 
 defineProps({
   chapter: { type: Object, required: true },
@@ -13,7 +14,7 @@ defineProps({
   reviewStatus: { type: String, default: '' },
   reviewedAt: { type: String, default: '' }
 });
-defineEmits(['save', 'reset']);
+defineEmits(['save', 'reset', 'imported']);
 </script>
 
 <template>
@@ -22,10 +23,11 @@ defineEmits(['save', 'reset']);
     <div class="wb-block" :inert="!editable">
       <div class="wb-form-grid">
         <MInput v-model="chapter.title" label="章节名称" required />
-        <MInput v-model="chapter.slug" label="slug" hint="课程内唯一" required />
+        <MInput v-model="chapter.slug" label="章节标识" hint="课程内唯一" required />
         <MInput v-model="chapter.tag" label="标签" />
         <div class="wb-span-2"><MTextarea v-model="chapter.summary" label="摘要" :rows="2" /></div>
       </div>
     </div>
+    <SectionImport :chapter="chapter" :editable="editable" :saving="saving" @imported="$emit('imported')" />
   </WorkbenchPanel>
 </template>

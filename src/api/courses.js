@@ -1,6 +1,5 @@
 import { request } from './client.js';
 import { transformCourseCategories } from '../utils/course-adapter.js';
-import { adaptDocWithPreset, registerPresetMapping } from '../utils/preset-loader.js';
 
 // 内存单例缓存与 slug 映射
 const treeCache = new Map();
@@ -114,7 +113,6 @@ export async function fetchCourseTree(slug, revisionId = '') {
   const promise = loadTree().then((tree) => {
     if (version === cacheVersion) {
       treeCache.set(key, tree);
-      if (tree.slug) registerPresetMapping(tree.id, tree.slug);
     }
     return tree;
   }).finally(() => {
@@ -232,117 +230,16 @@ export function getCachedCourseChapters(id) {
   return [];
 }
 
-// 获取小节正文文档
-export async function getCourseSectionDoc(sectionId, courseId, existingTree = null) {
-  const tree = existingTree || await fetchCourseTree(courseId);
+// 获取小节源码
+export async function getCourseSectionContent(courseKey, sectionId, existingTree = null) {
+  const tree = existingTree || await fetchCourseTree(courseKey);
   const section = tree.chapters.flatMap((chapter) => chapter.sections).find((item) => String(item.id) === String(sectionId));
   if (!section) {
     const error = new Error('讲义小节不存在');
     error.status = 404;
     throw error;
   }
-  return {
-    id: section.id,
-    title: section.title,
-    summary: section.summary,
-    updated_at: tree.updated_at,
-    doc: {
-      type: 'doc',
-      children: [{ type: 'typst-source', source: section.source, resolveKnowledge: true }]
-    }
-  };
-}
-
-// 提取标题纯文本
-function headingText(node) {
-  if (typeof node.text === 'string' && node.text) return node.text;
-  let out = '';
-  const visit = (list) => {
-    for (const n of list ?? []) {
-      if (n.type === 'text') out += n.value ?? '';
-      if (n.children) visit(n.children);
-    }
-  };
-  visit(node.children);
-  return out.trim();
-}
-
-// 为标题挂载锚点并生成大纲，同时建立节点与大纲的从属从属关系
-function withOutlines(doc) {
-  const outlines = [];
-  let i = 0;
-  let currentAnchor = '';
-
-  const attachAnchor = (node, anchor) => {
-    if (!node) return;
-    if (anchor) node.outlineAnchor = anchor;
-    if (Array.isArray(node.children)) {
-      for (const child of node.children) {
-        attachAnchor(child, anchor);
-      }
-    }
-  };
-
-  for (const node of doc?.children ?? []) {
-    if (!node) continue;
-    if (node.type === 'heading') {
-      const title = headingText(node);
-      if (!title) continue;
-      node.anchor = `doc-h${i++}`;
-      currentAnchor = node.anchor;
-      outlines.push({ id: node.anchor, title, level: node.level ?? 1 });
-    } else if (currentAnchor) {
-      attachAnchor(node, currentAnchor);
-    }
-  }
-  return outlines;
-}
-
-// 解析可能为字符串形式的 JSON 字段
-function parseJsonField(val, fallback) {
-  if (typeof val === 'string') {
-    try {
-      return JSON.parse(val);
-    } catch {
-      return fallback;
-    }
-  }
-  return val ?? fallback;
-}
-
-// 规范化动画数据
-function normalizeAnimation(anim) {
-  if (!anim) return null;
-  const enabled = anim.enabled !== undefined ? Boolean(anim.enabled) : true;
-  if (!enabled) return null;
-  return {
-    ...anim,
-    enabled: true,
-    steps: parseJsonField(anim.steps, []),
-    cues: parseJsonField(anim.cues, []),
-    parts: parseJsonField(anim.parts, []),
-    config: parseJsonField(anim.config, { crop: { x: 0, y: 0, w: 1920, h: 960 } })
-  };
-}
-
-// 获取小节正文与大纲模型
-export async function getCourseSectionContent(courseKey, sectionId, existingTree = null) {
-  const data = await getCourseSectionDoc(sectionId, courseKey, existingTree);
-  const rawDoc = structuredClone(data.doc ?? { type: 'doc', children: [] });
-  const keyStr = String(courseKey || '');
-  const cachedTree = treeCache.get(keyStr);
-  const slug = data.course_slug || existingTree?.slug || cachedTree?.slug || keyStr;
-  const doc = existingTree?.storageSource === 'local' ? rawDoc : await adaptDocWithPreset(rawDoc, slug);
-
-  return {
-    id: data.id,
-    title: data.title,
-    lead: data.summary || '',
-    updatedAt: data.updated_at || data.created_at || null,
-    outlines: withOutlines(doc),
-    doc,
-    animation: normalizeAnimation(data.animation)
-  };
+  return { id: section.id, title: section.title, lead: section.summary || '', updatedAt: tree.updated_at || null, source: section.source || '' };
 }
 
 // 全文搜索讲义与课程节点

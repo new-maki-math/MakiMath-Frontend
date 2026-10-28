@@ -1,4 +1,9 @@
 <script setup>
+import { ref } from 'vue';
+
+const inputRef = ref(null);
+defineExpose({ focus: () => inputRef.value?.focus() });
+
 defineProps({
   modelValue: {
     type: [String, Number],
@@ -41,6 +46,7 @@ defineEmits(['update:modelValue', 'enter']);
   <label class="m-field">
     <span v-if="label" class="field-label"><span v-if="required" class="required-mark" aria-hidden="true">*</span>{{ label }}</span>
     <input
+      ref="inputRef"
       class="m-input"
       :aria-label="ariaLabel || undefined"
       :type="type"

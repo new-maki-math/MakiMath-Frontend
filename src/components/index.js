@@ -7,7 +7,6 @@ import MModal from './MModal.vue';
 import ProgressBar from './ProgressBar.vue';
 import SearchBar from './SearchBar.vue';
 import ViewportHeader from './ViewportHeader.vue';
-import TypstDoc from './TypstDoc.vue';
 import MCollapse from './MCollapse.vue';
 import MBackdrop from './MBackdrop.vue';
 import MSelectionToolbar from './MSelectionToolbar.vue';
@@ -28,7 +27,6 @@ export {
   ProgressBar,
   SearchBar,
   ViewportHeader,
-  TypstDoc,
   MCollapse,
   MBackdrop,
   MSelectionToolbar,
@@ -53,7 +51,6 @@ export default {
     app.component('ProgressBar', ProgressBar);
     app.component('SearchBar', SearchBar);
     app.component('ViewportHeader', ViewportHeader);
-    app.component('TypstDoc', TypstDoc);
     app.component('MCollapse', MCollapse);
     app.component('MBackdrop', MBackdrop);
     app.component('MOverlay', MBackdrop);

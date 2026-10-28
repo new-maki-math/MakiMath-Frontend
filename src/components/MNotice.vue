@@ -101,7 +101,7 @@ const handleClose = () => {
             class="m-notice-icon is-info"
           />
         </div>
-        <span class="m-notice-text">{{ currentNotice.text }}</span>
+        <span class="m-notice-text" @click="typeof currentNotice.text === 'string' && currentNotice.text.includes('\n') && $event.stopPropagation()">{{ currentNotice.text }}</span>
         <button
           type="button"
           class="m-notice-close"
@@ -167,7 +167,11 @@ const handleClose = () => {
 
 .m-notice-text {
   flex: 1;
+  min-width: 0;
+  max-height: min(50vh, 400px);
+  overflow-y: auto;
   line-height: 1.45;
+  white-space: pre-line;
   word-break: break-word;
 }
 

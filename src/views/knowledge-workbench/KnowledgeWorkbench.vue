@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue';
 import { onBeforeRouteLeave } from 'vue-router';
+import MFilePicker from '../../components/MFilePicker.vue';
 import { knowledgeApi } from '../../api/knowledge.js';
 import { managementApi } from '../../api/management.js';
 import { authStatus, currentUser, initAuth } from '../../utils/auth.js';
@@ -11,7 +12,7 @@ import WorkbenchPanel from '../lecture-workbench/WorkbenchPanel.vue';
 import MInput from '../../components/MInput.vue';
 import MTextarea from '../../components/MTextarea.vue';
 import MSelect from '../../components/MSelect.vue';
-import MCodeEditor from '../../components/MCodeEditor.vue';
+import TypstEditorPreview from '../../components/TypstEditorPreview.vue';
 import MButton from '../../components/MButton.vue';
 import MModal from '../../components/MModal.vue';
 import '../lecture-workbench/workbench.css';
@@ -25,6 +26,7 @@ const categoryOpen = ref(false);
 const importTarget = ref(null);
 const importData = shallowRef(null);
 const importName = ref('');
+const importSize = ref(0);
 const importError = ref('');
 const importReading = ref(false);
 const importUncertain = ref(false);
@@ -174,6 +176,7 @@ function closeImport() {
   importTarget.value = null;
   importData.value = null;
   importName.value = '';
+  importSize.value = 0;
   importError.value = '';
   importReading.value = false;
   importUncertain.value = false;
@@ -227,6 +230,7 @@ async function readImportFile(event) {
   importData.value = null;
   importError.value = '';
   importName.value = file?.name || '';
+  importSize.value = file?.size || 0;
   if (!file) { importReading.value = false; return; }
   importReading.value = true;
   try {
@@ -241,6 +245,11 @@ async function readImportFile(event) {
   } finally {
     if (sequence === importSequence) importReading.value = false;
   }
+}
+function formatFileSize(size) {
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 function importErrorMessage(error) {
   const message = error.data?.message || error.data?.error || error.message || '导入失败';
@@ -487,10 +496,7 @@ onUnmounted(() => {
         </div>
         <div class="wb-block">
           <div class="wb-block-head"><span class="wb-block-title">知识点内容</span></div>
-          <div class="content-layout">
-            <MCodeEditor :key="editable" v-model="point.source" label="Typst 源码" height="max(600px, calc(100vh - 300px))" :show-language="false" :readonly="!editable" @save="editable && save()" />
-            <div class="preview-column"><div class="preview-heading">预览</div><div class="content-preview font-mono">COOMING SOON</div></div>
-          </div>
+          <TypstEditorPreview :key="point.id" v-model="point.source" :editable="editable" @save="save" />
         </div>
       </WorkbenchPanel>
       <div v-else class="workbench-empty"><span class="empty-label font-mono">KNOWLEDGE WORKBENCH</span><h2>{{ authorized ? '选择一个知识点' : '知识点工作台' }}</h2><p>{{ authorized ? '从左侧选择分类或知识点。' : '请使用超级管理员账号登录。' }}</p></div>
@@ -498,14 +504,18 @@ onUnmounted(() => {
     <MModal :open="categoryOpen" title="新建分类" :busy="saving" @close="!saving && (categoryOpen = false)" @confirm="createCategory">
       <div class="create-fields"><MInput v-model="categoryForm.name" label="分类名称" required /><MInput v-model="categoryForm.slug" label="分类标识" required /><MSelect v-model="categoryForm.parentId" label="父分类" :options="categoryOptions" /></div>
     </MModal>
-    <MModal :open="Boolean(importTarget)" title="导入 JSON" :desc="`导入目标：${importTarget?.name || ''}`" :hide-footer="true" :show-close="!saving" @close="!saving && closeImport()">
+    <MModal :open="Boolean(importTarget)" title="导入知识点" width="480px" :hide-footer="true" :show-close="!saving" @close="!saving && closeImport()">
       <div class="import-fields">
-        <label class="import-file">选择导入文件<input type="file" accept=".json,application/json" :disabled="saving || importUncertain" @change="readImportFile" /></label>
-        <p v-if="importReading" class="tree-notice">正在读取文件…</p>
+        <p class="import-target">导入目标 <strong :title="importTarget?.name">{{ importTarget?.name }}</strong></p>
+        <MFilePicker :title="importName || 'JSON 文件'" :detail="importName ? formatFileSize(importSize) : '选择符合导入格式的文件'" :action="importName ? '重新选择' : '选择文件'" accept=".json,application/json" :disabled="saving || importUncertain" @choose="$event.target.value = ''" @change="readImportFile" />
+        <p v-if="importReading" class="import-hint">正在读取文件…</p>
         <p v-if="importError" class="import-error" role="alert">{{ importError }}</p>
-        <template v-if="importData"><p class="tree-notice">{{ importName }}：{{ importData.categories.length }} 个分类、{{ importData.points.length }} 个知识点、{{ importData.edges.length }} 条前置关系。</p><p class="tree-notice">文件中的顶层分类将挂在目标分类下；没有直接分类的知识点将归入目标分类。</p></template>
-        <p class="tree-notice">导入不会覆盖现有内容；正式校验和写入由服务端完成。</p>
-        <div class="import-actions"><MButton variant="ghost" :disabled="saving" @click="closeImport">{{ importUncertain ? '关闭并核对' : '取消' }}</MButton><MButton variant="primary" :disabled="saving || importReading || importUncertain || !importData" @click="submitImport">{{ saving ? '导入中…' : '确认导入' }}</MButton></div>
+        <template v-if="importData">
+          <p class="import-hint">{{ importData.categories.length }} 个分类 · {{ importData.points.length }} 个知识点 · {{ importData.edges.length }} 条前置关系</p>
+          <p class="import-hint">文件中的顶层分类将挂在目标分类下；没有直接分类的知识点将归入目标分类。</p>
+        </template>
+        <p class="import-hint">导入不会覆盖现有内容。</p>
+        <div class="import-actions"><MButton variant="secondary" :disabled="saving" @click="closeImport">{{ importUncertain ? '关闭并核对' : '取消' }}</MButton><MButton class="import-confirm" variant="primary" :disabled="saving || importReading || importUncertain || !importData" @click="submitImport">{{ saving ? '导入中…' : '确认导入' }}</MButton></div>
       </div>
     </MModal>
     <MModal :open="createOpen" title="新建知识点" :busy="saving" @close="!saving && (createOpen = false)" @confirm="createPoint">
@@ -534,19 +544,16 @@ onUnmounted(() => {
 .workbench-empty h2 { margin: 0; color: var(--text-primary); font-size: var(--font-size-larger); font-weight: var(--font-weight-medium); }
 .workbench-empty p { margin: 12px 0 0; color: var(--text-secondary); font-size: var(--font-size); line-height: 1.6; }
 .status-notice { margin-bottom: 20px; padding: 14px 16px; border-radius: var(--radius-sm); background: var(--tag-blue-bg); color: var(--text-primary); font-size: var(--font-size-smaller); }
-.content-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: stretch; }
-.preview-column { display: flex; flex-direction: column; min-width: 0; }
-.preview-heading { margin-bottom: 4px; padding: 0 1px; font-size: var(--font-size-smaller); font-weight: 500; color: var(--text-secondary); }
-.content-preview { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 600px; padding: 16px; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); background: var(--bg-surface); color: var(--text-muted); text-align: center; }
 .delete-fields { display: flex; flex-direction: column; gap: 12px; color: var(--text-secondary); line-height: 1.5; }
 .delete-fields p { margin: 0; }
 .delete-error { color: var(--tag-red); white-space: pre-wrap; overflow-wrap: anywhere; }
 .import-fields { display: flex; flex-direction: column; gap: 12px; }
-.import-file { display: flex; flex-direction: column; gap: 8px; color: var(--text-secondary); font-size: var(--font-size-smaller); }
-.import-file input { max-width: 100%; color: var(--text-primary); font: inherit; }
-.import-error { margin: 0; color: var(--tag-red); font-size: var(--font-size-smaller); }
-.import-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.import-target { display: flex; align-items: baseline; gap: 10px; min-width: 0; margin: 0 0 4px; color: var(--text-secondary); font-size: var(--font-size-smaller); }
+.import-target strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-primary); font-weight: var(--font-weight-medium); }
+.import-hint { margin: 0; color: var(--text-secondary); font-size: var(--font-size-smaller); line-height: 1.6; }
+.import-confirm:disabled { opacity: .7; }
+.import-error { margin: 0; color: var(--tag-red); font-size: var(--font-size-smaller); line-height: 1.6; overflow-wrap: anywhere; }
+.import-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
 .tree-notice { margin: 4px 6px 12px; color: var(--text-secondary); font-size: var(--font-size-smaller); line-height: 1.5; }
 .create-fields { display: flex; flex-direction: column; gap: 16px; }
-@media (max-width: 900px) { .content-layout { grid-template-columns: minmax(0, 1fr); } .content-preview { min-height: 240px; } }
 </style>
