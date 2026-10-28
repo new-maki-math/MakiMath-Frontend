@@ -14,7 +14,8 @@ const route = useRoute();
 const router = useRouter();
 const source = computed(() => route.name === 'local-lecture-doc' ? 'local' : 'online');
 const slug = computed(() => route.params.lectureSlug);
-const sectionId = computed(() => String(route.params.sectionId || ''));
+const chapterSlug = computed(() => String(route.params.chapterSlug || ''));
+const sectionSlug = computed(() => String(route.params.sectionSlug || ''));
 const revisionId = computed(() => route.query.revision_id ?? '');
 const chapters = ref([]);
 const content = ref(null);
@@ -24,7 +25,7 @@ const retryKey = ref(0);
 const drawerOpen = ref(false);
 let sequence = 0;
 
-const sections = computed(() => chapters.value.flatMap((chapter) => chapter.sections.map((section) => ({ ...section, chapterTag: chapter.tag, chapterTitle: chapter.title }))));
+const sections = computed(() => chapters.value.flatMap((chapter) => chapter.sections.map((section) => ({ ...section, chapterSlug: chapter.slug, chapterTag: chapter.tag, chapterTitle: chapter.title }))));
 const currentIndex = computed(() => sections.value.findIndex((section) => String(section.id) === String(content.value?.id)));
 const previous = computed(() => currentIndex.value > 0 ? sections.value[currentIndex.value - 1] : null);
 const next = computed(() => currentIndex.value >= 0 ? sections.value[currentIndex.value + 1] || null : null);
@@ -32,10 +33,12 @@ const next = computed(() => currentIndex.value >= 0 ? sections.value[currentInde
 function selectSection(section) {
   if (!section?.id) return;
   drawerOpen.value = false;
-  router.push(lectureLocation({ source: source.value, slug: slug.value, sectionId: String(section.id), revisionId: revisionId.value, origin: lectureNavigationOrigin() }));
+  const chapter = chapters.value.find((item) => item.sections.some((entry) => entry.id === section.id));
+  if (!chapter) return;
+  router.push(lectureLocation({ source: source.value, slug: slug.value, chapterSlug: chapter.slug, sectionSlug: section.slug, revisionId: revisionId.value, origin: lectureNavigationOrigin() }));
 }
 
-watch([slug, sectionId, source, revisionId, retryKey, () => source.value === 'online' ? authStatus.value : null, () => source.value === 'online' ? currentUser.value?.id : null], async ([lectureSlug, selectedId]) => {
+watch([slug, chapterSlug, sectionSlug, source, revisionId, retryKey, () => source.value === 'online' ? authStatus.value : null, () => source.value === 'online' ? currentUser.value?.id : null], async ([lectureSlug, selectedChapter, selectedSection]) => {
   const current = ++sequence;
   loading.value = true;
   error.value = '';
@@ -45,16 +48,16 @@ watch([slug, sectionId, source, revisionId, retryKey, () => source.value === 'on
     const tree = await fetchShelfLectureTree(lectureSlug, source.value, revisionId.value);
     if (current !== sequence) return;
     const items = toChapters(tree);
-    const available = items.flatMap((chapter) => chapter.sections);
-    const section = selectedId ? available.find((item) => String(item.id) === selectedId) : available[0];
-    if (selectedId && !section) { const failure = new Error('讲义小节不存在或已更新'); failure.status = 404; throw failure; }
+    const chapter = items.find((item) => item.slug === selectedChapter);
+    const section = chapter?.sections.find((item) => item.slug === selectedSection);
+    if (!section) { const failure = new Error('讲义小节不存在或已更新'); failure.status = 404; throw failure; }
     chapters.value = items;
     if (section) {
       const loaded = await getCourseSectionContent(lectureSlug, section.id, tree);
       if (current === sequence) content.value = loaded;
     }
   } catch (failure) {
-    if (current === sequence) error.value = failure.status === 404 ? '讲义或小节不存在、无权访问或已更新，请返回列表刷新' : failure.message || '讲义加载失败，请重试';
+    if (current === sequence) error.value = failure.status === 404 ? '讲义或小节不存在、无权访问或已更新，请返回列表刷新' : failure.status === 409 ? '讲义内容已更新，请重试以重新加载目录和正文' : failure.message || '讲义加载失败，请重试';
   } finally {
     if (current === sequence) loading.value = false;
   }

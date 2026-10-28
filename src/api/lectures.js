@@ -9,20 +9,18 @@ const mutate = async (url, options) => {
 
 export const lectureApi = {
   list: () => request('/api/lectures'),
-  getBySlug: (slug, revisionId) => request(`/api/lectures/by-slug/${encodeURIComponent(slug)}${revisionId != null && revisionId !== '' ? `?revision_id=${encodeURIComponent(revisionId)}` : ''}`, { cache: 'no-store' }),
+  outline: (slug, revisionId) => request(`/api/lectures/by-slug/${encodeURIComponent(slug)}/outline${revisionId != null && revisionId !== '' ? `?revision_id=${encodeURIComponent(revisionId)}` : ''}`, { cache: 'no-store' }),
+  section: (slug, revisionId, chapterSlug, sectionSlug, editVersion) => request(`/api/lectures/by-slug/${encodeURIComponent(slug)}/revisions/${encodeURIComponent(revisionId)}/chapters/${encodeURIComponent(chapterSlug)}/sections/${encodeURIComponent(sectionSlug)}?edit_version=${encodeURIComponent(editVersion)}`, { cache: 'no-store' }),
   mine: () => request('/api/lectures/mine'),
   owned: () => request('/api/lectures/owned', { cache: 'no-store' }),
   create: (body) => mutate('/api/lectures', { method: 'POST', body }),
   importLecture: (body) => mutate('/api/lectures/import', { method: 'POST', body }),
   exportRevision: (id) => request(`/api/lecture-revisions/${id}/export`, { cache: 'no-store' }),
   revisions: (id) => request(`/api/lectures/${id}/revisions`),
-  createRevision: (id, basedOnId) => mutate(`/api/lectures/${id}/revisions`, { method: 'POST', body: { based_on_id: basedOnId } }),
-  getRevision: (id) => request(`/api/lecture-revisions/${id}`, { cache: 'no-store' }),
   saveRevision: (id, body) => mutate(`/api/lecture-revisions/${id}`, { method: 'PUT', body }),
+  saveSection: (id, occurrenceId, body) => mutate(`/api/lecture-revisions/${id}/sections/${encodeURIComponent(occurrenceId)}`, { method: 'PUT', body }),
   submitRevision: (id, version) => mutate(`/api/lecture-revisions/${id}/submit`, { method: 'POST', body: { edit_version: version } }),
   collaborators: (id) => request(`/api/lectures/${id}/collaborators`),
-  setCollaborator: (id, userId, permission) => mutate(`/api/lectures/${id}/collaborators/${userId}`, { method: 'PUT', body: { permission } }),
-  removeCollaborator: (id, userId) => mutate(`/api/lectures/${id}/collaborators/${userId}`, { method: 'DELETE' }),
   setPublication: (id, body) => mutate(`/api/lectures/${id}/publication`, { method: 'PATCH', body }),
   restore: (id) => mutate(`/api/lectures/${id}/restore`, { method: 'POST' }),
   remove: (id) => mutate(`/api/lectures/${id}`, { method: 'DELETE' })

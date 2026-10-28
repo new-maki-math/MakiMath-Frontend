@@ -35,7 +35,7 @@ export const routes = [
     meta: { title: '讲义', tag: 'LECTURE' }
   },
   {
-    path: '/lecture/online/:lectureSlug/doc/:sectionId?',
+    path: '/lecture/online/:lectureSlug/doc/:chapterSlug/:sectionSlug',
     name: 'lecture-doc',
     component: LectureDocView,
     meta: { title: '讲义阅读', tag: 'DOC' }
@@ -47,7 +47,7 @@ export const routes = [
     meta: { title: '讲义', tag: 'LECTURE' }
   },
   {
-    path: '/lecture/local/:lectureSlug/doc/:sectionId?',
+    path: '/lecture/local/:lectureSlug/doc/:chapterSlug/:sectionSlug',
     name: 'local-lecture-doc',
     component: LectureDocView,
     meta: { title: '讲义阅读', tag: 'DOC' }

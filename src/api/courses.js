@@ -79,14 +79,14 @@ export async function fetchCourseTree(slug, revisionId = '') {
   const key = `${slug}:${revisionId || ''}`;
   const loadTree = async () => {
     const query = revisionId !== '' && revisionId != null ? `?revision_id=${encodeURIComponent(revisionId)}` : '';
-    const snapshot = await request(`/api/lectures/by-slug/${encodeURIComponent(slug)}${query}`, { cache: 'no-store' });
+    const snapshot = await request(`/api/lectures/by-slug/${encodeURIComponent(slug)}/outline${query}`, { cache: 'no-store' });
     const lecture = snapshot.lecture;
     const revision = snapshot.revision;
-    if (!lecture || !revision || !Array.isArray(snapshot.chapters)) throw new Error('讲义数据不完整');
+    if (!lecture || !revision || !Number.isInteger(revision.edit_version) || revision.edit_version < 1 || !Array.isArray(snapshot.chapters)) throw new Error('讲义数据不完整');
     if (lecture.slug !== String(slug) || (revisionId && String(revision.id) !== String(revisionId))) throw new Error('讲义或版本数据不匹配');
     if (snapshot.chapters.some((chapter) =>
       !chapter.occurrence_id || !Array.isArray(chapter.sections) || chapter.sections.some((section) =>
-        !section.occurrence_id || typeof section.source !== 'string'
+        !section.occurrence_id
       )
     )) throw new Error('讲义目录数据不完整');
     return {
@@ -100,8 +100,7 @@ export async function fetchCourseTree(slug, revisionId = '') {
         id: chapter.occurrence_id,
         sections: (chapter.sections || []).map((section) => ({
           ...section,
-          id: section.occurrence_id,
-          has_source: Boolean(section.source)
+          id: section.occurrence_id
         }))
       })),
       edges: []
@@ -154,7 +153,7 @@ export function toChapters(tree) {
         tag: s.tag || '',
         title: s.title,
         desc: s.summary || '',
-        hasSource: Boolean(s.has_source),
+        hasSource: s.has_source == null ? null : Boolean(s.has_source),
         sourceLen: s.source_len ?? 0,
         updatedAt: s.updated_at || null
       })),
@@ -233,13 +232,21 @@ export function getCachedCourseChapters(id) {
 // 获取小节源码
 export async function getCourseSectionContent(courseKey, sectionId, existingTree = null) {
   const tree = existingTree || await fetchCourseTree(courseKey);
-  const section = tree.chapters.flatMap((chapter) => chapter.sections).find((item) => String(item.id) === String(sectionId));
+  const chapter = tree.chapters.find((item) => item.sections.some((section) => String(section.id) === String(sectionId)));
+  const section = chapter?.sections.find((item) => String(item.id) === String(sectionId));
   if (!section) {
     const error = new Error('讲义小节不存在');
     error.status = 404;
     throw error;
   }
-  return { id: section.id, title: section.title, lead: section.summary || '', updatedAt: tree.updated_at || null, source: section.source || '' };
+  let source = section.source;
+  if (tree.storageSource !== 'local') {
+    const path = `/api/lectures/by-slug/${encodeURIComponent(tree.slug)}/revisions/${encodeURIComponent(tree.revision_id)}/chapters/${encodeURIComponent(chapter.slug)}/sections/${encodeURIComponent(section.slug)}?edit_version=${encodeURIComponent(tree.edit_version)}`;
+    const response = await request(path, { cache: 'no-store' });
+    if (String(response.revision_id) !== String(tree.revision_id) || String(response.occurrence_id) !== String(section.id) || response.edit_version !== tree.edit_version || typeof response.source !== 'string') throw new Error('讲义小节数据不完整或版本不匹配');
+    source = response.source;
+  }
+  return { id: section.id, title: section.title, lead: section.summary || '', updatedAt: tree.updated_at || null, source: source || '' };
 }
 
 // 全文搜索讲义与课程节点

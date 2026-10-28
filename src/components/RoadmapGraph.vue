@@ -586,8 +586,10 @@ function setMode(mode) {
 // 小节阅读跳转
 function goToSectionDoc(node) {
   if (!node) return;
-  const secId = node.rawId || node.id;
-  const target = lectureLocation({ source: props.source, slug: props.lectureSlug, sectionId: secId, revisionId: props.revisionId, origin: lectureNavigationOrigin() });
+  const chapter = rawTree.value?.chapters?.find((item) => String(item.id) === String(node.chapterId));
+  const section = chapter?.sections?.find((item) => String(item.id) === String(node.rawId || node.id));
+  if (!chapter || !section) return;
+  const target = lectureLocation({ source: props.source, slug: props.lectureSlug, chapterSlug: chapter.slug, sectionSlug: section.slug, revisionId: props.revisionId, origin: lectureNavigationOrigin() });
   emit('navigate', router.resolve(target).href);
   router.push(target);
 }

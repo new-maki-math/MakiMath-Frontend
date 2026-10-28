@@ -185,13 +185,14 @@ export function useLayoutState() {
     if (route.name === 'lecture-doc' || route.name === 'local-lecture-doc') {
       const lectureId = route.params.lectureSlug;
       const chapters = layoutChapters.value;
-      const sectionId = String(route.params.sectionId || '').trim();
+      const chapterSlug = String(route.params.chapterSlug || '');
+      const sectionSlug = String(route.params.sectionSlug || '');
 
       let chapterName = '';
       let sectionName = '';
 
       for (const chap of chapters) {
-        const sec = chap.sections?.find(s => String(s.id) === sectionId);
+        const sec = chap.slug === chapterSlug ? chap.sections?.find(s => s.slug === sectionSlug) : null;
         if (sec) {
           chapterName = chap.tag ? `${chap.tag} ${chap.title}` : chap.title;
           sectionName = sec.title;
@@ -199,7 +200,7 @@ export function useLayoutState() {
         }
       }
 
-      if (!sectionName && !sectionId && chapters.length > 0) {
+      if (!sectionName && !sectionSlug && chapters.length > 0) {
         const firstChap = chapters[0];
         chapterName = firstChap.tag ? `${firstChap.tag} ${firstChap.title}` : firstChap.title;
         sectionName = firstChap.sections?.[0]?.title || '讲义阅读';

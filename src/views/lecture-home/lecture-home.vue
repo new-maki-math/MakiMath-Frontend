@@ -2,11 +2,13 @@
 import { computed, ref, watch, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { lectureBundleFromTree } from '../../api/courses.js';
+import { lectureApi } from '../../api/lectures.js';
 import { fetchShelfLectureTree } from '../../utils/shelf-lecture.js';
 import { lectureLocation, lectureNavigationOrigin } from '../../utils/lecture-route.js';
 import { authStatus, currentUser } from '../../utils/auth.js';
 import { NavArrowRight, EditPencil, Trash } from '@iconoir/vue';
-import { updateLocalLectureCover } from '../../utils/local-lectures.js';
+import { createLocalLecture, updateLocalLectureCover, validateLocalLectureSlug } from '../../utils/local-lectures.js';
+import { portableToLocalLecture } from '../../utils/lecture-portable.js';
 import { notify } from '../../components/MNotice.vue';
 import RoadmapGraph from '../../components/RoadmapGraph.vue';
 import MLectureCover from '../../components/MLectureCover.vue';
@@ -24,6 +26,10 @@ const isLoading = ref(true);
 const loadError = ref('');
 const coverInput = ref(null);
 const coverSaving = ref(false);
+const addOpen = ref(false);
+const addSlug = ref('');
+const addSaving = ref(false);
+const loadedRevisionId = ref(null);
 let loadId = 0;
 
 const totalSectionsCount = computed(() => {
@@ -57,7 +63,10 @@ const collapseAll = () => {
 };
 
 const openLecture = (sectionId) => {
-  router.push(lectureLocation({ source: shelfSource.value, slug: lectureId.value, sectionId, revisionId: revisionId.value, origin: lectureNavigationOrigin() }));
+  const chapter = chapters.value.find((item) => item.sections?.some((section) => String(section.id) === String(sectionId)));
+  const section = chapter?.sections.find((item) => String(item.id) === String(sectionId));
+  if (!chapter || !section) return;
+  router.push(lectureLocation({ source: shelfSource.value, slug: lectureId.value, chapterSlug: chapter.slug, sectionSlug: section.slug, revisionId: revisionId.value, origin: lectureNavigationOrigin() }));
 };
 
 const enterDoc = () => {
@@ -73,6 +82,38 @@ const scrollToCatalog = () => {
     el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 };
+
+function openAddLecture() {
+  if (shelfSource.value !== 'online' || !lecture.value || !loadedRevisionId.value || addSaving.value) return;
+  addSlug.value = lectureId.value;
+  addOpen.value = true;
+}
+
+async function addLecture() {
+  if (!addOpen.value || addSaving.value || shelfSource.value !== 'online' || !lecture.value || !loadedRevisionId.value) return;
+  const slug = addSlug.value.trim();
+  try { validateLocalLectureSlug(slug); }
+  catch (error) { notify(error.message, 'warn'); return; }
+  const sequence = loadId;
+  const sourceId = lecture.value.dbId;
+  const sourceRevisionId = loadedRevisionId.value;
+  addSaving.value = true;
+  try {
+    const data = await lectureApi.exportRevision(sourceRevisionId);
+    if (sequence !== loadId || !addOpen.value) return;
+    const record = portableToLocalLecture(data);
+    record.slug = slug;
+    record.sourceLectureId = sourceId;
+    record.sourceRevisionId = sourceRevisionId;
+    await createLocalLecture(record);
+    addOpen.value = false;
+    notify('已添加到我的书架，可在讲义工作台编辑本地副本', 'success');
+  } catch (error) {
+    notify(error.message || '添加讲义失败，请重试', 'error');
+  } finally {
+    addSaving.value = false;
+  }
+}
 
 const scrollToChapter = (chapterId) => {
   if (!chapterId) return;
@@ -139,10 +180,14 @@ const loadLectureData = async (slug) => {
   isLoading.value = true;
   loadError.value = '';
   lecture.value = null;
+  loadedRevisionId.value = null;
+  addOpen.value = false;
   chapters.value = [];
   try {
-    const bundle = lectureBundleFromTree(await fetchShelfLectureTree(slug, shelfSource.value, revisionId.value));
+    const tree = await fetchShelfLectureTree(slug, shelfSource.value, revisionId.value);
+    const bundle = lectureBundleFromTree(tree);
     if (id !== loadId) return;
+    loadedRevisionId.value = tree.revision_id || null;
     lecture.value = bundle.lecture;
     chapters.value = bundle.chapters;
     // 默认展开所有章节
@@ -225,6 +270,9 @@ onUnmounted(() => { loadId++; });
             @click="scrollToCatalog"
           >
             查看大纲目录 // OUTLINE
+          </MButton>
+          <MButton v-if="shelfSource === 'online'" variant="secondary" :disabled="addSaving" @click="openAddLecture">
+            添加到我的书架
           </MButton>
         </div>
       </header>
@@ -388,6 +436,9 @@ onUnmounted(() => { loadId++; });
     <div v-else class="lecture-not-found font-mono">
       404 // 未找到讲义信息: {{ lectureId }}
     </div>
+    <MModal :open="addOpen" title="添加到我的书架" desc="下载当前版本为本地讲义，可在讲义工作台编辑。" confirm-text="添加" :busy="addSaving" @close="!addSaving && (addOpen = false)" @confirm="addLecture">
+      <MInput v-model="addSlug" label="本地讲义标识" hint="本地讲义标识需在本浏览器中唯一" required />
+    </MModal>
   </div>
 </template>
 

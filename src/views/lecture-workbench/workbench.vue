@@ -293,9 +293,9 @@ async function selectLecture(item, source, force = false, discardConfirmed = fal
       lectureVersions.value = new Map(lectureVersions.value).set(key, versions);
       pending = versions.find((version) => version.status === 'pending')?.id || null;
       canEditLecture = currentUser.value?.role === 'super_admin' || item.owner_id === currentUser.value?.id || collaborators.some((entry) => entry.user_id === currentUser.value?.id && entry.permission === 'edit');
-      if (!canEditLecture && item.isPublic) data = await lectureApi.getBySlug(item.slug);
-      else data = await lectureApi.getRevision((canEditLecture ? versions.find((version) => version.status === 'draft') || versions[0] : versions[0]).id);
-    } else data = await lectureApi.getBySlug(item.slug);
+      if (!canEditLecture && item.isPublic) data = await lectureApi.outline(item.slug);
+      else data = await lectureApi.outline(item.slug, (canEditLecture ? versions.find((version) => version.status === 'draft') || versions[0] : versions[0]).id);
+    } else data = await lectureApi.outline(item.slug);
     if (sequence !== loadSequence) return false;
     lecture.value = { id: item.id, slug: item.slug || data.lecture?.slug, key, isLocal: source === 'local', ownerUserId: source === 'online' ? (currentUser.value?.id ?? null) : null, lectureOwnerId: item.owner_id, publicationStatus: item.publication_status, editVersion: item.editVersion, canEdit: canEditLecture, permissionValid: true, hasPrivateAccess: source === 'online' && Boolean(item.canViewPrivate) };
     revision.value = JSON.parse(JSON.stringify(data.revision));
@@ -325,7 +325,7 @@ async function selectRevision(node) {
   loading.value = true;
   loadingKey.value = node.courseKey;
   try {
-    const [data, collaborators] = await Promise.all([lectureApi.getRevision(node.revisionId), lectureApi.collaborators(node.item.id)]);
+    const [data, collaborators] = await Promise.all([lectureApi.outline(node.item.slug, node.revisionId), lectureApi.collaborators(node.item.id)]);
     if (sequence !== loadSequence) return false;
     if (data.revision?.id !== node.revisionId || data.revision?.lecture_id !== node.item.id || !Array.isArray(data.chapters)) throw new Error('版本数据不匹配');
     const editable = currentUser.value?.role === 'super_admin' || node.item.owner_id === currentUser.value?.id || collaborators.some((entry) => entry.user_id === currentUser.value?.id && entry.permission === 'edit');
@@ -510,13 +510,17 @@ function openDownload() {
 
 async function downloadLecture() {
   if (!downloadOpen.value || !lecture.value || !ownsContext.value || lecture.value.isLocal || isArchived.value || saving.value || loading.value || createOpen.value) return;
-  const record = {
-    id: crypto.randomUUID(), slug: downloadSlug.value.trim(), editVersion: 1,
-    sourceLectureId: lecture.value.id, sourceRevisionId: revision.value.id,
-    revision: JSON.parse(JSON.stringify(revision.value)), chapters: JSON.parse(JSON.stringify(chapters.value))
-  };
+  if (dirty.value) { notify('请先保存所有修改，再下载讲义', 'warn'); return; }
+  const context = lecture.value;
+  const revisionId = revision.value.id;
   saving.value = true;
   try {
+    const data = await lectureApi.exportRevision(revisionId);
+    if (lecture.value !== context || revision.value?.id !== revisionId || dirty.value) throw new Error('讲义状态已变化，请重新确认后下载');
+    const record = portableToLocalLecture(data);
+    record.slug = downloadSlug.value.trim();
+    record.sourceLectureId = context.id;
+    record.sourceRevisionId = revisionId;
     await createLocalLecture(record);
     localLectures.value = await listLocalLectures();
     downloadOpen.value = false;
@@ -568,6 +572,10 @@ function validateDraft() {
 
 async function save() {
   if (!canEdit.value || saving.value || !dirty.value) return;
+  if (!lecture.value.isLocal && selected.value.type === 'section') {
+    await saveCurrentSection();
+    return;
+  }
   const issues = validateDraft();
   if (issues.length) { notify(`保存会检查整份讲义，请补齐所有必填项并解决课程、章节或小节标识重复：\n${issues.join('\n')}`, 'warn', 0); return; }
   const submitted = snapshot();
@@ -586,15 +594,24 @@ async function save() {
       baseline.value = submitted;
     } else {
       if (onlineConflict.value) throw new Error('请先备份并重新读取在线版本');
-      const result = await lectureApi.saveRevision(data.revision.id, lectureSaveBody(data.revision, data.chapters));
+      const payload = lectureSaveBody(data.revision, data.chapters);
+      const saved = JSON.parse(baseline.value);
+      const savedSections = new Map(saved.chapters.flatMap((chapter) => chapter.sections).map((section) => [section.occurrence_id, section]));
+      for (const chapter of payload.chapters) for (const section of chapter.sections) {
+        const previous = savedSections.get(section.occurrence_id);
+        if (previous && section.source === previous.source) delete section.source;
+      }
+      const result = await lectureApi.saveRevision(data.revision.id, payload);
       if (epoch !== identityEpoch) { onlineConflict.value = true; notify('账号状态已变化，当前修改已保留，请重新核对保存结果', 'warn', 0); return; }
-      if (!Number.isInteger(result?.revision?.edit_version) || !Array.isArray(result.chapters) || result.chapters.some((chapter) => !chapter.occurrence_id || !Array.isArray(chapter.sections) || chapter.sections.some((section) => !section.occurrence_id || typeof section.source !== 'string'))) {
+      if (!Number.isInteger(result?.revision?.edit_version) || !Array.isArray(result.chapters) || result.chapters.some((chapter) => !chapter.occurrence_id || !Array.isArray(chapter.sections) || chapter.sections.some((section) => !section.occurrence_id))) {
         onlineConflict.value = true;
         notify('保存请求已成功，但响应不完整，请先备份当前修改并重新读取', 'warn', 0);
         return;
       }
       lectureTrees.value = new Map(lectureTrees.value).set(`${lecture.value.key}:version:${result.revision.id}`, JSON.parse(JSON.stringify(result.chapters)));
       if (snapshot() === submitted) {
+        const sources = new Map(data.chapters.flatMap((chapter) => chapter.sections).filter((section) => typeof section.source === 'string').map((section) => [section.occurrence_id, section.source]));
+        for (const chapter of result.chapters) for (const section of chapter.sections) if (sources.has(section.occurrence_id)) section.source = sources.get(section.occurrence_id);
         revision.value = result.revision;
         chapters.value = result.chapters;
         baseline.value = snapshot();
@@ -607,6 +624,41 @@ async function save() {
     notify(lecture.value.isLocal ? '本地课程已保存' : '在线草稿已保存', 'success');
   } catch (err) {
     if (err.status === 409 && !lecture.value.isLocal) onlineConflict.value = true;
+    notify(err.status === 409 ? `${err.message || '保存冲突'}，当前修改已保留，请核对后重新读取版本` : err.message || '保存失败，当前修改已保留', 'error');
+  } finally { saving.value = false; }
+}
+
+async function saveCurrentSection() {
+  const section = selectedSection.value;
+  const saved = JSON.parse(baseline.value);
+  const oldChapter = saved.chapters.find((chapter) => chapter.sections.some((item) => item.occurrence_id === section?.occurrence_id));
+  const oldSection = oldChapter?.sections.find((item) => item.occurrence_id === section?.occurrence_id);
+  if (!section || !oldSection) { notify('请先保存新建的小节目录', 'warn'); return; }
+  if (selectedChapter.value?.occurrence_id !== oldChapter.occurrence_id) { notify('请先保存小节目录的调整', 'warn'); return; }
+  if (!section.slug?.trim() || !section.title?.trim()) { notify('请填写小节标识和名称', 'warn'); return; }
+  if (onlineConflict.value) { notify('请先备份并重新读取在线版本', 'warn'); return; }
+  const sent = JSON.parse(JSON.stringify(section));
+  const epoch = identityEpoch;
+  saving.value = true;
+  draftRefreshSequence++;
+  try {
+    const result = await lectureApi.saveSection(revision.value.id, sent.occurrence_id, {
+      edit_version: revision.value.edit_version, slug: sent.slug, tag: sent.tag || '',
+      title: sent.title, summary: sent.summary || '', source: sent.source
+    });
+    if (epoch !== identityEpoch || !Number.isInteger(result?.edit_version) || result?.section?.occurrence_id !== sent.occurrence_id) {
+      onlineConflict.value = true;
+      notify('保存结果需要重新核对，请先备份当前修改', 'warn', 0);
+      return;
+    }
+    revision.value.edit_version = result.edit_version;
+    saved.revision.edit_version = result.edit_version;
+    Object.assign(oldSection, result.section);
+    if (JSON.stringify(section) === JSON.stringify(sent)) Object.assign(section, result.section);
+    baseline.value = JSON.stringify(saved);
+    notify('当前小节已保存', 'success');
+  } catch (err) {
+    if (err.status === 409) onlineConflict.value = true;
     notify(err.status === 409 ? `${err.message || '保存冲突'}，当前修改已保留，请核对后重新读取版本` : err.message || '保存失败，当前修改已保留', 'error');
   } finally { saving.value = false; }
 }
@@ -704,7 +756,7 @@ async function refreshDraftOnVisible() {
   const sequence = ++draftRefreshSequence;
   try {
     const [latest, versions] = await Promise.all([
-      canEditOnline.value && revision.value?.status === 'draft' ? lectureApi.getRevision(id) : Promise.resolve(null),
+      canEditOnline.value && revision.value?.status === 'draft' ? lectureApi.outline(lecture.value.slug, id) : Promise.resolve(null),
       lectureApi.revisions(lecture.value.id)
     ]);
     if (sequence !== draftRefreshSequence || lecture.value?.key !== courseKey || revision.value?.id !== id || saving.value) return;
@@ -721,7 +773,7 @@ async function refreshDraftOnVisible() {
     chapters.value = latest.chapters;
     baseline.value = snapshot();
     lectureTrees.value = new Map(lectureTrees.value).set(`${courseKey}:version:${latest.revision.id}`, JSON.parse(JSON.stringify(latest.chapters)));
-    if (selected.value.type !== 'lecture' && !chapters.value.some((chapter) => chapter.occurrence_id === selected.value.id || chapter.sections.some((section) => section.occurrence_id === selected.value.id))) selected.value = { type: 'lecture', id: '' };
+    selected.value = { type: 'lecture', id: '' };
     notify('在线草稿已更新', 'info');
   } catch (err) {
     if (sequence === draftRefreshSequence) notify(err.message || '检查在线草稿更新失败', 'error');
@@ -777,6 +829,27 @@ async function selectTreeNode(node) {
     if (node.versionId != null) {
       if (!await selectRevision({ ...node, id: `${node.courseKey}:version:${node.versionId}`, revisionId: node.versionId })) return;
     } else if (!await selectLecture(node.item, node.source)) return;
+    if (node.type === 'section' && !lecture.value.isLocal) {
+      const section = chapters.value.flatMap((chapter) => chapter.sections).find((item) => item.occurrence_id === node.occurrenceId);
+      if (section && typeof section.source !== 'string') {
+        const saved = JSON.parse(baseline.value);
+        const chapter = saved.chapters.find((item) => item.sections.some((entry) => entry.occurrence_id === node.occurrenceId));
+        const original = chapter?.sections.find((item) => item.occurrence_id === node.occurrenceId);
+        if (!original) { notify('小节目录已变化，请先保存目录', 'warn'); return; }
+        loading.value = true;
+        try {
+          const result = await lectureApi.section(lecture.value.slug, revision.value.id, chapter.slug, original.slug, revision.value.edit_version);
+          if (result.occurrence_id !== node.occurrenceId || result.edit_version !== revision.value.edit_version || typeof result.source !== 'string') throw new Error('小节内容与目录不一致');
+          section.source = result.source;
+          original.source = result.source;
+          baseline.value = JSON.stringify(saved);
+        } catch (err) {
+          if (err.status === 409) onlineConflict.value = true;
+          notify(err.message || '小节加载失败', 'error');
+          return;
+        } finally { loading.value = false; }
+      }
+    }
     selected.value = { type: node.type, id: node.occurrenceId };
   }
 }
@@ -796,7 +869,7 @@ function expandTreeNode(node) {
         const versions = await getCourseVersions(node.item);
         if (epoch === treeEpoch) lectureVersions.value = new Map(lectureVersions.value).set(node.id, versions);
       } else {
-        const data = node.type === 'version' ? await lectureApi.getRevision(node.revisionId) : await lectureApi.getBySlug(node.item.slug);
+        const data = await lectureApi.outline(node.item.slug, node.type === 'version' ? node.revisionId : undefined);
         if (epoch === treeEpoch) lectureTrees.value = new Map(lectureTrees.value).set(node.id, data.chapters);
       }
     } catch (err) {

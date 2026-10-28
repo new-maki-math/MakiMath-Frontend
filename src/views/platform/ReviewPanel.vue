@@ -1,8 +1,8 @@
 <script setup>
-import TypstDoc from '../../components/Renderer/TypstDoc.vue';
 import { ref, watch } from 'vue';
 import { reviewApi } from '../../api/reviews.js';
 import { lectureApi } from '../../api/lectures.js';
+import TypstDoc from '../../components/Renderer/TypstDoc.vue';
 import { notify } from '../../components/MNotice.vue';
 import MButton from '../../components/MButton.vue';
 import MModal from '../../components/MModal.vue';
@@ -14,8 +14,8 @@ const items = ref([]);
 const loading = ref(false);
 const selected = ref(null);
 const detail = ref(null);
-const detailError = ref('');
 const detailLoading = ref(false);
+const detailError = ref('');
 const decision = ref('');
 const comment = ref('');
 const saving = ref(false);
@@ -44,10 +44,11 @@ const showDetail = async (item) => {
   detailError.value = '';
   detailLoading.value = true;
   try {
-    const result = await lectureApi.getRevision(item.id);
+    const result = await lectureApi.exportRevision(item.id);
+    if (!result?.lecture || !Array.isArray(result.chapters) || result.chapters.some((chapter) => !Array.isArray(chapter.sections) || chapter.sections.some((section) => typeof section.source !== 'string'))) throw new Error('审核内容不完整');
     if (id === detailId) detail.value = result;
-  } catch (err) {
-    if (id === detailId) detailError.value = err.message || '读取审核内容失败';
+  } catch (error) {
+    if (id === detailId) detailError.value = error.message || '读取审核内容失败';
   } finally {
     if (id === detailId) detailLoading.value = false;
   }
@@ -92,36 +93,33 @@ watch(kind, () => {
       <template #rows="{ data }">
         <tr v-for="item in data" :key="item.id">
           <td>{{ item.id }}</td><td>{{ item.title }}</td><td>{{ item.submitted_at }}</td>
-          <td><MButton size="sm" @click="showDetail(item)">查看</MButton></td>
+          <td><MButton size="sm" @click="showDetail(item)">审核</MButton></td>
         </tr>
       </template>
     </MTable>
     <MModal :open="Boolean(selected)" title="审核内容" width="760px" hide-footer @close="closeDetail">
-      <p v-if="detailLoading">正在加载内容</p>
-      <p v-else-if="detailError">{{ detailError }}</p>
-      <template v-else-if="detail">
-        <div class="review-content">
-          <template>
-            <h2>{{ detail.revision.title }}</h2>
-            <p class="review-note">当前仅支持部分语法，未支持的内容请结合源码及诊断审核。</p>
-            <section v-for="chapter in detail.chapters" :key="chapter.occurrence_id">
+      <template v-if="selected">
+        <h2>{{ selected.title }}</h2>
+        <p v-if="detailLoading">正在加载内容</p>
+        <p v-else-if="detailError">{{ detailError }} <MButton size="sm" @click="showDetail(selected)">重试</MButton></p>
+        <template v-else-if="detail">
+          <div class="review-content">
+            <p class="review-note">请结合源码及诊断审核讲义内容。</p>
+            <section v-for="chapter in detail.chapters" :key="chapter.slug">
               <h3>{{ chapter.title }}</h3>
-              <div v-for="section in chapter.sections" :key="section.occurrence_id">
+              <div v-for="section in chapter.sections" :key="section.slug">
                 <h4>{{ section.title }}</h4>
-                <template v-if="section.source">
-                  <TypstDoc :source="section.source" />
-                  <details class="review-source"><summary>查看原始源码</summary><pre>{{ section.source }}</pre></details>
-                </template>
+                <template v-if="section.source"><TypstDoc :source="section.source" /><details class="review-source"><summary>查看原始源码</summary><pre>{{ section.source }}</pre></details></template>
                 <p v-else>暂无源码</p>
               </div>
             </section>
-          </template>
-        </div>
-        <MTextarea v-model="comment" label="审核意见" :rows="3" />
-        <div class="review-actions">
-          <MButton variant="danger" :disabled="saving" @click="decision = 'rejected'; submit()">驳回</MButton>
-          <MButton variant="primary" :disabled="saving" @click="decision = 'approved'; submit()">通过</MButton>
-        </div>
+          </div>
+          <MTextarea v-model="comment" label="审核意见" :rows="3" />
+          <div class="review-actions">
+            <MButton variant="danger" :disabled="saving" @click="decision = 'rejected'; submit()">驳回</MButton>
+            <MButton variant="primary" :disabled="saving" @click="decision = 'approved'; submit()">通过</MButton>
+          </div>
+        </template>
       </template>
     </MModal>
   </section>
@@ -134,18 +132,12 @@ watch(kind, () => {
   gap: 16px;
 }
 
-.review-content {
-  max-height: 45vh;
-  overflow: auto;
-}
-
-.review-note { color: var(--text-secondary); font-size: var(--font-size-smaller); }
-
-.review-source pre { white-space: pre-wrap; overflow-wrap: anywhere; }
-
 .review-actions {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
 }
+.review-content { max-height: 45vh; overflow: auto; }
+.review-note { color: var(--text-secondary); font-size: var(--font-size-smaller); }
+.review-source pre { white-space: pre-wrap; overflow-wrap: anywhere; }
 </style>
