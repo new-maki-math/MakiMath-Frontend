@@ -1,3 +1,5 @@
+import { bezierProgress } from './knowledge-motion.js';
+
 export async function createKnowledgeRenderer(canvas, onLost, onLoading, onMissingGlyphs) {
   const rendererStart = performance.now();
   console.info('[知识地图] 开始初始化 WebGPU');
@@ -67,8 +69,8 @@ export async function createKnowledgeRenderer(canvas, onLost, onLoading, onMissi
   const textShader = device.createShaderModule({ code: common + `
     @group(0) @binding(1) var atlas: texture_2d<f32>;
     @group(0) @binding(2) var atlasSampler: sampler;
-    struct Input { @location(0) position: vec2f, @location(1) uv: vec2f, @location(2) alpha: f32, @location(3) level: f32, @location(4) anchor: vec2f, @location(5) scroll: vec3f, @location(6) previousAlpha: f32 }
-    struct Output { @builtin(position) position: vec4f, @location(0) uv: vec2f, @location(1) alpha: f32, @location(2) worldX: f32, @location(3) bounds: vec2f }
+    struct Input { @location(0) position: vec2f, @location(1) uv: vec2f, @location(2) alpha: f32, @location(3) level: f32, @location(4) anchor: vec2f, @location(5) scroll: vec3f, @location(6) previousAlpha: f32, @location(7) color: vec3f }
+    struct Output { @builtin(position) position: vec4f, @location(0) uv: vec2f, @location(1) alpha: f32, @location(2) worldX: f32, @location(3) bounds: vec2f, @location(4) color: vec3f }
     @vertex fn vs(input: Input) -> Output {
       var out: Output;
       let duration = input.scroll.z / 18.0;
@@ -79,11 +81,10 @@ export async function createKnowledgeRenderer(canvas, onLost, onLoading, onMissi
       let screen = world * u.transform.z + u.transform.xy;
       out.worldX = world.x;
       out.bounds = input.scroll.xy;
-      let anchorScreen = input.anchor * u.transform.z + u.transform.xy;
-      let alignedAnchor = round(anchorScreen * u.viewport.z) / u.viewport.z;
-      let clip = (screen + alignedAnchor - anchorScreen) / u.viewport.xy * 2.0 - vec2f(1.0);
+      let clip = screen / u.viewport.xy * 2.0 - vec2f(1.0);
       out.position = vec4f(clip.x, -clip.y, 0.0, 1.0);
       out.uv = input.uv;
+      out.color = input.color;
       var levelAlpha = u.labelAlpha.z;
       if (input.level < 0.5) { levelAlpha = u.labelAlpha.x; }
       else if (input.level < 1.5) { levelAlpha = u.labelAlpha.y; }
@@ -98,7 +99,7 @@ export async function createKnowledgeRenderer(canvas, onLost, onLoading, onMissi
       let screenRange = max(0.5 * dot(unitRange, screenSize), 1.0);
       let inside = select(0.0, 1.0, input.worldX >= input.bounds.x && input.worldX <= input.bounds.y);
       let alpha = clamp(distance * screenRange + 0.5, 0.0, 1.0) * u.textColor.a * input.alpha * inside;
-      return vec4f(u.textColor.rgb * alpha, alpha);
+      return vec4f(input.color * alpha, alpha);
     }
   ` });
   const blend = { color: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha' }, alpha: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha' } };
@@ -107,10 +108,10 @@ export async function createKnowledgeRenderer(canvas, onLost, onLoading, onMissi
       { shaderLocation: 0, offset: 0, format: 'float32x2' }, { shaderLocation: 1, offset: 8, format: 'float32x4' },
       { shaderLocation: 2, offset: 24, format: 'float32x4' }, { shaderLocation: 3, offset: 40, format: 'float32' }, { shaderLocation: 4, offset: 44, format: 'float32' }
     ] }] }, fragment: { module: shapeShader, entryPoint: 'fs', targets: [{ format, blend }] }, primitive: { topology: 'triangle-list' } }),
-    device.createRenderPipelineAsync({ layout: 'auto', vertex: { module: textShader, entryPoint: 'vs', buffers: [{ arrayStride: 48, attributes: [
+    device.createRenderPipelineAsync({ layout: 'auto', vertex: { module: textShader, entryPoint: 'vs', buffers: [{ arrayStride: 60, attributes: [
       { shaderLocation: 0, offset: 0, format: 'float32x2' }, { shaderLocation: 1, offset: 8, format: 'float32x2' },
       { shaderLocation: 2, offset: 16, format: 'float32' }, { shaderLocation: 3, offset: 20, format: 'float32' },
-      { shaderLocation: 4, offset: 24, format: 'float32x2' }, { shaderLocation: 5, offset: 32, format: 'float32x3' }, { shaderLocation: 6, offset: 44, format: 'float32' }
+      { shaderLocation: 4, offset: 24, format: 'float32x2' }, { shaderLocation: 5, offset: 32, format: 'float32x3' }, { shaderLocation: 6, offset: 44, format: 'float32' }, { shaderLocation: 7, offset: 48, format: 'float32x3' }
     ] }] }, fragment: { module: textShader, entryPoint: 'fs', targets: [{ format, blend }] }, primitive: { topology: 'triangle-list' } })
   ]).catch((error) => { device.destroy(); throw error; });
   console.info(`[知识地图] WebGPU 初始化完成，耗时 ${Math.round(performance.now() - rendererStart)} ms`);
@@ -276,8 +277,8 @@ export async function createKnowledgeRenderer(canvas, onLost, onLoading, onMissi
     const ongoing = transitionStarted && performance.now() - transitionStarted < transitionDuration;
     const fromStates = changed || !ongoing ? previousStates : transitionFromStates;
     const labels = [
-      ...tiles.map((tile) => ({ ...tile, text: tile.node.title, fontSize: 10, level: 2, alpha: nextStates.get(tile.node.id) === 'is-dimmed' ? 0.4 : 1, previousAlpha: (fromStates.get(tile.node.id) ?? nextStates.get(tile.node.id)) === 'is-dimmed' ? 0.4 : 1 })),
-      ...groups.map((group) => ({ style: group.style, text: group.title, fontSize: group.fontSize, level: group.kind === 'domain' ? 0 : 1, alpha: 1, previousAlpha: 1 }))
+      ...tiles.map((tile) => ({ ...tile, text: tile.node.title, fontSize: 10, level: 2, color: mastered(tile.node) ? palette.masteredText : palette.text, alpha: nextStates.get(tile.node.id) === 'is-dimmed' ? 0.4 : 1, previousAlpha: (fromStates.get(tile.node.id) ?? nextStates.get(tile.node.id)) === 'is-dimmed' ? 0.4 : 1 })),
+      ...groups.map((group) => ({ style: group.style, text: group.title, fontSize: group.fontSize, level: group.kind === 'domain' ? 0 : 1, color: palette.text, alpha: 1, previousAlpha: 1 }))
     ];
     const codepoints = [...new Set(labels.flatMap((label) => Array.from(label.text, (character) => character.codePointAt(0))))];
     if (codepoints.length && !codepoints.includes(63)) codepoints.push(63);
@@ -297,7 +298,7 @@ export async function createKnowledgeRenderer(canvas, onLost, onLoading, onMissi
       push(x, y); push(x + width, y); push(x, y + height);
       push(x, y + height); push(x + width, y); push(x + width, y + height);
     };
-    for (const group of groups) shape(group.style, group.kind === 'domain' ? palette.domain : palette.topic);
+    for (const group of groups) shape(group.style, group.isLibrary ? palette.library : group.kind === 'domain' ? palette.domain : palette.topic);
     const regions = new Map();
     for (const tile of tiles) {
       const state = nextStates.get(tile.node.id);
@@ -339,10 +340,16 @@ export async function createKnowledgeRenderer(canvas, onLost, onLoading, onMissi
       for (const rect of active.values()) shape({ left: rect.left, top: rect.top, width: rect.right - rect.left, height: rect.bottom - rect.top }, region.color, 0, -1, region.transition);
     }
     const drawTile = (tile, state, transition) => {
-      const outline = state === 'is-selected' ? palette.selected : state === 'is-prerequisite' ? palette.before : state === 'is-successor' ? palette.after : null;
-      if (outline) shape(tile.style, outline, 0, 0, transition);
+      const marker = state === 'is-prerequisite' ? palette.before : state === 'is-successor' ? palette.after : null;
       const base = mastered(tile.node) ? palette.mastered : palette.unmastered;
-      shape(tile.style, state === 'is-dimmed' ? [base[0], base[1], base[2], base[3] * 0.4] : base, outline ? 2 : 0, 0, transition);
+      const isRelation = state === 'is-prerequisite' || state === 'is-successor';
+      const fill = state === 'is-selected' ? base.map((value, index) => index < 3 ? value * 0.88 + 0.12 : value) : base;
+      shape(tile.style, state === 'is-dimmed' ? [fill[0], fill[1], fill[2], fill[3] * 0.4] : fill, 0, 0, transition);
+      const width = parseFloat(tile.style.width);
+      const height = parseFloat(tile.style.height);
+      if (isRelation && width >= 20 && height >= 20) {
+        shape({ left: `${parseFloat(tile.style.left) + width - 11}px`, top: `${parseFloat(tile.style.top) + height - 11}px`, width: '7px', height: '7px' }, marker, 0, 0, transition);
+      }
     };
     for (const tile of tiles) {
       const state = nextStates.get(tile.node.id);
@@ -363,8 +370,10 @@ export async function createKnowledgeRenderer(canvas, onLost, onLoading, onMissi
 
     const vertices = pages.map(() => []);
     const nextScrollLevels = new Set();
-    const push = (page, x, y, u, v, alpha, level, anchorX, anchorY, clipLeft, clipRight, scroll, previousAlpha) => vertices[page].push(x, y, u, v, alpha, level, anchorX, anchorY, clipLeft, clipRight, scroll, previousAlpha);
+    let textColor;
+    const push = (page, x, y, u, v, alpha, level, anchorX, anchorY, clipLeft, clipRight, scroll, previousAlpha) => vertices[page].push(x, y, u, v, alpha, level, anchorX, anchorY, clipLeft, clipRight, scroll, previousAlpha, ...textColor);
     for (const label of labels) {
+      textColor = label.color.slice(0, 3);
       const x = parseFloat(label.style.left);
       const y = parseFloat(label.style.top);
       const width = parseFloat(label.style.width);
@@ -412,7 +421,7 @@ export async function createKnowledgeRenderer(canvas, onLost, onLoading, onMissi
     }
     for (let i = 0; i < pages.length; i++) {
       const page = pages[i];
-      page.count = vertices[i].length / 12;
+      page.count = vertices[i].length / 15;
       page.buffer?.destroy();
       page.buffer = makeBuffer(vertices[i]);
     }
@@ -424,13 +433,17 @@ export async function createKnowledgeRenderer(canvas, onLost, onLoading, onMissi
   }
   function draw(transform, width, height, color, labelAlpha, animate) {
     if (disposed || !width || !height || !shapeBuffer) return;
-    const ratio = Math.min(window.devicePixelRatio || 1, 1.5);
-    const pixelWidth = Math.max(1, Math.round(width * ratio));
-    const pixelHeight = Math.max(1, Math.round(height * ratio));
+    const maxDimension = device.limits.maxTextureDimension2D;
+    const maxPixels = 8_000_000;
+    const ratio = Math.min(window.devicePixelRatio || 1, 2.5, maxDimension / width, maxDimension / height, Math.sqrt(maxPixels / (width * height)));
+    const pixelWidth = Math.max(1, Math.min(maxDimension, Math.floor(width * ratio)));
+    const pixelHeight = Math.max(1, Math.min(maxDimension, Math.floor(height * ratio)));
+    const pixelRatio = Math.min(pixelWidth / width, pixelHeight / height);
     if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) { canvas.width = pixelWidth; canvas.height = pixelHeight; }
     const now = performance.now();
-    const transition = animate && transitionStarted ? Math.min(1, (now - transitionStarted) / transitionDuration) : 1;
-    const values = new Float32Array([transform.x, transform.y, transform.k, 0.75 / (transform.k * ratio), width, height, ratio, animate ? now / 1000 : 0, ...color, ...labelAlpha, transition]);
+    const progress = animate && transitionStarted ? Math.min(1, (now - transitionStarted) / transitionDuration) : 1;
+    const transition = bezierProgress(progress, .16, 1, .3, 1);
+    const values = new Float32Array([transform.x, transform.y, transform.k, 0.75 / (transform.k * pixelRatio), width, height, pixelRatio, animate ? now / 1000 : 0, ...color, ...labelAlpha, transition]);
     device.queue.writeBuffer(uniform, 0, values);
     const encoder = device.createCommandEncoder();
     const pass = encoder.beginRenderPass({ colorAttachments: [{ view: context.getCurrentTexture().createView(), clearValue: [0, 0, 0, 0], loadOp: 'clear', storeOp: 'store' }] });
@@ -449,7 +462,7 @@ export async function createKnowledgeRenderer(canvas, onLost, onLoading, onMissi
     }
     pass.end();
     device.queue.submit([encoder.finish()]);
-    return animate && (transition < 1 || [...scrollLevels].some((level) => labelAlpha[level] > 0));
+    return animate && (progress < 1 || [...scrollLevels].some((level) => labelAlpha[level] > 0));
   }
   function dispose() {
     if (disposed) return;
@@ -461,5 +474,6 @@ export async function createKnowledgeRenderer(canvas, onLost, onLoading, onMissi
     context.unconfigure();
     device.destroy();
   }
-  return { setTiles, draw, dispose };
+  const glyphAdvance = (character) => (glyphs.get(character.codePointAt(0)) || glyphs.get(63))?.advance;
+  return { setTiles, draw, dispose, glyphAdvance };
 }

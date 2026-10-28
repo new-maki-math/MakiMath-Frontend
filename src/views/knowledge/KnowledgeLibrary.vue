@@ -5,7 +5,8 @@ import { knowledgeApi } from '../../api/knowledge.js';
 import { managementApi } from '../../api/management.js';
 import { getMasteredIds, setMastered, setMasteredBatch } from '../../utils/knowledge-mastery.js';
 import MButton from '../../components/MButton.vue';
-import MDrawer from '../../components/MDrawer.vue';
+import KnowledgePointOverlay from './KnowledgePointOverlay.vue';
+import KnowledgePointContent from './KnowledgePointContent.vue';
 import MInput from '../../components/MInput.vue';
 import MSelect from '../../components/MSelect.vue';
 import MLoadingMask from '../../components/MLoadingMask.vue';
@@ -43,7 +44,10 @@ const gpuError = ref('');
 const gpuInitializing = ref(false);
 const glyphLoading = ref(false);
 const glyphWarning = ref('');
-const detailPanel = ref(null);
+const reading = ref(false);
+const readingOverlay = ref(null);
+let returnFocus = null;
+let restoringFocus = false;
 const canvasWidth = ref(0);
 const canvasHeight = ref(0);
 let canvasTransform = zoomIdentity;
@@ -57,12 +61,21 @@ let themeObserver;
 let disposed = false;
 const worldSize = 2000;
 let resizeObserver;
+let resolutionQuery;
 let canvasZoom;
 let fitted = false;
 let zoomFrame = 0;
 let zoomTarget = null;
 const selected = ref(null);
+watch(selected, (node) => { if (!node && reading.value) closeReading(); });
 const focusedId = ref('');
+const hoverNode = ref(null);
+const hoverPrerequisites = ref([]);
+const hoverLoading = ref(false);
+const hoverError = ref(false);
+let hoverTarget = null;
+let hoverTimer = 0;
+let hoverSequence = 0;
 const returnStack = ref([]);
 const graph = ref({ categories: [], nodes: [], edges: [] });
 const domains = ref([]);
@@ -155,6 +168,7 @@ function buildDomains(data) {
 
 async function loadMap({ preserveOnError = false } = {}) {
   if (!categoryId.value) return false;
+  clearHover();
   const sequence = ++mapSequence;
   mapLoading.value = true;
   mapError.value = '';
@@ -165,8 +179,7 @@ async function loadMap({ preserveOnError = false } = {}) {
     if (sequence !== mapSequence || disposed) return;
     domains.value = buildDomains(result);
     graph.value = result;
-    selected.value = null;
-    detailSequence++;
+    if (!reading.value) { selected.value = null; detailSequence++; }
     focusedId.value = '';
     await nextTick();
     if (sequence !== mapSequence || disposed) return;
@@ -217,9 +230,9 @@ const searchResults = computed(() => {
 });
 const searchResultIds = computed(() => new Set(searchResults.value.map((node) => node.id)));
 function selectSearchResult(node) {
-  selectNode(node);
   const tile = chipLayout.value.tiles.find((item) => item.node.id === node.id);
   if (tile) focusTile(tile);
+  activateNode(node);
 }
 function visualWeight(id) {
   const hash = [...String(id)].reduce((value, char) => (value * 31 + char.charCodeAt(0)) >>> 0, 0);
@@ -269,7 +282,7 @@ function orderedTreemap(node, x0, y0, x1, y1) {
 const chipLayout = computed(() => {
   const entries = chipNodes.value;
   const libraryGroup = categoryId.value && !mapError.value ? {
-    id: `library-${categoryId.value}`, kind: 'domain', title: currentLibraryName.value,
+    id: `library-${categoryId.value}`, kind: 'domain', isLibrary: true, title: currentLibraryName.value,
     nodes: entries, fontSize: 18,
     style: { left: '0px', top: '0px', width: `${worldSize}px`, height: `${worldSize}px` }
   } : null;
@@ -284,9 +297,9 @@ const chipLayout = computed(() => {
   }).filter((domain) => domain.children.length);
   const root = hierarchy({ children }).sum((item) => item.weight || 0);
   treemap().size([worldSize - 32, worldSize - 70]).tile(orderedTreemap)
-    .paddingOuter((node) => node.depth === 1 ? 8 : node.depth === 2 ? 5 : 0)
+    .paddingOuter((node) => node.depth === 1 ? 10 : node.depth === 2 ? 7 : 0)
     .paddingTop((node) => node.depth === 1 ? 42 : node.depth === 2 ? 28 : 0)
-    .paddingInner((node) => node.depth === 0 ? 9 : node.depth === 1 ? 5 : 2)
+    .paddingInner((node) => node.depth === 0 ? 12 : node.depth === 1 ? 8 : 2)
     .round(true)(root);
   const style = (node) => ({ left: `${node.x0 + 16}px`, top: `${node.y0 + 54}px`, width: `${Math.max(0, node.x1 - node.x0)}px`, height: `${Math.max(0, node.y1 - node.y0)}px` });
   return {
@@ -316,17 +329,18 @@ function updateWorldTransform() {
     mapWorld.value.style.transform = `translate(${canvasTransform.x}px, ${canvasTransform.y}px) scale(${canvasTransform.k})`;
     const borderOpacity = `${Math.round(labelOpacity(canvasTransform.k, 0.2, 0.4) * 100)}%`;
     if (mapWorld.value.style.getPropertyValue('--group-border-opacity') !== borderOpacity) mapWorld.value.style.setProperty('--group-border-opacity', borderOpacity);
-    const domainOpacity = labelOpacity(canvasTransform.k, 0.3, 0.5).toFixed(1);
-    const topicOpacity = labelOpacity(canvasTransform.k, 0.5, 0.75).toFixed(1);
+    const domainOpacity = labelOpacity(canvasTransform.k, 0.32, 0.52).toFixed(1);
+    const topicOpacity = labelOpacity(canvasTransform.k, 0.58, 0.8).toFixed(1);
     if (mapWorld.value.style.getPropertyValue('--domain-label-opacity') !== domainOpacity) mapWorld.value.style.setProperty('--domain-label-opacity', domainOpacity);
     if (mapWorld.value.style.getPropertyValue('--topic-label-opacity') !== topicOpacity) mapWorld.value.style.setProperty('--topic-label-opacity', topicOpacity);
   }
-  const opacity = labelOpacity(canvasTransform.k, 0.8, 1.05);
+  const opacity = labelOpacity(canvasTransform.k, 0.95, 1.2);
   if (labelLayer.value) {
     labelLayer.value.style.visibility = opacity ? 'visible' : 'hidden';
     labelLayer.value.style.opacity = opacity;
   }
   requestGpuDraw();
+  readingOverlay.value?.syncSource();
 }
 watch(mapWorld, updateWorldTransform);
 watch(labelLayer, updateWorldTransform, { flush: 'post' });
@@ -344,25 +358,30 @@ function updateGpuColor() {
   };
   gpuColor = readColor('var(--text-primary)');
   gpuPalette = {
-    domain: readColor('var(--bg-surface)'), topic: readColor('var(--bg-elevated)'),
-    domainBorder: readColor('var(--text-secondary)'), topicBorder: readColor('var(--text-muted)'),
-    unmastered: readColor('color-mix(in srgb, var(--text-muted) 32%, var(--bg-hover))'),
-    mastered: readColor('color-mix(in srgb, var(--accent-primary) 60%, var(--bg-hover))'),
-    selected: readColor('var(--text-primary)'), before: readColor('var(--tag-amber)'), after: readColor('var(--tag-purple)')
+    library: readColor('var(--chip-library)'), domain: readColor('var(--chip-domain)'), topic: readColor('var(--chip-topic)'),
+    domainBorder: readColor('var(--chip-domain-border)'), topicBorder: readColor('var(--chip-topic-border)'),
+    unmastered: readColor('var(--chip-unmastered)'),
+    mastered: readColor('var(--chip-mastered)'),
+    text: readColor('var(--text-primary)'), masteredText: readColor('var(--chip-mastered-text)'),
+    selected: readColor('var(--text-primary)'), before: readColor('var(--chip-before)'), after: readColor('var(--chip-after)')
   };
-  gpuPalette.domainBorder[3] *= 0.75;
-  gpuPalette.topicBorder[3] *= 0.5;
   probe.remove();
+}
+function drawGpuFrame() {
+  gpuFrame = 0;
+  const animating = gpuRenderer?.draw(canvasTransform, canvasWidth.value, canvasHeight.value, gpuColor, [
+    labelOpacity(canvasTransform.k, 0.32, 0.52), labelOpacity(canvasTransform.k, 0.58, 0.8), labelOpacity(canvasTransform.k, 0.95, 1.2)
+  ], !window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  if (animating) requestGpuDraw();
 }
 function requestGpuDraw() {
   if (!gpuRenderer || gpuFrame) return;
-  gpuFrame = requestAnimationFrame(() => {
-    gpuFrame = 0;
-    const animating = gpuRenderer?.draw(canvasTransform, canvasWidth.value, canvasHeight.value, gpuColor, [
-      labelOpacity(canvasTransform.k, 0.3, 0.5), labelOpacity(canvasTransform.k, 0.5, 0.75), labelOpacity(canvasTransform.k, 0.8, 1.05)
-    ], !window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-    if (animating) requestGpuDraw();
-  });
+  gpuFrame = requestAnimationFrame(drawGpuFrame);
+}
+function syncMapFrame() {
+  if (!gpuRenderer) return;
+  cancelAnimationFrame(gpuFrame);
+  drawGpuFrame();
 }
 async function rebuildGpuLabels() {
   if (!gpuRenderer || !gpuCanvas.value) return;
@@ -407,6 +426,7 @@ async function initializeGpu() {
     gpuRenderer = renderer;
     updateGpuColor();
     await rebuildGpuLabels();
+    await new Promise((resolve) => requestAnimationFrame(resolve));
     if (disposed || sequence !== gpuInitSequence) return;
     gpuReady.value = Boolean(gpuRenderer);
     if (gpuReady.value) gpuError.value = '';
@@ -432,15 +452,17 @@ function handleGpuLost() {
   gpuError.value = 'WebGPU 设备已断开，当前使用备用显示。';
 }
 watch(categoryId, () => { if (!suppressCategoryWatch && categoryId.value) { returnStack.value = []; searchQuery.value = ''; loadMap(); } });
-watch([chipLayout, selected, mastered, focusedId, detailPrerequisites, searchResultIds], rebuildGpuLabels, { flush: 'post' });
+watch([chipLayout, selected, reading, mastered, focusedId, detailPrerequisites, searchResultIds, hoverNode, hoverPrerequisites], rebuildGpuLabels, { flush: 'post' });
 watch([canvasWidth, canvasHeight], requestGpuDraw, { flush: 'post' });
-function handleOutsideDetailClick(event) {
-  if (!selected.value) return;
-  const panel = detailPanel.value?.closest('.m-drawer-panel');
-  if (panel && !panel.contains(event.target)) closeDetail();
+function watchResolution() {
+  resolutionQuery?.removeEventListener('change', watchResolution);
+  resolutionQuery = window.matchMedia(`(resolution: ${window.devicePixelRatio || 1}dppx)`);
+  resolutionQuery.addEventListener('change', watchResolution);
+  requestGpuDraw();
 }
 onMounted(() => {
-  document.addEventListener('click', handleOutsideDetailClick, true);
+  window.addEventListener('resize', requestGpuDraw);
+  watchResolution();
   canvasZoom = zoom().scaleExtent([0.1, 8]).filter((event) => {
     if (event.button) return false;
     return true;
@@ -466,7 +488,9 @@ onMounted(() => {
 });
 onUnmounted(() => {
   disposed = true;
-  document.removeEventListener('click', handleOutsideDetailClick, true);
+  clearHover();
+  window.removeEventListener('resize', requestGpuDraw);
+  resolutionQuery?.removeEventListener('change', watchResolution);
   gpuInitSequence++;
   mapSequence++;
   librariesSequence++;
@@ -481,9 +505,9 @@ onUnmounted(() => {
     select(canvas.value).interrupt().on('.zoom', null);
   }
 });
-function related(direction) {
-  if (!selected.value) return [];
-  const selectedId = canonicalId(selected.value.id);
+function related(direction, target = selected.value) {
+  if (!target) return [];
+  const selectedId = canonicalId(target.id);
   const incoming = direction === 'before';
   const matches = new Map();
   for (const edge of graph.value.edges) {
@@ -499,13 +523,19 @@ function related(direction) {
   return [...matches.values()].map((item) => ({ node: item.node, reason: [...item.reasons].join('；') }));
 }
 const successors = computed(() => related('after'));
+const hoverSuccessors = computed(() => related('after', hoverNode.value));
 const relationClass = (node) => {
-  if (searchQuery.value.trim()) return searchResultIds.value.has(node.id) ? 'is-selected' : 'is-dimmed';
-  if (!selected.value) return canonicalId(node.id) === canonicalId(focusedId.value) ? 'is-selected' : '';
+  const focus = reading.value ? selected.value : hoverNode.value;
+  if (!focus) {
+    if (searchQuery.value.trim()) return searchResultIds.value.has(node.id) ? 'is-selected' : 'is-dimmed';
+    return canonicalId(node.id) === canonicalId(focusedId.value) ? 'is-selected' : '';
+  }
   const id = canonicalId(node.id);
-  if (id === canonicalId(selected.value.id)) return 'is-selected';
-  if (detailPrerequisites.value.some((item) => item.id === id)) return 'is-prerequisite';
-  if (successors.value.some((item) => canonicalId(item.node.id) === id)) return 'is-successor';
+  if (id === canonicalId(focus.id)) return 'is-selected';
+  const prerequisites = reading.value ? detailPrerequisites.value : hoverPrerequisites.value;
+  const next = reading.value ? successors.value : hoverSuccessors.value;
+  if (prerequisites.some((item) => canonicalId(item.id) === id)) return 'is-prerequisite';
+  if (next.some((item) => canonicalId(item.node.id) === id)) return 'is-successor';
   return 'is-dimmed';
 };
 async function toggleMastery(node) {
@@ -600,9 +630,6 @@ function resetCanvas(animate = true) {
 function zoomCanvas(factor) {
   scaleAt(factor, canvasWidth.value / 2, canvasHeight.value / 2);
 }
-function resetDetailScroll() {
-  nextTick(() => { if (detailPanel.value?.parentElement) detailPanel.value.parentElement.scrollTop = 0; });
-}
 async function selectNode(node, preserveHistory = false) {
   const sequence = ++detailSequence;
   selected.value = node;
@@ -613,7 +640,6 @@ async function selectNode(node, preserveHistory = false) {
   detailError.value = '';
   prerequisitesError.value = '';
   detailLoading.value = true;
-  resetDetailScroll();
   const [point, relations] = await Promise.allSettled([knowledgeApi.get(node.id), knowledgeApi.prerequisites(node.id)]);
   if (sequence !== detailSequence || disposed) return;
   if (point.status === 'fulfilled') detail.value = point.value;
@@ -633,19 +659,66 @@ function tileAt(event) {
     return x >= left && y >= top && x < left + parseFloat(tile.style.width) && y < top + parseFloat(tile.style.height);
   }) || null;
 }
+function handleOverlayPan({ event, type }) {
+  if (!canvas.value || !canvasZoom) return;
+  const handler = select(canvas.value).on(`${type}.zoom`);
+  if (!handler) return;
+  const mapEvent = type === 'mousedown' ? new Proxy(event, {
+    get(target, key) {
+      if (key === 'currentTarget') return canvas.value;
+      const value = Reflect.get(target, key, target);
+      return typeof value === 'function' ? value.bind(target) : value;
+    }
+  }) : event;
+  handler.call(canvas.value, mapEvent);
+}
 function handleMapClick(event) {
   if (event.defaultPrevented) return;
   const tile = tileAt(event);
-  if (tile) selectNode(tile.node);
+  if (tile) activateNode(tile.node);
+}
+function clearHover() {
+  clearTimeout(hoverTimer);
+  hoverTimer = 0;
+  hoverTarget = null;
+  hoverSequence++;
+  hoverNode.value = null;
+  hoverPrerequisites.value = [];
+  hoverLoading.value = false;
+  hoverError.value = false;
 }
 function handleMapHover(event) {
-  if (!gpuReady.value || !gpuCanvas.value) return;
-  const tile = tileAt(event);
-  gpuCanvas.value.title = tile ? `${domainById.get(tile.node.domain_id)?.name} / ${topicNames.get(tile.node.topic_id)} · ${tileLabel(tile.node)}` : '';
-  gpuCanvas.value.style.cursor = tile ? 'pointer' : 'grab';
+  if (reading.value || event.buttons) { if (hoverTarget !== null) clearHover(); return; }
+  const tile = gpuReady.value ? tileAt(event) : chipLayout.value.tiles.find((item) => String(item.node.id) === event.target.closest?.('[data-node-id]')?.dataset.nodeId);
+  if (gpuReady.value && gpuCanvas.value) {
+    gpuCanvas.value.title = tile ? `${domainById.get(tile.node.domain_id)?.name} / ${topicNames.get(tile.node.topic_id)} · ${tileLabel(tile.node)}` : '';
+    gpuCanvas.value.style.cursor = tile ? 'pointer' : 'grab';
+  }
+  const id = tile?.node.id ?? null;
+  if (hoverTarget === id) return;
+  clearHover();
+  if (!tile) return;
+  hoverTarget = id;
+  const sequence = hoverSequence;
+  hoverTimer = setTimeout(async () => {
+    if (disposed || reading.value || sequence !== hoverSequence) return;
+    hoverNode.value = tile.node;
+    hoverPrerequisites.value = related('before', tile.node).map((item) => item.node);
+    hoverLoading.value = true;
+    try {
+      const result = await knowledgeApi.prerequisites(id);
+      if (disposed || sequence !== hoverSequence) return;
+      hoverPrerequisites.value = result;
+    } catch {
+      if (!disposed && sequence === hoverSequence) hoverError.value = true;
+    } finally {
+      if (!disposed && sequence === hoverSequence) hoverLoading.value = false;
+    }
+  }, 500);
 }
 function focusTile(tile) {
   focusedId.value = tile.node.id;
+  if (restoringFocus) return;
   if (!canvas.value || !canvasZoom) return;
   stopSmoothZoom();
   const k = Math.max(canvasTransform.k, 1);
@@ -755,20 +828,41 @@ async function returnToPrevious() {
   }
 }
 
-function closeDetail() {
-  detailSequence++;
-  selected.value = null;
-  detail.value = null;
-  returnStack.value = [];
+function activateNode(node) {
+  if (reading.value) return;
+  clearHover();
+  returnFocus = document.activeElement;
+  stopSmoothZoom();
+  select(canvas.value).interrupt();
+  searchQuery.value = '';
+  selectNode(node);
+  reading.value = true;
 }
-const tileLabel = (node) => `${node.title}，${mastered.value.has(canonicalId(node.id)) ? '已掌握' : '未掌握'}`;
+function glyphAdvance(character) {
+  return gpuRenderer?.glyphAdvance(character);
+}
+function readingSourceRect() {
+  const tile = selectedTile.value;
+  if (!tile || !canvas.value) return null;
+  const bounds = canvas.value.getBoundingClientRect();
+  const left = bounds.left + canvasTransform.x + parseFloat(tile.style.left) * canvasTransform.k;
+  const top = bounds.top + canvasTransform.y + parseFloat(tile.style.top) * canvasTransform.k;
+  const width = parseFloat(tile.style.width) * canvasTransform.k;
+  const height = parseFloat(tile.style.height) * canvasTransform.k;
+  return { left, top, width, height, right: left + width, bottom: top + height, fontSize: 10 * canvasTransform.k, titleOpacity: labelOpacity(canvasTransform.k, 0.95, 1.2) };
+}
+function closeReading() {
+  reading.value = false;
+  nextTick(() => { restoringFocus = true; if (returnFocus?.isConnected && returnFocus !== document.body) returnFocus.focus(); else canvas.value?.focus(); restoringFocus = false; });
+}
+const tileLabel = (node) => `${node.title}，${mastered.value.has(canonicalId(node.id)) ? '已掌握' : '未掌握'}，激活打开阅读`;
 </script>
 
 <template>
   <section class="knowledge-library">
     <MLoadingMask :visible="mapLoading || gpuInitializing || glyphLoading" :text="mapLoading ? '正在加载知识地图…' : '正在准备知识点字形…'" :z-index="50" />
     <main ref="libraryMain" class="library-main">
-      <div class="floating-info">
+      <div class="floating-info" :inert="reading">
         <div class="knowledge-filters">
           <MSelect v-model="categoryId" aria-label="选择知识库" :options="librarySelectOptions" />
           <MInput v-model="searchQuery" aria-label="搜索知识点标题" type="search" placeholder="搜索知识点标题" />
@@ -789,93 +883,85 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(canonicalId(no
         <p v-if="storageError" class="storage-error" role="alert">{{ storageError }}</p>
         <p v-if="gpuError" class="storage-error" role="alert">{{ gpuError }}</p>
         <p v-if="glyphWarning" class="storage-error" role="alert">{{ glyphWarning }}</p>
-        <div v-if="selected && !searchQuery.trim()" class="relation-legend"><span class="key-selected">当前</span><span class="key-before">公开前置</span><span class="key-after">范围内后续</span><span>前置 → 后续</span></div>
+        <div v-if="hoverNode && !reading" class="relation-legend"><span class="key-selected">当前</span><span class="key-before">公开前置</span><span class="key-after">范围内后续</span><span>前置 → 后续</span><span v-if="hoverLoading">正在加载前置</span><span v-else-if="hoverError">完整前置加载失败</span></div>
       </div>
-      <div ref="canvas" class="map-canvas" @click="handleMapClick" @mousemove="handleMapHover">
+      <div ref="canvas" class="map-canvas" tabindex="-1" :inert="reading" @click="handleMapClick" @mousemove="handleMapHover" @mouseleave="clearHover">
         <div v-if="!gpuReady" ref="mapWorld" class="map-world" :style="{ width: `${worldSize}px`, height: `${worldSize}px` }">
-          <div v-for="group in chipLayout.groups" :key="group.id" :class="['chip-group', `is-${group.kind}`]" :style="group.style"><span class="group-heading"><span class="group-heading-text" :class="{ scrolling: groupScrollDistance(group) > 0 }" :style="{ '--scroll-distance': `-${groupScrollDistance(group)}px` }">{{ group.title }}</span></span></div>
-          <button v-for="tile in chipLayout.tiles" :key="tile.node.id" type="button" :data-node-id="tile.node.id" :class="['map-tile', relationClass(tile.node), { mastered: mastered.has(canonicalId(tile.node.id)) }]" :style="tile.style" :title="`${domainById.get(tile.node.domain_id)?.name} / ${topicNames.get(tile.node.topic_id)} · ${tileLabel(tile.node)}`" :aria-label="tileLabel(tile.node)" @click="selectNode(tile.node)" />
+          <div v-for="group in chipLayout.groups" :key="group.id" :class="['chip-group', `is-${group.kind}`, { 'is-library': group.isLibrary }]" :style="group.style"><span class="group-heading"><span class="group-heading-text" :class="{ scrolling: groupScrollDistance(group) > 0 }" :style="{ '--scroll-distance': `-${groupScrollDistance(group)}px` }">{{ group.title }}</span></span></div>
+          <button v-for="tile in chipLayout.tiles" :key="tile.node.id" type="button" :data-node-id="tile.node.id" :class="['map-tile', relationClass(tile.node), { mastered: mastered.has(canonicalId(tile.node.id)) }]" :style="tile.style" :title="`${domainById.get(tile.node.domain_id)?.name} / ${topicNames.get(tile.node.topic_id)} · ${tileLabel(tile.node)}`" :aria-label="tileLabel(tile.node)" @click.stop="activateNode(tile.node)" />
           <svg v-if="!gpuReady" ref="labelLayer" class="label-layer" :viewBox="`0 0 ${worldSize} ${worldSize}`" aria-hidden="true">
             <defs><clipPath v-for="tile in chipLayout.tiles" :id="`knowledge-label-${tile.node.id}`" :key="tile.node.id"><rect :x="parseFloat(tile.style.left) + 4" :y="parseFloat(tile.style.top) + 4" :width="Math.max(0, parseFloat(tile.style.width) - 8)" :height="Math.max(0, parseFloat(tile.style.height) - 8)" /></clipPath></defs>
-            <text v-for="tile in chipLayout.tiles" :key="tile.node.id" :x="parseFloat(tile.style.left) + 4" :y="parseFloat(tile.style.top) + 14" :clip-path="`url(#knowledge-label-${tile.node.id})`" :class="relationClass(tile.node)">{{ tile.node.title }}</text>
+            <text v-for="tile in chipLayout.tiles" :key="tile.node.id" :x="parseFloat(tile.style.left) + 4" :y="parseFloat(tile.style.top) + 14" :clip-path="`url(#knowledge-label-${tile.node.id})`" :class="[relationClass(tile.node), { mastered: mastered.has(canonicalId(tile.node.id)) }]">{{ tile.node.title }}</text>
           </svg>
         </div>
         <div v-if="gpuReady" class="canvas-accessibility" aria-label="知识点列表">
-          <button v-for="tile in chipLayout.tiles" :key="tile.node.id" type="button" :aria-label="tileLabel(tile.node)" @focus="focusTile(tile)" @blur="focusedId = ''" @click="selectNode(tile.node)" />
+          <button v-for="tile in chipLayout.tiles" :key="tile.node.id" type="button" :aria-label="tileLabel(tile.node)" @focus="focusTile(tile)" @blur="focusedId = ''" @click.stop="activateNode(tile.node)" />
         </div>
         <canvas v-show="gpuReady" ref="gpuCanvas" class="gpu-labels" aria-hidden="true" />
       </div>
-      <div class="floating-controls"><MButton size="sm" aria-label="缩小画布" @click="zoomCanvas(0.8)">−</MButton><MButton size="sm" aria-label="放大画布" @click="zoomCanvas(1.25)">+</MButton><MButton size="sm" @click="resetCanvas">全览</MButton></div>
-      <div class="floating-legend"><span><i class="swatch" />未掌握</span><span><i class="swatch mastered" />已掌握</span><span><i class="boundary-key domain" />分区</span><span><i class="boundary-key topic" />子分区</span><span>{{ totalStats.done }} / {{ totalStats.total }}</span></div>
+      <div class="floating-controls" :inert="reading"><MButton size="sm" aria-label="缩小画布" @click="zoomCanvas(0.8)">−</MButton><MButton size="sm" aria-label="放大画布" @click="zoomCanvas(1.25)">+</MButton><MButton size="sm" @click="resetCanvas">全览</MButton></div>
+      <div class="floating-legend" :inert="reading"><span><i class="swatch" />未掌握</span><span><i class="swatch mastered" />已掌握</span><span><i class="boundary-key domain" />分区</span><span><i class="boundary-key topic" />子分区</span><span>{{ totalStats.done }} / {{ totalStats.total }}</span></div>
+      <KnowledgePointOverlay v-if="reading && selected" ref="readingOverlay" :source-rect="readingSourceRect" :glyph-advance="glyphAdvance" :before-frame="syncMapFrame" :animation-title="selected.title" :title="detail?.title || selected.title" :node-id="selected.id" :gpu-enabled="gpuReady" :mastered="mastered.has(selected.id)" @closed="closeReading" @zoom="handleCanvasWheel" @pan="handleOverlayPan">
+        <KnowledgePointContent :selected="selected" :detail="detail" :selected-tile="selectedTile" :selected-outside-map="selectedOutsideMap" :locate-error="locateError" :detail-loading="detailLoading" :detail-error="detailError" :prerequisites-error="prerequisitesError" :detail-prerequisites="detailPrerequisites" :successors="successors" :can-return="Boolean(returnStack.length)" :is-mastered="mastered.has(selected.id)" :mastery-loading="masteryLoading" :mastery-saving="masterySaving" :mastery-available="masteryAvailable" :storage-error="storageError" @back="returnToPrevious" @locate="locateSelected" @mastery="toggleMastery" @retry="selectNode(selected, true)" @follow="followDependency" />
+      </KnowledgePointOverlay>
     </main>
-    <MDrawer :open="Boolean(selected)" placement="right" :title="selected ? `知识点 / ${selected.id}` : '知识点'" width="360px" :z-index="10" :modal="false" @close="closeDetail">
-      <div v-if="selected" ref="detailPanel" class="detail-content">
-      <MButton v-if="returnStack.length" size="sm" variant="ghost" @click="returnToPrevious">返回上一知识点</MButton>
-      <h2>{{ detail?.title || selected.title }}</h2>
-      <p v-if="!selectedTile" class="detail-note">{{ selectedOutsideMap ? '该知识点不在当前知识库范围内。' : '该知识点被当前筛选隐藏。' }} <button type="button" @click="locateSelected">切换范围并定位</button></p>
-      <p v-if="locateError" class="storage-error" role="alert">{{ locateError }}</p>
-      <p class="detail-note">{{ mastered.has(selected.id) ? '已掌握' : '未掌握' }} · 保存在本浏览器</p>
-      <MButton size="sm" :disabled="masteryLoading || masterySaving || !masteryAvailable" :variant="mastered.has(selected.id) ? 'secondary' : 'primary'" @click="toggleMastery(selected)">{{ mastered.has(selected.id) ? '标记为未掌握' : '标记为已掌握' }}</MButton>
-      <p v-if="detailLoading" class="detail-note">正在加载知识点…</p>
-      <p v-if="detailError" class="storage-error" role="alert">{{ detailError }} <button type="button" @click="selectNode(selected, true)">重试</button></p>
-      <template v-if="detail">
-        <p v-if="detail.categories?.length" class="detail-note">分类：{{ detail.categories.map((category) => category.name).join('、') }}<template v-if="detail.categories.length > 1"> · 地图只展示一次</template></p>
-        <section class="detail-section"><h3>正文源码</h3><pre class="knowledge-source">{{ detail.source }}</pre></section>
-        <p class="detail-note">加入讲义功能待接入</p>
-      </template>
-      <section class="detail-section"><h3>直接前置</h3><p v-if="prerequisitesError" class="storage-error" role="alert">{{ prerequisitesError }}</p><p v-else-if="!detailLoading && !detailPrerequisites.length" class="detail-note">暂无公开前置知识点。</p><button v-for="item in detailPrerequisites" :key="item.id" class="dependency" type="button" @click="followDependency(item)"><span>{{ item.title }}</span></button></section>
-      <section class="detail-section"><h3>当前地图范围内的直接后续</h3><p v-if="!successors.length" class="detail-note">当前范围内没有直接后续。</p><button v-for="item in successors" :key="item.node.id" class="dependency" type="button" @click="followDependency(item.node)"><span>{{ item.node.title }}</span></button></section>
-      </div>
-    </MDrawer>
+
   </section>
 </template>
 
 <style scoped>
-.knowledge-library { position: relative; display: flex; flex: 1; min-height: 0; overflow: hidden; background: var(--bg-app); color: var(--text-primary); }
+.knowledge-library { --chip-canvas: var(--bg-app); --chip-library: #1b1b1b; --chip-domain: #222222; --chip-topic: #292929; --chip-domain-border: #555555; --chip-topic-border: #404040; --chip-unmastered: #505050; --chip-mastered: #086db8; --chip-mastered-text: #f2f2f2; --chip-panel: #202020; --chip-panel-border: #383838; --chip-before: #ffdf4d; --chip-after: #68eea5; position: relative; display: flex; flex: 1; min-height: 0; overflow: hidden; background: var(--chip-canvas); color: var(--text-primary); }
+:global([data-theme="light"]) .knowledge-library, :global(.theme-light) .knowledge-library { --chip-canvas: var(--bg-app); --chip-library: #f6f6f6; --chip-domain: #eeeeee; --chip-topic: #e5e5e5; --chip-domain-border: #a3a3a3; --chip-topic-border: #c5c5c5; --chip-unmastered: #c2c2c2; --chip-mastered: #086db8; --chip-mastered-text: #f2f2f2; --chip-panel: #f7f7f7; --chip-panel-border: #d3d3d3; --chip-before: #854300; --chip-after: #00613d; }
 .library-main { position: relative; display: flex; flex: 1; min-width: 0; min-height: 0; }
 .map-canvas { position: relative; flex: 1; min-width: 0; min-height: 0; overflow: hidden; cursor: grab; touch-action: none; }
 .map-canvas:active { cursor: grabbing; }
-.map-world { position: absolute; left: 0; top: 0; transform-origin: 0 0; background: var(--bg-app); border-radius: var(--radius-xs); }
-.chip-group { position: absolute; box-sizing: border-box; overflow: hidden; background: var(--bg-surface); border: 1px solid color-mix(in srgb, var(--border-hover) var(--group-border-opacity, 100%), transparent); border-radius: var(--radius-xs); pointer-events: none; }
-.chip-group.is-topic { background: var(--bg-elevated); border-color: color-mix(in srgb, var(--border-subtle) var(--group-border-opacity, 100%), transparent); }
+.map-world { position: absolute; left: 0; top: 0; transform-origin: 0 0; background: var(--chip-canvas); border-radius: var(--radius-xs); }
+.chip-group { position: absolute; box-sizing: border-box; overflow: hidden; background: var(--chip-domain); border: 1px solid color-mix(in srgb, var(--chip-domain-border) var(--group-border-opacity, 100%), transparent); border-radius: var(--radius-xs); pointer-events: none; }
+.chip-group.is-library { background: var(--chip-library); }
+.chip-group.is-topic { background: var(--chip-topic); border-color: color-mix(in srgb, var(--chip-topic-border) var(--group-border-opacity, 100%), transparent); }
 .chip-group > .group-heading { position: absolute; top: 0; left: 0; right: 0; padding: 9px 12px; overflow: hidden; color: var(--text-primary); white-space: nowrap; text-overflow: ellipsis; font-size: 18px; font-weight: var(--font-weight-medium); opacity: var(--domain-label-opacity, 0); }
 .group-heading-text { display: inline-block; white-space: nowrap; }
 .group-heading-text.scrolling { animation: title-scroll 6s ease-in-out infinite alternate; }
 @keyframes title-scroll { 0%, 15% { transform: translateX(0); } 85%, 100% { transform: translateX(var(--scroll-distance)); } }
 @media (prefers-reduced-motion: reduce) { .group-heading-text.scrolling { animation: none; } }
 .chip-group.is-topic > .group-heading { padding: 5px 8px; color: var(--text-secondary); font-size: 14px; opacity: var(--topic-label-opacity, 0); }
-.map-tile { position: absolute; box-sizing: border-box; min-width: 0; min-height: 0; padding: 4px; overflow: hidden; border: 0; outline: 2px solid transparent; outline-offset: 1px; border-radius: var(--radius-xs); background: color-mix(in srgb, var(--text-muted) 32%, var(--bg-hover)); color: var(--text-primary); text-align: left; cursor: pointer; transition: opacity 200ms ease, outline-color 200ms ease; }
+.map-tile { position: absolute; box-sizing: border-box; min-width: 0; min-height: 0; padding: 4px; overflow: hidden; border: 0; outline: 2px solid transparent; outline-offset: 1px; border-radius: var(--radius-xs); background: var(--chip-unmastered); color: var(--text-primary); text-align: left; cursor: pointer; transition: opacity 200ms cubic-bezier(0.16, 1, 0.3, 1), outline-color 200ms cubic-bezier(0.16, 1, 0.3, 1), background-color 200ms cubic-bezier(0.16, 1, 0.3, 1); }
 .label-layer { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; visibility: hidden; }
-.label-layer text { transition: opacity 200ms ease; fill: var(--text-primary); font-family: var(--font-ui, sans-serif); font-size: 10px; }
+.label-layer text { transition: opacity 200ms cubic-bezier(0.16, 1, 0.3, 1); fill: var(--text-primary); font-family: var(--font-ui, sans-serif); font-size: 10px; }
+.label-layer text.mastered { fill: var(--chip-mastered-text); }
 .label-layer text.is-dimmed { opacity: .4; }
 .gpu-labels { position: absolute; inset: 0; width: 100%; height: 100%; color: var(--text-primary); }
 .canvas-accessibility { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-.map-tile.mastered { background: color-mix(in srgb, var(--accent-primary) 60%, var(--bg-hover)); }
-.swatch.mastered { background: color-mix(in srgb, var(--accent-primary) 60%, var(--bg-hover)); }
+.map-tile.mastered { background: var(--chip-mastered); }
+.swatch.mastered { background: var(--chip-mastered); }
 .map-tile:hover { outline: 1px solid var(--border-focus); outline-offset: -1px; }
 .map-tile.is-dimmed { opacity: .4; }
-.map-tile.is-selected { outline: 2px solid var(--text-primary); outline-offset: 1px; }
-.map-tile.is-prerequisite { outline: 2px solid var(--tag-amber); outline-offset: 1px; }
-.map-tile.is-successor { outline: 2px solid var(--tag-purple); outline-offset: 1px; }
+.map-tile.is-selected { background: color-mix(in srgb, var(--chip-unmastered) 88%, white); }
+.map-tile.mastered.is-selected { background: color-mix(in srgb, var(--chip-mastered) 88%, white); }
+.map-tile.is-prerequisite::after, .map-tile.is-successor::after { content: ''; position: absolute; right: 4px; bottom: 4px; width: 7px; height: 7px; border-radius: var(--radius-xs); }
+.map-tile.is-prerequisite::after { background: var(--chip-before); }
+.map-tile.is-successor::after { background: var(--chip-after); }
 .map-tile:focus-visible { outline: 2px solid var(--text-primary); outline-offset: 1px; }
 .floating-info { position: absolute; z-index: 3; top: 16px; left: 18px; max-width: min(260px, calc(100% - 36px)); color: var(--text-secondary); font-size: var(--font-size-smallest); }
 .relation-legend, .floating-legend, .floating-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
-.knowledge-filters { display: flex; flex-direction: column; gap: 8px; width: min(260px, calc(100vw - 72px)); box-sizing: border-box; padding: 10px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-xs); }
-.mastery-actions { display: flex; gap: 8px; }
+.knowledge-filters { display: flex; flex-direction: column; gap: 10px; width: min(260px, calc(100vw - 72px)); box-sizing: border-box; padding: 12px; background: var(--chip-panel); border: 1px solid var(--chip-panel-border); border-radius: var(--radius-xs); }
+.mastery-actions { display: flex; gap: 6px; padding-top: 2px; }
+.mastery-actions :deep(button) { flex: 1; }
 .filter-note { margin: 2px 0; color: var(--text-muted); }
 .search-results { border-top: 1px solid var(--border-subtle); padding-top: 6px; }
 .search-result-head { display: flex; justify-content: space-between; gap: 8px; }
 .search-results ul { list-style: none; max-height: 200px; overflow: auto; margin: 6px 0 0; padding: 0; }
-.search-results li button { width: 100%; padding: 5px 4px; color: var(--text-primary); text-align: left; overflow-wrap: anywhere; }
+.search-results li button { width: 100%; padding: 7px 8px; border-radius: var(--radius-xs); color: var(--text-primary); text-align: left; overflow-wrap: anywhere; }
 .search-results li button:hover { background: var(--bg-hover); }
+.search-results li button:focus-visible, .dependency:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: -2px; }
 .storage-error { color: var(--tag-red); }
 .relation-legend { margin-top: 8px; }
-.key-selected { color: var(--text-primary); } .key-before { color: var(--tag-amber); } .key-after { color: var(--tag-purple); }
-.floating-controls { position: absolute; z-index: 3; right: 18px; bottom: 16px; }
-.floating-legend { position: absolute; z-index: 3; left: 18px; bottom: 16px; color: var(--text-secondary); font-size: var(--font-size-smallest); }
+.key-selected { color: var(--text-primary); } .key-before { color: var(--chip-before); } .key-after { color: var(--chip-after); }
+.floating-controls { position: absolute; z-index: 3; right: 18px; bottom: 16px; gap: 4px; padding: 5px; background: var(--chip-panel); border: 1px solid var(--chip-panel-border); border-radius: var(--radius-xs); }
+.floating-legend { position: absolute; z-index: 3; left: 18px; bottom: 16px; gap: 12px; padding: 9px 10px; background: var(--chip-panel); border: 1px solid var(--chip-panel-border); border-radius: var(--radius-xs); color: var(--text-secondary); font-size: var(--font-size-smallest); }
 .floating-legend span { display: inline-flex; align-items: center; gap: 5px; }
-.swatch { display: inline-block; width: 10px; height: 10px; background: var(--text-muted); flex-shrink: 0; }
-.swatch { background: color-mix(in srgb, var(--text-muted) 32%, var(--bg-hover)); border: 1px solid var(--border-hover); }
+.swatch { display: inline-block; width: 10px; height: 10px; flex-shrink: 0; border-radius: var(--radius-xs); }
+.swatch { background: var(--chip-unmastered); border: 1px solid var(--border-hover); }
 .boundary-key { width: 14px; height: 0; border-top: 2px solid var(--text-secondary); }
 .boundary-key.domain { border-top: 3px solid var(--text-primary); }
 .detail-content { padding: 16px; user-select: text; }
