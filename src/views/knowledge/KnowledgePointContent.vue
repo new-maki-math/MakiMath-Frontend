@@ -1,8 +1,9 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import MButton from '../../components/MButton.vue';
 import { notify } from '../../components/MNotice.vue';
 import TypstDoc from '../../components/Renderer/TypstDoc.vue';
+import KnowledgeAddToLecture from './KnowledgeAddToLecture.vue';
 
 const props = defineProps({
   selected: Object, detail: Object, selectedTile: Object, selectedOutsideMap: Boolean,
@@ -14,6 +15,8 @@ const props = defineProps({
 });
 defineEmits(['back', 'locate', 'mastery', 'retry', 'follow', 'relations']);
 const referenceSlug = computed(() => props.detail?.slug || props.selected?.slug || '');
+const addOpen = ref(false);
+watch(() => props.selected?.id, () => { addOpen.value = false; });
 async function copyReference() {
   try {
     await navigator.clipboard.writeText(`#mm-knowledge(slug: "${referenceSlug.value}")`);
@@ -34,6 +37,7 @@ async function copyReference() {
       </div>
       <div class="detail-actions">
         <MButton size="sm" :disabled="masteryLoading || masterySaving || !masteryAvailable" :variant="isMastered ? 'secondary' : 'primary'" @click="$emit('mastery', selected)">{{ isMastered ? '标记为未掌握' : '标记为已掌握' }}</MButton>
+        <MButton size="sm" variant="secondary" :disabled="!detail || detailLoading || !referenceSlug" @click="addOpen = true">添加到我的讲义</MButton>
         <MButton v-if="showMapControls" size="sm" variant="secondary" :disabled="!selectedTile || detailLoading" @click="$emit('relations')">查看引用关系</MButton>
       </div>
       <p v-if="showMapControls && !selectedTile" class="detail-note">{{ selectedOutsideMap ? '该知识点不在当前知识库范围内。' : '该知识点被当前筛选隐藏。' }} <button class="text-action" type="button" @click="$emit('locate')">切换范围并定位</button></p>
@@ -62,6 +66,7 @@ async function copyReference() {
         <button v-for="item in successors" :key="item.node.id" class="dependency" type="button" @click="$emit('follow', item.node)">{{ item.node.title }}<span aria-hidden="true">→</span></button>
       </section>
     </div>
+    <KnowledgeAddToLecture :open="addOpen" :knowledge-slug="referenceSlug" @close="addOpen = false" />
   </article>
 </template>
 
