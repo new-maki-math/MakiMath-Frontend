@@ -4,6 +4,8 @@ import { useRoute, useRouter } from 'vue-router';
 import { Search, Xmark, ArrowRight } from '@iconoir/vue';
 import { renderToString } from 'typlet';
 import { fetchSearchRecommendations } from '../api';
+import { notify } from './MNotice.vue';
+import { lectureLocation } from '../utils/lecture-route.js';
 import {
   useLectureSearch,
   getSectionTags,
@@ -130,12 +132,12 @@ const handleSelect = (item) => {
   inputRef.value?.blur();
   emit('select', item);
 
-  // 后端已返回 /course/:courseId/doc/:sectionId；缺失时按 courseId 兜底，避免跳错课程
   const targetPath = item.type === 'knowledge'
-    ? `/knowledge/${item.id}`
-    : item.type === 'lecture'
-      ? `/course/${item.id}`
-      : item.path;
+    ? `/knowledge/${encodeURIComponent(item.id)}`
+    : item.type === 'lecture' && item.slug
+      ? router.resolve(lectureLocation({ slug: item.slug })).href
+      : '';
+  if (!targetPath && item.type !== 'knowledge') notify('搜索结果缺少讲义标识，无法打开', 'warn');
   if (!targetPath) return;
   emit('navigate', targetPath);
   router.push(targetPath);

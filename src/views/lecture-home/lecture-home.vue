@@ -1,19 +1,29 @@
 <script setup>
 import { computed, ref, watch, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { fetchCourseBundle } from '../../api';
-import { NavArrowRight } from '@iconoir/vue';
+import { lectureBundleFromTree } from '../../api/courses.js';
+import { fetchShelfLectureTree } from '../../utils/shelf-lecture.js';
+import { lectureLocation, lectureNavigationOrigin } from '../../utils/lecture-route.js';
+import { authStatus, currentUser } from '../../utils/auth.js';
+import { NavArrowRight, EditPencil, Trash } from '@iconoir/vue';
+import { updateLocalLectureCover } from '../../utils/local-lectures.js';
+import { notify } from '../../components/MNotice.vue';
 import RoadmapGraph from '../../components/RoadmapGraph.vue';
+import MLectureCover from '../../components/MLectureCover.vue';
 
 const route = useRoute();
 const router = useRouter();
 
-const courseId = computed(() => route.params.courseId);
-const course = ref(null);
+const lectureId = computed(() => route.params.lectureSlug);
+const shelfSource = computed(() => route.name === 'local-lecture-home' ? 'local' : 'online');
+const revisionId = computed(() => route.query.revision_id ?? '');
+const lecture = ref(null);
 const chapters = ref([]);
 const openChapters = ref(new Set());
 const isLoading = ref(true);
 const loadError = ref('');
+const coverInput = ref(null);
+const coverSaving = ref(false);
 let loadId = 0;
 
 const totalSectionsCount = computed(() => {
@@ -21,11 +31,11 @@ const totalSectionsCount = computed(() => {
 });
 
 // 构建供路线图组件直接消费的目录树
-const courseTree = computed(() => {
-  if (!course.value && chapters.value.length === 0) return null;
+const lectureTree = computed(() => {
+  if (!lecture.value && chapters.value.length === 0) return null;
   return {
-    id: course.value?.dbId || course.value?.id || courseId.value,
-    title: course.value?.title || '当前课程',
+    id: lecture.value?.dbId || lecture.value?.id || lectureId.value,
+    title: lecture.value?.title || '当前讲义',
     chapters: chapters.value
   };
 });
@@ -47,12 +57,12 @@ const collapseAll = () => {
 };
 
 const openLecture = (sectionId) => {
-  router.push(`/course/${course.value?.id || courseId.value}/doc/${sectionId}`);
+  router.push(lectureLocation({ source: shelfSource.value, slug: lectureId.value, sectionId, revisionId: revisionId.value, origin: lectureNavigationOrigin() }));
 };
 
 const enterDoc = () => {
   // 无小节时不跳转
-  const firstSecId = chapters.value[0]?.sections?.[0]?.id;
+  const firstSecId = chapters.value.find((chapter) => chapter.sections?.length)?.sections[0].id;
   if (!firstSecId) return;
   openLecture(firstSecId);
 };
@@ -75,67 +85,125 @@ const scrollToChapter = (chapterId) => {
   }, 50);
 };
 
-const loadCourseData = async (slug) => {
+async function changeCover(event) {
+  const file = event.target.files?.[0];
+  event.target.value = '';
+  if (!file || coverSaving.value) return;
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
+    notify('请选择不超过 5 MB 的 JPG、PNG 或 WebP 图片', 'warn');
+    return;
+  }
+  const id = String(lecture.value.id);
+  coverSaving.value = true;
+  try {
+    const url = URL.createObjectURL(file);
+    try {
+      const image = new Image();
+      image.src = url;
+      await image.decode();
+    } finally { URL.revokeObjectURL(url); }
+    const data = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(reader.error || new Error('读取图片失败'));
+      reader.readAsDataURL(file);
+    });
+    await updateLocalLectureCover(id, data);
+    if (shelfSource.value === 'local' && String(lecture.value?.id) === id && lecture.value) lecture.value = { ...lecture.value, cover: data };
+    notify('封面已保存', 'success');
+  } catch (error) {
+    notify(error.message || '保存封面失败', 'error');
+  } finally {
+    coverSaving.value = false;
+  }
+}
+
+async function removeCover() {
+  if (coverSaving.value || shelfSource.value !== 'local' || !lecture.value?.cover) return;
+  const id = String(lecture.value.id);
+  coverSaving.value = true;
+  try {
+    await updateLocalLectureCover(id, '');
+    if (shelfSource.value === 'local' && String(lecture.value?.id) === id && lecture.value) lecture.value = { ...lecture.value, cover: '' };
+    notify('已恢复通用封面', 'success');
+  } catch (error) {
+    notify(error.message || '删除封面失败', 'error');
+  } finally {
+    coverSaving.value = false;
+  }
+}
+
+const loadLectureData = async (slug) => {
   if (!slug) return;
   const id = ++loadId;
   isLoading.value = true;
   loadError.value = '';
-  course.value = null;
+  lecture.value = null;
   chapters.value = [];
   try {
-    const bundle = await fetchCourseBundle(slug);
+    const bundle = lectureBundleFromTree(await fetchShelfLectureTree(slug, shelfSource.value, revisionId.value));
     if (id !== loadId) return;
-    course.value = bundle.course;
+    lecture.value = bundle.lecture;
     chapters.value = bundle.chapters;
     // 默认展开所有章节
     openChapters.value = new Set(bundle.chapters.map(c => c.id));
   } catch (err) {
-    if (id === loadId) loadError.value = err.status === 404 ? '课程不存在' : '课程加载失败，请重试';
+    if (id === loadId) loadError.value = err.status === 404 ? (revisionId.value ? '讲义或指定版本不可访问，可能已更新或下架，请返回列表刷新' : '讲义不存在或当前账号无权访问') : err.message || '讲义加载失败，请重试';
   } finally {
     if (id === loadId) isLoading.value = false;
   }
 };
 
-watch(courseId, loadCourseData, { immediate: true });
+watch([lectureId, shelfSource, revisionId, () => shelfSource.value === 'online' ? authStatus.value : null, () => shelfSource.value === 'online' ? currentUser.value?.id : null], ([id]) => loadLectureData(id), { immediate: true });
 onUnmounted(() => { loadId++; });
 </script>
 
 <template>
   <div class="view-container">
     <!-- 加载占位 -->
-    <div v-if="isLoading" class="course-loading font-mono">
-      LOADING COURSE DATA // {{ courseId }}...
+    <div v-if="isLoading" class="lecture-loading font-mono">
+      LOADING LECTURE DATA // {{ lectureId }}...
     </div>
 
     <!-- 课程详情 -->
-    <div v-else-if="loadError" class="course-not-found font-mono">
+    <div v-else-if="loadError" class="lecture-not-found font-mono">
       <p>{{ loadError }}</p>
-      <MButton variant="secondary" @click="loadCourseData(courseId)">重试</MButton>
+      <MButton variant="secondary" @click="loadLectureData(lectureId)">重试</MButton>
     </div>
-    <template v-else-if="course">
+    <template v-else-if="lecture">
       <!-- 课程头部 -->
-      <header class="course-header">
+      <header class="lecture-header">
+        <div class="header-cover" aria-hidden="true" inert>
+          <MLectureCover :title="lecture.title" :image="lecture.cover || ''" />
+        </div>
+        <template v-if="shelfSource === 'local'">
+          <input ref="coverInput" class="cover-input" type="file" accept="image/jpeg,image/png,image/webp" @change="changeCover" />
+          <div class="cover-actions">
+            <button class="cover-action" type="button" title="修改封面" aria-label="修改封面" :disabled="coverSaving" @click="coverInput?.click()"><EditPencil width="17" height="17" /></button>
+            <button v-if="lecture.cover" class="cover-action" type="button" title="删除封面" aria-label="删除封面" :disabled="coverSaving" @click="removeCover"><Trash width="17" height="17" /></button>
+          </div>
+        </template>
         <div class="header-tags">
-          <MTag v-if="course.category" variant="purple" size="md">
-            分类: {{ course.category }}
+          <MTag v-if="lecture.category" variant="purple" size="md">
+            分类: {{ lecture.category }}
           </MTag>
-          <MTag v-if="course.live" variant="green" size="md" :dot="true">
-            STATUS: ONLINE
+          <MTag v-if="lecture.live" variant="green" size="md" :dot="true">
+            {{ shelfSource === 'local' ? 'STATUS: LOCAL' : 'STATUS: ONLINE' }}
           </MTag>
           <MTag v-else variant="amber" size="md" :dot="true">
             STATUS: PLANNING
           </MTag>
         </div>
 
-        <h1 class="course-title">{{ course.title }}</h1>
-        <p class="course-desc">
-          {{ course.desc || '暂无课程描述信息。' }}
+        <h1 class="lecture-title">{{ lecture.title }}</h1>
+        <p class="lecture-desc">
+          {{ lecture.desc || '暂无课程描述信息。' }}
         </p>
 
         <!-- 快捷操作栏 -->
-        <div class="course-actions">
+        <div class="lecture-actions">
           <MButton
-            v-if="course.live"
+            v-if="lecture.live"
             variant="primary"
             :mono="true"
             @click="enterDoc"
@@ -162,32 +230,32 @@ onUnmounted(() => { loadId++; });
       </header>
 
       <!-- 概览卡片区 -->
-      <section class="course-sections">
+      <section class="lecture-sections">
         <div class="grid-layout">
           <!-- 课程概览 -->
           <div class="spec-card">
             <div class="card-header">
               <span class="card-title font-mono">OVERVIEW // 课程概要</span>
-              <MTag variant="muted" size="sm">{{ course.id }}</MTag>
+              <MTag variant="muted" size="sm">{{ lecture.id }}</MTag>
             </div>
             <div class="spec-body">
               <div class="spec-item">
                 <span class="spec-label">收录节点</span>
                 <span class="spec-value font-mono">
-                  {{ course.live ? `${totalSectionsCount || course.nodes || 0} 讲` : '待上线' }}
+                  {{ lecture.live ? `${totalSectionsCount || lecture.nodes || 0} 讲` : '待上线' }}
                 </span>
               </div>
               <div class="spec-item">
                 <span class="spec-label">所属分类</span>
-                <span class="spec-value">{{ course.category }}</span>
+                <span class="spec-value">{{ lecture.category }}</span>
               </div>
               <div class="spec-item">
                 <span class="spec-label">编排状态</span>
-                <span class="spec-value">{{ course.live ? '已完成公理化校对' : '大纲筹备与内容撰写中' }}</span>
+                <span class="spec-value">{{ shelfSource === 'local' ? '本地讲义' : shelfSource === 'online' ? '讲义' : '公开讲义' }}</span>
               </div>
               <div class="spec-item">
                 <span class="spec-label">排版引擎</span>
-                <span class="spec-value font-mono">Typst Math Engine (v0.12)</span>
+                <span class="spec-value font-mono">Typst {{ lecture.typstVersion || '—' }}</span>
               </div>
             </div>
           </div>
@@ -223,8 +291,11 @@ onUnmounted(() => { loadId++; });
         </div>
         <div class="roadmap-container-box">
           <RoadmapGraph
-            :tree="courseTree"
-            :course-id="course?.dbId || course?.id || courseId"
+            :tree="lectureTree"
+            :lecture-id="lecture?.dbId || lecture?.id || lectureId"
+            :source="shelfSource"
+            :lecture-slug="lectureId"
+            :revision-id="revisionId"
             @select-chapter="scrollToChapter"
           />
         </div>
@@ -269,7 +340,7 @@ onUnmounted(() => { loadId++; });
                 </MTag>
                 <span class="chapter-title">{{ chap.title }}</span>
                 <MTag
-                  v-if="chap.prereqText"
+                  v-if="!shelfSource && chap.prereqText"
                   :variant="chap.isOrigin ? 'green' : 'muted'"
                   size="sm"
                   :dot="chap.isOrigin"
@@ -319,8 +390,8 @@ onUnmounted(() => { loadId++; });
     </template>
 
     <!-- 未找到课程 -->
-    <div v-else class="course-not-found font-mono">
-      404 // 未找到课程信息: {{ courseId }}
+    <div v-else class="lecture-not-found font-mono">
+      404 // 未找到讲义信息: {{ lectureId }}
     </div>
   </div>
 </template>
@@ -336,15 +407,18 @@ onUnmounted(() => { loadId++; });
   width: 100%;
 }
 
-.course-loading,
-.course-not-found {
+.lecture-loading,
+.lecture-not-found {
   font-size: var(--font-size-smaller);
   color: var(--text-muted);
   padding: 40px 0;
 }
 
 /* 课程头部 */
-.course-header {
+.lecture-header {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -352,27 +426,66 @@ onUnmounted(() => { loadId++; });
   padding-bottom: 24px;
 }
 
+.header-cover {
+  position: absolute;
+  z-index: -1;
+  inset: 0 0 0 auto;
+  width: min(48%, 360px);
+  overflow: hidden;
+  pointer-events: none;
+  opacity: .65;
+  mask-image: linear-gradient(to right, transparent, black 65%);
+}
+
+.header-cover :deep(.lecture-cover) {
+  width: 100%;
+  border: 0;
+  border-radius: 0;
+  transform: translateY(-12%);
+}
+
+.cover-input { display: none; }
+.cover-actions { position: absolute; top: 0; right: 0; display: flex; gap: 4px; opacity: 0; transition: opacity 160ms ease; }
+.lecture-header:hover .cover-actions, .lecture-header:focus-within .cover-actions { opacity: 1; }
+.cover-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 160ms ease, background-color 160ms ease;
+}
+.cover-action:hover { background: var(--bg-hover); color: var(--text-primary); }
+.cover-action:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: -2px; }
+.cover-action:disabled { cursor: wait; }
+@media (hover: none) { .cover-actions { opacity: 1; } }
+
 .header-tags {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.course-title {
+.lecture-title {
   font-size: var(--font-size-largest);
   font-weight: var(--font-weight-bold);
   color: var(--text-primary);
   line-height: 1.3;
 }
 
-.course-desc {
+.lecture-desc {
   font-size: var(--font-size);
   color: var(--text-secondary);
   line-height: 1.6;
   max-width: 840px;
 }
 
-.course-actions {
+.lecture-actions {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -381,7 +494,7 @@ onUnmounted(() => { loadId++; });
 }
 
 /* 概览卡片区 */
-.course-sections {
+.lecture-sections {
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -717,22 +830,27 @@ onUnmounted(() => { loadId++; });
     gap: 24px;
   }
 
-  .course-header {
+  .header-cover {
+    width: 55%;
+    opacity: .4;
+  }
+
+  .lecture-header {
     gap: 12px;
     padding-bottom: 20px;
   }
 
-  .course-title {
+  .lecture-title {
     font-size: clamp(20px, 5.5vw, 24px);
     line-height: 1.35;
   }
 
-  .course-desc {
+  .lecture-desc {
     font-size: 13.5px;
     line-height: 1.6;
   }
 
-  .course-actions {
+  .lecture-actions {
     display: flex;
     flex-direction: column;
     align-items: stretch;

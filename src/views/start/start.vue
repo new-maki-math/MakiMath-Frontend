@@ -57,8 +57,8 @@ const handleWindowResize = () => {
 
 // 快捷导航项
 const quickShortcuts = [
-  { label: '讲义推荐路线', path: '/recom-lecture', icon: Compass },
-  { label: '我的讲义', path: '/my-lecture', icon: Bookmark },
+  { label: '创意工坊', path: '/recom-lecture', icon: Compass },
+  { label: '我的书架', path: '/my-lecture', icon: Bookmark },
   { label: '讲义工作台', path: '/lecture-workbench', icon: Terminal }
 ];
 

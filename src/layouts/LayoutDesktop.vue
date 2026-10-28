@@ -31,7 +31,7 @@ const {
   handleLogout,
   navigationGroups,
   currentItem,
-  currentCourse,
+  currentLecture,
   currentBreadcrumbs,
   showViewportHeader,
   isViewportLocked,
@@ -194,7 +194,7 @@ const handleNavClick = (item) => {
       <main class="maki-viewport" :class="{ 'is-locked': isViewportLocked }">
         <ViewportHeader
           v-if="showViewportHeader"
-          :title="currentCourse ? currentCourse.title : currentItem.label"
+          :title="currentLecture ? currentLecture.title : currentItem.label"
           :breadcrumbs="currentBreadcrumbs"
           @refresh="handleRefreshDoc"
         />

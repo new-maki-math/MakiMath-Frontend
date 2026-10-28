@@ -1,6 +1,10 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { getCourseCategories, getCourseChapters, getCachedCourseChapters, invalidateCourseCaches } from '../api';
+import { getCourseCategories, invalidateCourseCaches } from '../api';
+import { authStatus } from '../utils/auth.js';
+import { toChapters } from '../api/courses.js';
+import { fetchShelfLectureTree } from '../utils/shelf-lecture.js';
+import { lectureLocation, lectureNavigationOrigin } from '../utils/lecture-route.js';
 import {
   registerProgressBar,
   beginNavigation,
@@ -27,8 +31,8 @@ import {
 export const navItems = [
   { id: 'start', label: '开始', path: '/start', icon: PlaySolid, tag: 'INIT', group: 'primary' },
   { id: 'knowledge', label: '知识库', path: '/knowledge', icon: DatabaseSolid, tag: 'KNOWLEDGE', group: 'primary' },
-  { id: 'recom-lecture', label: '讲义推荐', path: '/recom-lecture', icon: StarSolid, tag: 'HOT', group: 'reader' },
-  { id: 'my-lecture', label: '我的讲义', path: '/my-lecture', icon: BookmarkSolid, tag: 'LOCAL', group: 'reader' },
+  { id: 'recom-lecture', label: '创意工坊', path: '/recom-lecture', icon: StarSolid, tag: 'HOT', group: 'reader' },
+  { id: 'my-lecture', label: '我的书架', path: '/my-lecture', icon: BookmarkSolid, tag: 'LOCAL', group: 'reader' },
   { id: 'knowledge-workbench', label: '知识点工作台', path: '/knowledge-workbench', icon: FlaskSolid, tag: 'WORKBENCH', group: 'management', desktopOnly: true, adminOnly: true },
   { id: 'lecture-workbench', label: '讲义工作台', path: '/lecture-workbench', icon: FlaskSolid, tag: 'WORKBENCH', group: 'management', desktopOnly: true },
   { id: 'platform', label: '平台管理', path: '/platform', icon: CubeScanSolid, tag: 'PLATFORM', group: 'management', desktopOnly: true, adminOnly: true },
@@ -145,49 +149,49 @@ export function useLayoutState() {
     };
   });
 
-  const currentCourse = computed(() => {
-    const courseId = route.params.courseId;
-    if (!courseId) return null;
-    for (const cat of categories.value) {
-      const found = cat.courses?.find(c => c.id === courseId || c.slug === courseId);
-      if (found) return { ...found, categoryName: cat.name };
-    }
-    return null;
-  });
-
+  const layoutLecture = ref(null);
   const layoutChapters = ref([]);
+  const currentLecture = computed(() => route.params.lectureSlug ? layoutLecture.value : null);
 
   watch(
-    () => [route.params.courseId, route.name],
-    async ([courseId, name], oldValue, onCleanup) => {
+    () => [route.params.lectureSlug, route.name, route.query.revision_id, currentUser.value?.id, authStatus.value],
+    async ([lectureId, name, revisionId], oldValue, onCleanup) => {
       let active = true;
       onCleanup(() => { active = false; });
-      if (name === 'lecture-doc' || name === 'course-home' || courseId) {
-        try {
-          const chapters = await getCourseChapters(courseId);
-          if (active) layoutChapters.value = chapters;
-        } catch (e) {
-          if (active) layoutChapters.value = [];
-        }
-      } else {
-        layoutChapters.value = [];
+      layoutLecture.value = null;
+      layoutChapters.value = [];
+      if (!lectureId || !['lecture-doc', 'lecture-home', 'local-lecture-doc', 'local-lecture-home'].includes(name)) return;
+      try {
+        const source = name.startsWith('local-') ? 'local' : 'online';
+        const tree = await fetchShelfLectureTree(lectureId, source, revisionId || '');
+        if (active) { layoutLecture.value = { id: tree.id, title: tree.title }; layoutChapters.value = toChapters(tree); }
+      } catch {
+        if (active) { layoutLecture.value = null; layoutChapters.value = []; }
       }
     },
     { immediate: true }
   );
 
+  const lectureOrigin = ref(lectureNavigationOrigin());
   const currentBreadcrumbs = computed(() => {
-    if (route.name === 'lecture-doc') {
-      const courseId = route.params.courseId;
-      const courseTitle = currentCourse.value?.title || courseId;
-      const chapters = layoutChapters.value.length ? layoutChapters.value : getCachedCourseChapters(courseId);
+    const originLabel = { 'recom-lecture': '创意工坊', 'my-lecture': '我的书架' }[lectureOrigin.value];
+    const isReading = route.name === 'lecture-doc' || route.name === 'local-lecture-doc';
+    const prefix = [{ label: 'APP', to: '/start' }];
+    if (originLabel) prefix.push({ label: originLabel, to: lectureOrigin.value === 'my-lecture' ? '/my-lecture' : '/recom-lecture' });
+    prefix.push(isReading ? {
+      label: '课程讲义详情',
+      to: lectureLocation({ slug: route.params.lectureSlug, source: route.name === 'local-lecture-doc' ? 'local' : 'online', revisionId: route.query.revision_id, origin: lectureOrigin.value })
+    } : { label: '课程讲义详情' });
+    if (route.name === 'lecture-doc' || route.name === 'local-lecture-doc') {
+      const lectureId = route.params.lectureSlug;
+      const chapters = layoutChapters.value;
       const sectionId = String(route.params.sectionId || '').trim();
 
       let chapterName = '';
       let sectionName = '';
 
       for (const chap of chapters) {
-        const sec = chap.sections?.find(s => String(s.id) === sectionId || (s.slug && String(s.slug) === sectionId));
+        const sec = chap.sections?.find(s => String(s.id) === sectionId);
         if (sec) {
           chapterName = chap.tag ? `${chap.tag} ${chap.title}` : chap.title;
           sectionName = sec.title;
@@ -195,22 +199,22 @@ export function useLayoutState() {
         }
       }
 
-      if (!sectionName && chapters.length > 0) {
+      if (!sectionName && !sectionId && chapters.length > 0) {
         const firstChap = chapters[0];
         chapterName = firstChap.tag ? `${firstChap.tag} ${firstChap.title}` : firstChap.title;
         sectionName = firstChap.sections?.[0]?.title || '讲义阅读';
       }
 
-      const crumbs = ['APP', '讲义', courseTitle];
+      const crumbs = [...prefix];
       if (chapterName) crumbs.push(chapterName);
       if (sectionName) crumbs.push(sectionName);
+      else crumbs.push('讲义阅读');
       return crumbs;
     }
-    if (route.name === 'course-home' || route.params.courseId) {
-      const courseTitle = currentCourse.value?.title || route.params.courseId || '课程';
-      return ['APP', '讲义', courseTitle];
+    if (route.name === 'lecture-home' || route.name === 'local-lecture-home') {
+      return prefix;
     }
-    return ['APP', currentItem.value.label];
+    return [{ label: 'APP', to: '/start' }, { label: currentItem.value.label }];
   });
 
   const showViewportHeader = computed(() => {
@@ -277,6 +281,7 @@ export function useLayoutState() {
 
     removeAfterHook = router.afterEach((to, from, failure) => {
       endNavigation();
+      if (!failure) lectureOrigin.value = lectureNavigationOrigin();
       if (!failure && ['lecture-workbench', 'platform'].includes(from.name)) loadCategories();
     });
   });
@@ -311,7 +316,7 @@ export function useLayoutState() {
     navItems,
     navigationGroups,
     currentItem,
-    currentCourse,
+    currentLecture,
     layoutChapters,
     currentBreadcrumbs,
     showViewportHeader,

@@ -1,98 +1,59 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { fetchSearchRecommendations } from '../../api/courses.js';
+import { lectureApi } from '../../api/lectures.js';
+import { notify } from '../../components/MNotice.vue';
+import { lectureLocation } from '../../utils/lecture-route.js';
 import MButton from '../../components/MButton.vue';
+import MLectureCover from '../../components/MLectureCover.vue';
 
 const router = useRouter();
 const lectures = ref([]);
 const loading = ref(true);
 const error = ref('');
+let loadSequence = 0;
 
-const load = async () => {
+async function load() {
+  const sequence = ++loadSequence;
   loading.value = true;
   error.value = '';
   try {
-    lectures.value = await fetchSearchRecommendations(100);
+    const items = await lectureApi.list();
+    if (!Array.isArray(items)) throw new Error('讲义列表格式错误');
+    if (sequence === loadSequence) lectures.value = items;
   } catch {
-    error.value = '推荐讲义加载失败';
+    if (sequence === loadSequence) { lectures.value = []; error.value = '讲义加载失败'; }
   } finally {
-    loading.value = false;
+    if (sequence === loadSequence) loading.value = false;
   }
-};
+}
+
+function openLecture(lecture) {
+  if (!lecture.slug) { notify('讲义标识缺失，请刷新列表', 'warn'); return; }
+  router.push(lectureLocation({ slug: lecture.slug, origin: 'recom-lecture' }));
+}
 
 onMounted(load);
+onUnmounted(() => { loadSequence++; });
 </script>
 
 <template>
-  <div class="recom-lecture-view">
-    <div class="coming-soon-box font-mono">
-      <span class="coming-soon-tag">RECOMMENDED // 讲义推荐</span>
-      <p v-if="loading" class="coming-soon-desc">正在加载推荐讲义</p>
-      <template v-else-if="error">
-        <p class="coming-soon-desc">{{ error }}</p>
-        <MButton size="sm" @click="load">重试</MButton>
-      </template>
-      <p v-else-if="lectures.length === 0" class="coming-soon-desc">暂无推荐讲义</p>
-      <div v-else class="recommended-list">
-        <MButton v-for="lecture in lectures" :key="lecture.id" variant="secondary" @click="router.push(`/course/${lecture.id}`)">
-          {{ lecture.title }}
-        </MButton>
-      </div>
+  <main class="recom-lecture-view">
+    <h1>所有讲义</h1>
+    <p v-if="loading" class="shelf-message">正在加载讲义…</p>
+    <p v-else-if="error" class="shelf-message error">{{ error }} <MButton size="sm" variant="ghost" @click="load">重试</MButton></p>
+    <p v-else-if="!lectures.length" class="shelf-message">暂无讲义</p>
+    <div v-else class="lecture-grid">
+      <MLectureCover v-for="lecture in lectures" :key="lecture.id" :title="lecture.title || '未命名讲义'" :subtitle="lecture.subtitle || ''" @click="openLecture(lecture)" />
     </div>
-  </div>
+  </main>
 </template>
 
 <style scoped>
-.recom-lecture-view {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: calc(100vh - 140px);
-  width: 100%;
-  padding: 24px 16px;
-  box-sizing: border-box;
-}
-
-.coming-soon-box {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  text-align: center;
-  user-select: none;
-}
-
-.coming-soon-tag {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 10px;
-  border-radius: var(--radius-xs, 2px);
-  background-color: var(--accent-muted, rgba(56, 189, 248, 0.12));
-  color: var(--accent-primary, #38bdf8);
-  font-size: var(--font-size-smallest, 12px);
-  letter-spacing: 1.5px;
-}
-
-.coming-soon-title {
-  font-size: clamp(28px, 6vw, 44px);
-  font-weight: var(--font-weight-bold, 700);
-  color: var(--text-primary, #ffffff);
-  letter-spacing: 4px;
-  line-height: 1.2;
-}
-
-.coming-soon-desc {
-  font-size: var(--font-size, 14px);
-  color: var(--text-muted, #808080);
-  letter-spacing: 0.5px;
-}
-
-.recommended-list {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 12px;
-}
+.recom-lecture-view { display: flex; flex: 1; flex-direction: column; box-sizing: border-box; min-width: 0; min-height: 0; padding: 20px clamp(20px, 3vw, 40px) clamp(20px, 3vw, 40px); color: var(--text-primary); }
+h1 { flex: none; margin: 0 0 16px; font-size: var(--font-size-larger); font-weight: var(--font-weight-semibold); }
+.lecture-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 180px)); align-content: start; gap: 24px; }
+.shelf-message { margin: 0; color: var(--text-muted); font-size: var(--font-size-smaller); }
+.shelf-message.error { color: var(--tag-red); }
+@media (max-width: 480px) { .recom-lecture-view { padding: 14px 16px 20px; } .lecture-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; } }
 </style>

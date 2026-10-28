@@ -1,4 +1,4 @@
-// 我的讲义 IndexedDB 本地持久化存储与合并引擎
+// 我的书架 IndexedDB 本地持久化存储与合并引擎
 // 严格遵循原生 IndexedDB 规范，体积为 0KB 外部依赖
 
 const DB_NAME = 'MakiMath_UserData';
@@ -391,7 +391,7 @@ export async function addOrUpgradeNotebookItem({
     };
 
     tx.oncomplete = () => {
-      let message = `已收入《我的讲义》`;
+      let message = `已收入《我的书架》`;
       if (absorbedCount > 0) {
         message = `已收录${scope === 'section' ? '整小节' : '考点'}《${newItem.title}》，并自动合并 ${absorbedCount} 个已收录碎片`;
       }

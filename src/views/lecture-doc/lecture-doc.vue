@@ -2,9 +2,12 @@
 import { ref, computed, watch, onMounted, onUnmounted, provide } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import ChapterNav from './ChapterNav.vue';
+import { fetchShelfLectureTree } from '../../utils/shelf-lecture.js';
+import { lectureLocation, lectureNavigationOrigin } from '../../utils/lecture-route.js';
+import { authStatus, currentUser } from '../../utils/auth.js';
 import OutlineNav from './OutlineNav.vue';
 import DocFooterNav from './DocFooterNav.vue';
-import { fetchCourseTree, toChapters, getCourseSectionContent, invalidateCourseCaches } from '../../api';
+import { toChapters, getCourseSectionContent, invalidateCourseCaches } from '../../api';
 import { List, MenuScale, EditPencil, ArrowUp, NavArrowLeft, NavArrowRight, Bookmark, BookmarkSolid } from '@iconoir/vue';
 import MSelectionToolbar from '../../components/MSelectionToolbar.vue';
 import LectureViewerEmbed from '../../components/LectureViewerEmbed.vue';
@@ -170,13 +173,16 @@ onUnmounted(() => {
 });
 
 // 当前路由参数
-const currentCourseId = computed(() => {
-  return route.params.courseId;
+const currentLectureId = computed(() => {
+  return route.params.lectureSlug;
 });
 
 const currentSectionId = computed(() => {
   return route.params.sectionId ? String(route.params.sectionId).trim() : '';
 });
+
+const shelfSource = computed(() => route.name === 'local-lecture-doc' ? 'local' : 'online');
+const revisionId = computed(() => route.query.revision_id ?? '');
 
 // 讲义正文与目录数据
 const courseChapters = ref([]);
@@ -210,7 +216,7 @@ onUnmounted(() => {
 
 // 监听路由参数加载讲义
 watch(
-  [currentCourseId, currentSectionId, reloadKey],
+  [currentLectureId, currentSectionId, reloadKey, shelfSource, revisionId, () => shelfSource.value === 'online' ? authStatus.value : null, () => shelfSource.value === 'online' ? currentUser.value?.id : null],
   async ([courseId, sectionId]) => {
     const id = ++loadId;
     const preserveScroll = preserveScrollOnReload;
@@ -225,7 +231,7 @@ watch(
     try {
       // 通过统一课程目录树接口加载数据
       // 内部通过解析器将别名解析为对应数字编号
-      const tree = await fetchCourseTree(courseId);
+      const tree = await fetchShelfLectureTree(courseId, shelfSource.value, revisionId.value);
       if (id !== loadId) return;
       if (tree.id == null) throw new Error('课程标识缺失');
       courseTitle.value = tree.title || '';
@@ -235,7 +241,7 @@ watch(
       // 加载讲义正文与大纲
       const sections = chaps.flatMap((chapter) => chapter.sections || []);
       const section = sectionId
-        ? sections.find((item) => String(item.id) === sectionId || item.slug === sectionId)
+        ? sections.find((item) => String(item.id) === sectionId)
         : sections[0];
       if (sectionId && !section) {
         const error = new Error('讲义不存在');
@@ -259,7 +265,7 @@ watch(
         readingViewportRef.value.scrollTop = 0;
       }
     } catch (err) {
-      if (id === loadId) loadError.value = err.status === 404 ? '讲义不存在' : '讲义加载失败，请重试';
+      if (id === loadId) loadError.value = err.status === 404 ? (revisionId.value ? '讲义或指定版本不可访问，可能已更新或下架，请返回列表刷新' : '讲义不存在或当前账号无权访问') : err.message || '讲义加载失败，请重试';
     } finally {
       if (id === loadId) isLoading.value = false;
     }
@@ -271,7 +277,7 @@ watch(
 const currentSection = computed(() => {
   const targetId = String(currentContent.value.id || currentSectionId.value);
   for (const chap of courseChapters.value) {
-    const sec = chap.sections?.find(s => String(s.id) === targetId || (s.slug && String(s.slug) === targetId));
+    const sec = chap.sections?.find(s => String(s.id) === targetId);
     if (sec) {
       return {
         ...sec,
@@ -357,13 +363,7 @@ const handleSelectSection = (section) => {
   closeDrawer();
   const targetId = String(section.id);
   if (targetId === currentSectionId.value) return;
-  router.push({
-    name: 'lecture-doc',
-    params: {
-      courseId: currentCourseId.value || '',
-      sectionId: targetId
-    }
-  });
+  router.push(lectureLocation({ source: shelfSource.value, slug: currentLectureId.value, sectionId: targetId, revisionId: revisionId.value, origin: lectureNavigationOrigin() }));
 };
 
 // 滚动至大纲锚点
@@ -376,7 +376,7 @@ const scrollToOutline = (id) => {
 };
 
 // ============================================================
-// 我的讲义：多粒度收藏与从属合并上下文
+// 我的书架：多粒度收藏与从属合并上下文
 // ============================================================
 const currentNotebookItems = ref([]);
 
@@ -384,7 +384,7 @@ const reloadNotebookItems = async () => {
   try {
     currentNotebookItems.value = await getNotebookItems(DEFAULT_NOTEBOOK_ID);
   } catch (err) {
-    console.error('[DocView] 读取我的讲义失败:', err);
+    console.error('[DocView] 读取我的书架失败:', err);
   }
 };
 
@@ -456,6 +456,7 @@ const isCardAbsorbed = (cardId) => {
 
 // 收藏 / 移出整小节 (一键收录并自动吸收该小节下的全部碎片)
 const handleToggleSectionCollect = async () => {
+  if (shelfSource.value) return;
   const cId = contentIdentity.value?.courseId;
   const sId = contentIdentity.value?.sectionId;
   if (!cId || !sId) return;
@@ -492,6 +493,7 @@ const handleToggleSectionCollect = async () => {
 
 // 收藏 / 移出大纲考点节 (自动合并下属真题卡片)
 const handleCollectOutline = async (outlineItem) => {
+  if (shelfSource.value) return;
   const cId = contentIdentity.value?.courseId;
   const sId = contentIdentity.value?.sectionId;
   if (!cId || !sId) return;
@@ -532,6 +534,7 @@ const handleCollectOutline = async (outlineItem) => {
 
 // 收藏 / 移出独立卡片 (真题 / 知识盒)
 const handleCollectCard = async (cardNode) => {
+  if (shelfSource.value) return;
   const cId = contentIdentity.value?.courseId;
   const sId = contentIdentity.value?.sectionId;
   if (!cId || !sId) return;
@@ -569,6 +572,7 @@ const handleCollectCard = async (cardNode) => {
 
 // 提供给递归组件 TypstDoc 与侧边栏 OutlineNav
 provide('lectureCollectContext', {
+  enabled: () => !shelfSource.value,
   isSectionCollected: () => isSectionCollected.value,
   isOutlineCollected,
   isOutlineAbsorbed,
@@ -634,10 +638,11 @@ provide('lectureCollectContext', {
             <span class="mobile-outline-text" :title="item.title">{{ item.title }}</span>
           </button>
           <button
+            v-if="!shelfSource"
             type="button"
             class="mobile-outline-collect-btn font-mono"
             :class="{ 'is-collected': isOutlineCollected(item.id), 'is-absorbed': isOutlineAbsorbed(item.id) }"
-            :title="isOutlineAbsorbed(item.id) ? '已随整小节收入讲义' : isOutlineCollected(item.id) ? '已收入我的讲义' : '收入此考点'"
+            :title="isOutlineAbsorbed(item.id) ? '已随整小节收入讲义' : isOutlineCollected(item.id) ? '已收入我的书架' : '收入此考点'"
             @click.stop="handleCollectOutline(item)"
           >
             <component :is="isOutlineCollected(item.id) ? BookmarkSolid : Bookmark" width="13" height="13" />
@@ -666,10 +671,11 @@ provide('lectureCollectContext', {
             <div class="doc-title-row">
               <h1 class="doc-main-title">{{ currentSection.title }}</h1>
               <button
+                v-if="!shelfSource"
                 type="button"
                 class="collect-section-btn font-mono"
                 :class="{ 'is-collected': isSectionCollected }"
-                :title="isSectionCollected ? '整小节已收入我的讲义 (点击移除)' : '将整小节收入我的讲义'"
+                :title="isSectionCollected ? '整小节已收入我的书架 (点击移除)' : '将整小节收入我的书架'"
                 @click="handleToggleSectionCollect"
               >
                 <component :is="isSectionCollected ? BookmarkSolid : Bookmark" width="13" height="13" />
@@ -791,10 +797,11 @@ provide('lectureCollectContext', {
         </button>
 
         <button
+          v-if="!shelfSource"
           type="button"
           class="mobile-corner-btn"
           :class="{ 'is-active': isSectionCollected }"
-          :title="isSectionCollected ? '小节已收录 (点击移出)' : '将整小节收入我的讲义'"
+          :title="isSectionCollected ? '小节已收录 (点击移出)' : '将整小节收入我的书架'"
           @click="handleToggleSectionCollect"
         >
           <component :is="isSectionCollected ? BookmarkSolid : Bookmark" width="15" height="15" />

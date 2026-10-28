@@ -7,7 +7,7 @@ import { Bookmark, BookmarkSolid } from '@iconoir/vue';
 // 递归渲染依赖组件名
 defineOptions({ name: 'TypstDoc' });
 
-// 讲义收藏上下文注入 (由阅读器或我的讲义页面提供)
+// 讲义收藏上下文注入 (由阅读器或我的书架页面提供)
 const collectContext = inject('lectureCollectContext', null);
 
 function isCardCollected(cardId) {
@@ -300,13 +300,13 @@ function warningText(item) {
           </span>
           <span v-else-if="node.title" class="td-box-title">{{ node.title }}</span>
 
-          <!-- 知识盒收入我的讲义按钮 -->
+          <!-- 知识盒收入我的书架按钮 -->
           <button
             v-if="collectContext && node.cardId"
             type="button"
             class="card-collect-btn font-mono"
             :class="{ 'is-collected': isCardCollected(node.cardId), 'is-absorbed': isCardAbsorbed(node.cardId) }"
-            :title="isCardAbsorbed(node.cardId) ? '已随所在考点/小节收入讲义' : isCardCollected(node.cardId) ? '已收入我的讲义 (点击移除)' : '收入此知识盒到我的讲义'"
+            :title="isCardAbsorbed(node.cardId) ? '已随所在考点/小节收入讲义' : isCardCollected(node.cardId) ? '已收入我的书架 (点击移除)' : '收入此知识盒到我的书架'"
             @click.stop="handleCollectCard(node)"
           >
             <component :is="isCardCollected(node.cardId) ? BookmarkSolid : Bookmark" width="12" height="12" />
@@ -343,13 +343,13 @@ function warningText(item) {
         :class="node.class"
         :style="node.style"
       >
-        <!-- 真题卡片收入我的讲义快捷按钮 -->
+        <!-- 真题卡片收入我的书架快捷按钮 -->
         <button
           v-if="collectContext && node.cardId && (node.class === 'td-zt' || String(node.class).includes('td-zt'))"
           type="button"
           class="card-collect-btn is-zt-btn font-mono"
           :class="{ 'is-collected': isCardCollected(node.cardId), 'is-absorbed': isCardAbsorbed(node.cardId) }"
-          :title="isCardAbsorbed(node.cardId) ? '已随所在考点/小节收入讲义' : isCardCollected(node.cardId) ? '已收入我的讲义 (点击移除)' : '收入此真题到我的讲义'"
+          :title="isCardAbsorbed(node.cardId) ? '已随所在考点/小节收入讲义' : isCardCollected(node.cardId) ? '已收入我的书架 (点击移除)' : '收入此真题到我的书架'"
           @click.stop="handleCollectCard(node)"
         >
           <component :is="isCardCollected(node.cardId) ? BookmarkSolid : Bookmark" width="12" height="12" />

@@ -5,7 +5,7 @@ import { isSuperAdmin, initAuth } from '../utils/auth.js';
 const StartView = () => import('../views/start/start.vue');
 const RecomLectureView = () => import('../views/recom-lecture/recom-lecture.vue');
 const MyLectureView = () => import('../views/my-lecture/my-lecture.vue');
-const CourseHomeView = () => import('../views/course-home/course-home.vue');
+const LectureHomeView = () => import('../views/lecture-home/lecture-home.vue');
 const LectureDocView = () => import('../views/lecture-doc/lecture-doc.vue');
 const KnowledgeView = () => import('../views/knowledge/knowledge.vue');
 const KnowledgeLibrary = () => import('../views/knowledge/KnowledgeLibrary.vue');
@@ -29,14 +29,26 @@ export const routes = [
     redirect: '/start'
   },
   {
-    path: '/course/:courseId',
-    name: 'course-home',
-    component: CourseHomeView,
-    meta: { title: '课程', tag: 'COURSE' }
+    path: '/lecture/online/:lectureSlug',
+    name: 'lecture-home',
+    component: LectureHomeView,
+    meta: { title: '讲义', tag: 'LECTURE' }
   },
   {
-    path: '/course/:courseId/doc/:sectionId?',
+    path: '/lecture/online/:lectureSlug/doc/:sectionId?',
     name: 'lecture-doc',
+    component: LectureDocView,
+    meta: { title: '讲义阅读', tag: 'DOC' }
+  },
+  {
+    path: '/lecture/local/:lectureSlug',
+    name: 'local-lecture-home',
+    component: LectureHomeView,
+    meta: { title: '讲义', tag: 'LECTURE' }
+  },
+  {
+    path: '/lecture/local/:lectureSlug/doc/:sectionId?',
+    name: 'local-lecture-doc',
     component: LectureDocView,
     meta: { title: '讲义阅读', tag: 'DOC' }
   },
@@ -56,13 +68,13 @@ export const routes = [
     path: '/recom-lecture',
     name: 'recom-lecture',
     component: RecomLectureView,
-    meta: { title: '讲义推荐', tag: 'HOT' }
+    meta: { title: '创意工坊', tag: 'HOT' }
   },
   {
     path: '/my-lecture',
     name: 'my-lecture',
     component: MyLectureView,
-    meta: { title: '我的讲义', tag: 'LOCAL' }
+    meta: { title: '我的书架', tag: 'LOCAL' }
   },
   {
     path: '/knowledge-workbench',

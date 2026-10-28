@@ -9,8 +9,9 @@ const mutate = async (url, options) => {
 
 export const lectureApi = {
   list: () => request('/api/lectures'),
-  get: (id) => request(`/api/lectures/${id}`, { cache: 'no-store' }),
+  getBySlug: (slug, revisionId) => request(`/api/lectures/by-slug/${encodeURIComponent(slug)}${revisionId != null && revisionId !== '' ? `?revision_id=${encodeURIComponent(revisionId)}` : ''}`, { cache: 'no-store' }),
   mine: () => request('/api/lectures/mine'),
+  owned: () => request('/api/lectures/owned', { cache: 'no-store' }),
   create: (body) => mutate('/api/lectures', { method: 'POST', body }),
   revisions: (id) => request(`/api/lectures/${id}/revisions`),
   createRevision: (id, basedOnId) => mutate(`/api/lectures/${id}/revisions`, { method: 'POST', body: { based_on_id: basedOnId } }),

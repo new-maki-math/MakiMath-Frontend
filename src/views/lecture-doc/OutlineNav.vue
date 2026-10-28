@@ -283,11 +283,11 @@ onUnmounted(() => {
 
         <!-- 考点大纲收藏微交互 -->
         <button
-          v-if="collectContext"
+          v-if="collectContext && (!collectContext.enabled || collectContext.enabled())"
           type="button"
           class="outline-collect-btn"
           :class="{ 'is-collected': isOutlineCollected(item.id), 'is-absorbed': isOutlineAbsorbed(item.id) }"
-          :title="isOutlineAbsorbed(item.id) ? '已随整小节收入讲义' : isOutlineCollected(item.id) ? '已收入我的讲义 (点击移除)' : '收入此考点到我的讲义'"
+          :title="isOutlineAbsorbed(item.id) ? '已随整小节收入讲义' : isOutlineCollected(item.id) ? '已收入我的书架 (点击移除)' : '收入此考点到我的书架'"
           @click.stop="handleCollectOutline(item)"
         >
           <component :is="isOutlineCollected(item.id) ? BookmarkSolid : Bookmark" width="12" height="12" />

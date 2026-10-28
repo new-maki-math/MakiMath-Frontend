@@ -8,8 +8,6 @@ const courseListCache = new Map();
 const treeRequests = new Map();
 const courseListRequests = new Map();
 let cacheVersion = 0;
-// slug -> 数字 id 的动态映射表；不要硬编码，课程 id 由数据库自增决定
-const slugToIdMap = new Map();
 
 // 清除内容缓存并使进行中的请求失效
 export function invalidateCourseCaches() {
@@ -18,7 +16,6 @@ export function invalidateCourseCaches() {
   courseListCache.clear();
   treeRequests.clear();
   courseListRequests.clear();
-  slugToIdMap.clear();
 }
 
 const fetchCourseList = () => cachedRequest(courseListCache, courseListRequests, 'all', () => request('/api/lectures'));
@@ -35,26 +32,6 @@ function cachedRequest(cache, pending, key, load) {
   });
   pending.set(key, promise);
   return promise;
-}
-
-// 规范化课程 id 传入 slug 则解析为后端数字 ID
-export async function resolveCourseId(idOrSlug) {
-  if (!idOrSlug) throw new Error('缺少课程标识');
-  const str = String(idOrSlug).trim();
-  if (/^\d+$/.test(str)) return str;
-  if (slugToIdMap.has(str)) return slugToIdMap.get(str);
-  const version = cacheVersion;
-  const list = await fetchCourseList();
-  if (Array.isArray(list)) {
-    for (const course of list) {
-      if (course.slug && version === cacheVersion) slugToIdMap.set(course.slug, String(course.id));
-    }
-  }
-  const course = Array.isArray(list) ? list.find((item) => item.slug === str) : null;
-  if (course) return String(course.id);
-  const error = new Error('课程不存在');
-  error.status = 404;
-  throw error;
 }
 
 // 获取分类与课程列表
@@ -97,16 +74,17 @@ export async function getCourseCategories() {
 }
 
 // 获取课程目录树
-export async function fetchCourseTree(id) {
-  if (!id) throw new Error('缺少课程 id');
+export async function fetchCourseTree(slug, revisionId = '') {
+  if (!slug) throw new Error('缺少讲义标识');
   const startedVersion = cacheVersion;
-  const resolvedId = await resolveCourseId(id);
-  const key = String(resolvedId);
+  const key = `${slug}:${revisionId || ''}`;
   const loadTree = async () => {
-    const snapshot = await request(`/api/lectures/${encodeURIComponent(key)}`, { cache: 'no-store' });
+    const query = revisionId !== '' && revisionId != null ? `?revision_id=${encodeURIComponent(revisionId)}` : '';
+    const snapshot = await request(`/api/lectures/by-slug/${encodeURIComponent(slug)}${query}`, { cache: 'no-store' });
     const lecture = snapshot.lecture;
     const revision = snapshot.revision;
     if (!lecture || !revision || !Array.isArray(snapshot.chapters)) throw new Error('讲义数据不完整');
+    if (lecture.slug !== String(slug) || (revisionId && String(revision.id) !== String(revisionId))) throw new Error('讲义或版本数据不匹配');
     if (snapshot.chapters.some((chapter) =>
       !chapter.occurrence_id || !Array.isArray(chapter.sections) || chapter.sections.some((section) =>
         !section.occurrence_id || typeof section.source !== 'string'
@@ -115,6 +93,7 @@ export async function fetchCourseTree(id) {
     return {
       ...revision,
       id: lecture.id,
+      revision_id: revision.id,
       slug: lecture.slug,
       status: 'live',
       chapters: snapshot.chapters.map((chapter) => ({
@@ -135,10 +114,7 @@ export async function fetchCourseTree(id) {
   const promise = loadTree().then((tree) => {
     if (version === cacheVersion) {
       treeCache.set(key, tree);
-      if (tree.slug) {
-        slugToIdMap.set(tree.slug, String(tree.id));
-        registerPresetMapping(tree.id, tree.slug);
-      }
+      if (tree.slug) registerPresetMapping(tree.id, tree.slug);
     }
     return tree;
   }).finally(() => {
@@ -195,18 +171,23 @@ export function toChapters(tree) {
 }
 
 // 获取课程数据包
-export async function fetchCourseBundle(id) {
+export async function fetchLectureBundle(id) {
   const tree = await fetchCourseTree(id);
+  return lectureBundleFromTree(tree);
+}
+
+export function lectureBundleFromTree(tree) {
   const chapters = toChapters(tree);
 
   return {
     slug: tree.slug,
-    course: {
+    lecture: {
       id: String(tree.id),
       slug: tree.slug,
       dbId: tree.id,
       title: tree.title,
       subtitle: tree.subtitle || '',
+      cover: tree.cover || '',
       desc: tree.descr || tree.subtitle || '',
       category: tree.category || '',
       status: tree.status,
@@ -222,8 +203,8 @@ export async function fetchCourseBundle(id) {
 // 获取课程详情
 export async function getCourseById(id) {
   try {
-    const bundle = await fetchCourseBundle(id);
-    return bundle.course;
+    const bundle = await fetchLectureBundle(id);
+    return bundle.lecture;
   } catch (error) {
     if (error?.status === 404) return null;
     console.error(`[API] 加载课程 ${id} 失败:`, error);
@@ -234,7 +215,7 @@ export async function getCourseById(id) {
 // 获取课程章节树
 export async function getCourseChapters(id) {
   try {
-    const bundle = await fetchCourseBundle(id);
+    const bundle = await fetchLectureBundle(id);
     return bundle.chapters;
   } catch (error) {
     console.error(`[API] 加载课程 ${id} 目录失败:`, error);
@@ -245,9 +226,9 @@ export async function getCourseChapters(id) {
 // 获取缓存的章节树
 export function getCachedCourseChapters(id) {
   if (!id) return [];
-  const key = slugToIdMap.get(String(id)) || String(id);
+  const key = `${id}:`;
   if (treeCache.has(key)) return toChapters(treeCache.get(key));
-  fetchCourseBundle(key).catch(() => {});
+  fetchLectureBundle(id).catch(() => {});
   return [];
 }
 
@@ -350,8 +331,8 @@ export async function getCourseSectionContent(courseKey, sectionId, existingTree
   const rawDoc = structuredClone(data.doc ?? { type: 'doc', children: [] });
   const keyStr = String(courseKey || '');
   const cachedTree = treeCache.get(keyStr);
-  const slug = data.course_slug || cachedTree?.slug || keyStr;
-  const doc = await adaptDocWithPreset(rawDoc, slug);
+  const slug = data.course_slug || existingTree?.slug || cachedTree?.slug || keyStr;
+  const doc = existingTree?.storageSource === 'local' ? rawDoc : await adaptDocWithPreset(rawDoc, slug);
 
   return {
     id: data.id,

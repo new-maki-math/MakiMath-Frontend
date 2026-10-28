@@ -34,7 +34,7 @@ const {
   handleLogout,
   navigationGroups,
   currentItem,
-  currentCourse,
+  currentLecture,
   currentBreadcrumbs,
   showViewportHeader,
   isStartRoute,
@@ -240,10 +240,10 @@ watch(
     </Transition>
 
     <!-- 移动端主内容视口 (全屏单列，原生平滑滚动) -->
-    <main class="mobile-viewport">
+    <main class="mobile-viewport" :class="{ 'is-lecture-shelf': route.name === 'my-lecture' }">
       <ViewportHeader
         v-if="showViewportHeader && !currentItem.desktopOnly"
-        :title="currentCourse ? currentCourse.title : currentItem.label"
+        :title="currentLecture ? currentLecture.title : currentItem.label"
         :breadcrumbs="currentBreadcrumbs"
         @refresh="handleRefreshDoc"
       />
@@ -515,6 +515,9 @@ watch(
   min-width: 0;
   height: calc(100vh - 48px);
 }
+
+.mobile-viewport.is-lecture-shelf { overflow: hidden; min-height: 0; }
+.mobile-viewport.is-lecture-shelf .mobile-content-container { min-height: 0; overflow: hidden; }
 
 .mobile-content-container {
   flex: 1;

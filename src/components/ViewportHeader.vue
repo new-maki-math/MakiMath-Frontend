@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { useRoute } from 'vue-router';
+import { RouterLink, useRoute } from 'vue-router';
 import { Refresh } from '@iconoir/vue';
 
 const props = defineProps({
@@ -39,7 +39,7 @@ const resolvedBreadcrumbs = computed(() => {
   if (props.breadcrumbs && Array.isArray(props.breadcrumbs) && props.breadcrumbs.length > 0) {
     return props.breadcrumbs;
   }
-  return ['APP', displayTitle.value];
+  return [{ label: 'APP', to: '/start' }, { label: displayTitle.value }];
 });
 
 const handleRefresh = () => {
@@ -58,7 +58,8 @@ const handleRefresh = () => {
       <div class="breadcrumb font-mono">
         <template v-for="(seg, idx) in resolvedBreadcrumbs" :key="idx">
           <span v-if="idx > 0" class="crumb-sep">/</span>
-          <span :class="{ 'crumb-active': idx === resolvedBreadcrumbs.length - 1 }">{{ seg }}</span>
+          <RouterLink v-if="typeof seg === 'object' && seg.to && idx < resolvedBreadcrumbs.length - 1" class="crumb-link" :to="seg.to">{{ seg.label }}</RouterLink>
+          <span v-else :class="{ 'crumb-active': idx === resolvedBreadcrumbs.length - 1 }">{{ typeof seg === 'string' ? seg : seg.label }}</span>
         </template>
       </div>
 
@@ -170,6 +171,21 @@ const handleRefresh = () => {
 
 .crumb-sep {
   color: var(--text-muted);
+}
+
+.crumb-link {
+  color: inherit;
+  text-decoration: none;
+  transition: color 120ms ease;
+}
+
+.crumb-link:hover {
+  color: var(--text-primary);
+}
+
+.crumb-link:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
 }
 
 .crumb-active {

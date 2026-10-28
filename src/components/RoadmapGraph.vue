@@ -3,6 +3,7 @@ import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
 import * as d3 from 'd3';
 import { fetchCourseTree } from '../api/courses.js';
+import { lectureLocation, lectureNavigationOrigin } from '../utils/lecture-route.js';
 import { RoadmapWebGLRenderer } from '../utils/roadmap-webgl-renderer.js';
 import {
   ZoomIn,
@@ -23,10 +24,13 @@ const props = defineProps({
     default: null
   },
   // 课程 ID
-  courseId: {
+  lectureId: {
     type: [String, Number],
     default: ''
   },
+  source: { type: String, default: '' },
+  lectureSlug: { type: String, default: '' },
+  revisionId: { type: [String, Number], default: '' },
   // 初始视图模式：'chapter' (显示课程+章节) 或 'section' (全部显示)
   initialMode: {
     type: String,
@@ -117,7 +121,7 @@ const graphData = computed(() => {
     nodes.push({
       id: chNodeId,
       rawId: ch.id,
-      courseId: tree.id,
+      lectureId: tree.id,
       title: ch.title,
       tag: ch.tag || `第${chIdx + 1}章`,
       level: 2,
@@ -146,7 +150,7 @@ const graphData = computed(() => {
         id: secNodeId,
         rawId: sec.id,
         chapterId: ch.id,
-        courseId: tree.id,
+        lectureId: tree.id,
         title: sec.title,
         tag: sec.tag,
         level: 3,
@@ -217,8 +221,8 @@ async function loadTreeData() {
   try {
     if (props.tree) {
       rawTree.value = props.tree;
-    } else if (props.courseId) {
-      const tree = await fetchCourseTree(props.courseId);
+    } else if (props.lectureSlug) {
+      const tree = await fetchCourseTree(props.lectureSlug, props.revisionId);
       if (!tree || !tree.id) {
         throw new Error('未获取到有效的课程目录树数据');
       }
@@ -583,9 +587,9 @@ function setMode(mode) {
 function goToSectionDoc(node) {
   if (!node) return;
   const secId = node.rawId || node.id;
-  const cid = props.courseId || rawTree.value?.id;
-  emit('navigate', `/course/${cid}/doc/${secId}`);
-  router.push(`/course/${cid}/doc/${secId}`);
+  const target = lectureLocation({ source: props.source, slug: props.lectureSlug, sectionId: secId, revisionId: props.revisionId, origin: lectureNavigationOrigin() });
+  emit('navigate', router.resolve(target).href);
+  router.push(target);
 }
 
 // 移动端触控点击检测 (零延迟响应)
@@ -727,7 +731,7 @@ onBeforeUnmount(() => {
   }
 });
 
-watch(() => props.courseId, () => {
+watch(() => props.lectureId, () => {
   loadTreeData();
 });
 
