@@ -50,7 +50,7 @@ onUnmounted(() => clearTimeout(closeTimer));
 .section-head { flex-shrink: 0; display: flex; align-items: center; min-height: 34px; }
 .section-toggle { display: flex; align-items: center; justify-content: flex-start; flex: 1; min-width: 0; min-height: 34px; gap: 5px; padding: 0 8px; border: 0; background: transparent; color: var(--text-primary); text-align: left; font-size: var(--font-size-smaller); font-weight: var(--font-weight-semibold); cursor: pointer; }
 .section-toggle:hover, .section-action:hover { background: var(--bg-hover); }
-.section-action:hover:not(:focus-visible), .section-content :deep(.node-action:hover:not(:focus-visible)) { border: 0; outline: 0; box-shadow: none; }
+.section-action:hover:not(:focus-visible) { border: 0; outline: 0; box-shadow: none; }
 .section-toggle:focus-visible, .section-action:focus-visible, .section-hint button:focus-visible, .section-error button:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: -2px; }
 .section-caret { flex: none; color: var(--text-secondary); transition: transform 160ms ease; }
 .section-caret.is-open { transform: rotate(90deg); }
@@ -58,17 +58,6 @@ onUnmounted(() => clearTimeout(closeTimer));
 .section-collapse { flex: 1 1 0; min-height: 0; }
 .section-collapse :deep(.m-collapse-inner) { display: flex; flex-direction: column; }
 .section-content { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 4px 4px 8px; }
-.section-content :deep(.node-row) { padding-right: 2px; }
-.section-content :deep(.node-row:hover), .section-content :deep(.node-row.is-selected), .section-content :deep(.node-row.is-selected:hover) { position: relative; background: transparent; color: var(--text-primary); }
-.section-content :deep(.node-row:hover::before), .section-content :deep(.node-row.is-selected::before) { content: ''; position: absolute; z-index: 0; left: var(--node-indent, 4px); right: 2px; top: 4px; bottom: 4px; border-radius: var(--radius-xs); background: var(--bg-hover); }
-.section-content :deep(.node-row.is-selected::before) { background: color-mix(in srgb, var(--accent-primary) 15%, var(--bg-sidebar)); }
-.section-content :deep(.node-row.is-selected:hover::before) { background: color-mix(in srgb, var(--accent-primary) 21%, var(--bg-sidebar)); }
-.section-content :deep(.node-row:hover > *), .section-content :deep(.node-row.is-selected > *) { position: relative; z-index: 1; }
-.section-content :deep(.node-row.is-selected .node-label), .section-content :deep(.node-row.is-selected .node-caret) { color: var(--text-primary); }
-.section-content :deep(.node-row.is-selected .node-flag) { color: var(--text-secondary); }
-.section-content :deep(.node-actions) { gap: 0; }
-.section-content :deep(.node-action), .section-content :deep(.node-caret:not(.is-leaf)) { border-radius: 0; }
-.section-content :deep(.node-row.is-selected .node-action:hover:not(:disabled)), .section-content :deep(.node-row.is-selected .node-caret:not(.is-leaf):hover) { background: color-mix(in srgb, var(--accent-primary) 32%, var(--bg-sidebar)); }
 .section-hint, .section-error { margin: 0; padding: 8px 12px; color: var(--text-muted); font-size: var(--font-size-smaller); line-height: 1.5; }
 .section-error { color: var(--tag-red); }
 .section-hint button, .section-error button { margin-left: 4px; border: 0; background: transparent; color: var(--accent-primary); cursor: pointer; }

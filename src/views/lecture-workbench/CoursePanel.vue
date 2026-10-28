@@ -27,7 +27,8 @@ const selectedCategory = computed({
     <div class="wb-block" :inert="!editable">
       <div class="wb-form-grid">
         <MInput v-model="revision.title" label="课程名称" required />
-        <MInput :model-value="lecture.slug" label="课程标识" disabled />
+        <MInput v-if="lecture.isLocal" v-model="lecture.slug" label="课程标识" hint="修改后讲义地址会改变" required />
+        <MInput v-else :model-value="lecture.slug" label="课程标识" disabled />
         <MInput v-model="revision.subtitle" label="副标题" />
         <MSelect v-model="selectedCategory" label="讲义分类" :options="[{ value: '', label: '未分类' }, ...categories.map((item) => ({ value: String(item.id), label: item.name }))]" />
         <MInput v-model="revision.typst_version" label="Typst 版本" required />

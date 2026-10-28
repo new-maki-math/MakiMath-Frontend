@@ -42,6 +42,8 @@ const submitTarget = ref(null);
 let submitTimer = null;
 let submitDeadline = 0;
 const createOpen = ref(false);
+const downloadOpen = ref(false);
+const downloadSlug = ref('');
 const createSource = ref('local');
 const createForm = ref({ title: '', slug: '' });
 const leaveOpen = ref(false);
@@ -55,17 +57,17 @@ let draftRefreshSequence = 0;
 let identityEpoch = 0;
 const versionRequests = new Map();
 
-const snapshot = () => JSON.stringify({ revision: revision.value, chapters: chapters.value });
+const snapshot = () => JSON.stringify({ revision: revision.value, chapters: chapters.value, slug: lecture.value?.isLocal ? lecture.value.slug : null });
 const dirty = computed(() => Boolean(revision.value && baseline.value && snapshot() !== baseline.value));
 const ownsContext = computed(() => Boolean(lecture.value?.isLocal || (lecture.value && lecture.value.ownerUserId === (currentUser.value?.id ?? null) && (lecture.value.ownerUserId === null || authStatus.value === 'authenticated'))));
-const canEditOnline = computed(() => Boolean(ownsContext.value && lecture.value && !lecture.value.isLocal && lecture.value.permissionValid && lecture.value.canEdit && authStatus.value === 'authenticated'));
+const canEditOnline = computed(() => Boolean(ownsContext.value && lecture.value && !lecture.value.isLocal && lecture.value.permissionValid && lecture.value.canEdit && authStatus.value === 'authenticated' && ['editor', 'super_admin'].includes(currentUser.value?.role)));
 const canEdit = computed(() => Boolean(!loading.value && !createOpen.value && (lecture.value?.isLocal || (canEditOnline.value && revision.value?.status === 'draft'))));
 const readOnlyMessage = computed(() => canEditOnline.value && revision.value?.status !== 'draft'
   ? '当前版本只供查看，请选择草稿继续编辑。'
-  : '当前账号无法编辑此在线讲义，可下载到本地查看。');
+  : '当前账号无法编辑此讲义，可下载到本地查看。');
 const canCreateOnline = computed(() => authStatus.value === 'authenticated' && ['editor', 'super_admin'].includes(currentUser.value?.role));
 const treeNodes = computed(() => ['local', 'online'].map((source) => ({
-  type: 'group', id: source, label: source === 'local' ? '本地讲义' : '在线讲义', actions: source === 'local' || canCreateOnline.value ? { add: true } : false,
+  type: 'group', id: source, label: source === 'local' ? '本地讲义' : '我创作的讲义', actions: source === 'local' || canCreateOnline.value ? { add: true } : false,
   children: (source === 'local' ? localLectures.value : lectures.value).map((item) => {
     const key = `${source}:${item.id}`;
     const active = ownsContext.value && lecture.value?.key === key;
@@ -154,7 +156,7 @@ async function loadLectures() {
     if (sequence === listSequence) localLectures.value = items;
     return items;
   });
-  const onlinePromise = lectureApi.list().then((items) => { publicItems = items; updateOnline(); return items; });
+  const onlinePromise = (canCreateOnline.value ? lectureApi.list() : Promise.resolve([])).then((items) => { publicItems = items; updateOnline(); return items; });
   const minePromise = (canCreateOnline.value ? lectureApi.mine() : Promise.resolve([])).then((items) => {
     privateItems = items;
     updateOnline();
@@ -171,9 +173,9 @@ async function loadLectures() {
   Promise.allSettled([onlinePromise, minePromise]).then(([online, mine]) => {
     if (sequence !== listSequence) return;
     let error = '';
-    if (online.status === 'rejected' && mine.status === 'rejected') error = '在线讲义及个人讲义加载失败';
-    else if (online.status === 'rejected') error = '在线讲义加载失败';
-    else if (mine.status === 'rejected') error = '个人在线讲义加载失败';
+    if (online.status === 'rejected' && mine.status === 'rejected') error = '我创作的讲义加载失败';
+    else if (online.status === 'rejected') error = '我创作的讲义加载失败';
+    else if (mine.status === 'rejected') error = '我创作的讲义加载失败';
     listLoading.value = { ...listLoading.value, online: false };
     listErrors.value = { ...listErrors.value, online: error };
   });
@@ -185,10 +187,10 @@ async function loadLectures() {
   const sectionErrors = { local: '', online: '' };
   if (local.status === 'fulfilled') localLectures.value = local.value;
   else { sectionErrors.local = '本地讲义加载失败'; errors.push(sectionErrors.local); }
-  if (online.status === 'rejected') { sectionErrors.online = '在线讲义加载失败'; errors.push(sectionErrors.online); }
+  if (online.status === 'rejected') { sectionErrors.online = '我创作的讲义加载失败'; errors.push(sectionErrors.online); }
   if (mine.status === 'rejected') {
-    sectionErrors.online = sectionErrors.online ? '在线讲义及个人讲义加载失败' : '个人在线讲义加载失败';
-    errors.push('我的在线讲义加载失败');
+    sectionErrors.online = '我创作的讲义加载失败';
+    errors.push('我创作的讲义加载失败');
   }
   listErrors.value = sectionErrors;
   listLoading.value = { local: false, online: false };
@@ -232,6 +234,7 @@ function preloadCourseVersions(items, sequence) {
 }
 
 async function selectLecture(item, source, force = false, discardConfirmed = false) {
+  if (source === 'online' && !canCreateOnline.value) return false;
   if (loading.value || saving.value || createOpen.value) return false;
   const key = `${source}:${item.id}`;
   if (!force && ownsContext.value && lecture.value?.key === key && revision.value && (source === 'local' || lecture.value.hasPrivateAccess || !item.canViewPrivate)) return true;
@@ -265,9 +268,9 @@ async function selectLecture(item, source, force = false, discardConfirmed = fal
       lectureVersions.value = new Map(lectureVersions.value).set(key, versions);
       pending = versions.find((version) => version.status === 'pending')?.id || null;
       canEditLecture = currentUser.value?.role === 'super_admin' || item.owner_id === currentUser.value?.id || collaborators.some((entry) => entry.user_id === currentUser.value?.id && entry.permission === 'edit');
-      if (!canEditLecture && item.isPublic) data = await lectureApi.get(item.id);
+      if (!canEditLecture && item.isPublic) data = await lectureApi.getBySlug(item.slug);
       else data = await lectureApi.getRevision((canEditLecture ? versions.find((version) => version.status === 'draft') || versions[0] : versions[0]).id);
-    } else data = await lectureApi.get(item.id);
+    } else data = await lectureApi.getBySlug(item.slug);
     if (sequence !== loadSequence) return false;
     lecture.value = { id: item.id, slug: item.slug || data.lecture?.slug, key, isLocal: source === 'local', ownerUserId: source === 'online' ? (currentUser.value?.id ?? null) : null, lectureOwnerId: item.owner_id, editVersion: item.editVersion, canEdit: canEditLecture, permissionValid: true, hasPrivateAccess: source === 'online' && Boolean(item.canViewPrivate) };
     revision.value = JSON.parse(JSON.stringify(data.revision));
@@ -288,6 +291,7 @@ async function selectLecture(item, source, force = false, discardConfirmed = fal
 }
 
 async function selectRevision(node) {
+  if (!canCreateOnline.value) return false;
   if (loading.value || saving.value || createOpen.value) return false;
   if (ownsContext.value && lecture.value?.key === node.courseKey && revision.value?.id === node.revisionId) return true;
   if (!await confirmLeave()) return false;
@@ -365,10 +369,16 @@ async function createLecture() {
   } finally { saving.value = false; }
 }
 
-async function downloadLecture() {
+function openDownload() {
   if (!lecture.value || !ownsContext.value || lecture.value.isLocal || saving.value || loading.value || createOpen.value) return;
+  downloadSlug.value = lecture.value.slug || '';
+  downloadOpen.value = true;
+}
+
+async function downloadLecture() {
+  if (!downloadOpen.value || !lecture.value || !ownsContext.value || lecture.value.isLocal || saving.value || loading.value || createOpen.value) return;
   const record = {
-    id: crypto.randomUUID(), slug: lecture.value.slug, editVersion: 1,
+    id: crypto.randomUUID(), slug: downloadSlug.value.trim(), editVersion: 1,
     sourceLectureId: lecture.value.id, sourceRevisionId: revision.value.id,
     revision: JSON.parse(JSON.stringify(revision.value)), chapters: JSON.parse(JSON.stringify(chapters.value))
   };
@@ -376,6 +386,7 @@ async function downloadLecture() {
   try {
     await createLocalLecture(record);
     localLectures.value = await listLocalLectures();
+    downloadOpen.value = false;
     treeRef.value?.expand('group', 'local');
     notify('已下载到本地，可选择本地课程进行修改', 'success');
   } catch (err) {
@@ -415,7 +426,7 @@ async function save() {
     if (lecture.value.isLocal) {
       const current = localLectures.value.find((item) => item.id === lecture.value.id);
       if (!current) throw new Error('本地课程不存在，请先备份当前内容');
-      const record = { ...current, revision: data.revision, chapters: data.chapters };
+      const record = { ...current, slug: data.slug, revision: data.revision, chapters: data.chapters };
       const version = await saveLocalLecture(record, lecture.value.editVersion);
       lecture.value.editVersion = version;
       localLectures.value = localLectures.value.map((item) => item.id === record.id ? { ...record, editVersion: version } : item);
@@ -457,6 +468,7 @@ function discard() {
   const saved = JSON.parse(baseline.value);
   revision.value = saved.revision;
   chapters.value = saved.chapters;
+  if (lecture.value?.isLocal) lecture.value.slug = saved.slug;
   selected.value = { type: 'lecture', id: '' };
 }
 
@@ -612,6 +624,7 @@ async function selectTreeNode(node) {
 }
 
 function expandTreeNode(node) {
+  if (!canCreateOnline.value) return;
   if (!['lecture', 'version'].includes(node.type) || node.source !== 'online' || treeLoadingKeys.value.has(node.id)) return;
   if (node.type === 'lecture' && node.item.canViewPrivate && lectureVersions.value.has(node.id)) return;
   if (node.type === 'lecture' && !node.item.canViewPrivate && (lecture.value?.key === node.id || lectureTrees.value.has(node.id))) return;
@@ -625,7 +638,7 @@ function expandTreeNode(node) {
         const versions = await getCourseVersions(node.item);
         if (epoch === treeEpoch) lectureVersions.value = new Map(lectureVersions.value).set(node.id, versions);
       } else {
-        const data = node.type === 'version' ? await lectureApi.getRevision(node.revisionId) : await lectureApi.get(node.item.id);
+        const data = node.type === 'version' ? await lectureApi.getRevision(node.revisionId) : await lectureApi.getBySlug(node.item.slug);
         if (epoch === treeEpoch) lectureTrees.value = new Map(lectureTrees.value).set(node.id, data.chapters);
       }
     } catch (err) {
@@ -700,7 +713,7 @@ async function confirmRemoveTreeNode() {
 
 async function revalidatePermission(epoch) {
   const context = lecture.value;
-  if (!context?.hasPrivateAccess || !ownsContext.value || authStatus.value !== 'authenticated') return;
+  if (!context?.hasPrivateAccess || !ownsContext.value || !canCreateOnline.value) return;
   try {
     const [items, collaborators] = await Promise.all([lectureApi.mine(), lectureApi.collaborators(context.id)]);
     if (epoch !== identityEpoch || lecture.value !== context || !ownsContext.value) return;
@@ -724,6 +737,7 @@ watch([authStatus, () => currentUser.value?.id, () => currentUser.value?.role], 
   closeSubmit();
   removeTarget.value = null;
   if (createSource.value === 'online') createOpen.value = false;
+  downloadOpen.value = false;
   if (lecture.value && !lecture.value.isLocal) lecture.value.permissionValid = false;
   treeEpoch++;
   treeLoadingKeys.value = new Set();
@@ -754,34 +768,34 @@ onUnmounted(() => {
 
 <template>
   <div class="workbench-workspace">
-    <LectureWorkbenchTree :inert="loading || saving || createOpen" ref="treeRef" :nodes="treeNodes" :selected-key="selectedKey" :list-loading="listLoading" :list-errors="listErrors" @select="selectTreeNode" @expand="expandTreeNode" @refresh="refreshTree" @add="addTreeNode" @move="moveTreeNode" @remove="askRemoveTreeNode" />
+    <LectureWorkbenchTree :inert="loading || saving || createOpen || downloadOpen" ref="treeRef" :nodes="treeNodes" :show-online="canCreateOnline" :selected-key="selectedKey" :list-loading="listLoading" :list-errors="listErrors" @select="selectTreeNode" @expand="expandTreeNode" @refresh="refreshTree" @add="addTreeNode" @move="moveTreeNode" @remove="askRemoveTreeNode" />
     <main class="workbench-main">
       <div v-if="revision && lecture && !ownsContext" class="workbench-empty"><h2>当前账号无法访问此编辑内容</h2><p>请使用原账号重新登录，或离开后选择其他讲义。</p></div>
       <CoursePanel v-else-if="revision && lecture && selected.type === 'lecture'" :revision="revision" :lecture="lecture" :categories="categories" :dirty="dirty" :saving="saving || loading || createOpen" :editable="canEdit" :read-only-message="readOnlyMessage" @save="save" @reset="discard">
         <template #actions>
           <MButton v-if="onlineConflict" size="sm" :mono="true" :disabled="saving" title="重新读取会放弃未保存的修改" @click="reloadConflictedLecture">重新读取</MButton>
-          <MButton v-if="!lecture.isLocal" size="sm" :mono="true" :disabled="saving" @click="downloadLecture">下载到本地</MButton>
+          <MButton v-if="!lecture.isLocal" size="sm" :mono="true" :disabled="saving" @click="openDownload">下载到本地</MButton>
           <MButton v-if="canEditOnline && revision.status === 'draft'" size="sm" :mono="true" :disabled="saving || dirty || !!pendingSnapshotId || onlineConflict" :title="dirty ? '请先保存所有修改' : pendingSnapshotId ? '已有待审核快照' : '提交已保存的草稿'" @click="openSubmit">{{ pendingSnapshotId ? '审核中' : '提交审核' }}</MButton>
         </template>
       </CoursePanel>
       <ChapterPanel v-else-if="revision && lecture && selected.type === 'chapter' && selectedChapter" :chapter="selectedChapter" :dirty="dirty" :saving="saving || loading || createOpen" :editable="canEdit" :read-only-message="readOnlyMessage" :submitted-at="revision.submitted_at || ''" :review-status="revision.status || ''" :reviewed-at="revision.reviewed_at || ''" @save="save" @reset="discard">
         <template #actions>
           <MButton v-if="onlineConflict" size="sm" :mono="true" :disabled="saving" title="重新读取会放弃未保存的修改" @click="reloadConflictedLecture">重新读取</MButton>
-          <MButton v-if="!lecture.isLocal" size="sm" :mono="true" :disabled="saving" @click="downloadLecture">下载到本地</MButton>
+          <MButton v-if="!lecture.isLocal" size="sm" :mono="true" :disabled="saving" @click="openDownload">下载到本地</MButton>
           <MButton v-if="canEditOnline && revision.status === 'draft'" size="sm" :mono="true" :disabled="saving || dirty || !!pendingSnapshotId || onlineConflict" :title="dirty ? '请先保存所有修改' : pendingSnapshotId ? '已有待审核快照' : '提交已保存的草稿'" @click="openSubmit">{{ pendingSnapshotId ? '审核中' : '提交审核' }}</MButton>
         </template>
       </ChapterPanel>
       <SectionPanel v-else-if="revision && lecture && selected.type === 'section' && selectedSection" :section="selectedSection" :dirty="dirty" :saving="saving || loading || createOpen" :editable="canEdit" :read-only-message="readOnlyMessage" :submitted-at="revision.submitted_at || ''" :review-status="revision.status || ''" :reviewed-at="revision.reviewed_at || ''" @save="save" @reset="discard">
         <template #actions>
           <MButton v-if="onlineConflict" size="sm" :mono="true" :disabled="saving" title="重新读取会放弃未保存的修改" @click="reloadConflictedLecture">重新读取</MButton>
-          <MButton v-if="!lecture.isLocal" size="sm" :mono="true" :disabled="saving" @click="downloadLecture">下载到本地</MButton>
+          <MButton v-if="!lecture.isLocal" size="sm" :mono="true" :disabled="saving" @click="openDownload">下载到本地</MButton>
           <MButton v-if="canEditOnline && revision.status === 'draft'" size="sm" :mono="true" :disabled="saving || dirty || !!pendingSnapshotId || onlineConflict" :title="dirty ? '请先保存所有修改' : pendingSnapshotId ? '已有待审核快照' : '提交已保存的草稿'" @click="openSubmit">{{ pendingSnapshotId ? '审核中' : '提交审核' }}</MButton>
         </template>
       </SectionPanel>
       <div v-else class="workbench-empty">
         <span class="empty-label font-mono">LECTURE WORKBENCH</span>
         <h2>选择一份讲义</h2>
-        <p>从左侧展开本地或在线讲义，选择课程、章节或小节。</p>
+        <p>从左侧选择本地讲义或我创作的讲义，选择课程、章节或小节。</p>
       </div>
     </main>
     <MModal :open="submitOpen" title="确认提交审核" hide-footer show-close @close="closeSubmit">
@@ -794,8 +808,9 @@ onUnmounted(() => {
         <MButton variant="primary" size="sm" :disabled="saving || submitCountdown > 0 || dirty || !!pendingSnapshotId || onlineConflict" @click="submitDraft">{{ saving ? '提交中' : submitCountdown > 0 ? `确认提交（${submitCountdown}）` : '确认提交' }}</MButton>
       </div>
     </MModal>
+    <MModal :open="downloadOpen" title="下载到本地" :busy="saving" @close="!saving && (downloadOpen = false)" @confirm="downloadLecture"><MInput v-model="downloadSlug" label="本地讲义标识" hint="标识需在本浏览器的本地讲义中唯一" required /></MModal>
     <MModal :open="leaveOpen" title="放弃未保存的修改" desc="离开后当前修改将丢失" confirm-text="放弃修改" confirm-variant="danger" @close="finishLeave(false)" @confirm="finishLeave(true)" />
-    <MModal :open="createOpen" :title="createSource === 'local' ? '新建本地课程' : '新建在线课程'" :busy="saving" @close="!saving && (createOpen = false)" @confirm="createLecture"><MInput v-model="createForm.title" label="标题" required /><MInput v-model="createForm.slug" label="标识" hint="创建后不能修改" required /></MModal>
+    <MModal :open="createOpen" :title="createSource === 'local' ? '新建本地课程' : '新建在线课程'" :busy="saving" @close="!saving && (createOpen = false)" @confirm="createLecture"><MInput v-model="createForm.title" label="标题" required /><MInput v-model="createForm.slug" label="标识" :hint="createSource === 'local' ? '需在本浏览器的本地讲义中唯一' : '创建后不能修改'" required /></MModal>
     <MModal :open="Boolean(removeTarget)" title="确认移除" :desc="removeTarget?.type === 'lecture' ? '本地课程及其章节和小节将被删除，此操作无法撤销。' : '移除将在保存草稿后生效，保存前可放弃修改。'" confirm-text="移除" confirm-variant="danger" :busy="treeBusy" @close="!treeBusy && (removeTarget = null)" @confirm="confirmRemoveTreeNode" />
   </div>
 </template>
