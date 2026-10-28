@@ -88,7 +88,7 @@ const typstPreviewHtml = computed(() => {
     try {
       const cleanTypst = q.replace(/^\$+|\$+$/g, '').trim();
       if (!cleanTypst) return null;
-      return renderToString(cleanTypst, { displayMode: true });
+      return renderToString(cleanTypst, { displayMode: true, output: 'html' });
     } catch {
       return null;
     }
