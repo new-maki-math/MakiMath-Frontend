@@ -50,6 +50,8 @@ const gpuInitializing = ref(false);
 const glyphLoading = ref(false);
 const glyphWarning = ref('');
 const reading = ref(false);
+const readingClosing = ref(false);
+const overlaySession = ref(0);
 const readingOverlay = ref(null);
 let returnFocus = null;
 let restoringFocus = false;
@@ -74,12 +76,7 @@ let zoomTarget = null;
 const selected = ref(null);
 watch(selected, (node) => { if (!node && reading.value) closeReading(); });
 const focusedId = ref('');
-const hoverNode = ref(null);
-const hoverPrerequisites = ref([]);
-const hoverError = ref(false);
-let hoverTarget = null;
-let hoverTimer = 0;
-let hoverSequence = 0;
+const showingRelations = ref(false);
 const returnStack = ref([]);
 const graph = ref({ categories: [], nodes: [], edges: [] });
 const domains = ref([]);
@@ -172,7 +169,7 @@ function buildDomains(data) {
 
 async function loadMap({ preserveOnError = false } = {}) {
   if (!categoryId.value) return false;
-  clearHover();
+  showingRelations.value = false;
   const sequence = ++mapSequence;
   mapLoading.value = true;
   mapError.value = '';
@@ -374,12 +371,12 @@ function updateGpuColor() {
   };
   gpuColor = readColor('var(--text-primary)');
   gpuPalette = {
-    library: readColor('var(--chip-library)'), domain: readColor('var(--chip-domain)'), topic: readColor('var(--chip-topic)'),
-    domainBorder: readColor('var(--chip-domain-border)'), topicBorder: readColor('var(--chip-topic-border)'),
-    unmastered: readColor('var(--chip-unmastered)'),
-    mastered: readColor('var(--chip-mastered)'),
-    text: readColor('var(--text-primary)'), masteredText: readColor('var(--chip-mastered-text)'),
-    selected: readColor('var(--text-primary)'), before: readColor('var(--chip-before)'), after: readColor('var(--chip-after)')
+    library: readColor('var(--bg-surface)'), domain: readColor('var(--bg-elevated)'), topic: readColor('color-mix(in srgb, var(--bg-elevated) 80%, var(--text-muted))'),
+    domainBorder: readColor('color-mix(in srgb, var(--text-secondary) 38%, transparent)'), topicBorder: readColor('color-mix(in srgb, var(--text-secondary) 22%, transparent)'),
+    unmastered: readColor('color-mix(in srgb, var(--text-muted) 38%, var(--bg-hover))'),
+    mastered: readColor('color-mix(in srgb, var(--accent-primary) 50%, var(--tree-selected-bg))'),
+    text: readColor('var(--text-primary)'), masteredText: readColor('var(--tree-selected-fg)'),
+    selected: readColor('var(--text-primary)'), before: readColor('var(--tag-orange)'), after: readColor('var(--tag-green)')
   };
   probe.remove();
 }
@@ -467,8 +464,9 @@ function handleGpuLost() {
   gpuReady.value = false;
   gpuError.value = 'WebGPU 设备已断开，当前使用备用显示。';
 }
+watch(searchQuery, () => { showingRelations.value = false; });
 watch(categoryId, () => { if (!suppressCategoryWatch && categoryId.value) { returnStack.value = []; searchQuery.value = ''; loadMap(); } });
-watch([chipLayout, selected, reading, mastered, focusedId, detailPrerequisites, searchResultIds, hoverNode, hoverPrerequisites], rebuildGpuLabels, { flush: 'post' });
+watch([chipLayout, selected, reading, mastered, focusedId, detailPrerequisites, searchResultIds, showingRelations], rebuildGpuLabels, { flush: 'post' });
 watch([canvasWidth, canvasHeight], requestGpuDraw, { flush: 'post' });
 function watchResolution() {
   resolutionQuery?.removeEventListener('change', watchResolution);
@@ -506,7 +504,6 @@ onMounted(() => {
 onUnmounted(() => {
   disposed = true;
   unregisterCommands?.();
-  clearHover();
   window.removeEventListener('resize', requestGpuDraw);
   resolutionQuery?.removeEventListener('change', watchResolution);
   gpuInitSequence++;
@@ -541,17 +538,16 @@ function related(direction, target = selected.value) {
   return [...matches.values()].map((item) => ({ node: item.node, reason: [...item.reasons].join('；') }));
 }
 const successors = computed(() => related('after'));
-const hoverSuccessors = computed(() => related('after', hoverNode.value));
 const relationClass = (node) => {
-  const focus = reading.value ? selected.value : hoverNode.value;
+  const focus = showingRelations.value ? selected.value : null;
   if (!focus) {
     if (searchQuery.value.trim()) return searchResultIds.value.has(node.id) ? 'is-selected' : 'is-dimmed';
     return canonicalId(node.id) === canonicalId(focusedId.value) ? 'is-selected' : '';
   }
   const id = canonicalId(node.id);
   if (id === canonicalId(focus.id)) return 'is-selected';
-  const prerequisites = reading.value ? detailPrerequisites.value : hoverPrerequisites.value;
-  const next = reading.value ? successors.value : hoverSuccessors.value;
+  const prerequisites = detailPrerequisites.value;
+  const next = successors.value;
   if (prerequisites.some((item) => canonicalId(item.id) === id)) return 'is-prerequisite';
   if (next.some((item) => canonicalId(item.node.id) === id)) return 'is-successor';
   return 'is-dimmed';
@@ -693,45 +689,25 @@ function handleOverlayPan({ event, type }) {
   }) : event;
   handler.call(canvas.value, mapEvent);
 }
+function handleBackgroundClick(event) {
+  if (event.defaultPrevented || reading.value || !showingRelations.value) return;
+  showingRelations.value = false;
+}
 function handleMapClick(event) {
   if (event.defaultPrevented) return;
   const tile = tileAt(event);
   if (tile) activateNode(tile.node);
 }
-function clearHover() {
-  clearTimeout(hoverTimer);
-  hoverTimer = 0;
-  hoverTarget = null;
-  hoverSequence++;
-  hoverNode.value = null;
-  hoverPrerequisites.value = [];
-  hoverError.value = false;
-}
 function handleMapHover(event) {
-  if (reading.value || event.buttons) { if (hoverTarget !== null) clearHover(); return; }
-  const tile = gpuReady.value ? tileAt(event) : chipLayout.value.tiles.find((item) => String(item.node.id) === event.target.closest?.('[data-node-id]')?.dataset.nodeId);
-  if (gpuReady.value && gpuCanvas.value) {
-    gpuCanvas.value.title = tile ? `${domainById.get(tile.node.domain_id)?.name} / ${topicNames.get(tile.node.topic_id)} · ${tileLabel(tile.node)}` : '';
-    gpuCanvas.value.style.cursor = tile ? 'pointer' : 'grab';
-  }
-  const id = tile?.node.id ?? null;
-  if (hoverTarget === id) return;
-  clearHover();
-  if (!tile) return;
-  hoverTarget = id;
-  const sequence = hoverSequence;
-  hoverTimer = setTimeout(async () => {
-    if (disposed || reading.value || sequence !== hoverSequence) return;
-    hoverNode.value = tile.node;
-    hoverPrerequisites.value = related('before', tile.node).map((item) => item.node);
-    try {
-      const result = await knowledgeApi.prerequisites(id);
-      if (disposed || sequence !== hoverSequence) return;
-      hoverPrerequisites.value = result;
-    } catch {
-      if (!disposed && sequence === hoverSequence) hoverError.value = true;
-    }
-  }, 500);
+  if (!gpuReady.value || !gpuCanvas.value) return;
+  const tile = tileAt(event);
+  gpuCanvas.value.title = tile ? `${domainById.get(tile.node.domain_id)?.name} / ${topicNames.get(tile.node.topic_id)} · ${tileLabel(tile.node)}` : '';
+  gpuCanvas.value.style.cursor = tile ? 'pointer' : 'grab';
+}
+function showRelations() {
+  if (!selectedTile.value) return;
+  showingRelations.value = true;
+  readingOverlay.value?.dismiss();
 }
 function focusTile(tile) {
   focusedId.value = tile.node.id;
@@ -846,8 +822,14 @@ async function returnToPrevious() {
 }
 
 function activateNode(node) {
-  if (reading.value) return;
-  clearHover();
+  if (reading.value && !readingClosing.value) return;
+  if (showingRelations.value && relationClass(node) === 'is-dimmed') {
+    showingRelations.value = false;
+    return;
+  }
+  showingRelations.value = false;
+  readingClosing.value = false;
+  overlaySession.value++;
   returnFocus = document.activeElement;
   stopSmoothZoom();
   select(canvas.value).interrupt();
@@ -868,7 +850,9 @@ function readingSourceRect() {
   const height = parseFloat(tile.style.height) * canvasTransform.k;
   return { left, top, width, height, right: left + width, bottom: top + height, fontSize: 10 * canvasTransform.k, titleOpacity: labelOpacity(canvasTransform.k, 0.95, 1.2) };
 }
-function closeReading() {
+function closeReading(sessionId) {
+  if (sessionId != null && sessionId !== overlaySession.value) return;
+  readingClosing.value = false;
   reading.value = false;
   nextTick(() => { restoringFocus = true; if (returnFocus?.isConnected && returnFocus !== document.body) returnFocus.focus(); else canvas.value?.focus(); restoringFocus = false; });
 }
@@ -878,7 +862,7 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(canonicalId(no
 <template>
   <section class="knowledge-library">
     <MLoadingMask :visible="mapLoading || gpuInitializing || glyphLoading" :text="mapLoading ? '正在加载知识地图…' : '正在准备知识点字形…'" :z-index="50" />
-    <main ref="libraryMain" class="library-main">
+    <main ref="libraryMain" class="library-main" @click="handleBackgroundClick">
       <div class="floating-info" :inert="reading">
         <div class="knowledge-filters">
           <MSelect v-model="categoryId" aria-label="选择知识库" :options="librarySelectOptions" />
@@ -899,9 +883,15 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(canonicalId(no
         <p v-if="storageError" class="storage-error" role="alert">{{ storageError }}</p>
         <p v-if="gpuError" class="storage-error" role="alert">{{ gpuError }}</p>
         <p v-if="glyphWarning" class="storage-error" role="alert">{{ glyphWarning }}</p>
-        <p v-if="hoverError && !reading" class="storage-error" role="alert">完整前置加载失败</p>
+        <div v-if="showingRelations && selected" class="relation-info">
+          <p>正在查看：{{ selected.title }}</p>
+          <p><span class="relation-key before" />前置 <span class="relation-key after" />后续</p>
+          <p>前置和后续仅在当前地图范围内高亮</p>
+          <p v-if="prerequisitesError" class="storage-error" role="alert">{{ prerequisitesError }}</p>
+          <MButton size="sm" @click="showingRelations = false">退出关系查看</MButton>
+        </div>
       </div>
-      <div ref="canvas" class="map-canvas" tabindex="-1" :inert="reading" @click="handleMapClick" @mousemove="handleMapHover" @mouseleave="clearHover">
+      <div ref="canvas" class="map-canvas" tabindex="-1" :inert="reading && !readingClosing" @click="handleMapClick" @mousemove="handleMapHover">
         <div v-if="!gpuReady" ref="mapWorld" class="map-world" :style="{ width: `${worldSize}px`, height: `${worldSize}px` }">
           <div v-for="group in chipLayout.groups" :key="group.id" :class="['chip-group', `is-${group.kind}`, { 'is-library': group.isLibrary }]" :style="group.style"><span class="group-heading"><span class="group-heading-text" :class="{ scrolling: groupScrollDistance(group) > 0 }" :style="{ '--scroll-distance': `-${groupScrollDistance(group)}px` }">{{ group.title }}</span></span></div>
           <button v-for="tile in chipLayout.tiles" :key="tile.node.id" type="button" :data-node-id="tile.node.id" :class="['map-tile', relationClass(tile.node), { mastered: mastered.has(canonicalId(tile.node.id)) }]" :style="tile.style" :title="`${domainById.get(tile.node.domain_id)?.name} / ${topicNames.get(tile.node.topic_id)} · ${tileLabel(tile.node)}`" :aria-label="tileLabel(tile.node)" @click.stop="activateNode(tile.node)" />
@@ -917,8 +907,8 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(canonicalId(no
       </div>
       <div class="floating-controls" :inert="reading"><MButton size="sm" aria-label="缩小画布" @click="zoomCanvas(0.8)">−</MButton><MButton size="sm" aria-label="放大画布" @click="zoomCanvas(1.25)">+</MButton><MButton size="sm" @click="resetCanvas">全览</MButton></div>
       <div class="floating-legend" :inert="reading"><span><i class="swatch" />未掌握</span><span><i class="swatch mastered" />已掌握</span><span><i class="boundary-key domain" />分区</span><span><i class="boundary-key topic" />子分区</span><span>{{ totalStats.done }} / {{ totalStats.total }}</span></div>
-      <KnowledgePointOverlay v-if="reading && selected" ref="readingOverlay" :source-rect="readingSourceRect" :glyph-advance="glyphAdvance" :before-frame="syncMapFrame" :animation-title="selected.title" :title="detail?.title || selected.title" :node-id="selected.id" :gpu-enabled="gpuReady" :mastered="mastered.has(selected.id)" @closed="closeReading" @zoom="handleCanvasWheel" @pan="handleOverlayPan">
-        <KnowledgePointContent :selected="selected" :detail="detail" :selected-tile="selectedTile" :selected-outside-map="selectedOutsideMap" :locate-error="locateError" :detail-loading="detailLoading" :detail-error="detailError" :prerequisites-error="prerequisitesError" :detail-prerequisites="detailPrerequisites" :successors="successors" :can-return="Boolean(returnStack.length)" :is-mastered="mastered.has(selected.id)" :mastery-loading="masteryLoading" :mastery-saving="masterySaving" :mastery-available="masteryAvailable" :storage-error="storageError" @back="returnToPrevious" @locate="locateSelected" @mastery="toggleMastery" @retry="selectNode(selected, true)" @follow="followDependency" />
+      <KnowledgePointOverlay v-if="reading && selected" ref="readingOverlay" :key="overlaySession" :session-id="overlaySession" :source-rect="readingSourceRect" :glyph-advance="glyphAdvance" :before-frame="syncMapFrame" :animation-title="selected.title" :title="detail?.title || selected.title" :node-id="selected.id" :gpu-enabled="gpuReady" :mastered="mastered.has(selected.id)" @closing="readingClosing = true" @closed="closeReading" @zoom="handleCanvasWheel" @pan="handleOverlayPan">
+        <KnowledgePointContent :selected="selected" :detail="detail" :selected-tile="selectedTile" :selected-outside-map="selectedOutsideMap" :locate-error="locateError" :detail-loading="detailLoading" :detail-error="detailError" :prerequisites-error="prerequisitesError" :detail-prerequisites="detailPrerequisites" :successors="successors" :can-return="Boolean(returnStack.length)" :is-mastered="mastered.has(selected.id)" :mastery-loading="masteryLoading" :mastery-saving="masterySaving" :mastery-available="masteryAvailable" :storage-error="storageError" @relations="showRelations" @back="returnToPrevious" @locate="locateSelected" @mastery="toggleMastery" @retry="selectNode(selected, true)" @follow="followDependency" />
       </KnowledgePointOverlay>
     </main>
 
@@ -926,41 +916,45 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(canonicalId(no
 </template>
 
 <style scoped>
-.knowledge-library { --chip-canvas: var(--bg-app); --chip-library: #1b1b1b; --chip-domain: #222222; --chip-topic: #292929; --chip-domain-border: #555555; --chip-topic-border: #404040; --chip-unmastered: #505050; --chip-mastered: #086db8; --chip-mastered-text: #f2f2f2; --chip-panel: #202020; --chip-panel-border: #383838; --chip-before: #ffdf4d; --chip-after: #68eea5; position: relative; display: flex; flex: 1; min-height: 0; overflow: hidden; background: var(--chip-canvas); color: var(--text-primary); }
-:global([data-theme="light"]) .knowledge-library, :global(.theme-light) .knowledge-library { --chip-canvas: var(--bg-app); --chip-library: #f6f6f6; --chip-domain: #eeeeee; --chip-topic: #e5e5e5; --chip-domain-border: #a3a3a3; --chip-topic-border: #c5c5c5; --chip-unmastered: #c2c2c2; --chip-mastered: #086db8; --chip-mastered-text: #f2f2f2; --chip-panel: #f7f7f7; --chip-panel-border: #d3d3d3; --chip-before: #854300; --chip-after: #00613d; }
+.knowledge-library { position: relative; display: flex; flex: 1; min-height: 0; overflow: hidden; background: var(--bg-app); color: var(--text-primary); }
 .library-main { position: relative; display: flex; flex: 1; min-width: 0; min-height: 0; }
 .map-canvas { position: relative; flex: 1; min-width: 0; min-height: 0; overflow: hidden; cursor: grab; touch-action: none; }
 .map-canvas:active { cursor: grabbing; }
-.map-world { position: absolute; left: 0; top: 0; transform-origin: 0 0; background: var(--chip-canvas); border-radius: var(--radius-xs); }
-.chip-group { position: absolute; box-sizing: border-box; overflow: hidden; background: var(--chip-domain); border: 1px solid color-mix(in srgb, var(--chip-domain-border) var(--group-border-opacity, 100%), transparent); border-radius: var(--radius-xs); pointer-events: none; }
-.chip-group.is-library { background: var(--chip-library); }
-.chip-group.is-topic { background: var(--chip-topic); border-color: color-mix(in srgb, var(--chip-topic-border) var(--group-border-opacity, 100%), transparent); }
+.map-world { position: absolute; left: 0; top: 0; transform-origin: 0 0; background: var(--bg-app); border-radius: var(--radius-xs); }
+.chip-group { position: absolute; box-sizing: border-box; overflow: hidden; background: var(--bg-elevated); border: 1px solid color-mix(in srgb, color-mix(in srgb, var(--text-secondary) 38%, transparent) var(--group-border-opacity, 100%), transparent); border-radius: var(--radius-xs); pointer-events: none; }
+.chip-group.is-library { background: var(--bg-surface); }
+.chip-group.is-topic { background: color-mix(in srgb, var(--bg-elevated) 80%, var(--text-muted)); border-color: color-mix(in srgb, color-mix(in srgb, var(--text-secondary) 22%, transparent) var(--group-border-opacity, 100%), transparent); }
 .chip-group > .group-heading { position: absolute; top: 0; left: 0; right: 0; padding: 9px 12px; overflow: hidden; color: var(--text-primary); white-space: nowrap; text-overflow: ellipsis; font-size: 18px; font-weight: var(--font-weight-medium); opacity: var(--domain-label-opacity, 0); }
 .group-heading-text { display: inline-block; white-space: nowrap; }
 .group-heading-text.scrolling { animation: title-scroll 6s ease-in-out infinite alternate; }
 @keyframes title-scroll { 0%, 15% { transform: translateX(0); } 85%, 100% { transform: translateX(var(--scroll-distance)); } }
 @media (prefers-reduced-motion: reduce) { .group-heading-text.scrolling { animation: none; } }
 .chip-group.is-topic > .group-heading { padding: 5px 8px; color: var(--text-secondary); font-size: 14px; opacity: var(--topic-label-opacity, 0); }
-.map-tile { position: absolute; box-sizing: border-box; min-width: 0; min-height: 0; padding: 4px; overflow: hidden; border: 0; outline: 2px solid transparent; outline-offset: 1px; border-radius: var(--radius-xs); background: var(--chip-unmastered); color: var(--text-primary); text-align: left; cursor: pointer; transition: opacity 200ms cubic-bezier(0.16, 1, 0.3, 1), outline-color 200ms cubic-bezier(0.16, 1, 0.3, 1), background-color 200ms cubic-bezier(0.16, 1, 0.3, 1); }
+.map-tile { position: absolute; box-sizing: border-box; min-width: 0; min-height: 0; padding: 4px; overflow: hidden; border: 0; outline: 2px solid transparent; outline-offset: 1px; border-radius: var(--radius-xs); background: color-mix(in srgb, var(--text-muted) 38%, var(--bg-hover)); color: var(--text-primary); text-align: left; cursor: pointer; transition: opacity 200ms cubic-bezier(0.16, 1, 0.3, 1), outline-color 200ms cubic-bezier(0.16, 1, 0.3, 1), background-color 200ms cubic-bezier(0.16, 1, 0.3, 1); }
 .label-layer { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; visibility: hidden; }
 .label-layer text { transition: opacity 200ms cubic-bezier(0.16, 1, 0.3, 1); fill: var(--text-primary); font-family: var(--font-ui, sans-serif); font-size: 10px; }
-.label-layer text.mastered { fill: var(--chip-mastered-text); }
+.label-layer text.mastered { fill: var(--tree-selected-fg); }
 .label-layer text.is-dimmed { opacity: .4; }
 .gpu-labels { position: absolute; inset: 0; width: 100%; height: 100%; color: var(--text-primary); }
 .canvas-accessibility { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-.map-tile.mastered { background: var(--chip-mastered); }
-.swatch.mastered { background: var(--chip-mastered); }
+.map-tile.mastered { background: color-mix(in srgb, var(--accent-primary) 50%, var(--tree-selected-bg)); }
+.swatch.mastered { background: color-mix(in srgb, var(--accent-primary) 50%, var(--tree-selected-bg)); }
 .map-tile:hover { outline: 1px solid var(--border-focus); outline-offset: -1px; }
 .map-tile.is-dimmed { opacity: .4; }
-.map-tile.is-selected { background: color-mix(in srgb, var(--chip-unmastered) 88%, white); }
-.map-tile.mastered.is-selected { background: color-mix(in srgb, var(--chip-mastered) 88%, white); }
+.map-tile.is-selected { background: color-mix(in srgb, color-mix(in srgb, var(--text-muted) 38%, var(--bg-hover)) 88%, white); }
+.map-tile.mastered.is-selected { background: color-mix(in srgb, color-mix(in srgb, var(--accent-primary) 50%, var(--tree-selected-bg)) 88%, white); }
 .map-tile.is-prerequisite::after, .map-tile.is-successor::after { content: ''; position: absolute; right: 4px; bottom: 4px; width: 7px; height: 7px; border-radius: var(--radius-xs); }
-.map-tile.is-prerequisite::after { background: var(--chip-before); }
-.map-tile.is-successor::after { background: var(--chip-after); }
+.map-tile.is-prerequisite::after { background: var(--tag-orange); }
+.map-tile.is-successor::after { background: var(--tag-green); }
 .map-tile:focus-visible { outline: 2px solid var(--text-primary); outline-offset: 1px; }
 .floating-info { position: absolute; z-index: 3; top: 16px; left: 18px; max-width: min(260px, calc(100% - 36px)); color: var(--text-secondary); font-size: var(--font-size-smallest); }
 .floating-legend, .floating-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
-.knowledge-filters { display: flex; flex-direction: column; gap: 10px; width: min(260px, calc(100vw - 72px)); box-sizing: border-box; padding: 12px; background: var(--chip-panel); border: 1px solid var(--chip-panel-border); border-radius: var(--radius-xs); }
+.knowledge-filters { display: flex; flex-direction: column; gap: 10px; width: min(260px, calc(100vw - 72px)); box-sizing: border-box; padding: 12px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-xs); }
+.relation-info { margin-top: 8px; padding: 10px 12px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-xs); }
+.relation-key { display: inline-block; width: 8px; height: 8px; margin-right: 4px; border-radius: var(--radius-xs); }
+.relation-key.before { background: var(--tag-orange); }
+.relation-key.after { margin-left: 8px; background: var(--tag-green); }
+.relation-info p { margin: 0 0 8px; line-height: 1.5; overflow-wrap: anywhere; }
 .filter-note { margin: 2px 0; color: var(--text-muted); }
 .search-results { border-top: 1px solid var(--border-subtle); padding-top: 6px; }
 .search-result-head { display: flex; justify-content: space-between; gap: 8px; }
@@ -969,11 +963,11 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(canonicalId(no
 .search-results li button:hover { background: var(--bg-hover); }
 .search-results li button:focus-visible, .dependency:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: -2px; }
 .storage-error { color: var(--tag-red); }
-.floating-controls { position: absolute; z-index: 3; right: 18px; bottom: 16px; gap: 4px; padding: 5px; background: var(--chip-panel); border: 1px solid var(--chip-panel-border); border-radius: var(--radius-xs); }
-.floating-legend { position: absolute; z-index: 3; left: 18px; bottom: 16px; gap: 12px; padding: 9px 10px; background: var(--chip-panel); border: 1px solid var(--chip-panel-border); border-radius: var(--radius-xs); color: var(--text-secondary); font-size: var(--font-size-smallest); }
+.floating-controls { position: absolute; z-index: 3; right: 18px; bottom: 16px; gap: 4px; padding: 5px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-xs); }
+.floating-legend { position: absolute; z-index: 3; left: 18px; bottom: 16px; gap: 12px; padding: 9px 10px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-xs); color: var(--text-secondary); font-size: var(--font-size-smallest); }
 .floating-legend span { display: inline-flex; align-items: center; gap: 5px; }
 .swatch { display: inline-block; width: 10px; height: 10px; flex-shrink: 0; border-radius: var(--radius-xs); }
-.swatch { background: var(--chip-unmastered); border: 1px solid var(--border-hover); }
+.swatch { background: color-mix(in srgb, var(--text-muted) 38%, var(--bg-hover)); border: 1px solid var(--border-hover); }
 .boundary-key { width: 14px; height: 0; border-top: 2px solid var(--text-secondary); }
 .boundary-key.domain { border-top: 3px solid var(--text-primary); }
 .detail-content { padding: 16px; user-select: text; }

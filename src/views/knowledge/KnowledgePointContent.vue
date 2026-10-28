@@ -8,7 +8,7 @@ defineProps({
   canReturn: Boolean, isMastered: Boolean, masteryLoading: Boolean,
   masterySaving: Boolean, masteryAvailable: Boolean, storageError: String
 });
-defineEmits(['back', 'locate', 'mastery', 'retry', 'follow']);
+defineEmits(['back', 'locate', 'mastery', 'retry', 'follow', 'relations']);
 </script>
 
 <template>
@@ -19,7 +19,10 @@ defineEmits(['back', 'locate', 'mastery', 'retry', 'follow']);
       <p v-if="locateError" class="storage-error" role="alert">{{ locateError }}</p>
       <p v-if="storageError" class="storage-error" role="alert">{{ storageError }}</p>
       <p class="detail-note">{{ isMastered ? '已掌握' : '未掌握' }} · 保存在本浏览器</p>
+      <div class="detail-actions">
       <MButton size="sm" :disabled="masteryLoading || masterySaving || !masteryAvailable" :variant="isMastered ? 'secondary' : 'primary'" @click="$emit('mastery', selected)">{{ isMastered ? '标记为未掌握' : '标记为已掌握' }}</MButton>
+      <MButton size="sm" variant="secondary" :disabled="!selectedTile || detailLoading" @click="$emit('relations')">查看引用关系</MButton>
+      </div>
       <p v-if="detailLoading" class="detail-note">正在加载知识点…</p>
       <p v-if="detailError" class="storage-error" role="alert">{{ detailError }} <button type="button" @click="$emit('retry')">重试</button></p>
       <template v-if="detail">
@@ -34,6 +37,7 @@ defineEmits(['back', 'locate', 'mastery', 'retry', 'follow']);
 
 <style scoped>
 .detail-content { max-width: 820px; margin: 0 auto; padding: 32px clamp(20px, 5vw, 56px) 64px; user-select: text; }
+.detail-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .detail-note { margin: 8px 0; color: var(--text-secondary); font-size: var(--font-size-smaller); line-height: 1.6; }
 .storage-error { color: var(--tag-red); }
 h2 { margin: 12px 0; font-size: var(--font-size-larger); line-height: 1.5; }

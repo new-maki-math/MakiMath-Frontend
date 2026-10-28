@@ -1,4 +1,5 @@
 import { bezierProgress } from './knowledge-motion.js';
+import { readGlyphCache, writeGlyphCache } from './knowledge-glyph-cache.js';
 
 export async function createKnowledgeRenderer(canvas, onLost, onLoading, onMissingGlyphs) {
   const rendererStart = performance.now();
@@ -202,48 +203,59 @@ export async function createKnowledgeRenderer(canvas, onLost, onLoading, onMissi
     const missing = codepoints.filter((codepoint) => !glyphs.has(codepoint) && !absentGlyphs.has(codepoint));
     if (!missing.length || disposed) return;
     const started = performance.now();
+    const size = 64;
+    const slot = size + 2;
+    const columns = Math.floor(atlasWidth / slot);
+    const capacity = columns * Math.floor(atlasHeight / slot);
+    const generated = [];
     console.info(`[知识地图] 开始准备 ${missing.length} 个新字形，已缓存 ${glyphs.size} 个`);
     onLoading?.(true);
+    const addGlyph = (codepoint, result) => {
+      if (!result) { absentGlyphs.add(codepoint); return; }
+      let page = pages[pages.length - 1];
+      if (!page || page.used >= capacity) {
+        page = makePage(device.createTexture({ size: [atlasWidth, atlasHeight], format: 'rgba8unorm', usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST }));
+        pages.push(page);
+      }
+      const x = (page.used % columns) * slot + 1;
+      const y = Math.floor(page.used / columns) * slot + 1;
+      page.used++;
+      device.queue.writeTexture({ texture: page.texture, origin: [x, y] }, result.rgba, { bytesPerRow: size * 4, rowsPerImage: size }, [size, size]);
+      glyphs.set(codepoint, {
+        advance: result.advance,
+        page: pages.length - 1,
+        planeBounds: result.boundsL !== result.boundsR || result.boundsB !== result.boundsT
+          ? { left: -result.translateX, right: 2 - result.translateX, top: result.translateY - 2, bottom: result.translateY }
+          : null,
+        atlasBounds: { left: x, right: x + size, top: y, bottom: y + size }
+      });
+    };
     try {
       await new Promise((resolve) => setTimeout(resolve, 0));
-      const pool = await loadWorkers(missing.length);
-      if (!pool.length || disposed) return;
-      const size = 64;
-      const slot = size + 2;
-      const columns = Math.floor(atlasWidth / slot);
-      const capacity = columns * Math.floor(atlasHeight / slot);
-      let next = 0;
-      let done = 0;
-      await Promise.all(pool.map(async (worker) => {
-        while (!disposed && next < missing.length) {
-          const codepoint = missing[next++];
-          const result = await worker.request('generate', { codepoint, size, range: distanceRange });
-          if (disposed) return;
-          if (!result) {
-            absentGlyphs.add(codepoint);
-          } else {
-            let page = pages[pages.length - 1];
-            if (!page || page.used >= capacity) {
-              page = makePage(device.createTexture({ size: [atlasWidth, atlasHeight], format: 'rgba8unorm', usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST }));
-              pages.push(page);
-            }
-            const x = (page.used % columns) * slot + 1;
-            const y = Math.floor(page.used / columns) * slot + 1;
-            page.used++;
-            device.queue.writeTexture({ texture: page.texture, origin: [x, y] }, result.rgba, { bytesPerRow: size * 4, rowsPerImage: size }, [size, size]);
-            glyphs.set(codepoint, {
-              advance: result.advance,
-              page: pages.length - 1,
-              planeBounds: result.boundsL !== result.boundsR || result.boundsB !== result.boundsT
-                ? { left: -result.translateX, right: 2 - result.translateX, top: result.translateY - 2, bottom: result.translateY }
-                : null,
-              atlasBounds: { left: x, right: x + size, top: y, bottom: y + size }
-            });
+      let cached = new Map();
+      try { cached = await readGlyphCache(missing); }
+      catch (error) { console.warn('[知识地图] 无法读取字形缓存，将重新生成', error); }
+      if (disposed) return;
+      for (const [codepoint, result] of cached) addGlyph(codepoint, result);
+      const pending = missing.filter((codepoint) => !cached.has(codepoint));
+      console.info(`[知识地图] 字形缓存命中 ${cached.size} 个，需生成 ${pending.length} 个`);
+      if (pending.length) {
+        const pool = await loadWorkers(pending.length);
+        if (!pool.length || disposed) return;
+        let next = 0;
+        let done = 0;
+        await Promise.all(pool.map(async (worker) => {
+          while (!disposed && next < pending.length) {
+            const codepoint = pending[next++];
+            const result = await worker.request('generate', { codepoint, size, range: distanceRange });
+            if (disposed) return;
+            addGlyph(codepoint, result);
+            generated.push([codepoint, result]);
+            done++;
+            if (done % 32 === 0 || done === pending.length) console.info(`[知识地图] 已生成 ${done} / ${pending.length} 个字形，耗时 ${Math.round(performance.now() - started)} ms`);
           }
-          done++;
-          if (done % 32 === 0 || done === missing.length) console.info(`[知识地图] 已生成 ${done} / ${missing.length} 个字形，耗时 ${Math.round(performance.now() - started)} ms`);
-        }
-      }));
+        }));
+      }
       if (!disposed) onMissingGlyphs?.([...absentGlyphs]);
     } catch (error) {
       for (const worker of workers.splice(0)) worker.dispose();
@@ -251,6 +263,10 @@ export async function createKnowledgeRenderer(canvas, onLost, onLoading, onMissi
       console.error('[知识地图] 字形生成失败', error);
       throw error;
     } finally {
+      if (generated.length) {
+        try { await writeGlyphCache(generated); }
+        catch (error) { console.warn('[知识地图] 无法保存字形缓存', error); }
+      }
       console.info(`[知识地图] 字形准备${disposed ? '已中止' : '结束'}，耗时 ${Math.round(performance.now() - started)} ms，已缓存 ${glyphs.size} 个，缺失 ${absentGlyphs.size} 个，图集 ${pages.length} 页`);
       if (!disposed) onLoading?.(false);
     }

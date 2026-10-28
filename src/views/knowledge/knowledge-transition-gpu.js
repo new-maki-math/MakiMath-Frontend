@@ -18,7 +18,7 @@ function loadTransitionFont() {
 }
 
 // 绘制知识点阅读过渡
-export async function createKnowledgeTransition(canvas, title, geometry, origin, surface, textColor, glyphAdvance, beforeFrame) {
+export async function createKnowledgeTransition(canvas, title, geometry, origin, surface, textColor, titleEndColor, waveColor, glyphAdvance, beforeFrame) {
   if (!navigator.gpu) throw new Error('WebGPU 不可用');
   await loadTransitionFont();
   const adapter = await navigator.gpu.requestAdapter();
@@ -29,7 +29,7 @@ export async function createKnowledgeTransition(canvas, title, geometry, origin,
   const format = navigator.gpu.getPreferredCanvasFormat();
   context.configure({ device, format, alphaMode: 'premultiplied' });
   const shader = device.createShaderModule({ code: `
-    struct State { viewport: vec4f, start: vec4f, finish: vec4f, origin: vec4f, surface: vec4f, textColor: vec4f, progress: vec4f, textVisibility: vec4f }
+    struct State { viewport: vec4f, start: vec4f, finish: vec4f, origin: vec4f, surface: vec4f, textColor: vec4f, titleEndColor: vec4f, waveColor: vec4f, progress: vec4f, textVisibility: vec4f }
     @group(0) @binding(0) var<uniform> s: State;
     @group(0) @binding(1) var title: texture_2d<f32>;
     @group(0) @binding(2) var titleSampler: sampler;
@@ -54,8 +54,10 @@ export async function createKnowledgeTransition(canvas, title, geometry, origin,
       let inside = mask > 0.;
       var color = vec4f(0.,0.,0.,.48 * dim);
       if (inside) {
-        let center = box.zw * .5;
-        let maxRadius = max(length(center), 1.);
+        let sourceCenter = s.start.xy + s.start.zw * .5;
+        let center = clamp(sourceCenter - box.xy, vec2f(0.), box.zw);
+        let farthest = max(center, box.zw - center);
+        let maxRadius = max(length(farthest), 1.);
         let direction = local - center;
         let distanceFromCenter = length(direction) / maxRadius;
         let angle = atan2(direction.y, direction.x + .0001);
@@ -63,8 +65,8 @@ export async function createKnowledgeTransition(canvas, title, geometry, origin,
         let field = clamp(distanceFromCenter * (1. + ripple), 0., 1.);
         let edge = wave * 1.3 - .15;
         let coverage = 1. - smoothstep(edge - .06, edge + .06, field);
-        let glow = (1. - smoothstep(.0, .08, abs(field - edge))) * sin(wave * 3.14159265) * .10;
-        let fill = mix(s.origin.rgb, s.surface.rgb, coverage) + vec3f(glow);
+        let glow = (1. - smoothstep(.0, .08, abs(field - edge))) * sin(wave * 3.14159265) * .65;
+        let fill = mix(mix(s.origin.rgb, s.surface.rgb, coverage), s.waveColor.rgb, glow);
         color = mix(color, vec4f(fill, 1.), mask);
       }
       let titleStart = s.start.xy + vec2f(s.progress.w * 2.);
@@ -73,7 +75,7 @@ export async function createKnowledgeTransition(canvas, title, geometry, origin,
       let titleUv = (p - textPos) / s.viewport.zw;
       if (inside && all(titleUv >= vec2f(0.)) && all(titleUv <= vec2f(1.))) {
         let ink = textureSampleLevel(title, titleSampler, titleUv, 0.).a * mask * mix(s.textVisibility.x, 1., t);
-        color = vec4f(mix(color.rgb, s.textColor.rgb, ink), max(color.a, ink));
+        color = vec4f(mix(color.rgb, mix(s.textColor.rgb, s.titleEndColor.rgb, t), ink), max(color.a, ink));
       }
       return vec4f(color.rgb * color.a, color.a);
     }` });
@@ -119,7 +121,7 @@ export async function createKnowledgeTransition(canvas, title, geometry, origin,
     }
     device.queue.copyExternalImageToTexture({ source: textCanvas }, { texture }, [textCanvas.width, textCanvas.height]);
   }
-  const uniform = device.createBuffer({ size: 128, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+  const uniform = device.createBuffer({ size: 160, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
   const binding = device.createBindGroup({ layout: pipeline.getBindGroupLayout(0), entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: texture.createView() }, { binding: 2, resource: device.createSampler({ minFilter: 'linear', magFilter: 'linear' }) }] });
   let frame = 0;
   let disposed = false;
@@ -132,13 +134,13 @@ export async function createKnowledgeTransition(canvas, title, geometry, origin,
     if (canvas.width !== width || canvas.height !== height) { canvas.width = width; canvas.height = height; }
     const { source, target, sourceFontSize, sourceOpacity } = geometry();
     updateTitle(progress, source, target, sourceFontSize);
-    const values = new Float32Array([bounds.width, bounds.height, textWidth, textHeight, ...source, ...target, ...origin, ...surface, ...textColor, progress, wave, dim, sourceFontSize * .2, sourceOpacity, 0, 0, 0]);
+    const values = new Float32Array([bounds.width, bounds.height, textWidth, textHeight, ...source, ...target, ...origin, ...surface, ...textColor, ...titleEndColor, ...waveColor, progress, wave, dim, sourceFontSize * .2, sourceOpacity, 0, 0, 0]);
     device.queue.writeBuffer(uniform, 0, values);
     const encoder = device.createCommandEncoder();
     const pass = encoder.beginRenderPass({ colorAttachments: [{ view: context.getCurrentTexture().createView(), clearValue: [0, 0, 0, 0], loadOp: 'clear', storeOp: 'store' }] });
     pass.setPipeline(pipeline); pass.setBindGroup(0, binding); pass.draw(6); pass.end(); device.queue.submit([encoder.finish()]);
   }
-  function play(reverse = false) {
+  function play(reverse = false, onWave = null) {
     if (resolvePending) { cancelAnimationFrame(frame); resolvePending(false); }
     const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
     const duration = reduced ? 100 : 700;
@@ -155,12 +157,12 @@ export async function createKnowledgeTransition(canvas, title, geometry, origin,
         const movement = reverse ? 1 - movementProgress : movementProgress;
         const wave = waveProgress;
         const dim = reverse ? 1 - dimProgress : dimProgress;
-        try { draw(movement, wave, dim); }
+        try { draw(movement, wave, dim); onWave?.(wave); }
         catch (error) { resolvePending = null; reject(error); return; }
         if (raw < 1) frame = requestAnimationFrame(tick);
         else { resolvePending = null; resolve(true); }
       };
-      try { draw(reverse ? 1 : 0, reverse ? 1 : 0, reverse ? 1 : 0); }
+      try { draw(reverse ? 1 : 0, reverse ? 1 : 0, reverse ? 1 : 0); onWave?.(reverse ? 1 : 0); }
       catch (error) { resolvePending = null; reject(error); return; }
       frame = requestAnimationFrame(tick);
     });

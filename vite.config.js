@@ -1,6 +1,14 @@
+import { createHash } from 'node:crypto'
+import { readFileSync } from 'node:fs'
 import vue from '@vitejs/plugin-vue'
 import basicSsl from '@vitejs/plugin-basic-ssl'
 import { defineConfig } from 'vite'
+
+const glyphCacheVersion = createHash('sha256')
+  .update(readFileSync(new URL('./public/typst/fonts/NotoSansSC.otf', import.meta.url)))
+  .update(readFileSync(new URL('./src/views/knowledge/knowledge-glyph-worker.js', import.meta.url)))
+  .update(readFileSync(new URL('./pnpm-lock.yaml', import.meta.url)))
+  .digest('hex')
 
 // 本地开发代理目标
 const API_TARGET = process.env.VITE_API_TARGET || 'http://127.0.0.1:3000'
@@ -21,6 +29,7 @@ function katexWoff2Plugin() {
 }
 
 export default defineConfig({
+  define: { __KNOWLEDGE_GLYPH_CACHE_VERSION__: JSON.stringify(glyphCacheVersion) },
   plugins: [
     vue(),
     basicSsl(),

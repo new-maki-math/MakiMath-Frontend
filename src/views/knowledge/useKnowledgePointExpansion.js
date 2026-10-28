@@ -47,7 +47,6 @@ export function useKnowledgePointExpansion(shell, fill, content, backdrop, sourc
     const current = ++sequence;
     const currentRect = shell.value?.getBoundingClientRect();
     const currentClip = fill.value ? getComputedStyle(fill.value).clipPath : 'circle(150% at 50% 50%)';
-    const currentOpacity = content.value ? getComputedStyle(content.value).opacity : '1';
     const shellOpacity = shell.value ? getComputedStyle(shell.value).opacity : '1';
     const backdropOpacity = backdrop.value ? getComputedStyle(backdrop.value).opacity : '1';
     cancel();
@@ -69,7 +68,7 @@ export function useKnowledgePointExpansion(shell, fill, content, backdrop, sourc
         { clipPath: 'circle(0% at 50% 50%)', offset: 0.35 },
         { clipPath: 'circle(0% at 50% 50%)', offset: 1 }
       ], { duration, fill: 'forwards' }),
-      content.value.animate([{ opacity: Number(currentOpacity), offset: 0 }, { opacity: 0, offset: simple ? 1 : 0.3 }, { opacity: 0, offset: 1 }], { duration, fill: 'forwards' }),
+      content.value.animate([{ opacity: 0 }, { opacity: 0 }], { duration, fill: 'forwards' }),
       backdrop.value.animate([{ opacity: Number(backdropOpacity) }, { opacity: 0 }], { duration, easing: CLOSE_EASING, fill: 'forwards' })];
     motion = simple ? null : { direction: 'close', currentGeometry };
     try { await Promise.all(animations.map((animation) => animation.finished)); } catch { return; }
