@@ -1,6 +1,6 @@
 <script setup>
 import { onUnmounted, ref, watch } from 'vue';
-import { NavArrowRight, Plus } from '@iconoir/vue';
+import { NavArrowRight, Plus, Upload } from '@iconoir/vue';
 import MCollapse from '../../components/MCollapse.vue';
 import WorkbenchTreeNode from './WorkbenchTreeNode.vue';
 
@@ -11,7 +11,7 @@ const props = defineProps({
   error: { type: String, default: '' },
   duration: { type: Number, default: 260 }
 });
-const emit = defineEmits(['toggle', 'select', 'add', 'remove', 'move', 'import', 'retry']);
+const emit = defineEmits(['toggle', 'select', 'add', 'remove', 'move', 'import', 'archive', 'retry']);
 const contentOpen = ref(Boolean(props.node.expanded));
 let closeTimer;
 watch(() => props.node.expanded, (expanded) => {
@@ -30,6 +30,7 @@ onUnmounted(() => clearTimeout(closeTimer));
         <NavArrowRight class="section-caret" :class="{ 'is-open': node.expanded }" width="16" height="16" />
         <span>{{ node.label }}</span>
       </button>
+      <button v-if="node.actions?.import" class="section-action" type="button" :title="`导入${node.label}`" :aria-label="`导入${node.label}`" @click="emit('import', node)"><Upload width="16" height="16" /></button>
       <button v-if="node.actions?.add" class="section-action" type="button" :title="`在${node.label}中新建课程`" :aria-label="`在${node.label}中新建课程`" @click="emit('add', node)"><Plus width="16" height="16" /></button>
     </header>
     <MCollapse class="section-collapse" :open="contentOpen" :duration="0" :fade="false">
@@ -37,7 +38,7 @@ onUnmounted(() => clearTimeout(closeTimer));
         <p v-if="loading" class="section-hint">正在加载{{ node.label }}…</p>
         <p v-if="error" class="section-error" role="alert">{{ error }} <button type="button" @click="emit('retry')">重试</button></p>
         <template v-if="!loading || node.children.length">
-          <WorkbenchTreeNode v-for="(child, index) in node.children" :key="`${child.type}:${child.id}`" :node="child" :depth="1" :index="index" :sibling-count="node.children.length" :selected-key="selectedKey" @select="emit('select', $event)" @toggle="emit('toggle', $event)" @add="emit('add', $event)" @remove="emit('remove', $event)" @move="emit('move', $event)" @import="emit('import', $event)" />
+          <WorkbenchTreeNode v-for="(child, index) in node.children" :key="`${child.type}:${child.id}`" :node="child" :depth="1" :index="index" :sibling-count="node.children.length" :selected-key="selectedKey" @select="emit('select', $event)" @toggle="emit('toggle', $event)" @add="emit('add', $event)" @remove="emit('remove', $event)" @move="emit('move', $event)" @import="emit('import', $event)" @archive="emit('archive', $event)" />
           <p v-if="!node.children.length && !loading && !error" class="section-hint">暂无{{ node.label }} <button v-if="node.actions?.add" type="button" @click="emit('add', node)">新建课程</button></p>
         </template>
       </div>

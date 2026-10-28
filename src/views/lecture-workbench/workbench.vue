@@ -7,10 +7,14 @@ import { lectureApi, lectureSaveBody } from '../../api/lectures.js';
 import { managementApi } from '../../api/management.js';
 import { listLocalLectures, createLocalLecture, saveLocalLecture, deleteLocalLecture } from '../../utils/local-lectures.js';
 import { notify } from '../../components/MNotice.vue';
+import { checkExportMetadata, localLectureToPortable, portableToLocalLecture, validatePortableLecture } from '../../utils/lecture-portable.js';
+import MFilePicker from '../../components/MFilePicker.vue';
 import LectureWorkbenchTree from './LectureWorkbenchTree.vue';
 import CoursePanel from './CoursePanel.vue';
 import ChapterPanel from './ChapterPanel.vue';
 import SectionPanel from './SectionPanel.vue';
+import ArchiveLectureConfirm from './ArchiveLectureConfirm.vue';
+import DeleteLectureConfirm from './DeleteLectureConfirm.vue';
 import MButton from '../../components/MButton.vue';
 import MInput from '../../components/MInput.vue';
 import MModal from '../../components/MModal.vue';
@@ -41,6 +45,15 @@ const submitCountdown = ref(5);
 const submitTarget = ref(null);
 let submitTimer = null;
 let submitDeadline = 0;
+const importOpen = ref(false);
+const importSource = ref('local');
+const importFile = ref(null);
+const importName = ref('');
+const importSlug = ref('');
+const importError = ref('');
+const importReading = ref(false);
+const importUncertain = ref(false);
+let importSequence = 0;
 const createOpen = ref(false);
 const downloadOpen = ref(false);
 const downloadSlug = ref('');
@@ -49,6 +62,9 @@ const createForm = ref({ title: '', slug: '' });
 const leaveOpen = ref(false);
 const removeTarget = ref(null);
 const treeBusy = ref(false);
+const archiveTarget = ref(null);
+const deleteLectureTarget = ref(null);
+const archiveBusy = ref(false);
 let loadSequence = 0;
 let listSequence = 0;
 let resolveLeave = null;
@@ -60,29 +76,39 @@ const versionRequests = new Map();
 const snapshot = () => JSON.stringify({ revision: revision.value, chapters: chapters.value, slug: lecture.value?.isLocal ? lecture.value.slug : null });
 const dirty = computed(() => Boolean(revision.value && baseline.value && snapshot() !== baseline.value));
 const ownsContext = computed(() => Boolean(lecture.value?.isLocal || (lecture.value && lecture.value.ownerUserId === (currentUser.value?.id ?? null) && (lecture.value.ownerUserId === null || authStatus.value === 'authenticated'))));
-const canEditOnline = computed(() => Boolean(ownsContext.value && lecture.value && !lecture.value.isLocal && lecture.value.permissionValid && lecture.value.canEdit && authStatus.value === 'authenticated' && ['editor', 'super_admin'].includes(currentUser.value?.role)));
+const isArchived = computed(() => Boolean(lecture.value && !lecture.value.isLocal && (lectures.value.find((item) => item.id === lecture.value.id)?.publication_status ?? lecture.value.publicationStatus) === 'archived'));
+watch(isArchived, (archived) => {
+  if (archived) downloadOpen.value = false;
+});
+const canEditOnline = computed(() => Boolean(!isArchived.value && ownsContext.value && lecture.value && !lecture.value.isLocal && lecture.value.permissionValid && lecture.value.canEdit && authStatus.value === 'authenticated' && ['editor', 'super_admin'].includes(currentUser.value?.role)));
 const canEdit = computed(() => Boolean(!loading.value && !createOpen.value && (lecture.value?.isLocal || (canEditOnline.value && revision.value?.status === 'draft'))));
-const readOnlyMessage = computed(() => canEditOnline.value && revision.value?.status !== 'draft'
+const readOnlyMessage = computed(() => isArchived.value
+  ? '讲义已归档，当前内容只供查看。'
+  : canEditOnline.value && revision.value?.status !== 'draft'
   ? '当前版本只供查看，请选择草稿继续编辑。'
   : '当前账号无法编辑此讲义，可下载到本地查看。');
+const canBrowseOnline = computed(() => authStatus.value === 'authenticated' && Boolean(currentUser.value));
 const canCreateOnline = computed(() => authStatus.value === 'authenticated' && ['editor', 'super_admin'].includes(currentUser.value?.role));
-const treeNodes = computed(() => ['local', 'online'].map((source) => ({
-  type: 'group', id: source, label: source === 'local' ? '本地讲义' : '我创作的讲义', actions: source === 'local' || canCreateOnline.value ? { add: true } : false,
-  children: (source === 'local' ? localLectures.value : lectures.value).map((item) => {
+const treeNodes = computed(() => ['local', 'online', 'archived'].map((group) => ({
+  type: 'group', id: group, label: group === 'local' ? '本地讲义' : group === 'online' ? '我创作的讲义' : '已归档讲义', actions: group === 'local' || (group === 'online' && canCreateOnline.value) ? { add: true, import: true } : false,
+  children: (group === 'local' ? localLectures.value : lectures.value.filter((item) => group === 'archived' ? item.publication_status === 'archived' : item.publication_status !== 'archived')).map((item) => {
+    const source = group === 'local' ? 'local' : 'online';
     const key = `${source}:${item.id}`;
     const active = ownsContext.value && lecture.value?.key === key;
     const editable = active && canEdit.value && !saving.value;
     const versions = lectureVersions.value.get(key) || [];
+    const canAddChapter = group !== 'archived' && !saving.value && !treeBusy.value && (source === 'local' || (active ? canEditOnline.value && versions.some((version) => version.status === 'draft') : canCreateOnline.value && item.canViewPrivate && (currentUser.value?.role === 'super_admin' || item.owner_id === currentUser.value?.id)));
     const versionTitle = versions.find((version) => version.status === 'draft' && version.title)?.title || versions.find((version) => version.title)?.title;
     const title = source === 'local' ? (active ? revision.value?.title : item.revision?.title) : item.title || versionTitle || (active ? revision.value?.title : '');
+    const canArchive = group === 'online' && Boolean(title) && item.canViewPrivate && canBrowseOnline.value && (currentUser.value?.role === 'super_admin' || item.owner_id === currentUser.value?.id) && !archiveBusy.value && !saving.value;
     return {
       type: 'lecture', id: key, label: title || (versionNameErrors.value.has(key) ? '课程名称加载失败' : item.canViewPrivate && !lectureVersions.value.has(key) ? '正在加载课程名称' : '课程名称未提供'),
-      item, source, loading: loadingKey.value === key || treeLoadingKeys.value.has(key), actions: source === 'local' ? { add: editable, remove: !saving.value && !treeBusy.value } : editable ? { add: true } : false,
+      item, source, loading: loadingKey.value === key || treeLoadingKeys.value.has(key), actions: source === 'local' ? { add: canAddChapter, addLabel: '新建章节', remove: !saving.value && !treeBusy.value } : canAddChapter || canArchive ? { add: canAddChapter, addLabel: '新建章节', archive: canArchive } : false,
       children: source === 'online' && item.canViewPrivate
         ? [...versions.filter((version) => version.status === 'draft'), ...versions.filter((version) => version.status !== 'draft')].map((version) => ({
           type: 'version', id: `${key}:version:${version.id}`, courseKey: key, revisionId: version.id,
           item, source, version, label: version.status === 'draft' ? '草稿版本' : `${version.revision_no == null ? '版本号未提供' : `V${version.revision_no}`} · ${versionStatus(version.status)}`,
-          actions: false, loading: treeLoadingKeys.value.has(`${key}:version:${version.id}`),
+          actions: canAddChapter && version.status === 'draft' ? { add: true, addLabel: '新建章节' } : false, loading: treeLoadingKeys.value.has(`${key}:version:${version.id}`),
           children: makeChapterNodes(item, source, key, ownsContext.value && lecture.value?.key === key && revision.value?.id === version.id ? chapters.value : lectureTrees.value.get(`${key}:version:${version.id}`) || [], ownsContext.value && lecture.value?.key === key && revision.value?.id === version.id && canEdit.value && !saving.value, version.id)
         }))
         : makeChapterNodes(item, source, key, active ? chapters.value : source === 'local' ? item.chapters : lectureTrees.value.get(key) || [], editable)
@@ -126,7 +152,7 @@ function finishLeave(confirmed) {
 }
 
 function confirmLeave() {
-  if (saving.value || loading.value || resolveLeave) return Promise.resolve(false);
+  if (saving.value || loading.value || archiveBusy.value || resolveLeave) return Promise.resolve(false);
   if (!dirty.value) return Promise.resolve(true);
   leaveOpen.value = true;
   return new Promise((resolve) => { resolveLeave = resolve; });
@@ -134,7 +160,7 @@ function confirmLeave() {
 
 onBeforeRouteLeave(() => confirmLeave());
 function beforeUnload(event) {
-  if (!dirty.value && !saving.value) return;
+  if (!dirty.value && !saving.value && !archiveBusy.value) return;
   event.preventDefault();
   event.returnValue = '';
 }
@@ -143,21 +169,20 @@ async function loadLectures() {
   const sequence = ++listSequence;
   listLoading.value = { local: true, online: true };
   listErrors.value = { local: '', online: '' };
-  let publicItems = [];
-  let privateItems = [];
+  let publicItems = null;
+  let privateItems = null;
   const updateOnline = () => {
-    if (sequence !== listSequence) return;
-    const merged = new Map();
-    for (const item of publicItems) merged.set(item.id, { ...item, isPublic: true });
-    for (const item of privateItems) merged.set(item.id, { ...merged.get(item.id), ...item, canViewPrivate: true });
-    lectures.value = [...merged.values()];
+    if (sequence !== listSequence || !privateItems) return;
+    const publicById = new Map((publicItems || []).map((item) => [item.id, item]));
+    const previousById = new Map(lectures.value.map((item) => [item.id, item]));
+    lectures.value = privateItems.map((item) => ({ ...publicById.get(item.id), ...item, isPublic: publicItems ? publicById.has(item.id) : Boolean(previousById.get(item.id)?.isPublic), canViewPrivate: true }));
   };
   const localPromise = listLocalLectures().then((items) => {
     if (sequence === listSequence) localLectures.value = items;
     return items;
   });
-  const onlinePromise = (canCreateOnline.value ? lectureApi.list() : Promise.resolve([])).then((items) => { publicItems = items; updateOnline(); return items; });
-  const minePromise = (canCreateOnline.value ? lectureApi.mine() : Promise.resolve([])).then((items) => {
+  const onlinePromise = (canBrowseOnline.value ? lectureApi.list() : Promise.resolve([])).then((items) => { publicItems = items; updateOnline(); return items; });
+  const minePromise = (canBrowseOnline.value ? lectureApi.mine() : Promise.resolve([])).then((items) => {
     privateItems = items;
     updateOnline();
     if (sequence === listSequence) preloadCourseVersions(items, sequence);
@@ -234,7 +259,7 @@ function preloadCourseVersions(items, sequence) {
 }
 
 async function selectLecture(item, source, force = false, discardConfirmed = false) {
-  if (source === 'online' && !canCreateOnline.value) return false;
+  if (source === 'online' && !canBrowseOnline.value) return false;
   if (loading.value || saving.value || createOpen.value) return false;
   const key = `${source}:${item.id}`;
   if (!force && ownsContext.value && lecture.value?.key === key && revision.value && (source === 'local' || lecture.value.hasPrivateAccess || !item.canViewPrivate)) return true;
@@ -272,7 +297,7 @@ async function selectLecture(item, source, force = false, discardConfirmed = fal
       else data = await lectureApi.getRevision((canEditLecture ? versions.find((version) => version.status === 'draft') || versions[0] : versions[0]).id);
     } else data = await lectureApi.getBySlug(item.slug);
     if (sequence !== loadSequence) return false;
-    lecture.value = { id: item.id, slug: item.slug || data.lecture?.slug, key, isLocal: source === 'local', ownerUserId: source === 'online' ? (currentUser.value?.id ?? null) : null, lectureOwnerId: item.owner_id, editVersion: item.editVersion, canEdit: canEditLecture, permissionValid: true, hasPrivateAccess: source === 'online' && Boolean(item.canViewPrivate) };
+    lecture.value = { id: item.id, slug: item.slug || data.lecture?.slug, key, isLocal: source === 'local', ownerUserId: source === 'online' ? (currentUser.value?.id ?? null) : null, lectureOwnerId: item.owner_id, publicationStatus: item.publication_status, editVersion: item.editVersion, canEdit: canEditLecture, permissionValid: true, hasPrivateAccess: source === 'online' && Boolean(item.canViewPrivate) };
     revision.value = JSON.parse(JSON.stringify(data.revision));
     pendingSnapshotId.value = pending;
     chapters.value = JSON.parse(JSON.stringify(data.chapters));
@@ -291,7 +316,7 @@ async function selectLecture(item, source, force = false, discardConfirmed = fal
 }
 
 async function selectRevision(node) {
-  if (!canCreateOnline.value) return false;
+  if (!canBrowseOnline.value) return false;
   if (loading.value || saving.value || createOpen.value) return false;
   if (ownsContext.value && lecture.value?.key === node.courseKey && revision.value?.id === node.revisionId) return true;
   if (!await confirmLeave()) return false;
@@ -304,7 +329,7 @@ async function selectRevision(node) {
     if (sequence !== loadSequence) return false;
     if (data.revision?.id !== node.revisionId || data.revision?.lecture_id !== node.item.id || !Array.isArray(data.chapters)) throw new Error('版本数据不匹配');
     const editable = currentUser.value?.role === 'super_admin' || node.item.owner_id === currentUser.value?.id || collaborators.some((entry) => entry.user_id === currentUser.value?.id && entry.permission === 'edit');
-    lecture.value = { id: node.item.id, slug: node.item.slug, key: node.courseKey, isLocal: false, ownerUserId: currentUser.value?.id ?? null, lectureOwnerId: node.item.owner_id, canEdit: editable, permissionValid: true, hasPrivateAccess: true };
+    lecture.value = { id: node.item.id, slug: node.item.slug, key: node.courseKey, isLocal: false, ownerUserId: currentUser.value?.id ?? null, lectureOwnerId: node.item.owner_id, publicationStatus: node.item.publication_status, canEdit: editable, permissionValid: true, hasPrivateAccess: true };
     revision.value = data.revision;
     chapters.value = data.chapters;
     lectureTrees.value = new Map(lectureTrees.value).set(node.id, JSON.parse(JSON.stringify(data.chapters)));
@@ -319,6 +344,114 @@ async function selectRevision(node) {
   } finally {
     if (sequence === loadSequence) { loading.value = false; loadingKey.value = ''; }
   }
+}
+
+function closeLectureImport() {
+  importSequence++;
+  importOpen.value = false;
+  importFile.value = null;
+  importName.value = '';
+  importSlug.value = '';
+  importError.value = '';
+  importReading.value = false;
+  importUncertain.value = false;
+}
+function openLectureImport(node) {
+  if (node.type !== 'group' || !['local', 'online'].includes(node.id) || (node.id === 'online' && !canCreateOnline.value) || saving.value) return;
+  closeLectureImport();
+  importSource.value = node.id;
+  importOpen.value = true;
+}
+async function readLectureImport(event) {
+  if (saving.value || importUncertain.value) return;
+  const sequence = ++importSequence;
+  try {
+    const file = event?.target?.files?.[0];
+    if (!file) return;
+    importFile.value = null;
+    importName.value = file.name;
+    importSlug.value = '';
+    importError.value = '';
+    importReading.value = true;
+    let data;
+    try { data = JSON.parse(await file.text()); }
+    catch (error) {
+      if (error instanceof SyntaxError) throw new Error('文件不是有效的 JSON，请选择讲义导出文件');
+      throw error;
+    }
+    if (sequence !== importSequence) return;
+    importFile.value = validatePortableLecture(data);
+    importSlug.value = data.lecture.slug;
+  } catch (error) {
+    if (sequence === importSequence) {
+      importFile.value = null;
+      importError.value = `无法导入讲义：${error?.message || '文件读取失败'}`;
+    }
+  } finally {
+    if (sequence === importSequence) importReading.value = false;
+  }
+}
+async function submitLectureImport() {
+  if (!importOpen.value || !importFile.value || importReading.value || importUncertain.value || saving.value) return;
+  if (importSource.value === 'online' && !canCreateOnline.value) return;
+  const data = { ...importFile.value, lecture: { ...importFile.value.lecture, slug: importSlug.value.trim() } };
+  try { validatePortableLecture(data); } catch (error) { importError.value = error.message; return; }
+  const source = importSource.value;
+  const epoch = identityEpoch;
+  saving.value = true;
+  importError.value = '';
+  try {
+    if (source === 'local') {
+      await createLocalLecture(portableToLocalLecture(data));
+      closeLectureImport();
+      notify('本地讲义已导入', 'success');
+      await loadLectures();
+    } else {
+      const result = await lectureApi.importLecture(data);
+      if (epoch !== identityEpoch) { notify('导入请求已完成，账号已变化，请核对讲义列表', 'warn', 0); return; }
+      if (!result?.lecture?.id || !result?.revision?.id) {
+        importUncertain.value = true;
+        importError.value = '导入结果未确认，请刷新列表核对后再操作';
+        return;
+      }
+      closeLectureImport();
+      notify('讲义已导入为新草稿', 'success');
+      await loadLectures();
+    }
+    treeRef.value?.expand('group', source);
+  } catch (error) {
+    if (source === 'online' && epoch !== identityEpoch) notify('导入结果未确认，请重新核对讲义列表', 'warn', 0);
+    else if (source === 'online' && ![400, 401, 403, 404, 409, 413, 422].includes(error.status)) {
+      importUncertain.value = true;
+      importError.value = '导入结果未确认，请刷新列表核对后再操作';
+    } else importError.value = error.status === 409 ? '课程标识已存在，请修改后重试' : error.message || '导入失败';
+  } finally { saving.value = false; }
+}
+async function exportLecture() {
+  if (!lecture.value || !revision.value || !ownsContext.value || isArchived.value || saving.value || loading.value) return;
+  if (dirty.value) { notify('请先保存所有修改，再导出讲义', 'warn'); return; }
+  const context = lecture.value;
+  const revisionId = revision.value.id;
+  const epoch = identityEpoch;
+  saving.value = true;
+  try {
+    let data;
+    if (context.isLocal) {
+      const stored = (await listLocalLectures()).find((item) => item.id === context.id);
+      if (!stored || stored.editVersion !== context.editVersion) throw new Error('本地讲义已发生变化，请重新读取后导出');
+      data = localLectureToPortable(stored);
+    } else data = validatePortableLecture(await lectureApi.exportRevision(revisionId));
+    checkExportMetadata(data.lecture.metadata);
+    if (epoch !== identityEpoch || lecture.value !== context || dirty.value) throw new Error('讲义状态已变化，请重新确认后导出');
+    const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+    try {
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${data.lecture.slug}.json`;
+      link.click();
+    } finally { setTimeout(() => URL.revokeObjectURL(url), 1000); }
+  } catch (error) { notify(error.message || '导出失败', 'error'); }
+  finally { saving.value = false; }
 }
 
 async function openCreate(source) {
@@ -337,7 +470,7 @@ async function createLecture() {
   }
   const title = createForm.value.title.trim();
   const slug = createForm.value.slug.trim();
-  if (!title || !slug) { notify('请填写课程标题和标识', 'warn'); return; }
+  if (!title || !slug) { notify('请填写课程名称和课程标识', 'warn'); return; }
   saving.value = true;
   const source = createSource.value;
   const epoch = identityEpoch;
@@ -370,13 +503,13 @@ async function createLecture() {
 }
 
 function openDownload() {
-  if (!lecture.value || !ownsContext.value || lecture.value.isLocal || saving.value || loading.value || createOpen.value) return;
+  if (!lecture.value || !ownsContext.value || lecture.value.isLocal || isArchived.value || saving.value || loading.value || createOpen.value) return;
   downloadSlug.value = lecture.value.slug || '';
   downloadOpen.value = true;
 }
 
 async function downloadLecture() {
-  if (!downloadOpen.value || !lecture.value || !ownsContext.value || lecture.value.isLocal || saving.value || loading.value || createOpen.value) return;
+  if (!downloadOpen.value || !lecture.value || !ownsContext.value || lecture.value.isLocal || isArchived.value || saving.value || loading.value || createOpen.value) return;
   const record = {
     id: crypto.randomUUID(), slug: downloadSlug.value.trim(), editVersion: 1,
     sourceLectureId: lecture.value.id, sourceRevisionId: revision.value.id,
@@ -395,28 +528,48 @@ async function downloadLecture() {
 }
 
 function validateDraft() {
-  if (!revision.value.title.trim() || !revision.value.typst_version.trim()) return '请填写讲义标题和排版版本';
-  const chapterSlugs = new Set();
-  for (const chapter of chapters.value) {
-    if (!chapter.title.trim()) return '请填写章节名称';
-    const slug = chapter.slug.trim();
-    if (!slug || chapterSlugs.has(slug)) return '章节标识不能为空或重复';
-    chapterSlugs.add(slug);
-    const sectionSlugs = new Set();
-    for (const section of chapter.sections) {
-      if (!section.title.trim()) return '请填写小节标题';
-      const sectionSlug = section.slug.trim();
-      if (!sectionSlug || sectionSlugs.has(sectionSlug)) return '同一章节中的小节标识不能为空或重复';
-      sectionSlugs.add(sectionSlug);
+  const issues = [];
+  const value = (input) => typeof input === 'string' ? input.trim() : '';
+  const counts = (items) => {
+    const result = new Map();
+    for (const item of items) {
+      const slug = value(item.slug);
+      if (slug) result.set(slug, (result.get(slug) || 0) + 1);
     }
-  }
-  return '';
+    return result;
+  };
+  if (!value(revision.value.title)) issues.push('课程：请填写课程名称');
+  if (!value(revision.value.typst_version)) issues.push('课程：请填写 Typst 版本');
+  if (lecture.value?.isLocal && !value(lecture.value.slug)) issues.push('课程：请填写课程标识');
+  const chapterCounts = counts(chapters.value);
+  chapters.value.forEach((chapter, chapterIndex) => {
+    const chapterTitle = value(chapter.title);
+    const chapterName = `第 ${chapterIndex + 1} 章${chapterTitle ? `「${chapterTitle}」` : ''}`;
+    const chapterSlug = value(chapter.slug);
+    const missing = [];
+    if (!chapterTitle) missing.push('章节名称');
+    if (!chapterSlug) missing.push('章节标识');
+    if (missing.length) issues.push(`${chapterName}：请填写${missing.join('、')}`);
+    if (chapterSlug && chapterCounts.get(chapterSlug) > 1) issues.push(`${chapterName}：章节标识「${chapterSlug}」重复`);
+    const sectionCounts = counts(chapter.sections);
+    chapter.sections.forEach((section, sectionIndex) => {
+      const sectionTitle = value(section.title);
+      const sectionName = `${chapterName} / 第 ${sectionIndex + 1} 小节${sectionTitle ? `「${sectionTitle}」` : ''}`;
+      const sectionSlug = value(section.slug);
+      const sectionMissing = [];
+      if (!sectionTitle) sectionMissing.push('小节标题');
+      if (!sectionSlug) sectionMissing.push('小节标识');
+      if (sectionMissing.length) issues.push(`${sectionName}：请填写${sectionMissing.join('、')}`);
+      if (sectionSlug && sectionCounts.get(sectionSlug) > 1) issues.push(`${sectionName}：小节标识「${sectionSlug}」在本章节中重复`);
+    });
+  });
+  return issues;
 }
 
 async function save() {
   if (!canEdit.value || saving.value || !dirty.value) return;
-  const issue = validateDraft();
-  if (issue) { notify(issue, 'warn'); return; }
+  const issues = validateDraft();
+  if (issues.length) { notify(`保存会检查整份讲义，请补齐所有必填项并解决课程、章节或小节标识重复：\n${issues.join('\n')}`, 'warn', 0); return; }
   const submitted = snapshot();
   const data = JSON.parse(submitted);
   const epoch = identityEpoch;
@@ -595,6 +748,11 @@ function addSection(chapter) {
   chapter.sections.push(item);
   selected.value = { type: 'section', id: item.occurrence_id };
 }
+function showImportedSections() {
+  if (!lecture.value || !selectedChapter.value) return;
+  const key = lecture.value.hasPrivateAccess ? `${lecture.value.key}:version:${revision.value.id}` : lecture.value.key;
+  treeRef.value?.expand('chapter', `${key}:${selectedChapter.value.occurrence_id}`);
+}
 function move(list, index, offset) {
   const target = index + offset;
   if (index < 0 || index >= list.length || target < 0 || target >= list.length) return;
@@ -624,7 +782,7 @@ async function selectTreeNode(node) {
 }
 
 function expandTreeNode(node) {
-  if (!canCreateOnline.value) return;
+  if (!canBrowseOnline.value) return;
   if (!['lecture', 'version'].includes(node.type) || node.source !== 'online' || treeLoadingKeys.value.has(node.id)) return;
   if (node.type === 'lecture' && node.item.canViewPrivate && lectureVersions.value.has(node.id)) return;
   if (node.type === 'lecture' && !node.item.canViewPrivate && (lecture.value?.key === node.id || lectureTrees.value.has(node.id))) return;
@@ -653,13 +811,166 @@ function expandTreeNode(node) {
   });
 }
 
-function addTreeNode(node) {
+function openDeleteLecture() {
+  const item = lectures.value.find((entry) => entry.id === lecture.value?.id);
+  if (!item || item.publication_status !== 'archived' || !canBrowseOnline.value || currentUser.value?.role !== 'super_admin' || saving.value) return;
+  if (lecture.value?.id === item.id && dirty.value) {
+    notify('请先保存或放弃该讲义的未保存修改，再删除', 'warn');
+    return;
+  }
+  deleteLectureTarget.value = { id: item.id, title: revision.value?.title || item.title || item.slug, userId: currentUser.value.id };
+}
+
+async function confirmDeleteLecture() {
+  const target = deleteLectureTarget.value;
+  const item = lectures.value.find((entry) => entry.id === target?.id);
+  if (!target || !item || item.publication_status !== 'archived' || !canBrowseOnline.value || currentUser.value?.role !== 'super_admin' || currentUser.value?.id !== target.userId || archiveBusy.value || saving.value) return;
+  if (lecture.value?.id === target.id && dirty.value) {
+    notify('当前讲义有未保存的修改，请先处理后再删除', 'warn');
+    return;
+  }
+  const epoch = identityEpoch;
+  archiveBusy.value = true;
+  try {
+    await lectureApi.remove(target.id);
+    deleteLectureTarget.value = null;
+    if (epoch !== identityEpoch) {
+      notify('删除请求已完成，账号状态已变化，请重新核对讲义列表', 'warn', 0);
+      return;
+    }
+    listSequence++;
+    treeEpoch++;
+    versionRequests.clear();
+    treeLoadingKeys.value = new Set();
+    lectureTrees.value = new Map();
+    lectureVersions.value = new Map();
+    versionNameErrors.value = new Set();
+    lectures.value = lectures.value.filter((entry) => entry.id !== target.id);
+    if (lecture.value?.id === target.id && !lecture.value.isLocal) {
+      lecture.value = null;
+      revision.value = null;
+      chapters.value = [];
+      baseline.value = '';
+      selected.value = { type: 'lecture', id: '' };
+      pendingSnapshotId.value = null;
+      onlineConflict.value = false;
+    }
+    notify('讲义已永久删除', 'success');
+    await loadLectures();
+  } catch (err) {
+    if (epoch !== identityEpoch) {
+      notify('删除结果未能确认，请重新核对讲义列表', 'warn', 0);
+    } else if (err.status === 404 || err.status === 409) {
+      deleteLectureTarget.value = null;
+      notify(err.status === 404 ? '讲义不存在，正在刷新列表' : '讲义不再处于归档状态，正在刷新列表', 'warn');
+      await loadLectures();
+    } else {
+      notify(err.message || '删除失败，请稍后重试', 'error');
+    }
+  } finally {
+    archiveBusy.value = false;
+  }
+}
+
+async function restoreLecture() {
+  const context = lecture.value;
+  const item = lectures.value.find((entry) => entry.id === context?.id);
+  if (!context || !item || !isArchived.value || !canBrowseOnline.value || archiveBusy.value || saving.value) return;
+  if (currentUser.value?.role !== 'super_admin' && item.owner_id !== currentUser.value?.id) return;
+  const epoch = identityEpoch;
+  archiveBusy.value = true;
+  try {
+    const result = await lectureApi.restore(item.id);
+    if (epoch !== identityEpoch) {
+      notify('恢复请求已完成，账号状态已变化，请重新核对讲义列表', 'warn', 0);
+      return;
+    }
+    if (result?.id === item.id && ['withdrawn', 'unpublished'].includes(result.publication_status)) {
+      context.publicationStatus = result.publication_status;
+      lectures.value = lectures.value.map((entry) => entry.id === item.id ? { ...entry, ...result, isPublic: false } : entry);
+      notify('讲义已恢复，当前未公开', 'success');
+    } else {
+      notify('恢复请求已完成，正在重新读取讲义状态', 'warn', 0);
+    }
+    await loadLectures();
+  } catch (err) {
+    notify(epoch === identityEpoch ? (err.message || '恢复失败，请稍后重试') : '恢复结果未能确认，请重新核对讲义列表', 'error');
+  } finally {
+    archiveBusy.value = false;
+  }
+}
+
+function openArchive(node) {
+  const item = lectures.value.find((entry) => entry.id === node.item?.id);
+  if (!item || item.publication_status === 'archived' || !canBrowseOnline.value || archiveBusy.value) return;
+  if (currentUser.value?.role !== 'super_admin' && item.owner_id !== currentUser.value?.id) return;
+  if (lecture.value?.key === node.id && dirty.value) {
+    notify('请先保存或放弃该讲义的未保存修改，再归档', 'warn');
+    return;
+  }
+  archiveTarget.value = { id: item.id, title: node.label, ownerId: item.owner_id, userId: currentUser.value.id };
+}
+
+async function confirmArchive() {
+  const target = archiveTarget.value;
+  if (!target || archiveBusy.value || !canBrowseOnline.value || currentUser.value?.id !== target.userId) return;
+  if (currentUser.value?.role !== 'super_admin' && currentUser.value?.id !== target.ownerId) return;
+  if (lecture.value?.key === `online:${target.id}` && dirty.value) {
+    notify('请先保存或放弃该讲义的未保存修改，再归档', 'warn');
+    return;
+  }
+  const epoch = identityEpoch;
+  archiveBusy.value = true;
+  try {
+    const result = await lectureApi.setPublication(target.id, { publication_status: 'archived' });
+    if (epoch !== identityEpoch) {
+      archiveTarget.value = null;
+      notify('归档请求已完成，账号状态已变化，请重新核对讲义列表', 'warn', 0);
+      return;
+    }
+    listSequence++;
+    archiveTarget.value = null;
+    if (result?.id !== target.id || result?.publication_status !== 'archived') {
+      notify('归档请求已成功，但返回数据不完整，正在重新读取讲义列表', 'warn', 0);
+      await loadLectures();
+      return;
+    }
+    if (lecture.value?.id === target.id && !lecture.value.isLocal) lecture.value.publicationStatus = 'archived';
+    lectures.value = lectures.value.map((item) => item.id === target.id ? { ...item, ...result, isPublic: false } : item);
+    treeRef.value?.expand('group', 'archived');
+    if (lecture.value?.key === `online:${target.id}`) {
+      treeRef.value?.expand('lecture', lecture.value.key);
+      if (lecture.value.hasPrivateAccess && revision.value?.id) treeRef.value?.expand('version', `${lecture.value.key}:version:${revision.value.id}`);
+    }
+    notify('讲义已归档', 'success');
+    await loadLectures();
+  } catch (err) {
+    if (epoch === identityEpoch) notify(err.message || '归档失败，请稍后重试', 'error');
+    else notify('归档结果未能确认，账号状态已变化，请重新核对讲义列表', 'warn', 0);
+  } finally {
+    if (epoch !== identityEpoch) archiveTarget.value = null;
+    archiveBusy.value = false;
+  }
+}
+
+async function addTreeNode(node) {
   if (node.type === 'group') { openCreate(node.id); return; }
+  if (node.type === 'lecture' && lecture.value?.key !== node.id) {
+    if (!await selectLecture(node.item, node.source)) return;
+  }
+  if (node.type === 'lecture' && node.source === 'online' && revision.value?.status !== 'draft') {
+    const draft = (lectureVersions.value.get(node.id) || []).find((version) => version.status === 'draft');
+    if (!draft) { notify('该课程暂无可编辑的草稿', 'warn'); return; }
+    if (!await selectRevision({ id: `${node.id}:version:${draft.id}`, courseKey: node.id, revisionId: draft.id, item: node.item })) return;
+  }
+  if (node.type === 'version' && node.version?.status === 'draft' && (lecture.value?.key !== node.courseKey || revision.value?.id !== node.revisionId)) {
+    if (!await selectRevision(node)) return;
+  }
   if (!canEdit.value || saving.value || lecture.value?.key !== (node.courseKey || node.id)) return;
   if (node.versionId != null && node.versionId !== revision.value?.id) return;
-  if (node.type === 'lecture') {
+  if (node.type === 'lecture' || node.type === 'version') {
     treeRef.value?.expand('group', lecture.value.isLocal ? 'local' : 'online');
-    treeRef.value?.expand('lecture', node.id);
+    treeRef.value?.expand('lecture', lecture.value.key);
     addChapter();
   } else if (node.type === 'chapter') {
     const chapter = chapters.value.find((item) => item.occurrence_id === node.occurrenceId);
@@ -713,12 +1024,13 @@ async function confirmRemoveTreeNode() {
 
 async function revalidatePermission(epoch) {
   const context = lecture.value;
-  if (!context?.hasPrivateAccess || !ownsContext.value || !canCreateOnline.value) return;
+  if (!context?.hasPrivateAccess || !ownsContext.value || !canBrowseOnline.value) return;
   try {
     const [items, collaborators] = await Promise.all([lectureApi.mine(), lectureApi.collaborators(context.id)]);
     if (epoch !== identityEpoch || lecture.value !== context || !ownsContext.value) return;
     const item = items.find((entry) => entry.id === context.id);
     if (!item) throw new Error('讲义访问权限已变化');
+    context.publicationStatus = item.publication_status;
     context.canEdit = currentUser.value?.role === 'super_admin' || item.owner_id === currentUser.value?.id || collaborators.some((entry) => entry.user_id === currentUser.value?.id && entry.permission === 'edit');
     context.permissionValid = true;
   } catch {
@@ -735,7 +1047,10 @@ watch([authStatus, () => currentUser.value?.id, () => currentUser.value?.role], 
   loadingKey.value = '';
   lectures.value = [];
   closeSubmit();
+  closeLectureImport();
   removeTarget.value = null;
+  deleteLectureTarget.value = null;
+  if (!archiveBusy.value) archiveTarget.value = null;
   if (createSource.value === 'online') createOpen.value = false;
   downloadOpen.value = false;
   if (lecture.value && !lecture.value.isLocal) lecture.value.permissionValid = false;
@@ -754,6 +1069,7 @@ onMounted(() => {
   document.addEventListener('visibilitychange', refreshDraftOnVisible);
 });
 onUnmounted(() => {
+  importSequence++;
   loadSequence++;
   listSequence++;
   treeEpoch++;
@@ -768,27 +1084,30 @@ onUnmounted(() => {
 
 <template>
   <div class="workbench-workspace">
-    <LectureWorkbenchTree :inert="loading || saving || createOpen || downloadOpen" ref="treeRef" :nodes="treeNodes" :show-online="canCreateOnline" :selected-key="selectedKey" :list-loading="listLoading" :list-errors="listErrors" @select="selectTreeNode" @expand="expandTreeNode" @refresh="refreshTree" @add="addTreeNode" @move="moveTreeNode" @remove="askRemoveTreeNode" />
-    <main class="workbench-main">
+    <LectureWorkbenchTree :inert="loading || saving || createOpen || downloadOpen || importOpen || archiveBusy" ref="treeRef" :nodes="treeNodes" :show-online="canBrowseOnline" :selected-key="selectedKey" :list-loading="listLoading" :list-errors="listErrors" @select="selectTreeNode" @expand="expandTreeNode" @refresh="refreshTree" @add="addTreeNode" @import="openLectureImport" @archive="openArchive" @move="moveTreeNode" @remove="askRemoveTreeNode" />
+    <main class="workbench-main" :inert="archiveBusy">
       <div v-if="revision && lecture && !ownsContext" class="workbench-empty"><h2>当前账号无法访问此编辑内容</h2><p>请使用原账号重新登录，或离开后选择其他讲义。</p></div>
       <CoursePanel v-else-if="revision && lecture && selected.type === 'lecture'" :revision="revision" :lecture="lecture" :categories="categories" :dirty="dirty" :saving="saving || loading || createOpen" :editable="canEdit" :read-only-message="readOnlyMessage" @save="save" @reset="discard">
         <template #actions>
+          <MButton v-if="!isArchived" size="sm" :mono="true" :disabled="saving || loading" @click="exportLecture">导出 JSON</MButton>
+          <MButton v-if="isArchived && (currentUser?.role === 'super_admin' || lecture.lectureOwnerId === currentUser?.id)" size="sm" :mono="true" :disabled="archiveBusy || saving" @click="restoreLecture">恢复归档</MButton>
+          <MButton v-if="isArchived && currentUser?.role === 'super_admin'" variant="danger" size="sm" :mono="true" :disabled="saving || loading" @click="openDeleteLecture">永久删除</MButton>
           <MButton v-if="onlineConflict" size="sm" :mono="true" :disabled="saving" title="重新读取会放弃未保存的修改" @click="reloadConflictedLecture">重新读取</MButton>
-          <MButton v-if="!lecture.isLocal" size="sm" :mono="true" :disabled="saving" @click="openDownload">下载到本地</MButton>
+          <MButton v-if="!lecture.isLocal && !isArchived" size="sm" :mono="true" :disabled="saving" @click="openDownload">下载到本地</MButton>
           <MButton v-if="canEditOnline && revision.status === 'draft'" size="sm" :mono="true" :disabled="saving || dirty || !!pendingSnapshotId || onlineConflict" :title="dirty ? '请先保存所有修改' : pendingSnapshotId ? '已有待审核快照' : '提交已保存的草稿'" @click="openSubmit">{{ pendingSnapshotId ? '审核中' : '提交审核' }}</MButton>
         </template>
       </CoursePanel>
-      <ChapterPanel v-else-if="revision && lecture && selected.type === 'chapter' && selectedChapter" :chapter="selectedChapter" :dirty="dirty" :saving="saving || loading || createOpen" :editable="canEdit" :read-only-message="readOnlyMessage" :submitted-at="revision.submitted_at || ''" :review-status="revision.status || ''" :reviewed-at="revision.reviewed_at || ''" @save="save" @reset="discard">
+      <ChapterPanel v-else-if="revision && lecture && selected.type === 'chapter' && selectedChapter" :chapter="selectedChapter" :dirty="dirty" :saving="saving || loading || createOpen" :editable="canEdit" :read-only-message="readOnlyMessage" :submitted-at="revision.submitted_at || ''" :review-status="revision.status || ''" :reviewed-at="revision.reviewed_at || ''" @save="save" @reset="discard" @imported="showImportedSections">
         <template #actions>
           <MButton v-if="onlineConflict" size="sm" :mono="true" :disabled="saving" title="重新读取会放弃未保存的修改" @click="reloadConflictedLecture">重新读取</MButton>
-          <MButton v-if="!lecture.isLocal" size="sm" :mono="true" :disabled="saving" @click="openDownload">下载到本地</MButton>
+          <MButton v-if="!lecture.isLocal && !isArchived" size="sm" :mono="true" :disabled="saving" @click="openDownload">下载到本地</MButton>
           <MButton v-if="canEditOnline && revision.status === 'draft'" size="sm" :mono="true" :disabled="saving || dirty || !!pendingSnapshotId || onlineConflict" :title="dirty ? '请先保存所有修改' : pendingSnapshotId ? '已有待审核快照' : '提交已保存的草稿'" @click="openSubmit">{{ pendingSnapshotId ? '审核中' : '提交审核' }}</MButton>
         </template>
       </ChapterPanel>
       <SectionPanel v-else-if="revision && lecture && selected.type === 'section' && selectedSection" :section="selectedSection" :dirty="dirty" :saving="saving || loading || createOpen" :editable="canEdit" :read-only-message="readOnlyMessage" :submitted-at="revision.submitted_at || ''" :review-status="revision.status || ''" :reviewed-at="revision.reviewed_at || ''" @save="save" @reset="discard">
         <template #actions>
           <MButton v-if="onlineConflict" size="sm" :mono="true" :disabled="saving" title="重新读取会放弃未保存的修改" @click="reloadConflictedLecture">重新读取</MButton>
-          <MButton v-if="!lecture.isLocal" size="sm" :mono="true" :disabled="saving" @click="openDownload">下载到本地</MButton>
+          <MButton v-if="!lecture.isLocal && !isArchived" size="sm" :mono="true" :disabled="saving" @click="openDownload">下载到本地</MButton>
           <MButton v-if="canEditOnline && revision.status === 'draft'" size="sm" :mono="true" :disabled="saving || dirty || !!pendingSnapshotId || onlineConflict" :title="dirty ? '请先保存所有修改' : pendingSnapshotId ? '已有待审核快照' : '提交已保存的草稿'" @click="openSubmit">{{ pendingSnapshotId ? '审核中' : '提交审核' }}</MButton>
         </template>
       </SectionPanel>
@@ -798,6 +1117,17 @@ onUnmounted(() => {
         <p>从左侧选择本地讲义或我创作的讲义，选择课程、章节或小节。</p>
       </div>
     </main>
+    <MModal :open="importOpen" :title="importSource === 'local' ? '导入本地讲义' : '导入在线讲义'" width="480px" hide-footer :show-close="!saving" @close="!saving && closeLectureImport()">
+      <div class="lecture-import">
+        <MFilePicker :title="importName || '讲义 JSON 文件'" :detail="importReading ? '正在读取文件…' : '选择一份完整讲义文件'" :action="importName ? '重新选择' : '选择文件'" accept=".json,application/json" :disabled="saving || importUncertain" @choose="$event.target.value = ''" @change="readLectureImport" />
+        <MInput v-if="importFile" v-model="importSlug" label="课程标识" hint="导入将新建讲义，标识不能与已有讲义重复" required :disabled="saving || importUncertain" />
+        <p v-if="importFile" class="lecture-import-note">{{ importFile.lecture.title }} · {{ importFile.chapters.length }} 个章节。讲义分类需要导入后重新选择。</p>
+        <p v-if="importError" class="lecture-import-error" role="alert">{{ importError }}</p>
+        <div class="lecture-import-actions"><MButton variant="secondary" :disabled="saving" @click="closeLectureImport">{{ importUncertain ? '关闭并核对' : '取消' }}</MButton><MButton variant="primary" :disabled="saving || importReading || importUncertain || !importFile" @click="submitLectureImport">{{ saving ? '导入中…' : '确认导入' }}</MButton></div>
+      </div>
+    </MModal>
+    <DeleteLectureConfirm :open="Boolean(deleteLectureTarget)" :title="deleteLectureTarget?.title || ''" :busy="archiveBusy" @close="deleteLectureTarget = null" @confirm="confirmDeleteLecture" />
+    <ArchiveLectureConfirm :open="Boolean(archiveTarget)" :title="archiveTarget?.title || ''" :busy="archiveBusy" impact="归档后讲义只供查看，各版本及内容会保留，推荐状态会清除。归档期间不能提交、审核或上架；恢复后也不会自动公开。" @close="archiveTarget = null" @confirm="confirmArchive" />
     <MModal :open="submitOpen" title="确认提交审核" hide-footer show-close @close="closeSubmit">
       <p>讲义：{{ submitTarget?.title }}</p>
       <p>预计提交版本：{{ submitTarget?.expectedVersion == null ? '提交后由系统分配' : `V${submitTarget.expectedVersion}` }}</p>
@@ -808,9 +1138,9 @@ onUnmounted(() => {
         <MButton variant="primary" size="sm" :disabled="saving || submitCountdown > 0 || dirty || !!pendingSnapshotId || onlineConflict" @click="submitDraft">{{ saving ? '提交中' : submitCountdown > 0 ? `确认提交（${submitCountdown}）` : '确认提交' }}</MButton>
       </div>
     </MModal>
-    <MModal :open="downloadOpen" title="下载到本地" :busy="saving" @close="!saving && (downloadOpen = false)" @confirm="downloadLecture"><MInput v-model="downloadSlug" label="本地讲义标识" hint="标识需在本浏览器的本地讲义中唯一" required /></MModal>
+    <MModal :open="downloadOpen" title="下载到本地" :busy="saving" @close="!saving && (downloadOpen = false)" @confirm="downloadLecture"><MInput v-model="downloadSlug" label="本地讲义标识" hint="本地讲义标识需在本浏览器中唯一" required /></MModal>
     <MModal :open="leaveOpen" title="放弃未保存的修改" desc="离开后当前修改将丢失" confirm-text="放弃修改" confirm-variant="danger" @close="finishLeave(false)" @confirm="finishLeave(true)" />
-    <MModal :open="createOpen" :title="createSource === 'local' ? '新建本地课程' : '新建在线课程'" :busy="saving" @close="!saving && (createOpen = false)" @confirm="createLecture"><MInput v-model="createForm.title" label="标题" required /><MInput v-model="createForm.slug" label="标识" :hint="createSource === 'local' ? '需在本浏览器的本地讲义中唯一' : '创建后不能修改'" required /></MModal>
+    <MModal :open="createOpen" :title="createSource === 'local' ? '新建本地课程' : '新建在线课程'" :busy="saving" @close="!saving && (createOpen = false)" @confirm="createLecture"><MInput v-model="createForm.title" label="课程名称" required /><MInput v-model="createForm.slug" label="课程标识" :hint="createSource === 'local' ? '需在本浏览器的本地讲义中唯一' : '创建后不能修改'" required /></MModal>
     <MModal :open="Boolean(removeTarget)" title="确认移除" :desc="removeTarget?.type === 'lecture' ? '本地课程及其章节和小节将被删除，此操作无法撤销。' : '移除将在保存草稿后生效，保存前可放弃修改。'" confirm-text="移除" confirm-variant="danger" :busy="treeBusy" @close="!treeBusy && (removeTarget = null)" @confirm="confirmRemoveTreeNode" />
   </div>
 </template>
@@ -823,4 +1153,8 @@ onUnmounted(() => {
 .workbench-empty h2 { margin: 0; color: var(--text-primary); font-size: var(--font-size-larger); font-weight: var(--font-weight-medium); }
 .workbench-empty p { margin: 12px 0 0; color: var(--text-secondary); font-size: var(--font-size); line-height: 1.6; }
 .submit-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+.lecture-import { display: flex; flex-direction: column; gap: 16px; }
+.lecture-import-note { margin: 0; color: var(--text-secondary); font-size: var(--font-size-smaller); line-height: 1.6; overflow-wrap: anywhere; }
+.lecture-import-error { margin: 0; color: var(--tag-red); font-size: var(--font-size-smaller); overflow-wrap: anywhere; }
+.lecture-import-actions { display: flex; justify-content: flex-end; gap: 8px; }
 </style>

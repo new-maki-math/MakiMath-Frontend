@@ -13,6 +13,8 @@ export const lectureApi = {
   mine: () => request('/api/lectures/mine'),
   owned: () => request('/api/lectures/owned', { cache: 'no-store' }),
   create: (body) => mutate('/api/lectures', { method: 'POST', body }),
+  importLecture: (body) => mutate('/api/lectures/import', { method: 'POST', body }),
+  exportRevision: (id) => request(`/api/lecture-revisions/${id}/export`, { cache: 'no-store' }),
   revisions: (id) => request(`/api/lectures/${id}/revisions`),
   createRevision: (id, basedOnId) => mutate(`/api/lectures/${id}/revisions`, { method: 'POST', body: { based_on_id: basedOnId } }),
   getRevision: (id) => request(`/api/lecture-revisions/${id}`, { cache: 'no-store' }),
@@ -21,7 +23,9 @@ export const lectureApi = {
   collaborators: (id) => request(`/api/lectures/${id}/collaborators`),
   setCollaborator: (id, userId, permission) => mutate(`/api/lectures/${id}/collaborators/${userId}`, { method: 'PUT', body: { permission } }),
   removeCollaborator: (id, userId) => mutate(`/api/lectures/${id}/collaborators/${userId}`, { method: 'DELETE' }),
-  setPublication: (id, body) => mutate(`/api/lectures/${id}/publication`, { method: 'PATCH', body })
+  setPublication: (id, body) => mutate(`/api/lectures/${id}/publication`, { method: 'PATCH', body }),
+  restore: (id) => mutate(`/api/lectures/${id}/restore`, { method: 'POST' }),
+  remove: (id) => mutate(`/api/lectures/${id}`, { method: 'DELETE' })
 };
 
 export function lectureSaveBody(revision, chapters) {

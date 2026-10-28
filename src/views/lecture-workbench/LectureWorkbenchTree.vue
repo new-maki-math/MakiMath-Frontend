@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
-import { Plus } from '@iconoir/vue';
+import { Plus, Upload } from '@iconoir/vue';
 import LectureTreeSection from './LectureTreeSection.vue';
 import WorkbenchTreeNode from './WorkbenchTreeNode.vue';
 
@@ -11,7 +11,7 @@ const props = defineProps({
   listErrors: { type: Object, required: true },
   showOnline: { type: Boolean, default: false }
 });
-const emit = defineEmits(['select', 'expand', 'refresh', 'add', 'remove', 'move', 'import']);
+const emit = defineEmits(['select', 'expand', 'refresh', 'add', 'remove', 'move', 'import', 'archive']);
 const expandedKeys = ref(new Set());
 const treeBody = ref(null);
 const bodyHeight = ref(0);
@@ -21,12 +21,10 @@ let motionPreference;
 const sectionDuration = computed(() => reducedMotion.value ? 0 : Math.min(260, Math.round(200 + Math.max(0, bodyHeight.value - 400) * 0.075)));
 const sectionRows = computed(() => {
   const header = 35;
-  const available = Math.max(0, bodyHeight.value - header * 2);
-  const localOpen = expandedKeys.value.has('group:local');
-  const onlineOpen = expandedKeys.value.has('group:online');
-  const localShare = localOpen ? (onlineOpen ? 0.75 : 1) : 0;
-  const onlineShare = onlineOpen ? (localOpen ? 0.25 : 1) : 0;
-  return `${header + available * localShare}px ${header + available * onlineShare}px`;
+  const available = Math.max(0, bodyHeight.value - header * 3);
+  const groups = [{ id: 'local', weight: 3 }, { id: 'online', weight: 1 }, { id: 'archived', weight: 1 }];
+  const weight = groups.reduce((sum, group) => sum + (expandedKeys.value.has(`group:${group.id}`) ? group.weight : 0), 0);
+  return groups.map((group) => `${header + (weight && expandedKeys.value.has(`group:${group.id}`) ? available * group.weight / weight : 0)}px`).join(' ');
 });
 function updateMotionPreference() {
   reducedMotion.value = motionPreference.matches;
@@ -71,11 +69,12 @@ defineExpose({ expand });
   <aside class="workbench-tree">
     <header class="tree-head">
       <span class="tree-title font-mono">LECTURE WORKBENCH</span>
+      <button v-if="!showOnline && localNode?.actions?.import" class="head-action" type="button" title="导入本地讲义" aria-label="导入本地讲义" @click="emit('import', localNode)"><Upload width="16" height="16" /></button>
       <button v-if="!showOnline && localNode?.actions?.add" class="head-action" type="button" title="新建本地讲义" aria-label="新建本地讲义" @click="emit('add', localNode)"><Plus width="16" height="16" /></button>
     </header>
     <div ref="treeBody" class="tree-body" :class="{ 'is-single': !showOnline }" :style="showOnline ? { gridTemplateRows: sectionRows, '--section-duration': `${sectionDuration}ms` } : null">
       <template v-if="showOnline">
-        <LectureTreeSection v-for="node in prepare(props.nodes)" :key="node.id" :node="node" :duration="sectionDuration" :selected-key="selectedKey" :loading="listLoading[node.id]" :error="listErrors[node.id]" @toggle="toggle" @select="emit('select', $event)" @add="emit('add', $event)" @remove="emit('remove', $event)" @move="emit('move', $event)" @import="emit('import', $event)" @retry="emit('refresh')" />
+        <LectureTreeSection v-for="node in prepare(props.nodes)" :key="node.id" :node="node" :duration="sectionDuration" :selected-key="selectedKey" :loading="listLoading[node.id === 'archived' ? 'online' : node.id]" :error="listErrors[node.id === 'archived' ? 'online' : node.id]" @toggle="toggle" @select="emit('select', $event)" @add="emit('add', $event)" @remove="emit('remove', $event)" @move="emit('move', $event)" @import="emit('import', $event)" @archive="emit('archive', $event)" @retry="emit('refresh')" />
       </template>
       <div v-else-if="localNode" class="single-content">
         <p v-if="listLoading.local && !localNode.children.length" class="single-hint">正在加载本地讲义…</p>
@@ -90,7 +89,7 @@ defineExpose({ expand });
 <style scoped>
 .workbench-tree { width: min(324px, 100%); flex-shrink: 0; display: flex; flex-direction: column; min-height: 0; background: var(--bg-sidebar); border-right: 1px solid var(--border-subtle); }
 .tree-head { height: 48px; flex-shrink: 0; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); }
-.tree-title { font-size: var(--font-size-smaller); font-weight: var(--font-weight-semibold); color: var(--text-muted); letter-spacing: 1px; }
+.tree-title { flex: 1; min-width: 0; font-size: var(--font-size-smaller); font-weight: var(--font-weight-semibold); color: var(--text-muted); letter-spacing: 1px; }
 .head-action { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border: 0; border-radius: var(--radius-xs); background: transparent; color: var(--text-secondary); cursor: pointer; }
 .head-action:hover { background: var(--bg-hover); color: var(--text-primary); }
 .head-action:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: -2px; }

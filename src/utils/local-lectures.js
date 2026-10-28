@@ -52,7 +52,12 @@ export async function createLocalLecture(record) {
         tx.abort();
         return;
       }
-      store.add(record);
+      try {
+        store.add(record);
+      } catch (error) {
+        issue = error?.name === 'DataCloneError' ? '讲义数据无法写入本地，请检查文件内容' : error?.message || '创建本地讲义失败';
+        tx.abort();
+      }
     };
     tx.oncomplete = () => resolve(record);
     tx.onabort = () => reject(new Error(issue || tx.error?.message || '创建本地讲义失败'));

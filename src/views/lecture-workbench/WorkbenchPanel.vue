@@ -229,5 +229,6 @@ onUnmounted(() => reportPanelState?.({ dirty: false, saving: false }));
 .readonly-notice.status-approved { background: var(--tag-teal-bg); }
 .readonly-notice strong { display: block; }
 .readonly-notice p { margin: 8px 0 0; }
+.readonly-notice p:first-child { margin-top: 0; }
 .notice-details { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-top: 12px; color: var(--text-secondary); }
 </style>

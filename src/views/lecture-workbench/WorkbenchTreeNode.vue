@@ -9,7 +9,8 @@ import {
   Journal,
   Page,
   Plus,
-  Trash
+  Trash,
+  Archive
 } from '@iconoir/vue';
 import MCollapse from '../../components/MCollapse.vue';
 
@@ -39,7 +40,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['select', 'toggle', 'add', 'remove', 'move', 'import']);
+const emit = defineEmits(['select', 'toggle', 'add', 'remove', 'move', 'import', 'archive']);
 
 const isSelected = computed(() => `${props.node.type}:${props.node.id}` === props.selectedKey);
 const isBranch = computed(() => Array.isArray(props.node.children));
@@ -58,7 +59,7 @@ const canMoveDown = computed(() => props.index < props.siblingCount - 1);
   <div class="tree-node">
     <div
       class="node-row"
-      :class="[`type-${node.type}`, { 'is-selected': isSelected, 'actions-on-hover': node.actionsOnHover }]"
+      :class="[`type-${node.type}`, { 'is-selected': isSelected, 'actions-on-hover': node.actionsOnHover, 'has-archive': node.actions?.archive }]"
       :style="{ paddingLeft: indent, '--node-indent': indent }"
       @click="emit('select', node)"
     >
@@ -129,6 +130,7 @@ const canMoveDown = computed(() => props.index < props.siblingCount - 1);
           aria-label="导入 JSON"
           @click.stop="emit('import', node)"
         >JSON</button>
+        <button v-if="node.actions.archive" class="node-action" type="button" title="归档讲义" :aria-label="`归档讲义 ${node.label}`" @click.stop="emit('archive', node)"><Archive width="15" height="15" /></button>
         <button
           v-if="node.actions.remove"
           class="node-action is-danger"
@@ -159,6 +161,7 @@ const canMoveDown = computed(() => props.index < props.siblingCount - 1);
           @remove="emit('remove', $event)"
           @move="emit('move', $event)"
           @import="emit('import', $event)"
+          @archive="emit('archive', $event)"
         />
         <div
           v-if="node.loading"
@@ -322,6 +325,10 @@ const canMoveDown = computed(() => props.index < props.siblingCount - 1);
 .node-row:focus-within .node-actions,
 .node-row.type-group:not(.actions-on-hover) .node-actions {
   display: inline-flex;
+}
+
+@media (hover: none) {
+  .node-row.has-archive .node-actions { display: inline-flex; }
 }
 
 .node-action {
