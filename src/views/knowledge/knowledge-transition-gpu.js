@@ -1,11 +1,12 @@
 import { bezierProgress } from './knowledge-motion.js';
+import { knowledgeFontPath } from './knowledge-font.js';
 
 let transitionFontPromise;
 
 // 加载与知识地图相同的字体
 function loadTransitionFont() {
   if (!transitionFontPromise) {
-    const font = new FontFace('KnowledgeMapTransition', `url("${import.meta.env.BASE_URL}typst/fonts/NotoSansSC.otf")`);
+    const font = new FontFace('KnowledgeMapTransition', `url("${import.meta.env.BASE_URL}${knowledgeFontPath}")`);
     transitionFontPromise = font.load().then((loaded) => {
       document.fonts.add(loaded);
       return loaded;

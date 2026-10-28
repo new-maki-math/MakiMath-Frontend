@@ -1,5 +1,6 @@
 import { bezierProgress } from './knowledge-motion.js';
 import { readGlyphCache, writeGlyphCache } from './knowledge-glyph-cache.js';
+import { knowledgeFontPath } from './knowledge-font.js';
 
 export async function createKnowledgeRenderer(canvas, onLost, onLoading, onMissingGlyphs) {
   const rendererStart = performance.now();
@@ -181,7 +182,7 @@ export async function createKnowledgeRenderer(canvas, onLost, onLoading, onMissi
       workersPromise = (async () => {
         const started = performance.now();
         console.info('[知识地图] 开始下载字体文件');
-        const response = await fetch(`${import.meta.env.BASE_URL}typst/fonts/NotoSansSC.otf`);
+        const response = await fetch(`${import.meta.env.BASE_URL}${knowledgeFontPath}`);
         if (!response.ok) throw new Error(`无法读取字体文件，HTTP ${response.status}`);
         const bytes = await response.arrayBuffer();
         console.info(`[知识地图] 字体下载完成，大小 ${(bytes.byteLength / 1024 / 1024).toFixed(2)} MB，耗时 ${Math.round(performance.now() - started)} ms`);

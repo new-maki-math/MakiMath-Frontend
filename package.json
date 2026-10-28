@@ -14,7 +14,6 @@
     "@fontsource/noto-sans-sc": "^5.3.1",
     "@iconoir/vue": "^7.12.1",
     "@playcanvas/msdfgen-wasm": "^0.1.1",
-    "codemirror-lang-typst": "0.6.0",
     "d3": "^7.9.0",
     "katex": "^0.19.1",
     "monaco-editor": "^0.57.0",
