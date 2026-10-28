@@ -1,5 +1,7 @@
 <script setup>
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, inject, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
+import { commandServiceKey } from '../../commands/index.js';
 import { hierarchy, select, treemap, treemapBinary, treemapSquarify, zoom, zoomIdentity } from 'd3';
 import { knowledgeApi } from '../../api/knowledge.js';
 import { managementApi } from '../../api/management.js';
@@ -12,6 +14,9 @@ import MSelect from '../../components/MSelect.vue';
 import MLoadingMask from '../../components/MLoadingMask.vue';
 import { createKnowledgeRenderer } from './knowledge-webgpu-renderer.js';
 
+const commandService = inject(commandServiceKey);
+const route = useRoute();
+let unregisterCommands;
 const mapLoading = ref(false);
 const categoryId = ref('');
 const libraries = ref([]);
@@ -213,8 +218,20 @@ const stats = (nodes) => {
   return { done, total: ids.size, percent: ids.size ? Math.round(done / ids.size * 100) : 0 };
 };
 const totalStats = computed(() => stats(learningNodes.value));
-const masteryBatchReady = computed(() => !masteryLoading.value && !masterySaving.value && masteryAvailable.value
-  && !mapLoading.value && !mapError.value && categoryId.value && graph.value.filter?.category_id === Number(categoryId.value) && graph.value.nodes.length > 0);
+function masteryCommandUnavailableReason() {
+  if (disposed || route.name !== 'knowledge-library') return '请先进入知识库页面。';
+  if (librariesLoading.value) return '知识库分类正在加载，请稍后重试。';
+  if (librariesError.value) return '知识库分类加载失败，请先重试。';
+  if (!categoryId.value) return '请先选择知识库。';
+  if (mapLoading.value) return '知识库数据正在加载，请稍后重试。';
+  if (mapError.value) return '知识库数据加载失败，请先重试。';
+  if (graph.value.filter?.category_id !== Number(categoryId.value)) return '当前知识库数据尚未就绪。';
+  if (masteryLoading.value) return '掌握状态正在加载，请稍后重试。';
+  if (!masteryAvailable.value) return '本地掌握状态不可用。';
+  if (masterySaving.value) return '掌握状态正在写入，请稍后重试。';
+  if (!graph.value.nodes.length) return '当前知识库没有公开知识点。';
+  return '';
+}
 const chipNodes = computed(() => {
   const seen = new Set();
   return domains.value.flatMap((domain) => domain.nodes).filter((node) => {
@@ -461,6 +478,7 @@ function watchResolution() {
   requestGpuDraw();
 }
 onMounted(() => {
+  unregisterCommands = commandService?.registerKnowledgeContext({ unavailableReason: masteryCommandUnavailableReason, updateMastery: updateLibraryMastery });
   window.addEventListener('resize', requestGpuDraw);
   watchResolution();
   canvasZoom = zoom().scaleExtent([0.1, 8]).filter((event) => {
@@ -488,6 +506,7 @@ onMounted(() => {
 });
 onUnmounted(() => {
   disposed = true;
+  unregisterCommands?.();
   clearHover();
   window.removeEventListener('resize', requestGpuDraw);
   resolutionQuery?.removeEventListener('change', watchResolution);
@@ -553,7 +572,8 @@ async function toggleMastery(node) {
   finally { masterySaving.value = false; }
 }
 async function updateLibraryMastery(randomize) {
-  if (!masteryBatchReady.value) return;
+  const reason = masteryCommandUnavailableReason();
+  if (reason) return { ok: false, message: reason };
   const ids = [...new Set(graph.value.nodes.map((node) => node.id))];
   const changes = new Map();
   for (const id of ids) {
@@ -565,20 +585,22 @@ async function updateLibraryMastery(randomize) {
     const candidates = ids.filter((id) => !mastered.value.has(id));
     if (candidates.length) changes.set(candidates[Math.floor(Math.random() * candidates.length)], true);
   }
-  if (!changes.size) return;
+  if (!changes.size) return { ok: true, message: randomize ? '当前知识库没有需要随机标记的知识点。' : '当前知识库没有已掌握的知识点。', count: 0 };
   masterySaving.value = true;
   storageError.value = '';
   try {
     await setMasteredBatch(changes);
-    if (disposed) return;
+    if (disposed) return { ok: true, message: `已更新 ${changes.size} 个知识点。`, count: changes.size };
     const next = new Set(mastered.value);
     for (const [id, value] of changes) {
       if (value) next.add(id);
       else next.delete(id);
     }
     mastered.value = next;
+    return { ok: true, message: `已更新 ${changes.size} 个知识点。`, count: changes.size };
   } catch {
     if (!disposed) storageError.value = '批量更新掌握状态失败，原状态已保留。';
+    return { ok: false, message: '批量更新掌握状态失败，原状态已保留。' };
   } finally {
     if (!disposed) masterySaving.value = false;
   }
@@ -866,7 +888,6 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(canonicalId(no
         <div class="knowledge-filters">
           <MSelect v-model="categoryId" aria-label="选择知识库" :options="librarySelectOptions" />
           <MInput v-model="searchQuery" aria-label="搜索知识点标题" type="search" placeholder="搜索知识点标题" />
-          <div class="mastery-actions"><MButton size="sm" :disabled="!masteryBatchReady" @click="updateLibraryMastery(true)">随机学会</MButton><MButton size="sm" :disabled="!masteryBatchReady" @click="updateLibraryMastery(false)">清空掌握</MButton></div>
           <p v-if="librariesLoading" class="filter-note">正在加载知识库分类…</p>
           <p v-else-if="librariesError" class="storage-error" role="alert">{{ librariesError }} <button type="button" @click="loadLibraries">重试</button></p>
           <p v-else-if="!categoryOptions.length" class="filter-note">暂无可选择的一级知识库分类</p>
@@ -945,8 +966,6 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(canonicalId(no
 .floating-info { position: absolute; z-index: 3; top: 16px; left: 18px; max-width: min(260px, calc(100% - 36px)); color: var(--text-secondary); font-size: var(--font-size-smallest); }
 .relation-legend, .floating-legend, .floating-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .knowledge-filters { display: flex; flex-direction: column; gap: 10px; width: min(260px, calc(100vw - 72px)); box-sizing: border-box; padding: 12px; background: var(--chip-panel); border: 1px solid var(--chip-panel-border); border-radius: var(--radius-xs); }
-.mastery-actions { display: flex; gap: 6px; padding-top: 2px; }
-.mastery-actions :deep(button) { flex: 1; }
 .filter-note { margin: 2px 0; color: var(--text-muted); }
 .search-results { border-top: 1px solid var(--border-subtle); padding-top: 6px; }
 .search-result-head { display: flex; justify-content: space-between; gap: 8px; }
