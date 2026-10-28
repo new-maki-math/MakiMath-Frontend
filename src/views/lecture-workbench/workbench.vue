@@ -7,7 +7,7 @@ import { lectureApi, lectureSaveBody } from '../../api/lectures.js';
 import { managementApi } from '../../api/management.js';
 import { listLocalLectures, createLocalLecture, saveLocalLecture, deleteLocalLecture } from '../../utils/local-lectures.js';
 import { notify } from '../../components/MNotice.vue';
-import WorkbenchTree from './WorkbenchTree.vue';
+import LectureWorkbenchTree from './LectureWorkbenchTree.vue';
 import CoursePanel from './CoursePanel.vue';
 import ChapterPanel from './ChapterPanel.vue';
 import SectionPanel from './SectionPanel.vue';
@@ -17,6 +17,8 @@ import MModal from '../../components/MModal.vue';
 import './workbench.css';
 
 const lectures = ref([]);
+const listLoading = ref({ local: true, online: true });
+const listErrors = ref({ local: '', online: '' });
 const treeRef = ref(null);
 const localLectures = ref([]);
 const lectureTrees = ref(new Map());
@@ -137,6 +139,8 @@ function beforeUnload(event) {
 
 async function loadLectures() {
   const sequence = ++listSequence;
+  listLoading.value = { local: true, online: true };
+  listErrors.value = { local: '', online: '' };
   let publicItems = [];
   let privateItems = [];
   const updateOnline = () => {
@@ -157,15 +161,37 @@ async function loadLectures() {
     if (sequence === listSequence) preloadCourseVersions(items, sequence);
     return items;
   });
+  localPromise.then(() => {
+    if (sequence === listSequence) listLoading.value = { ...listLoading.value, local: false };
+  }, () => {
+    if (sequence !== listSequence) return;
+    listLoading.value = { ...listLoading.value, local: false };
+    listErrors.value = { ...listErrors.value, local: '本地讲义加载失败' };
+  });
+  Promise.allSettled([onlinePromise, minePromise]).then(([online, mine]) => {
+    if (sequence !== listSequence) return;
+    let error = '';
+    if (online.status === 'rejected' && mine.status === 'rejected') error = '在线讲义及个人讲义加载失败';
+    else if (online.status === 'rejected') error = '在线讲义加载失败';
+    else if (mine.status === 'rejected') error = '个人在线讲义加载失败';
+    listLoading.value = { ...listLoading.value, online: false };
+    listErrors.value = { ...listErrors.value, online: error };
+  });
   const [local, online, mine, categoryList] = await Promise.allSettled([
     localPromise, onlinePromise, minePromise, managementApi.categories('lecture')
   ]);
   if (sequence !== listSequence) return;
   const errors = [];
+  const sectionErrors = { local: '', online: '' };
   if (local.status === 'fulfilled') localLectures.value = local.value;
-  else errors.push('本地讲义加载失败');
-  if (online.status === 'rejected') errors.push('在线讲义加载失败');
-  if (mine.status === 'rejected') errors.push('我的在线讲义加载失败');
+  else { sectionErrors.local = '本地讲义加载失败'; errors.push(sectionErrors.local); }
+  if (online.status === 'rejected') { sectionErrors.online = '在线讲义加载失败'; errors.push(sectionErrors.online); }
+  if (mine.status === 'rejected') {
+    sectionErrors.online = sectionErrors.online ? '在线讲义及个人讲义加载失败' : '个人在线讲义加载失败';
+    errors.push('我的在线讲义加载失败');
+  }
+  listErrors.value = sectionErrors;
+  listLoading.value = { local: false, online: false };
   if (categoryList.status === 'fulfilled') categories.value = categoryList.value;
   if (errors.length) notify(errors.join('；'), 'error');
 }
@@ -728,7 +754,7 @@ onUnmounted(() => {
 
 <template>
   <div class="workbench-workspace">
-    <WorkbenchTree :inert="loading || saving || createOpen" ref="treeRef" :nodes="treeNodes" :selected-key="selectedKey" :loading="loading" @select="selectTreeNode" @expand="expandTreeNode" @refresh="refreshTree" @add="addTreeNode" @move="moveTreeNode" @remove="askRemoveTreeNode" />
+    <LectureWorkbenchTree :inert="loading || saving || createOpen" ref="treeRef" :nodes="treeNodes" :selected-key="selectedKey" :list-loading="listLoading" :list-errors="listErrors" @select="selectTreeNode" @expand="expandTreeNode" @refresh="refreshTree" @add="addTreeNode" @move="moveTreeNode" @remove="askRemoveTreeNode" />
     <main class="workbench-main">
       <div v-if="revision && lecture && !ownsContext" class="workbench-empty"><h2>当前账号无法访问此编辑内容</h2><p>请使用原账号重新登录，或离开后选择其他讲义。</p></div>
       <CoursePanel v-else-if="revision && lecture && selected.type === 'lecture'" :revision="revision" :lecture="lecture" :categories="categories" :dirty="dirty" :saving="saving || loading || createOpen" :editable="canEdit" :read-only-message="readOnlyMessage" @save="save" @reset="discard">

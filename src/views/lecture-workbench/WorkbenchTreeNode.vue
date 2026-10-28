@@ -59,7 +59,7 @@ const canMoveDown = computed(() => props.index < props.siblingCount - 1);
     <div
       class="node-row"
       :class="[`type-${node.type}`, { 'is-selected': isSelected, 'actions-on-hover': node.actionsOnHover }]"
-      :style="{ paddingLeft: indent }"
+      :style="{ paddingLeft: indent, '--node-indent': indent }"
       @click="emit('select', node)"
     >
       <button
