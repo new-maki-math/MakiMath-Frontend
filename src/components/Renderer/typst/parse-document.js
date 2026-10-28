@@ -1,4 +1,5 @@
 import { parse, renderToString, SyntaxKind as K, kindName } from 'typlet';
+import { normalizeMathHtml } from './normalize-math-html.js';
 import { parseMmBox } from '../mm/parse-box.js';
 import { parseMmTag } from '../mm/parse-tag.js';
 import { parseMmQuestion } from '../mm/parse-question.js';
@@ -391,7 +392,7 @@ export function parseDocument(source) {
           const formula = source.slice(start + 1, Math.max(start + 1, end - 1));
           const display = /^\s/.test(formula) && /\s$/.test(formula);
           try {
-            const html = renderToString(formula, { displayMode: display, strict: (warning) => { const begin = start + 1 + (warning.span?.start || 0); const finish = start + 1 + (warning.span?.end ?? formula.length); report(warning.message, begin, finish); return 'ignore'; } });
+            const html = normalizeMathHtml(renderToString(formula, { displayMode: display, strict: (warning) => { const begin = start + 1 + (warning.span?.start || 0); const finish = start + 1 + (warning.span?.end ?? formula.length); report(warning.message, begin, finish); return 'ignore'; } }));
             output.push({ type: 'math', html, display, ...range });
           } catch (error) {
             const begin = start + 1 + (error.span?.start || 0);
