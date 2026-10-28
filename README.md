@@ -9,13 +9,13 @@ MakiMath 现代化结构化数学讲义与拓扑学习平台的核心前端单�
 完整的系统架构说明、API 接口规格、讲义编写规范及私有化部署手册，请参阅官方文档站点：
 
 - **官方文档仓库**：[https://github.com/new-maki-math/MakiMath-Docs](https://github.com/new-maki-math/MakiMath-Docs)
-- **在线文档站点**：[https://new-maki-math.github.io/MakiMath-Docs/](https://new-maki-math.github.io/MakiMath-Docs/)
+- **在线文档站点**：[https://docs.maki-math.com/](https://docs.maki-math.com/)
 
 ### 推荐阅读
-- [面向开发者快速上手](https://new-maki-math.github.io/MakiMath-Docs/guide/dev-getting-started.html)
-- [面向编者入驻指南](https://new-maki-math.github.io/MakiMath-Docs/guide/editor-getting-started.html)
-- [前端架构设计 (Vue 3 + WASM)](https://new-maki-math.github.io/MakiMath-Docs/architecture/frontend.html)
-- [Typst 数学排版指南](https://new-maki-math.github.io/MakiMath-Docs/authoring/typst-guide.html)
+- [面向开发者快速上手](https://docs.maki-math.com/guide/dev-getting-started.html)
+- [面向编者入驻指南](https://docs.maki-math.com/guide/editor-getting-started.html)
+- [前端架构设计 (Vue 3 + WASM)](https://docs.maki-math.com/architecture/frontend.html)
+- [Typst 数学排版指南](https://docs.maki-math.com/authoring/typst-guide.html)
 
 ## 本地开发快速启动
 
