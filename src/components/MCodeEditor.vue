@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { monaco } from '../utils/monaco.js';
+import MLoadingMask from './MLoadingMask.vue';
+import MButton from './MButton.vue';
 import MTag from './MTag.vue';
 import { findKnowledgeInsertion } from '../utils/knowledge-reference-editor.js';
 
@@ -60,6 +61,11 @@ const emit = defineEmits(['update:modelValue', 'save', 'scroll', 'knowledge-trig
 
 const editorMountRef = ref(null);
 let editorInstance = null;
+let monaco = null;
+let disposed = false;
+let initializing = false;
+const editorLoading = ref(true);
+const editorError = ref('');
 let isSettingValue = false;
 
 const lineCount = computed(() => Math.max(1, String(props.modelValue || '').split('\n').length));
@@ -85,72 +91,91 @@ const resolvedLanguage = computed(() => {
   return 'markdown';
 });
 
-onMounted(() => {
-  if (!editorMountRef.value) return;
+async function initializeEditor() {
+  if (disposed || initializing || editorInstance || !editorMountRef.value) return;
+  initializing = true;
+  editorLoading.value = true;
+  editorError.value = '';
+  try {
+    const module = await import('../utils/monaco.js');
+    if (disposed || !editorMountRef.value) return;
+    monaco = module.monaco;
+    editorInstance = monaco.editor.create(editorMountRef.value, {
+      value: props.modelValue || '',
+      language: resolvedLanguage.value,
+      theme: props.theme || 'vs-dark',
+      readOnly: props.readonly,
+      tabSize: props.tabSize || 2,
+      automaticLayout: true,
+      lineNumbers: 'on',
+      lineNumbersMinChars: 3,
+      lineHeight: 21,
+      fontSize: 13,
+      fontFamily: 'var(--font-mono, "Cascadia Code", Consolas, Menlo, Monaco, "Courier New", monospace)',
+      renderLineHighlight: 'all',
+      scrollBeyondLastLine: false,
+      minimap: { enabled: false },
+      overviewRulerBorder: false,
+      hideCursorInOverviewRuler: true,
+      scrollbar: {
+        vertical: 'auto',
+        horizontal: 'auto',
+        verticalScrollbarSize: 8,
+        horizontalScrollbarSize: 8
+      },
+      bracketPairColorization: { enabled: true },
+      guides: {
+        indentation: true,
+        bracketPairs: false
+      },
+      fixedOverflowWidgets: true,
+      wordWrap: 'off'
+    });
 
-  editorInstance = monaco.editor.create(editorMountRef.value, {
-    value: props.modelValue || '',
-    language: resolvedLanguage.value,
-    theme: props.theme || 'vs-dark',
-    readOnly: props.readonly,
-    tabSize: props.tabSize || 2,
-    automaticLayout: true,
-    lineNumbers: 'on',
-    lineNumbersMinChars: 3,
-    lineHeight: 21,
-    fontSize: 13,
-    fontFamily: 'var(--font-mono, "Cascadia Code", Consolas, Menlo, Monaco, "Courier New", monospace)',
-    renderLineHighlight: 'all',
-    scrollBeyondLastLine: false,
-    minimap: { enabled: false },
-    overviewRulerBorder: false,
-    hideCursorInOverviewRuler: true,
-    scrollbar: {
-      vertical: 'auto',
-      horizontal: 'auto',
-      verticalScrollbarSize: 8,
-      horizontalScrollbarSize: 8
-    },
-    bracketPairColorization: { enabled: true },
-    guides: {
-      indentation: true,
-      bracketPairs: false
-    },
-    fixedOverflowWidgets: true,
-    wordWrap: 'off'
-  });
+    // 双向绑定输入监听
+    editorInstance.onDidChangeModelContent(() => {
+      if (isSettingValue) return;
+      if (props.readonly) {
+        isSettingValue = true;
+        editorInstance.setValue(props.modelValue || '');
+        isSettingValue = false;
+        return;
+      }
+      const val = editorInstance.getValue();
+      emit('update:modelValue', val);
+    });
 
-  // 双向绑定输入监听
-  editorInstance.onDidChangeModelContent(() => {
-    if (isSettingValue) return;
-    if (props.readonly) {
-      isSettingValue = true;
-      editorInstance.setValue(props.modelValue || '');
-      isSettingValue = false;
-      return;
+    editorInstance.onDidScrollChange((event) => {
+      if (!event.scrollTopChanged) return;
+      const position = getScrollPosition();
+      if (position) emit('scroll', position);
+    });
+
+    editorInstance.onDidType((text) => {
+      if (!props.knowledgeReferences || props.readonly || !['e', '('].includes(text)) return;
+      const model = editorInstance.getModel();
+      const range = findKnowledgeInsertion(model, editorInstance.getSelection(), true);
+      if (range) emit('knowledge-trigger', { range, version: model.getVersionId(), model });
+    });
+
+    // 绑定 Ctrl / Cmd + S 保存快捷键
+    editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
+      emit('save');
+    });
+    editorLoading.value = false;
+  } catch (error) {
+    editorInstance?.dispose();
+    editorInstance = null;
+    if (!disposed) {
+      editorError.value = '编辑器加载失败，请重试';
+      console.error('[编辑器] 加载失败', error);
+      editorLoading.value = false;
     }
-    const val = editorInstance.getValue();
-    emit('update:modelValue', val);
-  });
-
-  editorInstance.onDidScrollChange((event) => {
-    if (!event.scrollTopChanged) return;
-    const position = getScrollPosition();
-    if (position) emit('scroll', position);
-  });
-
-  editorInstance.onDidType((text) => {
-    if (!props.knowledgeReferences || props.readonly || !['e', '('].includes(text)) return;
-    const model = editorInstance.getModel();
-    const range = findKnowledgeInsertion(model, editorInstance.getSelection(), true);
-    if (range) emit('knowledge-trigger', { range, version: model.getVersionId(), model });
-  });
-
-  // 绑定 Ctrl / Cmd + S 保存快捷键
-  editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
-    emit('save');
-  });
-});
+  } finally {
+    initializing = false;
+  }
+}
+onMounted(initializeEditor);
 
 watch(
   () => props.modelValue,
@@ -180,7 +205,7 @@ watch(
 watch(
   () => props.theme,
   (newTheme) => {
-    if (newTheme) {
+    if (newTheme && monaco) {
       monaco.editor.setTheme(newTheme);
     }
   }
@@ -232,6 +257,7 @@ defineExpose({
 });
 
 onBeforeUnmount(() => {
+  disposed = true;
   if (editorInstance) {
     editorInstance.dispose();
     editorInstance = null;
@@ -259,6 +285,12 @@ onBeforeUnmount(() => {
       :style="{ height: effectiveHeight }"
     >
       <div ref="editorMountRef" class="monaco-mount"></div>
+      <MLoadingMask :visible="editorLoading" text="正在加载编辑器…" />
+      <span v-if="editorLoading" class="editor-status" role="status">正在加载编辑器…</span>
+      <div v-if="editorError" class="editor-error" role="alert">
+        <span>{{ editorError }}</span>
+        <MButton size="sm" @click="initializeEditor">重试</MButton>
+      </div>
     </div>
   </div>
 </template>
@@ -300,6 +332,7 @@ onBeforeUnmount(() => {
 
 
 .code-monaco-wrap {
+  position: relative;
   width: 100%;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm, 3px);
@@ -312,6 +345,9 @@ onBeforeUnmount(() => {
 .code-monaco-wrap:focus-within {
   border-color: var(--border-focus);
 }
+
+.editor-status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.editor-error { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 16px; background: var(--bg-surface); color: var(--text-secondary); text-align: center; }
 
 .monaco-mount {
   width: 100%;
