@@ -100,7 +100,7 @@ const handleSelect = (section) => {
           <div
             class="chapter-row"
             :class="{ 'is-open': expandedChapters.has(chap.id) }"
-            :title="chap.prereqText ? `${chap.tag || ''} ${chap.title} · ${chap.prereqText}` : chap.title"
+            :title="chap.prereqText ? `${chap.title} · ${chap.prereqText}` : chap.title"
             @click="toggleChapter(chap.id)"
           >
             <div class="chevron-wrap">
@@ -111,7 +111,6 @@ const handleSelect = (section) => {
                 :class="{ 'is-open': expandedChapters.has(chap.id) }"
               />
             </div>
-            <MTag v-if="chap.tag" variant="cyan" size="sm">{{ chap.tag }}</MTag>
             <span class="chapter-title">{{ chap.title }}</span>
           </div>
 

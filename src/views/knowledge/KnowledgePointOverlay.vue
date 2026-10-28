@@ -3,7 +3,7 @@ import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useKnowledgePointExpansion } from './useKnowledgePointExpansion.js';
 import { createKnowledgeTransition } from './knowledge-transition-gpu.js';
 
-const props = defineProps({ sourceRect: { type: Function, required: true }, title: { type: String, default: '' }, animationTitle: { type: String, default: '' }, glyphAdvance: { type: Function, default: null }, beforeFrame: { type: Function, default: null }, nodeId: { type: [String, Number], default: null }, sessionId: { type: Number, required: true }, mastered: Boolean, gpuEnabled: Boolean });
+const props = defineProps({ sourceRect: { type: Function, required: true }, title: { type: String, default: '' }, animationTitle: { type: String, default: '' }, glyphAdvance: { type: Function, default: null }, beforeFrame: { type: Function, default: null }, nodeId: { type: [String, Number], default: null }, sessionId: { type: Number, required: true }, mastered: Boolean, highlight: { type: String, default: '' }, gpuEnabled: Boolean });
 const emit = defineEmits(['closing', 'closed', 'zoom', 'pan']);
 const overlay = ref(null);
 const shell = ref(null);
@@ -46,7 +46,10 @@ async function prepareGpu() {
     const currentTarget = shell.value.getBoundingClientRect();
     return { source: relative(currentSource, bounds), target: relative(currentTarget, bounds), sourceFontSize: currentSource.fontSize || 10, sourceOpacity: currentSource.titleOpacity ?? 1 };
   };
-  return createKnowledgeTransition(gpuCanvas.value, props.animationTitle || props.title, geometry, colorOf(props.mastered ? 'color-mix(in srgb, color-mix(in srgb, var(--accent-primary) 50%, var(--tree-selected-bg)) 88%, white)' : 'color-mix(in srgb, color-mix(in srgb, var(--text-muted) 38%, var(--bg-hover)) 88%, white)'), colorOf('var(--bg-surface)'), colorOf(props.mastered ? 'var(--tree-selected-fg)' : 'var(--text-primary)'), colorOf('var(--text-primary)'), colorOf('var(--accent-primary)'), props.glyphAdvance, props.beforeFrame);
+  const selectedColor = props.mastered ? 'color-mix(in srgb, color-mix(in srgb, var(--accent-primary) 50%, var(--tree-selected-bg)) 88%, white)' : 'color-mix(in srgb, color-mix(in srgb, var(--text-muted) 38%, var(--bg-hover)) 88%, white)';
+  const highlightColor = props.highlight === 'is-prerequisite' ? 'var(--tag-orange)' : props.highlight === 'is-successor' ? 'var(--tag-green)' : selectedColor;
+  const originColor = props.highlight === 'is-prerequisite' || props.highlight === 'is-successor' ? `color-mix(in srgb, ${highlightColor} 55%, ${props.mastered ? 'color-mix(in srgb, var(--accent-primary) 50%, var(--tree-selected-bg))' : 'color-mix(in srgb, var(--text-muted) 38%, var(--bg-hover))'})` : selectedColor;
+  return createKnowledgeTransition(gpuCanvas.value, props.animationTitle || props.title, geometry, colorOf(originColor), colorOf('var(--bg-surface)'), colorOf(props.mastered ? 'var(--tree-selected-fg)' : 'var(--text-primary)'), colorOf('var(--text-primary)'), colorOf(highlightColor), props.glyphAdvance, props.beforeFrame);
 }
 function updateContentOpacity(wave) {
   if (!content.value) return;

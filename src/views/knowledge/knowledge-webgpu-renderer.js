@@ -61,9 +61,10 @@ export async function createKnowledgeRenderer(canvas, onLost, onLoading, onMissi
       }
       if (input.border < 0.0) { coverage *= 1.0 - smoothstep(0.4, 0.8, u.transform.z); }
       var transitionAlpha = 1.0;
-      if (input.transition > 0.5) { transitionAlpha = u.labelAlpha.w; }
-      else if (input.transition < -0.5) { transitionAlpha = 1.0 - u.labelAlpha.w; }
-      let alpha = input.color.a * coverage * transitionAlpha;
+      if (input.transition > 2.5 || (input.transition > 0.5 && input.transition < 1.5)) { transitionAlpha = u.labelAlpha.w; }
+      else if (input.transition < -2.5 || (input.transition < -0.5 && input.transition > -1.5)) { transitionAlpha = 1.0 - u.labelAlpha.w; }
+      let pulse = select(1.0, 0.55 + 0.3 * sin(u.viewport.w * 3.141593), abs(input.transition) > 1.5);
+      let alpha = input.color.a * coverage * transitionAlpha * pulse;
       return vec4f(input.color.rgb * alpha, alpha);
     }
   ` });
@@ -274,6 +275,7 @@ export async function createKnowledgeRenderer(canvas, onLost, onLoading, onMissi
   let shapeBuffer = null;
   let shapeCount = 0;
   let scrollLevels = new Set();
+  let hasRelations = false;
   let previousStates = new Map();
   let transitionFromStates = new Map();
   let transitionStarted = 0;
@@ -361,10 +363,9 @@ export async function createKnowledgeRenderer(canvas, onLost, onLoading, onMissi
       const isRelation = state === 'is-prerequisite' || state === 'is-successor';
       const fill = state === 'is-selected' ? base.map((value, index) => index < 3 ? value * 0.88 + 0.12 : value) : base;
       shape(tile.style, state === 'is-dimmed' ? [fill[0], fill[1], fill[2], fill[3] * 0.4] : fill, 0, 0, transition);
-      const width = parseFloat(tile.style.width);
-      const height = parseFloat(tile.style.height);
-      if (isRelation && width >= 20 && height >= 20) {
-        shape({ left: `${parseFloat(tile.style.left) + width - 11}px`, top: `${parseFloat(tile.style.top) + height - 11}px`, width: '7px', height: '7px' }, marker, 0, 0, transition);
+      if (isRelation) {
+        const pulseTransition = transition === 0 ? 2 : transition > 0 ? 3 : -3;
+        shape(tile.style, marker, 0, 0, pulseTransition);
       }
     };
     for (const tile of tiles) {
@@ -442,6 +443,7 @@ export async function createKnowledgeRenderer(canvas, onLost, onLoading, onMissi
       page.buffer = makeBuffer(vertices[i]);
     }
     scrollLevels = nextScrollLevels;
+    hasRelations = [...nextStates.values()].some((state) => state === 'is-prerequisite' || state === 'is-successor');
     if (changed) { transitionFromStates = previousStates; transitionStarted = performance.now(); }
     else if (!hasTransition) transitionStarted = 0;
     previousStates = nextStates;
@@ -478,7 +480,7 @@ export async function createKnowledgeRenderer(canvas, onLost, onLoading, onMissi
     }
     pass.end();
     device.queue.submit([encoder.finish()]);
-    return animate && (progress < 1 || [...scrollLevels].some((level) => labelAlpha[level] > 0));
+    return animate && (progress < 1 || hasRelations || [...scrollLevels].some((level) => labelAlpha[level] > 0));
   }
   function dispose() {
     if (disposed) return;

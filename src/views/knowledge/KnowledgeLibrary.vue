@@ -5,7 +5,7 @@ import { commandServiceKey } from '../../commands/index.js';
 import { hierarchy, select, treemap, treemapBinary, treemapSquarify, zoom, zoomIdentity } from 'd3';
 import { knowledgeApi } from '../../api/knowledge.js';
 import { managementApi } from '../../api/management.js';
-import { getMasteredIds, setMastered, setMasteredBatch } from '../../utils/knowledge-mastery.js';
+import { getMasteredIds, setMastered, setMasteredBatch, subscribeMasteryChanges } from '../../utils/knowledge-mastery.js';
 import MButton from '../../components/MButton.vue';
 import KnowledgePointOverlay from './KnowledgePointOverlay.vue';
 import KnowledgePointContent from './KnowledgePointContent.vue';
@@ -77,6 +77,7 @@ const selected = ref(null);
 watch(selected, (node) => { if (!node && reading.value) closeReading(); });
 const focusedId = ref('');
 const showingRelations = ref(false);
+const openingHighlight = ref('');
 const returnStack = ref([]);
 const graph = ref({ categories: [], nodes: [], edges: [] });
 const domains = ref([]);
@@ -201,10 +202,16 @@ async function loadMap({ preserveOnError = false } = {}) {
   }
 }
 
+let masteryReadSequence = 0;
+let unsubscribeMastery;
 async function loadMastery() {
-  try { mastered.value = await getMasteredIds(); masteryAvailable.value = true; }
-  catch { storageError.value = '本地掌握记录读取失败，暂时无法修改。'; }
-  finally { masteryLoading.value = false; }
+  const sequence = ++masteryReadSequence;
+  try {
+    const ids = await getMasteredIds();
+    if (sequence === masteryReadSequence && !disposed) { mastered.value = ids; masteryAvailable.value = true; }
+  } catch {
+    if (sequence === masteryReadSequence && !disposed) storageError.value = '本地掌握记录读取失败，暂时无法修改。';
+  } finally { if (sequence === masteryReadSequence) masteryLoading.value = false; }
 }
 const uniqueIds = (nodes) => new Set(nodes.map((node) => canonicalId(node.id)));
 const stats = (nodes) => {
@@ -495,6 +502,7 @@ onMounted(() => {
     else updateWorldTransform();
   });
   if (canvas.value) resizeObserver.observe(canvas.value);
+  unsubscribeMastery = subscribeMasteryChanges(loadMastery);
   loadMastery();
   loadLibraries();
   initializeGpu();
@@ -503,6 +511,8 @@ onMounted(() => {
 });
 onUnmounted(() => {
   disposed = true;
+  masteryReadSequence++;
+  unsubscribeMastery?.();
   unregisterCommands?.();
   window.removeEventListener('resize', requestGpuDraw);
   resolutionQuery?.removeEventListener('change', watchResolution);
@@ -827,6 +837,7 @@ function activateNode(node) {
     showingRelations.value = false;
     return;
   }
+  openingHighlight.value = relationClass(node);
   showingRelations.value = false;
   readingClosing.value = false;
   overlaySession.value++;
@@ -885,7 +896,7 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(canonicalId(no
         <p v-if="glyphWarning" class="storage-error" role="alert">{{ glyphWarning }}</p>
         <div v-if="showingRelations && selected" class="relation-info">
           <p>正在查看：{{ selected.title }}</p>
-          <p><span class="relation-key before" />前置 <span class="relation-key after" />后续</p>
+          <p><span class="relation-label before">前置</span><span class="relation-label after">后续</span></p>
           <p>前置和后续仅在当前地图范围内高亮</p>
           <p v-if="prerequisitesError" class="storage-error" role="alert">{{ prerequisitesError }}</p>
           <MButton size="sm" @click="showingRelations = false">退出关系查看</MButton>
@@ -907,7 +918,7 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(canonicalId(no
       </div>
       <div class="floating-controls" :inert="reading"><MButton size="sm" aria-label="缩小画布" @click="zoomCanvas(0.8)">−</MButton><MButton size="sm" aria-label="放大画布" @click="zoomCanvas(1.25)">+</MButton><MButton size="sm" @click="resetCanvas">全览</MButton></div>
       <div class="floating-legend" :inert="reading"><span><i class="swatch" />未掌握</span><span><i class="swatch mastered" />已掌握</span><span><i class="boundary-key domain" />分区</span><span><i class="boundary-key topic" />子分区</span><span>{{ totalStats.done }} / {{ totalStats.total }}</span></div>
-      <KnowledgePointOverlay v-if="reading && selected" ref="readingOverlay" :key="overlaySession" :session-id="overlaySession" :source-rect="readingSourceRect" :glyph-advance="glyphAdvance" :before-frame="syncMapFrame" :animation-title="selected.title" :title="detail?.title || selected.title" :node-id="selected.id" :gpu-enabled="gpuReady" :mastered="mastered.has(selected.id)" @closing="readingClosing = true" @closed="closeReading" @zoom="handleCanvasWheel" @pan="handleOverlayPan">
+      <KnowledgePointOverlay v-if="reading && selected" ref="readingOverlay" :key="overlaySession" :session-id="overlaySession" :source-rect="readingSourceRect" :glyph-advance="glyphAdvance" :before-frame="syncMapFrame" :animation-title="selected.title" :title="detail?.title || selected.title" :node-id="selected.id" :gpu-enabled="gpuReady" :mastered="mastered.has(selected.id)" :highlight="openingHighlight" @closing="readingClosing = true" @closed="closeReading" @zoom="handleCanvasWheel" @pan="handleOverlayPan">
         <KnowledgePointContent :selected="selected" :detail="detail" :selected-tile="selectedTile" :selected-outside-map="selectedOutsideMap" :locate-error="locateError" :detail-loading="detailLoading" :detail-error="detailError" :prerequisites-error="prerequisitesError" :detail-prerequisites="detailPrerequisites" :successors="successors" :can-return="Boolean(returnStack.length)" :is-mastered="mastered.has(selected.id)" :mastery-loading="masteryLoading" :mastery-saving="masterySaving" :mastery-available="masteryAvailable" :storage-error="storageError" @relations="showRelations" @back="returnToPrevious" @locate="locateSelected" @mastery="toggleMastery" @retry="selectNode(selected, true)" @follow="followDependency" />
       </KnowledgePointOverlay>
     </main>
@@ -943,17 +954,16 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(canonicalId(no
 .map-tile.is-dimmed { opacity: .4; }
 .map-tile.is-selected { background: color-mix(in srgb, color-mix(in srgb, var(--text-muted) 38%, var(--bg-hover)) 88%, white); }
 .map-tile.mastered.is-selected { background: color-mix(in srgb, color-mix(in srgb, var(--accent-primary) 50%, var(--tree-selected-bg)) 88%, white); }
-.map-tile.is-prerequisite::after, .map-tile.is-successor::after { content: ''; position: absolute; right: 4px; bottom: 4px; width: 7px; height: 7px; border-radius: var(--radius-xs); }
-.map-tile.is-prerequisite::after { background: var(--tag-orange); }
-.map-tile.is-successor::after { background: var(--tag-green); }
+.map-tile.is-prerequisite { background: color-mix(in srgb, var(--tag-orange) 45%, var(--bg-hover)); animation: relation-breathe 2s ease-in-out infinite; }
+.map-tile.is-successor { background: color-mix(in srgb, var(--tag-green) 45%, var(--bg-hover)); animation: relation-breathe 2s ease-in-out infinite; }
+@keyframes relation-breathe { 0%, 100% { filter: brightness(.7); } 50% { filter: brightness(1.35); } }
 .map-tile:focus-visible { outline: 2px solid var(--text-primary); outline-offset: 1px; }
 .floating-info { position: absolute; z-index: 3; top: 16px; left: 18px; max-width: min(260px, calc(100% - 36px)); color: var(--text-secondary); font-size: var(--font-size-smallest); }
 .floating-legend, .floating-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .knowledge-filters { display: flex; flex-direction: column; gap: 10px; width: min(260px, calc(100vw - 72px)); box-sizing: border-box; padding: 12px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-xs); }
 .relation-info { margin-top: 8px; padding: 10px 12px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-xs); }
-.relation-key { display: inline-block; width: 8px; height: 8px; margin-right: 4px; border-radius: var(--radius-xs); }
-.relation-key.before { background: var(--tag-orange); }
-.relation-key.after { margin-left: 8px; background: var(--tag-green); }
+.relation-label.before { color: var(--tag-orange); }
+.relation-label.after { margin-left: 12px; color: var(--tag-green); }
 .relation-info p { margin: 0 0 8px; line-height: 1.5; overflow-wrap: anywhere; }
 .filter-note { margin: 2px 0; color: var(--text-muted); }
 .search-results { border-top: 1px solid var(--border-subtle); padding-top: 6px; }
@@ -979,6 +989,6 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(canonicalId(no
 .knowledge-source { margin-top: 12px; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; }
 .dependency { display: flex; flex-direction: column; gap: 4px; width: 100%; padding: 10px 0; border: 0; border-bottom: 1px solid var(--border-subtle); background: transparent; color: var(--text-primary); text-align: left; cursor: pointer; font-size: var(--font-size-smaller); }
 .dependency:hover { color: var(--accent-primary); } .dependency small { color: var(--text-muted); line-height: 1.5; }
-@media (prefers-reduced-motion: reduce) { .map-tile, .label-layer text { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .map-tile, .label-layer text { transition: none; animation: none; } }
 @media (max-width: 760px) { .floating-legend { bottom: 56px; } }
 </style>

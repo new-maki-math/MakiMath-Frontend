@@ -236,7 +236,6 @@ onUnmounted(() => { loadId++; });
           <div class="spec-card">
             <div class="card-header">
               <span class="card-title font-mono">OVERVIEW // 课程概要</span>
-              <MTag variant="muted" size="sm">{{ lecture.id }}</MTag>
             </div>
             <div class="spec-body">
               <div class="spec-item">
@@ -323,7 +322,7 @@ onUnmounted(() => { loadId++; });
         <!-- 目录列表 -->
         <div v-if="chapters.length > 0" class="chapters-wrapper">
           <div
-            v-for="(chap, idx) in chapters"
+            v-for="chap in chapters"
             :key="chap.id"
             :id="`chapter-${chap.id}`"
             class="chapter-panel"
@@ -335,9 +334,6 @@ onUnmounted(() => { loadId++; });
               @click="toggleChapter(chap.id)"
             >
               <div class="chapter-meta">
-                <MTag variant="cyan" size="sm">
-                  {{ chap.tag || `第${idx + 1}章` }}
-                </MTag>
                 <span class="chapter-title">{{ chap.title }}</span>
                 <MTag
                   v-if="!shelfSource && chap.prereqText"
@@ -367,7 +363,6 @@ onUnmounted(() => { loadId++; });
                   @click="openLecture(sec.id)"
                 >
                   <div class="entry-left">
-                    <span class="entry-id font-mono">{{ sec.id }}</span>
                     <div class="entry-text">
                       <span class="entry-title" :title="sec.desc || sec.title">{{ sec.title }}</span>
                     </div>
@@ -774,13 +769,6 @@ onUnmounted(() => { loadId++; });
   min-width: 0;
 }
 
-.entry-id {
-  font-size: var(--font-size-smallest);
-  color: var(--text-muted);
-  width: 44px;
-  flex-shrink: 0;
-}
-
 .entry-text {
   display: flex;
   align-items: center;
@@ -918,11 +906,6 @@ onUnmounted(() => { loadId++; });
   .entry-left {
     gap: 10px;
     flex: 1;
-  }
-
-  .entry-id {
-    width: 32px;
-    font-size: 11px;
   }
 
   .entry-title {
