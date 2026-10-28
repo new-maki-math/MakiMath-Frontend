@@ -6,5 +6,6 @@
   "remoteBaseDir": "/var/www/maki-math",
   "domain": "example.com",
   "backendPort": 3000,
-  "email": "example@example.com"
+  "email": "example@example.com",
+  "configureNginx": true
 }

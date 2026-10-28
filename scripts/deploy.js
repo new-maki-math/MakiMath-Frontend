@@ -23,6 +23,7 @@ const config = {
   remoteBaseDir: process.env.DEPLOY_BASE_DIR || fileConfig.remoteBaseDir || "/var/www/maki-math",
   domain: process.env.DEPLOY_DOMAIN || fileConfig.domain || "",
   backendPort: Number(process.env.DEPLOY_BACKEND_PORT || fileConfig.backendPort || 3000),
+  configureNginx: fileConfig.configureNginx !== false,
   email: process.env.DEPLOY_EMAIL || fileConfig.email || "",
 }
 
@@ -172,6 +173,13 @@ mkdir -p ${quote(config.remoteBaseDir)}
 mkdir -p ${quote(remoteUploadDir)}
 mkdir -p ${quote(remoteFrontendDir)}
 
+if [ -d ${quote(remoteFrontendDir)} ]; then
+  find ${quote(remoteFrontendDir)} -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+fi
+
+cp -a ${quote(`${remoteUploadDir}/.`)} ${quote(remoteFrontendDir)}/
+
+if [ ${config.configureNginx ? "1" : "0"} = "1" ]; then
 NGINX_SITE_DIR=""
 NGINX_SITE_PATH=""
 
@@ -186,12 +194,6 @@ else
   NGINX_SITE_DIR="/etc/nginx/conf.d"
   NGINX_SITE_PATH="/etc/nginx/conf.d/${config.domain}.conf"
 fi
-
-if [ -d ${quote(remoteFrontendDir)} ]; then
-  find ${quote(remoteFrontendDir)} -mindepth 1 -maxdepth 1 -exec rm -rf {} +
-fi
-
-cp -a ${quote(`${remoteUploadDir}/.`)} ${quote(remoteFrontendDir)}/
 
 cat > "$NGINX_SITE_PATH" <<'EOF'
 ${nginxConfig}
@@ -212,6 +214,10 @@ certbot --nginx --non-interactive --agree-tos -m ${quote(config.email)} -d ${quo
 
 nginx -t
 systemctl reload nginx
+else
+  nginx -t
+  echo "保留现有 Nginx 配置与 HTTPS 证书，仅更新前端文件。"
+fi
 
 rm -rf ${quote(remoteTmpBase)}
 `
