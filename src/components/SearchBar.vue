@@ -1,8 +1,7 @@
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted, inject } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Search, Xmark, ArrowRight } from '@iconoir/vue';
-import { renderToString } from 'typlet';
 import { fetchSearchRecommendations } from '../api';
 import { notify } from './MNotice.vue';
 import { lectureLocation } from '../utils/lecture-route.js';
@@ -28,6 +27,7 @@ const emit = defineEmits(['select', 'navigate', 'focus', 'blur']);
 
 const route = useRoute();
 const router = useRouter();
+const openKnowledgeSearch = inject('openKnowledgeSearch', null);
 
 // DOM 引用
 const containerRef = ref(null);
@@ -84,22 +84,6 @@ watch(
   }
 );
 
-// 检测 Typst 公式输入并即时编译
-const typstPreviewHtml = computed(() => {
-  const q = query.value.trim();
-  if (!q) return null;
-  if (q.startsWith('$') || q.includes('\\') || q.includes('^') || q.includes('_') || q.includes('=')) {
-    try {
-      const cleanTypst = q.replace(/^\$+|\$+$/g, '').trim();
-      if (!cleanTypst) return null;
-      return renderToString(cleanTypst, { displayMode: true });
-    } catch {
-      return null;
-    }
-  }
-  return null;
-});
-
 // 唤醒与关闭逻辑
 const openSearch = () => {
   isOpen.value = true;
@@ -132,11 +116,13 @@ const handleSelect = (item) => {
   inputRef.value?.blur();
   emit('select', item);
 
-  const targetPath = item.type === 'knowledge'
-    ? `/knowledge/${encodeURIComponent(item.id)}`
-    : item.type === 'lecture' && item.slug
-      ? router.resolve(lectureLocation({ slug: item.slug })).href
-      : '';
+  if (item.type === 'knowledge') {
+    if (!openKnowledgeSearch?.(item, inputRef.value)) notify('无法打开知识点详情，请稍后重试', 'warn');
+    return;
+  }
+  const targetPath = item.type === 'lecture' && item.slug
+    ? router.resolve(lectureLocation({ slug: item.slug })).href
+    : '';
   if (!targetPath && item.type !== 'knowledge') notify('搜索结果缺少讲义标识，无法打开', 'warn');
   if (!targetPath) return;
   emit('navigate', targetPath);
@@ -298,17 +284,6 @@ defineExpose({
     <!-- 检索结果浮层卡片 -->
     <transition name="dropdown-anim">
       <div v-if="isOpen" class="search-dropdown-card">
-        <!-- Typst 公式实时编译结果 -->
-        <transition name="preview-slide">
-          <div v-if="typstPreviewHtml" class="typst-preview-box">
-            <div class="preview-header font-mono">
-              <span class="preview-tag">TYPST LIVE COMPILED</span>
-              <span class="preview-hint">毫秒级公式即时排版预览</span>
-            </div>
-            <div class="preview-body" v-html="typstPreviewHtml"></div>
-          </div>
-        </transition>
-
         <!-- 结果列表头部统计 -->
         <div class="dropdown-header">
           <span>{{ query ? '匹配知识点与讲义' : '推荐讲义' }}</span>
@@ -568,60 +543,6 @@ defineExpose({
 .is-topbar .search-dropdown-card {
   max-height: 380px;
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
-}
-
-/* Typst 编译实时预览 */
-.typst-preview-box {
-  padding: 12px 16px;
-  background-color: var(--bg-base);
-  border-bottom: 1px solid var(--border-subtle);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.preview-slide-enter-active,
-.preview-slide-leave-active {
-  transition: all 220ms cubic-bezier(0.16, 1, 0.3, 1);
-  max-height: 140px;
-  overflow: hidden;
-}
-
-.preview-slide-enter-from,
-.preview-slide-leave-to {
-  opacity: 0;
-  max-height: 0;
-  padding-top: 0;
-  padding-bottom: 0;
-  transform: translateY(-6px);
-}
-
-.preview-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.preview-tag {
-  font-size: 11px;
-  color: var(--accent-primary);
-  font-weight: var(--font-weight-medium);
-}
-
-.preview-hint {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.preview-body {
-  padding: 6px 10px;
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-xs);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 48px;
 }
 
 .dropdown-header {

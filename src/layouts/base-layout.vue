@@ -4,6 +4,7 @@ import ProgressBar from '../components/ProgressBar.vue';
 import MNotice from '../components/MNotice.vue';
 import MUserModal from '../components/MUserModal.vue';
 import MHelpModal from '../components/MHelpModal.vue';
+import KnowledgeSearchOverlay from '../components/KnowledgeSearchOverlay.vue';
 import MAuthForm from '../components/MAuthForm.vue';
 import MModal from '../components/MModal.vue';
 import MInput from '../components/MInput.vue';
@@ -50,6 +51,8 @@ const reauthenticate = async () => {
 
 // 深度向下 provide 布局状态，供 LayoutDesktop 与 LayoutMobile 复用
 provide('layoutState', layoutState);
+const knowledgeSearchOverlay = ref(null);
+provide('openKnowledgeSearch', (node, focusTarget) => knowledgeSearchOverlay.value?.openPoint(node, focusTarget));
 
 onMounted(() => {
   if (progressBarRef.value) {
@@ -88,12 +91,18 @@ onMounted(() => {
       desc="请使用当前账号重新登录，正在编辑的内容会保留"
       hide-footer
     >
-      <form @submit.prevent="reauthenticate">
-        <MInput :model-value="currentUser?.username || ''" label="账号" disabled />
-        <MInput v-model="reauthPassword" label="密码" type="password" :disabled="reauthBusy" />
-        <MButton type="submit" variant="primary" :disabled="reauthBusy || !reauthPassword">重新登录</MButton>
+      <form class="reauth-form" @submit.prevent="reauthenticate">
+        <div class="reauth-fields">
+          <MInput :model-value="currentUser?.username || ''" label="账号" disabled />
+          <MInput v-model="reauthPassword" label="密码" type="password" :disabled="reauthBusy" />
+        </div>
+        <div class="reauth-actions">
+          <MButton type="submit" variant="primary" :disabled="reauthBusy || !reauthPassword">{{ reauthBusy ? '正在登录…' : '重新登录' }}</MButton>
+        </div>
       </form>
     </MModal>
+
+    <KnowledgeSearchOverlay ref="knowledgeSearchOverlay" />
 
     <!-- 根据当前视口设备渲染对应布局组件 -->
     <LayoutMobile v-if="isMobile">
@@ -118,4 +127,25 @@ onMounted(() => {
   background-color: var(--bg-app);
 }
 
+.reauth-form, .reauth-fields {
+  min-width: 0;
+}
+
+.reauth-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.reauth-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 22px;
+}
+
+@media (max-width: 480px) {
+  .reauth-actions > * {
+    width: 100%;
+  }
+}
 </style>

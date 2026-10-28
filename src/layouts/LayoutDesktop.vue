@@ -2,6 +2,7 @@
 import { ref, inject } from 'vue';
 import ViewportHeader from '../components/ViewportHeader.vue';
 import SearchBar from '../components/SearchBar.vue';
+import MUpdateLog from '../components/MUpdateLog.vue';
 import MCollapse from '../components/MCollapse.vue';
 import { useLayoutState } from './useLayoutState.js';
 import {
@@ -93,6 +94,16 @@ const handleNavClick = (item) => {
         </div>
 
         <button
+          v-if="isLoggedIn"
+          class="topbar-action-btn"
+          title="退出登录"
+          aria-label="退出登录"
+          @click="handleLogout"
+        >
+          <LogOut width="20" height="20" />
+        </button>
+
+        <button
           type="button"
           class="topbar-action-btn"
           :class="{ active: isHelpModalOpen }"
@@ -104,16 +115,6 @@ const handleNavClick = (item) => {
         </button>
 
         <button
-          v-if="isLoggedIn"
-          class="topbar-action-btn"
-          title="退出登录"
-          aria-label="退出登录"
-          @click="handleLogout"
-        >
-          <LogOut width="20" height="20" />
-        </button>
-
-        <button
           class="topbar-action-btn"
           :title="isDark ? '切换至浅色模式' : '切换至深色模式'"
           aria-label="切换浅色/深色模式"
@@ -122,6 +123,7 @@ const handleNavClick = (item) => {
           <SunLight v-if="isDark" width="20" height="20" />
           <HalfMoon v-else width="20" height="20" />
         </button>
+        <MUpdateLog />
       </div>
     </header>
 

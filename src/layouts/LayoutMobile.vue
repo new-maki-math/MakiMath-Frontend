@@ -2,6 +2,7 @@
 import { ref, inject, watch } from 'vue';
 import ViewportHeader from '../components/ViewportHeader.vue';
 import SearchBar from '../components/SearchBar.vue';
+import MUpdateLog from '../components/MUpdateLog.vue';
 import MDrawer from '../components/MDrawer.vue';
 import MTag from '../components/MTag.vue';
 import MButton from '../components/MButton.vue';
@@ -117,39 +118,12 @@ watch(
           <Search width="20" height="20" />
         </button>
 
-        <!-- 深浅主题切换 -->
-        <button
-          type="button"
-          class="mobile-icon-btn"
-          :title="isDark ? '切换至浅色模式' : '切换至深色模式'"
-          aria-label="切换浅色/深色模式"
-          @click="toggleTheme"
-        >
-          <SunLight v-if="isDark" width="20" height="20" />
-          <HalfMoon v-else width="20" height="20" />
-        </button>
-
-        <!-- 用户登录状态 / 头像 -->
-        <button
-          type="button"
-          class="mobile-icon-btn user-btn"
-          :class="{ active: isUserModalOpen }"
-          :title="isLoggedIn ? '个人中心' : '登录或注册'"
-          :aria-label="isLoggedIn ? '个人中心' : '登录或注册'"
-          @click="openUserModal"
-        >
-          <UserCircle width="20" height="20" />
-        </button>
-        <button
-          type="button"
-          class="mobile-icon-btn"
-          :class="{ active: isHelpModalOpen }"
-          title="如何使用"
-          aria-label="如何使用"
-          @click="openHelpModal"
-        >
-          <HelpCircle width="20" height="20" />
-        </button>
+        <span v-if="isLoggedIn" class="mobile-user-name font-mono" :title="userDisplayName">{{ userDisplayName }}</span>
+        <button type="button" class="mobile-icon-btn user-btn" :class="{ active: isUserModalOpen }" :title="isLoggedIn ? '个人中心' : '登录或注册'" :aria-label="isLoggedIn ? '个人中心' : '登录或注册'" @click="openUserModal"><UserCircle width="20" height="20" /></button>
+        <button v-if="isLoggedIn" type="button" class="mobile-icon-btn" title="退出登录" aria-label="退出登录" @click="handleLogout"><LogOut width="20" height="20" /></button>
+        <button type="button" class="mobile-icon-btn" :class="{ active: isHelpModalOpen }" title="如何使用" aria-label="如何使用" @click="openHelpModal"><HelpCircle width="20" height="20" /></button>
+        <button type="button" class="mobile-icon-btn" :title="isDark ? '切换至浅色模式' : '切换至深色模式'" aria-label="切换浅色/深色模式" @click="toggleTheme"><SunLight v-if="isDark" width="20" height="20" /><HalfMoon v-else width="20" height="20" /></button>
+        <MUpdateLog />
       </div>
     </header>
 
@@ -224,7 +198,7 @@ watch(
       <div v-if="isSearchOpen" class="mobile-search-overlay">
         <div class="search-overlay-header">
           <div class="search-box-wrap">
-            <SearchBar variant="hero" :auto-focus="true" @navigate="closeSearch" />
+            <SearchBar variant="hero" :auto-focus="true" @select="closeSearch" @navigate="closeSearch" />
           </div>
           <button
             type="button"
@@ -294,6 +268,10 @@ watch(
   align-items: center;
   gap: 4px;
 }
+
+.topbar-right { min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.topbar-right::-webkit-scrollbar { display: none; }
+.mobile-user-name { flex: none; max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); font-size: var(--font-size-smaller); }
 
 .mobile-icon-btn {
   display: inline-flex;
