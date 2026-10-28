@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue';
-import { renderToString } from 'typlet';
+import { renderTypstMath } from '../utils/typst-math';
 
 // 递归渲染依赖组件名
 defineOptions({ name: 'TypstDoc' });
@@ -43,7 +43,7 @@ function renderMath(node) {
   if (!typst.trim()) return '';
 
   try {
-    return renderToString(typst, { displayMode: Boolean(node.display), output: 'html' });
+    return renderTypstMath(typst, Boolean(node.display));
   } catch (err) {
     console.warn('[TypstDoc] typlet 数学公式渲染失败:', typst, err);
     const escaped = typst.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');

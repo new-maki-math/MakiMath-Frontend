@@ -2,7 +2,7 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Search, Xmark, ArrowRight } from '@iconoir/vue';
-import { renderToString } from 'typlet';
+import { renderTypstMath } from '../utils/typst-math';
 import { fetchSearchRecommendations } from '../api';
 import {
   useLectureSearch,
@@ -88,7 +88,7 @@ const typstPreviewHtml = computed(() => {
     try {
       const cleanTypst = q.replace(/^\$+|\$+$/g, '').trim();
       if (!cleanTypst) return null;
-      return renderToString(cleanTypst, { displayMode: true, output: 'html' });
+      return renderTypstMath(cleanTypst, true);
     } catch {
       return null;
     }
