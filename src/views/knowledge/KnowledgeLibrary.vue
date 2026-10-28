@@ -213,7 +213,7 @@ async function loadMastery() {
     if (sequence === masteryReadSequence && !disposed) storageError.value = '本地掌握记录读取失败，暂时无法修改。';
   } finally { if (sequence === masteryReadSequence) masteryLoading.value = false; }
 }
-const uniqueIds = (nodes) => new Set(nodes.map((node) => canonicalId(node.id)));
+const uniqueIds = (nodes) => new Set(nodes.map((node) => node.slug));
 const stats = (nodes) => {
   const ids = uniqueIds(nodes);
   let done = 0;
@@ -409,7 +409,7 @@ async function rebuildGpuLabels() {
   const sequence = ++gpuSceneSequence;
   try {
     const groups = chipLayout.value.groups;
-    const applied = await renderer.setTiles(chipLayout.value.tiles, relationClass, getComputedStyle(gpuCanvas.value).fontFamily, groups, (node) => mastered.value.has(canonicalId(node.id)), gpuPalette);
+    const applied = await renderer.setTiles(chipLayout.value.tiles, relationClass, getComputedStyle(gpuCanvas.value).fontFamily, groups, (node) => mastered.value.has(node.slug), gpuPalette);
     if (applied && renderer === gpuRenderer && sequence === gpuSceneSequence) requestGpuDraw();
   } catch {
     if (renderer !== gpuRenderer || sequence !== gpuSceneSequence) return;
@@ -567,19 +567,19 @@ async function toggleMastery(node) {
   storageError.value = '';
   const previous = mastered.value;
   const next = new Set(previous);
-  const value = !next.has(node.id);
-  if (value) next.add(node.id);
-  else next.delete(node.id);
+  const value = !next.has(node.slug);
+  if (value) next.add(node.slug);
+  else next.delete(node.slug);
   mastered.value = next;
   masterySaving.value = true;
-  try { await setMastered(node.id, value); }
+  try { await setMastered(node.slug, value); }
   catch { mastered.value = previous; storageError.value = '掌握状态保存失败，请重试。'; }
   finally { masterySaving.value = false; }
 }
 async function updateLibraryMastery(randomize) {
   const reason = masteryCommandUnavailableReason();
   if (reason) return { ok: false, message: reason };
-  const ids = [...new Set(graph.value.nodes.map((node) => node.id))];
+  const ids = [...new Set(graph.value.nodes.map((node) => node.slug))];
   const changes = new Map();
   for (const id of ids) {
     if (randomize) {
@@ -867,7 +867,7 @@ function closeReading(sessionId) {
   reading.value = false;
   nextTick(() => { restoringFocus = true; if (returnFocus?.isConnected && returnFocus !== document.body) returnFocus.focus(); else canvas.value?.focus(); restoringFocus = false; });
 }
-const tileLabel = (node) => `${node.title}，${mastered.value.has(canonicalId(node.id)) ? '已掌握' : '未掌握'}，激活打开阅读`;
+const tileLabel = (node) => `${node.title}，${mastered.value.has(node.slug) ? '已掌握' : '未掌握'}，激活打开阅读`;
 </script>
 
 <template>
@@ -905,10 +905,10 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(canonicalId(no
       <div ref="canvas" class="map-canvas" tabindex="-1" :inert="reading && !readingClosing" @click="handleMapClick" @mousemove="handleMapHover">
         <div v-if="!gpuReady" ref="mapWorld" class="map-world" :style="{ width: `${worldSize}px`, height: `${worldSize}px` }">
           <div v-for="group in chipLayout.groups" :key="group.id" :class="['chip-group', `is-${group.kind}`, { 'is-library': group.isLibrary }]" :style="group.style"><span class="group-heading"><span class="group-heading-text" :class="{ scrolling: groupScrollDistance(group) > 0 }" :style="{ '--scroll-distance': `-${groupScrollDistance(group)}px` }">{{ group.title }}</span></span></div>
-          <button v-for="tile in chipLayout.tiles" :key="tile.node.id" type="button" :data-node-id="tile.node.id" :class="['map-tile', relationClass(tile.node), { mastered: mastered.has(canonicalId(tile.node.id)) }]" :style="tile.style" :title="`${domainById.get(tile.node.domain_id)?.name} / ${topicNames.get(tile.node.topic_id)} · ${tileLabel(tile.node)}`" :aria-label="tileLabel(tile.node)" @click.stop="activateNode(tile.node)" />
+          <button v-for="tile in chipLayout.tiles" :key="tile.node.id" type="button" :data-node-id="tile.node.id" :class="['map-tile', relationClass(tile.node), { mastered: mastered.has(tile.node.slug) }]" :style="tile.style" :title="`${domainById.get(tile.node.domain_id)?.name} / ${topicNames.get(tile.node.topic_id)} · ${tileLabel(tile.node)}`" :aria-label="tileLabel(tile.node)" @click.stop="activateNode(tile.node)" />
           <svg v-if="!gpuReady" ref="labelLayer" class="label-layer" :viewBox="`0 0 ${worldSize} ${worldSize}`" aria-hidden="true">
             <defs><clipPath v-for="tile in chipLayout.tiles" :id="`knowledge-label-${tile.node.id}`" :key="tile.node.id"><rect :x="parseFloat(tile.style.left) + 4" :y="parseFloat(tile.style.top) + 4" :width="Math.max(0, parseFloat(tile.style.width) - 8)" :height="Math.max(0, parseFloat(tile.style.height) - 8)" /></clipPath></defs>
-            <text v-for="tile in chipLayout.tiles" :key="tile.node.id" :x="parseFloat(tile.style.left) + 4" :y="parseFloat(tile.style.top) + 14" :clip-path="`url(#knowledge-label-${tile.node.id})`" :class="[relationClass(tile.node), { mastered: mastered.has(canonicalId(tile.node.id)) }]">{{ tile.node.title }}</text>
+            <text v-for="tile in chipLayout.tiles" :key="tile.node.id" :x="parseFloat(tile.style.left) + 4" :y="parseFloat(tile.style.top) + 14" :clip-path="`url(#knowledge-label-${tile.node.id})`" :class="[relationClass(tile.node), { mastered: mastered.has(tile.node.slug) }]">{{ tile.node.title }}</text>
           </svg>
         </div>
         <div v-if="gpuReady" class="canvas-accessibility" aria-label="知识点列表">
@@ -918,8 +918,8 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(canonicalId(no
       </div>
       <div class="floating-controls" :inert="reading"><MButton size="sm" aria-label="缩小画布" @click="zoomCanvas(0.8)">−</MButton><MButton size="sm" aria-label="放大画布" @click="zoomCanvas(1.25)">+</MButton><MButton size="sm" @click="resetCanvas">全览</MButton></div>
       <div class="floating-legend" :inert="reading"><span><i class="swatch" />未掌握</span><span><i class="swatch mastered" />已掌握</span><span><i class="boundary-key domain" />分区</span><span><i class="boundary-key topic" />子分区</span><span>{{ totalStats.done }} / {{ totalStats.total }}</span></div>
-      <KnowledgePointOverlay v-if="reading && selected" ref="readingOverlay" :key="overlaySession" :session-id="overlaySession" :source-rect="readingSourceRect" :glyph-advance="glyphAdvance" :before-frame="syncMapFrame" :animation-title="selected.title" :title="detail?.title || selected.title" :node-id="selected.id" :gpu-enabled="gpuReady" :mastered="mastered.has(selected.id)" :highlight="openingHighlight" @closing="readingClosing = true" @closed="closeReading" @zoom="handleCanvasWheel" @pan="handleOverlayPan">
-        <KnowledgePointContent :selected="selected" :detail="detail" :selected-tile="selectedTile" :selected-outside-map="selectedOutsideMap" :locate-error="locateError" :detail-loading="detailLoading" :detail-error="detailError" :prerequisites-error="prerequisitesError" :detail-prerequisites="detailPrerequisites" :successors="successors" :can-return="Boolean(returnStack.length)" :is-mastered="mastered.has(selected.id)" :mastery-loading="masteryLoading" :mastery-saving="masterySaving" :mastery-available="masteryAvailable" :storage-error="storageError" @relations="showRelations" @back="returnToPrevious" @locate="locateSelected" @mastery="toggleMastery" @retry="selectNode(selected, true)" @follow="followDependency" />
+      <KnowledgePointOverlay v-if="reading && selected" ref="readingOverlay" :key="overlaySession" :session-id="overlaySession" :source-rect="readingSourceRect" :glyph-advance="glyphAdvance" :before-frame="syncMapFrame" :animation-title="selected.title" :title="detail?.title || selected.title" :node-id="selected.id" :gpu-enabled="gpuReady" :mastered="mastered.has(selected.slug)" :highlight="openingHighlight" @closing="readingClosing = true" @closed="closeReading" @zoom="handleCanvasWheel" @pan="handleOverlayPan">
+        <KnowledgePointContent :selected="selected" :detail="detail" :selected-tile="selectedTile" :selected-outside-map="selectedOutsideMap" :locate-error="locateError" :detail-loading="detailLoading" :detail-error="detailError" :prerequisites-error="prerequisitesError" :detail-prerequisites="detailPrerequisites" :successors="successors" :can-return="Boolean(returnStack.length)" :is-mastered="mastered.has(selected.slug)" :mastery-loading="masteryLoading" :mastery-saving="masterySaving" :mastery-available="masteryAvailable" :storage-error="storageError" @relations="showRelations" @back="returnToPrevious" @locate="locateSelected" @mastery="toggleMastery" @retry="selectNode(selected, true)" @follow="followDependency" />
       </KnowledgePointOverlay>
     </main>
 

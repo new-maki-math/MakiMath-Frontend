@@ -43,12 +43,13 @@ export async function getMasteredIds() {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(STORE_NAME, 'readonly');
     const request = transaction.objectStore(STORE_NAME).getAllKeys();
-    request.onsuccess = () => resolve(new Set(request.result));
+    request.onsuccess = () => resolve(new Set(request.result.filter((id) => typeof id === 'string' && id.length > 0)));
     request.onerror = () => reject(request.error);
   });
 }
 
 export async function setMastered(id, mastered) {
+  if (typeof id !== 'string' || !id) throw new Error('知识点标识无效');
   const db = await openMasteryDB();
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(STORE_NAME, 'readwrite');
@@ -71,6 +72,7 @@ export async function setMasteredBatch(changes) {
     transaction.onabort = () => reject(transaction.error || new Error('保存掌握状态失败'));
     try {
       for (const [id, mastered] of changes) {
+        if (typeof id !== 'string' || !id) throw new Error('知识点标识无效');
         if (mastered) store.put({ id });
         else store.delete(id);
       }
@@ -82,6 +84,7 @@ export async function setMasteredBatch(changes) {
 }
 
 export async function toggleMastered(id) {
+  if (typeof id !== 'string' || !id) throw new Error('知识点标识无效');
   const db = await openMasteryDB();
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(STORE_NAME, 'readwrite');

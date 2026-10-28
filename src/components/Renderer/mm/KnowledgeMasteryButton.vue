@@ -3,7 +3,7 @@ import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { getMasteredIds, subscribeMasteryChanges, toggleMastered } from '../../../utils/knowledge-mastery.js';
 import { notify } from '../../MNotice.vue';
 
-const props = defineProps({ knowledgeId: { type: Number, required: true } });
+const props = defineProps({ knowledgeSlug: { type: String, required: true } });
 const mastered = ref(false);
 const loading = ref(true);
 const saving = ref(false);
@@ -13,7 +13,7 @@ async function refresh() {
   const current = ++sequence;
   try {
     const ids = await getMasteredIds();
-    if (current === sequence) { mastered.value = ids.has(props.knowledgeId); loading.value = false; }
+    if (current === sequence) { mastered.value = ids.has(props.knowledgeSlug); loading.value = false; }
   } catch {
     if (current === sequence) { loading.value = true; notify('掌握状态读取失败', 'error'); }
   }
@@ -21,12 +21,12 @@ async function refresh() {
 async function toggle() {
   if (loading.value || saving.value) return;
   saving.value = true;
-  try { await toggleMastered(props.knowledgeId); }
+  try { await toggleMastered(props.knowledgeSlug); }
   catch { notify('掌握状态保存失败，请重试', 'error'); }
   finally { saving.value = false; }
 }
 onMounted(() => { unsubscribe = subscribeMasteryChanges(refresh); refresh(); });
-watch(() => props.knowledgeId, () => { loading.value = true; refresh(); });
+watch(() => props.knowledgeSlug, () => { loading.value = true; refresh(); });
 onBeforeUnmount(() => { sequence++; unsubscribe?.(); });
 </script>
 

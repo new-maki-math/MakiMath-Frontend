@@ -19,7 +19,7 @@ const storageError = ref('');
 const history = ref([]);
 const overlay = ref(null);
 const session = ref(0);
-const isMastered = computed(() => selected.value && mastered.value.has(selected.value.id));
+const isMastered = computed(() => Boolean(detail.value?.slug && mastered.value.has(detail.value.slug)));
 let sequence = 0;
 let masterySequence = 0;
 let disposed = false;
@@ -70,11 +70,11 @@ function back() {
   if (previous) loadPoint(previous);
 }
 async function toggle() {
-  if (!selected.value || masterySaving.value || !masteryAvailable.value) return;
-  const id = selected.value.id;
+  if (!detail.value?.slug || masterySaving.value || !masteryAvailable.value) return;
+  const slug = detail.value.slug;
   masterySaving.value = true;
   storageError.value = '';
-  try { await toggleMastered(id); }
+  try { await toggleMastered(slug); }
   catch { storageError.value = '掌握状态保存失败，请重试。'; }
   finally { masterySaving.value = false; }
 }

@@ -34,7 +34,7 @@ onBeforeUnmount(() => { sequence++; });
 <template>
   <div v-if="loading" class="reference-state">正在加载知识点…</div>
   <div v-else-if="error" class="reference-state" role="status">{{ error }}<button v-if="allowed && error === '知识点加载失败'" type="button" @click="load">重试</button></div>
-  <TypstDoc v-else-if="detail" :source="detail.source" :box-title="detail.title || ''" :allow-knowledge-references="false"><template #boxActions><KnowledgeMasteryButton :knowledge-id="detail.id" /></template></TypstDoc>
+  <TypstDoc v-else-if="detail" :source="detail.source" :box-title="detail.title || ''" :allow-knowledge-references="false"><template #boxActions><KnowledgeMasteryButton :knowledge-slug="detail.slug" /></template></TypstDoc>
 </template>
 
 <style scoped>
