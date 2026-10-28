@@ -61,7 +61,7 @@ const progressPercent = computed(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: rgba(18, 18, 18, 0.68) !important;
+  background-color: color-mix(in srgb, var(--bg-app) 68%, transparent) !important;
   user-select: none;
   cursor: wait;
 }
@@ -77,7 +77,7 @@ const progressPercent = computed(() => {
 .loading-spinner {
   width: 28px;
   height: 28px;
-  border: 2.5px solid rgba(255, 255, 255, 0.15);
+  border: 2.5px solid var(--border-hover);
   border-top-color: var(--accent-primary, #38bdf8);
   border-radius: 50%;
   animation: m-spin 0.75s linear infinite;
@@ -101,7 +101,7 @@ const progressPercent = computed(() => {
 .loading-bar-track {
   flex: 1;
   height: 3px;
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--border-hover);
   border-radius: 2px;
   overflow: hidden;
 }
