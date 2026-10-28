@@ -5,5 +5,6 @@ export const mmBoxConfig = Object.freeze({
   'mm-box-warn': { title: '提醒 / 易错', tone: 'amber', icon: 'warning' },
   'mm-box-conclusion': { title: '结论 / 推论', tone: 'green', icon: 'conclusion' },
   'mm-box-frequency': { title: '真题考频', tone: 'orange', icon: 'frequency' },
-  'mm-box-homework': { title: '作业', tone: 'teal', icon: 'homework' }
+  'mm-box-homework': { title: '作业', tone: 'teal', icon: 'homework' },
+  'mm-box-custom': { title: '', tone: 'neutral', icon: '' }
 });

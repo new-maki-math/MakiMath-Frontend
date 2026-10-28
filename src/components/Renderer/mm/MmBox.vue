@@ -11,8 +11,8 @@ defineProps({
 
 <template>
   <section class="mm-box" :class="`tone-${tone}`">
-    <div class="mm-box-header">
-      <div class="mm-box-title"><MmBoxIcon :name="icon" /><span>{{ title }}</span><template v-if="hasTitle"><span class="mm-box-separator"> · </span><slot name="title" /></template></div>
+    <div v-if="title || hasTitle || $slots.actions" class="mm-box-header">
+      <div v-if="title || hasTitle" class="mm-box-title"><MmBoxIcon v-if="icon" :name="icon" /><span v-if="title">{{ title }}</span><template v-if="hasTitle"><span v-if="title" class="mm-box-separator"> · </span><slot name="title" /></template></div>
       <slot name="actions" />
     </div>
     <div class="mm-box-content"><slot /></div>
@@ -24,7 +24,9 @@ defineProps({
 .mm-box-header { display: flex; align-items: flex-start; gap: 8px; }
 .mm-box-title { flex: 1; min-width: 0; display: flex; align-items: center; gap: .4em; flex-wrap: wrap; color: var(--mm-box-color); font-size: 1.1em; font-weight: 600; line-height: 1.5; }
 .mm-box-separator { margin-left: -.4em; margin-right: -.4em; color: var(--text-muted); white-space: pre; }
-.mm-box-content { min-width: 0; margin-top: 8px; color: var(--text-primary); }
+.mm-box-content { min-width: 0; color: var(--text-primary); }
+.mm-box-header + .mm-box-content { margin-top: 8px; }
+.tone-neutral { --mm-box-color: var(--text-primary); }
 .tone-blue { --mm-box-color: var(--tag-blue); }
 .tone-purple { --mm-box-color: var(--tag-purple); }
 .tone-cyan { --mm-box-color: var(--tag-cyan); }
