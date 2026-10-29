@@ -174,10 +174,11 @@ export function useLayoutState() {
 
   const lectureOrigin = ref(lectureNavigationOrigin());
   const currentBreadcrumbs = computed(() => {
-    const originLabel = { 'recom-lecture': '创意工坊', 'my-lecture': '我的书架' }[lectureOrigin.value];
+    const origins = { 'recom-lecture': { label: '创意工坊', to: '/recom-lecture' }, 'my-lecture': { label: '我的书架', to: '/my-lecture' }, 'platform-reviews': { label: '内容审核', to: { path: '/platform', query: { tab: 'reviews' } } } };
+    const origin = origins[lectureOrigin.value];
     const isReading = route.name === 'lecture-doc' || route.name === 'local-lecture-doc';
     const prefix = [{ label: 'APP', to: '/start' }];
-    if (originLabel) prefix.push({ label: originLabel, to: lectureOrigin.value === 'my-lecture' ? '/my-lecture' : '/recom-lecture' });
+    if (origin) prefix.push(origin);
     prefix.push(isReading ? {
       label: '课程讲义详情',
       to: lectureLocation({ slug: route.params.lectureSlug, source: route.name === 'local-lecture-doc' ? 'local' : 'online', revisionId: route.query.revision_id, origin: lectureOrigin.value })

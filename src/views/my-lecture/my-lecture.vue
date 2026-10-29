@@ -56,8 +56,9 @@ async function loadOnline() {
         ...entry,
         invalidDraft: (entry.kind === 'working_draft' && (entry.status !== 'draft' || draftCount > 1)) || (entry.kind === 'snapshot' && entry.status === 'draft') || (entry.is_public && (entry.kind !== 'snapshot' || entry.status !== 'approved')) || !['working_draft', 'snapshot'].includes(entry.kind)
       }));
-      const first = versions.find((entry) => entry.kind === 'working_draft' && !entry.invalidDraft) || versions.find((entry) => !entry.invalidDraft);
-      return { ...item, title: first?.title || '未命名讲义', subtitle: first?.subtitle || '', versions };
+      const draft = versions.find((entry) => entry.kind === 'working_draft' && !entry.invalidDraft);
+      const first = draft || versions.find((entry) => !entry.invalidDraft);
+      return { ...item, title: first?.title || '未命名讲义', subtitle: draft?.descr || '', coverVersion: draft || null, versions };
     });
   } catch {
     if (sequence === onlineSequence) onlineError.value = '我创作的讲义加载失败';

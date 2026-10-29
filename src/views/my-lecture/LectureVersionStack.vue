@@ -33,7 +33,7 @@ function versionStatus(version) {
 
 <template>
   <div class="version-stack" :class="{ 'has-versions': lecture.versions?.length > 1 }">
-    <MLectureCover :title="lecture.title" :subtitle="lecture.subtitle || ''" :aria-expanded="expanded" @click="expanded = !expanded" />
+    <MLectureCover :title="lecture.title" :subtitle="lecture.subtitle || ''" :cover-revision-id="lecture.coverVersion?.revision_id" :has-cover="Boolean(lecture.coverVersion?.has_cover)" :aria-expanded="expanded" @click="expanded = !expanded" />
     <div v-if="expanded" class="version-list" @wheel.stop>
       <div class="version-head"><span>讲义版本</span><button type="button" aria-label="收起版本" @click="expanded = false"><Xmark width="15" height="15" /></button></div>
       <p v-if="lecture.versionsLoading" class="version-message">正在加载版本…</p>
@@ -55,6 +55,9 @@ function versionStatus(version) {
 .version-stack.has-versions::after { left: 4px; }
 .version-stack :deep(.lecture-cover) { position: relative; z-index: 1; width: 100%; height: 100%; }
 .version-list { position: absolute; z-index: 2; inset: 0; display: flex; flex-direction: column; overflow-y: auto; padding: 13px 10px; box-sizing: border-box; border: 1px solid var(--border-subtle); border-radius: var(--radius-xs); background: var(--bg-surface); color: var(--text-primary); overscroll-behavior: contain; }
+@supports ((backdrop-filter: blur(12px)) or (-webkit-backdrop-filter: blur(12px))) {
+  .version-list { background: color-mix(in srgb, var(--bg-surface) 88%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+}
 .version-head { display: flex; flex: none; align-items: center; justify-content: space-between; gap: 8px; padding: 0 2px 10px 6px; color: var(--text-muted); font-size: var(--font-size-smallest); font-weight: var(--font-weight-medium); }
 .version-head button { display: inline-flex; align-items: center; justify-content: center; width: 25px; height: 25px; padding: 0; border: 0; border-radius: var(--radius-xs); background: transparent; color: var(--text-muted); cursor: pointer; }
 .version-item { display: flex; flex: none; align-items: center; gap: 6px; width: 100%; min-width: 0; padding: 10px 8px; border: 0; border-radius: var(--radius-xs); background: transparent; color: var(--text-primary); font-size: var(--font-size-smaller); font-weight: normal; text-align: left; cursor: pointer; }

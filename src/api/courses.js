@@ -93,6 +93,7 @@ export async function fetchCourseTree(slug, revisionId = '') {
       ...revision,
       id: lecture.id,
       revision_id: revision.id,
+      revision_status: revision.status,
       slug: lecture.slug,
       status: 'live',
       chapters: snapshot.chapters.map((chapter) => ({
@@ -190,6 +191,9 @@ export function lectureBundleFromTree(tree) {
       status: tree.status,
       live: tree.status === 'live',
       typstVersion: tree.typst_version,
+      revisionNo: tree.revision_no,
+      revisionStatus: tree.revision_status,
+      updatedAt: tree.updated_at,
       nodes: chapters.reduce((n, c) => n + c.sections.length, 0)
     },
     chapters,

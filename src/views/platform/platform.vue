@@ -1,6 +1,7 @@
 <script setup>
 // 平台运维与管理控制台总视图
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import {
   Group,
   Key,
@@ -16,6 +17,8 @@ import ReviewPanel from './ReviewPanel.vue';
 import AuditPanel from './AuditPanel.vue';
 
 // 当前激活的选项卡
+const route = useRoute();
+const router = useRouter();
 const activeTab = ref('users');
 const tabs = [
   { id: 'users', label: '用户管理', icon: Group },
@@ -25,9 +28,16 @@ const tabs = [
 ];
 
 // 认证成功回调处理
+watch(() => route.query.tab, (tab) => { activeTab.value = tabs.some((item) => item.id === tab) ? tab : 'users'; }, { immediate: true });
+
 const handleAuthSuccess = () => {
-  activeTab.value = 'users';
+  activeTab.value = tabs.some((item) => item.id === route.query.tab) ? route.query.tab : 'users';
 };
+
+function selectTab(tab) {
+  activeTab.value = tab;
+  router.replace({ query: { ...route.query, tab } });
+}
 
 onMounted(() => {
   initAuth();
@@ -54,7 +64,7 @@ onMounted(() => {
           type="button"
           class="nav-tab-btn"
           :class="{ active: activeTab === tab.id }"
-          @click="activeTab = tab.id"
+          @click="selectTab(tab.id)"
         >
           <component :is="tab.icon" width="16" height="16" class="tab-icon" />
           <span class="tab-label">{{ tab.label }}</span>

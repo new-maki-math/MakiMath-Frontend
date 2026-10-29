@@ -1,10 +1,30 @@
 <script setup>
-defineProps({ title: { type: String, required: true }, subtitle: { type: String, default: '' }, image: { type: String, default: '' } });
+import { computed, onUnmounted, ref, watch } from 'vue';
+import { lectureApi } from '../api/lectures.js';
+import { authStatus, currentUser } from '../utils/auth.js';
+
+const props = defineProps({ title: { type: String, required: true }, subtitle: { type: String, default: '' }, image: { type: String, default: '' }, showCaption: { type: Boolean, default: true }, coverRevisionId: { type: [String, Number], default: '' }, hasCover: { type: Boolean, default: false } });
+const remoteCover = ref('');
+const coverSource = computed(() => props.image || remoteCover.value);
+let sequence = 0;
+watch(() => [props.image, props.coverRevisionId, props.hasCover, authStatus.value, currentUser.value?.id], async () => {
+  const current = ++sequence;
+  remoteCover.value = '';
+  if (props.image || !props.hasCover || !props.coverRevisionId) return;
+  try {
+    const id = props.coverRevisionId;
+    const result = await lectureApi.getCover(id);
+    if (current === sequence && String(result.revision_id) === String(id) && typeof result.cover === 'string') remoteCover.value = result.cover;
+  } catch (error) {
+    if (current === sequence) console.warn('[讲义封面] 读取失败', error);
+  }
+}, { immediate: true });
+onUnmounted(() => { sequence++; });
 </script>
 
 <template>
-  <button class="lecture-cover" type="button" :aria-label="title">
-    <img v-if="image" class="cover-image" :src="image" alt="" />
+  <button class="lecture-cover" type="button" :aria-label="title" :title="title">
+    <img v-if="coverSource" class="cover-image" :src="coverSource" alt="" />
     <svg v-else class="cover-art" viewBox="0 0 210 297" aria-hidden="true">
       <rect width="210" height="297" class="cover-background" />
       <rect width="7" height="297" class="cover-spine" />
@@ -22,9 +42,9 @@ defineProps({ title: { type: String, required: true }, subtitle: { type: String,
       <text x="25" y="277" class="cover-footer">KNOWLEDGE / PRACTICE</text>
       <text x="185" y="277" text-anchor="end" class="cover-footer">∑</text>
     </svg>
-    <span class="cover-caption">
+    <span v-if="showCaption" class="cover-caption">
       <span class="cover-title">{{ title }}</span>
-      <span v-if="subtitle" class="cover-subtitle">{{ subtitle }}</span>
+      <span v-if="subtitle" class="cover-subtitle-wrap"><span class="cover-subtitle">{{ subtitle }}</span></span>
     </span>
   </button>
 </template>
@@ -43,11 +63,18 @@ defineProps({ title: { type: String, required: true }, subtitle: { type: String,
 .cover-grid { fill: none; stroke: var(--border-subtle); stroke-width: 0.65; }
 .cover-graph { fill: none; stroke: var(--accent-primary); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 .cover-dot { fill: var(--accent-primary); }
-.cover-caption { position: absolute; inset: auto 0 0; display: flex; flex-direction: column; gap: 5px; max-height: 55%; padding: 16px; overflow: hidden; background: color-mix(in srgb, var(--bg-surface) 94%, transparent); border-top: 1px solid var(--border-subtle); opacity: 0; transform: translateY(8px); transition: opacity 200ms cubic-bezier(0.4, 0, 0.2, 1), transform 200ms cubic-bezier(0.4, 0, 0.2, 1); }
-.lecture-cover:hover .cover-caption, .lecture-cover:focus-visible .cover-caption { opacity: 1; transform: translateY(0); }
-.cover-title, .cover-subtitle { overflow-wrap: anywhere; }
-.cover-title { font-size: var(--font-size); font-weight: var(--font-weight-semibold); line-height: 1.5; }
-.cover-subtitle { color: var(--text-secondary); font-size: var(--font-size-smaller); line-height: 1.5; }
-@media (prefers-reduced-motion: reduce) { .lecture-cover, .cover-caption { transition: none; } }
-@media (hover: none) { .cover-caption { opacity: 1; transform: none; } }
+.cover-caption { position: absolute; inset: auto 0 0; display: flex; flex-direction: column; max-height: 55%; padding: 12px 14px; overflow: hidden; background: var(--bg-surface); border-top: 1px solid var(--border-subtle); transition: background-color 180ms ease; }
+.lecture-cover:hover .cover-caption, .lecture-cover:focus-visible .cover-caption { background: var(--bg-elevated); }
+@supports ((backdrop-filter: blur(12px)) or (-webkit-backdrop-filter: blur(12px))) {
+  .cover-caption { background: color-mix(in srgb, var(--bg-surface) 78%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+  .lecture-cover:hover .cover-caption, .lecture-cover:focus-visible .cover-caption { background: color-mix(in srgb, var(--bg-surface) 88%, transparent); }
+}
+.cover-title, .cover-subtitle { display: -webkit-box; overflow: hidden; overflow-wrap: anywhere; -webkit-box-orient: vertical; }
+.cover-title { -webkit-line-clamp: 3; font-size: var(--font-size); font-weight: var(--font-weight-semibold); line-height: 1.45; }
+.cover-subtitle-wrap { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows 180ms ease, opacity 180ms ease; }
+.cover-subtitle { min-height: 0; -webkit-line-clamp: 2; color: var(--text-secondary); font-size: var(--font-size-smaller); line-height: 1.45; }
+.lecture-cover:hover .cover-subtitle-wrap, .lecture-cover:focus-visible .cover-subtitle-wrap { grid-template-rows: 1fr; opacity: 1; }
+.lecture-cover:hover .cover-subtitle, .lecture-cover:focus-visible .cover-subtitle { padding-top: 5px; }
+@media (prefers-reduced-motion: reduce) { .lecture-cover, .cover-caption, .cover-subtitle-wrap { transition: none; } }
+@media (hover: none) { .cover-subtitle-wrap { grid-template-rows: 1fr; opacity: 1; } .cover-subtitle { padding-top: 5px; } }
 </style>

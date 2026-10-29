@@ -3,9 +3,10 @@ import { computed, ref, watch, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { lectureBundleFromTree } from '../../api/courses.js';
 import { lectureApi } from '../../api/lectures.js';
+import { reviewApi } from '../../api/reviews.js';
 import { fetchShelfLectureTree } from '../../utils/shelf-lecture.js';
 import { lectureLocation, lectureNavigationOrigin } from '../../utils/lecture-route.js';
-import { authStatus, currentUser } from '../../utils/auth.js';
+import { authStatus, currentUser, isSuperAdmin } from '../../utils/auth.js';
 import { NavArrowRight, EditPencil, Trash } from '@iconoir/vue';
 import { createLocalLecture, updateLocalLectureCover, validateLocalLectureSlug } from '../../utils/local-lectures.js';
 import { portableToLocalLecture } from '../../utils/lecture-portable.js';
@@ -30,10 +31,28 @@ const addOpen = ref(false);
 const addSlug = ref('');
 const addSaving = ref(false);
 const loadedRevisionId = ref(null);
+const loadedHasCover = ref(false);
+const revisionStatus = ref('');
+const isPublicVersion = ref(false);
+const publicCheckError = ref(false);
+const publicChecking = ref(false);
+const reviewDecision = ref('');
+const reviewComment = ref('');
+const reviewSaving = ref(false);
 let loadId = 0;
+let publicCheckSequence = 0;
 
 const totalSectionsCount = computed(() => {
   return chapters.value.reduce((acc, c) => acc + (c.sections?.length || 0), 0);
+});
+const reviewStatusLabel = computed(() => ({ draft: '草稿', pending: '审核中', approved: '已通过', rejected: '已驳回' }[revisionStatus.value] || '未提供'));
+const statusTag = computed(() => shelfSource.value === 'local'
+  ? { label: 'LOCAL', variant: 'cyan' }
+  : ({ draft: { label: 'DRAFT', variant: 'amber' }, pending: { label: 'IN REVIEW', variant: 'blue' }, approved: { label: 'APPROVED', variant: 'green' }, rejected: { label: 'REJECTED', variant: 'red' } }[revisionStatus.value] || { label: 'UNKNOWN', variant: 'gray' }));
+const updatedAt = computed(() => {
+  if (!lecture.value?.updatedAt) return '';
+  const date = new Date(lecture.value.updatedAt);
+  return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString('zh-CN');
 });
 
 // 构建供路线图组件直接消费的目录树
@@ -84,13 +103,36 @@ const scrollToCatalog = () => {
 };
 
 function openAddLecture() {
-  if (shelfSource.value !== 'online' || !lecture.value || !loadedRevisionId.value || addSaving.value) return;
+  if (shelfSource.value !== 'online' || !lecture.value || !loadedRevisionId.value || !isPublicVersion.value || addSaving.value) return;
   addSlug.value = lectureId.value;
   addOpen.value = true;
 }
 
+async function checkPublicVersion() {
+  const current = ++publicCheckSequence;
+  const page = loadId;
+  const id = lecture.value?.dbId;
+  const revision = loadedRevisionId.value;
+  isPublicVersion.value = false;
+  publicCheckError.value = false;
+  if (shelfSource.value !== 'online' || !id || !revision || revisionStatus.value !== 'approved') return false;
+  publicChecking.value = true;
+  try {
+    const items = await lectureApi.list({ cache: 'no-store' });
+    if (!Array.isArray(items)) throw new Error('公开讲义列表格式不正确');
+    if (current !== publicCheckSequence || page !== loadId) return false;
+    isPublicVersion.value = items.some((item) => String(item.id) === String(id) && String(item.revision_id) === String(revision));
+    return isPublicVersion.value;
+  } catch {
+    if (current === publicCheckSequence && page === loadId) publicCheckError.value = true;
+    return false;
+  } finally {
+    if (current === publicCheckSequence) publicChecking.value = false;
+  }
+}
+
 async function addLecture() {
-  if (!addOpen.value || addSaving.value || shelfSource.value !== 'online' || !lecture.value || !loadedRevisionId.value) return;
+  if (!addOpen.value || addSaving.value || shelfSource.value !== 'online' || !lecture.value || !loadedRevisionId.value || !isPublicVersion.value) return;
   const slug = addSlug.value.trim();
   try { validateLocalLectureSlug(slug); }
   catch (error) { notify(error.message, 'warn'); return; }
@@ -100,6 +142,8 @@ async function addLecture() {
   addSaving.value = true;
   try {
     const data = await lectureApi.exportRevision(sourceRevisionId);
+    if (sequence !== loadId || !addOpen.value) return;
+    if (!await checkPublicVersion()) { notify('无法确认该版本仍为公开版本，请刷新后重试', 'warn'); return; }
     if (sequence !== loadId || !addOpen.value) return;
     const record = portableToLocalLecture(data);
     record.slug = slug;
@@ -113,6 +157,31 @@ async function addLecture() {
   } finally {
     addSaving.value = false;
   }
+}
+
+function openReview(decision) {
+  if (!isSuperAdmin.value || revisionStatus.value !== 'pending' || !loadedRevisionId.value || reviewSaving.value) return;
+  reviewDecision.value = decision;
+  reviewComment.value = '';
+}
+
+async function submitReview() {
+  if (!isSuperAdmin.value || revisionStatus.value !== 'pending' || !loadedRevisionId.value || !reviewDecision.value || reviewSaving.value) return;
+  const current = loadId;
+  const id = loadedRevisionId.value;
+  const decision = reviewDecision.value;
+  reviewSaving.value = true;
+  try {
+    await reviewApi.decide('lecture', id, decision, reviewComment.value);
+    if (current === loadId) {
+      revisionStatus.value = decision;
+      reviewDecision.value = '';
+      if (decision === 'approved') checkPublicVersion();
+      notify('审核已完成', 'success');
+    }
+  } catch (error) {
+    notify(error.status === 409 ? '审核状态已变化，请刷新后重新核对' : error.message || '审核失败', 'error');
+  } finally { reviewSaving.value = false; }
 }
 
 const scrollToChapter = (chapterId) => {
@@ -181,6 +250,13 @@ const loadLectureData = async (slug) => {
   loadError.value = '';
   lecture.value = null;
   loadedRevisionId.value = null;
+  loadedHasCover.value = false;
+  revisionStatus.value = '';
+  publicCheckSequence++;
+  isPublicVersion.value = false;
+  publicCheckError.value = false;
+  publicChecking.value = false;
+  reviewDecision.value = '';
   addOpen.value = false;
   chapters.value = [];
   try {
@@ -188,8 +264,11 @@ const loadLectureData = async (slug) => {
     const bundle = lectureBundleFromTree(tree);
     if (id !== loadId) return;
     loadedRevisionId.value = tree.revision_id || null;
+    loadedHasCover.value = Boolean(tree.has_cover);
+    revisionStatus.value = tree.revision_status || '';
     lecture.value = bundle.lecture;
     chapters.value = bundle.chapters;
+    if (shelfSource.value === 'online') checkPublicVersion();
     // 默认展开所有章节
     openChapters.value = new Set(bundle.chapters.map(c => c.id));
   } catch (err) {
@@ -200,7 +279,7 @@ const loadLectureData = async (slug) => {
 };
 
 watch([lectureId, shelfSource, revisionId, () => shelfSource.value === 'online' ? authStatus.value : null, () => shelfSource.value === 'online' ? currentUser.value?.id : null], ([id]) => loadLectureData(id), { immediate: true });
-onUnmounted(() => { loadId++; });
+onUnmounted(() => { loadId++; publicCheckSequence++; });
 </script>
 
 <template>
@@ -219,7 +298,7 @@ onUnmounted(() => { loadId++; });
       <!-- 课程头部 -->
       <header class="lecture-header">
         <div class="header-cover" aria-hidden="true" inert>
-          <MLectureCover :title="lecture.title" :image="lecture.cover || ''" />
+          <MLectureCover :title="lecture.title" :image="lecture.cover || ''" :show-caption="false" :cover-revision-id="loadedRevisionId" :has-cover="loadedHasCover" />
         </div>
         <template v-if="shelfSource === 'local'">
           <input ref="coverInput" class="cover-input" type="file" accept="image/jpeg,image/png,image/webp" @change="changeCover" />
@@ -228,52 +307,51 @@ onUnmounted(() => { loadId++; });
             <button v-if="lecture.cover" class="cover-action" type="button" title="删除封面" aria-label="删除封面" :disabled="coverSaving" @click="removeCover"><Trash width="17" height="17" /></button>
           </div>
         </template>
-        <div class="header-tags">
-          <MTag v-if="lecture.category" variant="purple" size="md">
-            分类: {{ lecture.category }}
-          </MTag>
-          <MTag v-if="lecture.live" variant="green" size="md" :dot="true">
-            {{ shelfSource === 'local' ? 'STATUS: LOCAL' : 'STATUS: ONLINE' }}
-          </MTag>
-          <MTag v-else variant="amber" size="md" :dot="true">
-            STATUS: PLANNING
-          </MTag>
-        </div>
+        <div class="header-copy">
+          <div class="header-tags">
+            <MTag :variant="statusTag.variant" size="md" :dot="true">{{ statusTag.label }}</MTag>
+          </div>
 
-        <h1 class="lecture-title">{{ lecture.title }}</h1>
-        <p class="lecture-desc">
-          {{ lecture.desc || '暂无课程描述信息。' }}
-        </p>
+          <h1 class="lecture-title">{{ lecture.title }}</h1>
+          <p class="lecture-desc" tabindex="0">
+            {{ lecture.desc || '暂无课程描述信息。' }}
+          </p>
 
-        <!-- 快捷操作栏 -->
-        <div class="lecture-actions">
-          <MButton
-            v-if="lecture.live"
-            variant="primary"
-            :mono="true"
-            @click="enterDoc"
-          >
-            阅读讲义 // READ LECTURE
-          </MButton>
-          <MButton
-            v-else
-            variant="ghost"
-            :mono="true"
-            disabled
-          >
-            筹划编排中 // COMING SOON
-          </MButton>
+          <!-- 快捷操作栏 -->
+          <div class="lecture-actions">
+            <MButton
+              v-if="lecture.live"
+              variant="primary"
+              :mono="true"
+              @click="enterDoc"
+            >
+              阅读讲义 // READ LECTURE
+            </MButton>
+            <MButton
+              v-else
+              variant="ghost"
+              :mono="true"
+              disabled
+            >
+              筹划编排中 // COMING SOON
+            </MButton>
 
-          <MButton
-            variant="secondary"
-            :mono="true"
-            @click="scrollToCatalog"
-          >
-            查看大纲目录 // OUTLINE
-          </MButton>
-          <MButton v-if="shelfSource === 'online'" variant="secondary" :disabled="addSaving" @click="openAddLecture">
-            添加到我的书架
-          </MButton>
+            <MButton
+              variant="secondary"
+              :mono="true"
+              @click="scrollToCatalog"
+            >
+              查看大纲目录 // OUTLINE
+            </MButton>
+            <MButton v-if="shelfSource === 'online' && isPublicVersion" variant="secondary" :disabled="addSaving || publicChecking" @click="openAddLecture">
+              添加到我的书架
+            </MButton>
+            <MButton v-if="publicCheckError" variant="ghost" :disabled="publicChecking" @click="checkPublicVersion">公开状态检查失败，重试</MButton>
+            <div v-if="shelfSource === 'online' && revisionId && isSuperAdmin && revisionStatus === 'pending'" class="review-actions">
+              <MButton variant="primary" :disabled="reviewSaving" @click="openReview('approved')">通过审核</MButton>
+              <MButton variant="danger" :disabled="reviewSaving" @click="openReview('rejected')">驳回讲义</MButton>
+            </div>
+          </div>
         </div>
       </header>
 
@@ -283,27 +361,26 @@ onUnmounted(() => { loadId++; });
           <!-- 课程概览 -->
           <div class="spec-card">
             <div class="card-header">
-              <span class="card-title font-mono">OVERVIEW // 课程概要</span>
+              <span class="card-title font-mono">OVERVIEW // 讲义概要</span>
             </div>
             <div class="spec-body">
               <div class="spec-item">
-                <span class="spec-label">收录节点</span>
-                <span class="spec-value font-mono">
-                  {{ lecture.live ? `${totalSectionsCount || lecture.nodes || 0} 讲` : '待上线' }}
-                </span>
+                <span class="spec-label">章节与小节</span>
+                <span class="spec-value font-mono">{{ chapters.length }} 章 · {{ totalSectionsCount }} 节</span>
               </div>
               <div class="spec-item">
-                <span class="spec-label">所属分类</span>
-                <span class="spec-value">{{ lecture.category }}</span>
+                <span class="spec-label">讲义版本</span>
+                <span class="spec-value">{{ shelfSource === 'local' ? '本地版本' : lecture.revisionNo != null ? `V${lecture.revisionNo}` : '未提供' }}</span>
               </div>
               <div class="spec-item">
-                <span class="spec-label">编排状态</span>
-                <span class="spec-value">{{ shelfSource === 'local' ? '本地讲义' : shelfSource === 'online' ? '讲义' : '公开讲义' }}</span>
+                <span class="spec-label">版本状态</span>
+                <span class="spec-value">{{ shelfSource === 'local' ? '本地编辑' : reviewStatusLabel }}</span>
               </div>
               <div class="spec-item">
                 <span class="spec-label">排版引擎</span>
                 <span class="spec-value font-mono">Typst {{ lecture.typstVersion || '—' }}</span>
               </div>
+              <div v-if="updatedAt" class="spec-item"><span class="spec-label">更新时间</span><span class="spec-value font-mono">{{ updatedAt }}</span></div>
             </div>
           </div>
 
@@ -439,6 +516,9 @@ onUnmounted(() => { loadId++; });
     <MModal :open="addOpen" title="添加到我的书架" desc="下载当前版本为本地讲义，可在讲义工作台编辑。" confirm-text="添加" :busy="addSaving" @close="!addSaving && (addOpen = false)" @confirm="addLecture">
       <MInput v-model="addSlug" label="本地讲义标识" hint="本地讲义标识需在本浏览器中唯一" required />
     </MModal>
+    <MModal :open="Boolean(reviewDecision)" :title="reviewDecision === 'approved' ? '通过审核' : '驳回讲义'" :confirm-text="reviewDecision === 'approved' ? '确认通过' : '确认驳回'" :confirm-variant="reviewDecision === 'approved' ? 'primary' : 'danger'" :busy="reviewSaving" @close="!reviewSaving && (reviewDecision = '')" @confirm="submitReview">
+      <MTextarea v-model="reviewComment" label="审核意见" :rows="3" />
+    </MModal>
   </div>
 </template>
 
@@ -463,35 +543,30 @@ onUnmounted(() => { loadId++; });
 /* 课程头部 */
 .lecture-header {
   position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  display: grid;
+  grid-template-columns: minmax(150px, 240px) minmax(0, 1fr);
+  align-items: stretch;
+  gap: 24px;
   border-bottom: 1px solid var(--border-subtle);
   padding-bottom: 24px;
 }
 
+.header-copy { grid-column: 2; grid-row: 1; display: flex; flex-direction: column; align-items: flex-start; min-width: 0; gap: 16px; }
 .header-cover {
-  position: absolute;
-  z-index: -1;
-  inset: 0 0 0 auto;
-  width: min(48%, 360px);
-  overflow: hidden;
+  grid-column: 1;
+  grid-row: 1;
+  width: 100%;
+  box-sizing: border-box;
   pointer-events: none;
-  opacity: .65;
-  mask-image: linear-gradient(to right, transparent, black 65%);
 }
 
 .header-cover :deep(.lecture-cover) {
   width: 100%;
-  border: 0;
-  border-radius: 0;
-  transform: translateY(-12%);
 }
+.header-cover :deep(.cover-image) { object-fit: contain; }
 
 .cover-input { display: none; }
-.cover-actions { position: absolute; top: 0; right: 0; display: flex; gap: 4px; opacity: 0; transition: opacity 160ms ease; }
+.cover-actions { position: absolute; top: 0; left: 0; display: flex; gap: 4px; opacity: 0; transition: opacity 160ms ease; }
 .lecture-header:hover .cover-actions, .lecture-header:focus-within .cover-actions { opacity: 1; }
 .cover-action {
   display: inline-flex;
@@ -529,15 +604,21 @@ onUnmounted(() => { loadId++; });
   color: var(--text-secondary);
   line-height: 1.6;
   max-width: 840px;
+  max-height: 120px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .lecture-actions {
   display: flex;
   align-items: center;
   gap: 12px;
+  margin-top: auto;
   padding-top: 8px;
   flex-wrap: wrap;
 }
+.review-actions { display: flex; flex-basis: 100%; flex-wrap: wrap; gap: 12px; }
 
 /* 概览卡片区 */
 .lecture-sections {
@@ -869,11 +950,6 @@ onUnmounted(() => { loadId++; });
     gap: 24px;
   }
 
-  .header-cover {
-    width: 55%;
-    opacity: .4;
-  }
-
   .lecture-header {
     gap: 12px;
     padding-bottom: 20px;
@@ -970,5 +1046,12 @@ onUnmounted(() => { loadId++; });
     color: var(--accent-primary);
     font-size: 11px;
   }
+}
+
+@media (max-width: 600px) {
+  .lecture-header { grid-template-columns: 1fr; }
+  .header-cover { grid-column: 1; grid-row: 1; width: min(180px, 55%); justify-self: start; }
+  .header-copy { grid-column: 1; grid-row: 2; }
+  .lecture-actions { margin-top: 0; }
 }
 </style>

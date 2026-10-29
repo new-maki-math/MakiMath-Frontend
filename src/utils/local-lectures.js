@@ -114,7 +114,10 @@ export async function updateLocalLectureCover(id, cover) {
     let missing = false;
     request.onsuccess = () => {
       if (!request.result) { missing = true; tx.abort(); return; }
-      store.put({ ...request.result, cover, editVersion: request.result.editVersion + 1 });
+      const revision = { ...request.result.revision, metadata: { ...(request.result.revision?.metadata || {}) } };
+      if (cover) revision.metadata.cover = cover;
+      else delete revision.metadata.cover;
+      store.put({ ...request.result, cover, revision, editVersion: request.result.editVersion + 1 });
     };
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);

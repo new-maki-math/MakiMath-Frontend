@@ -21,8 +21,8 @@ let motionPreference;
 const sectionDuration = computed(() => reducedMotion.value ? 0 : Math.min(260, Math.round(200 + Math.max(0, bodyHeight.value - 400) * 0.075)));
 const sectionRows = computed(() => {
   const header = 35;
-  const available = Math.max(0, bodyHeight.value - header * 3);
-  const groups = [{ id: 'local', weight: 3 }, { id: 'online', weight: 1 }, { id: 'archived', weight: 1 }];
+  const groups = props.nodes.map((node) => ({ id: node.id, weight: node.id === 'local' ? 3 : 1 }));
+  const available = Math.max(0, bodyHeight.value - header * groups.length);
   const weight = groups.reduce((sum, group) => sum + (expandedKeys.value.has(`group:${group.id}`) ? group.weight : 0), 0);
   return groups.map((group) => `${header + (weight && expandedKeys.value.has(`group:${group.id}`) ? available * group.weight / weight : 0)}px`).join(' ');
 });
