@@ -12,6 +12,7 @@ import KnowledgePointContent from './KnowledgePointContent.vue';
 import MInput from '../../components/MInput.vue';
 import MSelect from '../../components/MSelect.vue';
 import MLoadingMask from '../../components/MLoadingMask.vue';
+import MCollapse from '../../components/MCollapse.vue';
 import { createKnowledgeRenderer } from './knowledge-webgpu-renderer.js';
 
 const commandService = inject(commandServiceKey);
@@ -24,6 +25,7 @@ const librariesLoading = ref(false);
 const librariesError = ref('');
 let librariesSequence = 0;
 const searchQuery = ref('');
+const filtersOpen = ref(false);
 const masteryAvailable = ref(false);
 const mapError = ref('');
 const scopeError = ref(false);
@@ -875,6 +877,8 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(node.slug) ? '
     <MLoadingMask :visible="mapLoading || gpuInitializing || glyphLoading" :text="mapLoading ? '正在加载知识地图…' : '正在准备知识点字形…'" :z-index="50" />
     <main ref="libraryMain" class="library-main" @click="handleBackgroundClick">
       <div class="floating-info" :inert="reading">
+        <button class="filter-toggle" type="button" :aria-expanded="filtersOpen" aria-controls="knowledge-filters" @click="filtersOpen = !filtersOpen"><span>{{ currentLibraryName }}</span><span>{{ filtersOpen ? '收起' : '筛选与搜索' }}</span></button>
+        <MCollapse id="knowledge-filters" :open="filtersOpen" :inert="!filtersOpen">
         <div class="knowledge-filters">
           <MSelect v-model="categoryId" aria-label="选择知识库" :options="librarySelectOptions" />
           <MInput v-model="searchQuery" aria-label="搜索知识点标题" type="search" placeholder="搜索知识点标题" />
@@ -883,11 +887,12 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(node.slug) ? '
           <p v-else-if="!categoryOptions.length" class="filter-note">暂无可选择的一级知识库分类</p>
           <div v-if="searchQuery.trim()" class="search-results">
             <div class="search-result-head"><span>{{ searchResults.length }} 条结果</span><button type="button" @click="searchQuery = ''">清空</button></div>
-            <ul v-if="searchResults.length"><li v-for="item in searchResults.slice(0, 50)" :key="item.id"><button type="button" @click="selectSearchResult(item)">{{ item.title }}</button></li></ul>
+            <ul v-if="searchResults.length"><li v-for="item in searchResults.slice(0, 50)" :key="item.id"><button type="button" @click="selectSearchResult(item); filtersOpen = false">{{ item.title }}</button></li></ul>
             <p v-else class="filter-note">当前范围没有匹配的知识点</p>
             <p v-if="searchResults.length > 50" class="filter-note">显示前 50 条，请继续输入缩小范围</p>
           </div>
         </div>
+        </MCollapse>
         <p v-if="mapError" class="storage-error" role="alert">{{ mapError }} <button v-if="!scopeError" type="button" @click="loadMap()">重试</button></p>
         <p v-else-if="categoryId && !mapLoading && !learningNodes.length" class="detail-note">当前分类暂无公开知识点</p>
         <p v-else-if="categoryId && !mapLoading && !chipNodes.length" class="detail-note">当前筛选没有匹配的知识点</p>
@@ -959,8 +964,13 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(node.slug) ? '
 @keyframes relation-breathe { 0%, 100% { filter: brightness(.7); } 50% { filter: brightness(1.35); } }
 .map-tile:focus-visible { outline: 2px solid var(--text-primary); outline-offset: 1px; }
 .floating-info { position: absolute; z-index: 3; top: 16px; left: 18px; max-width: min(260px, calc(100% - 36px)); color: var(--text-secondary); font-size: var(--font-size-smallest); }
+.filter-toggle { display: flex; align-items: center; justify-content: space-between; gap: 14px; width: min(260px, calc(100vw - 36px)); min-height: 38px; padding: 0 12px; border: 1px solid var(--border-subtle); border-radius: var(--radius-xs); background: var(--bg-surface); color: var(--text-primary); text-align: left; cursor: pointer; }
+.filter-toggle span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.filter-toggle span:last-child { flex: none; color: var(--text-secondary); }
+.filter-toggle:hover { background: var(--bg-hover); }
+.filter-toggle:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: 2px; }
 .floating-legend, .floating-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
-.knowledge-filters { display: flex; flex-direction: column; gap: 10px; width: min(260px, calc(100vw - 72px)); box-sizing: border-box; padding: 12px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-xs); }
+.knowledge-filters { display: flex; flex-direction: column; gap: 10px; width: min(260px, calc(100vw - 36px)); box-sizing: border-box; margin-top: 4px; padding: 12px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-xs); }
 .relation-info { margin-top: 8px; padding: 10px 12px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-xs); }
 .relation-label.before { color: var(--tag-orange); }
 .relation-label.after { margin-left: 12px; color: var(--tag-green); }
@@ -973,7 +983,7 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(node.slug) ? '
 .search-results li button:hover { background: var(--bg-hover); }
 .search-results li button:focus-visible, .dependency:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: -2px; }
 .storage-error { color: var(--tag-red); }
-.floating-controls { position: absolute; z-index: 3; right: 18px; bottom: 16px; gap: 4px; padding: 5px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-xs); }
+.floating-controls { position: absolute; z-index: 3; right: 18px; bottom: 16px; gap: 4px; }
 .floating-legend { position: absolute; z-index: 3; left: 18px; bottom: 16px; gap: 12px; padding: 9px 10px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-xs); color: var(--text-secondary); font-size: var(--font-size-smallest); }
 .floating-legend span { display: inline-flex; align-items: center; gap: 5px; }
 .swatch { display: inline-block; width: 10px; height: 10px; flex-shrink: 0; border-radius: var(--radius-xs); }
@@ -989,6 +999,16 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(node.slug) ? '
 .knowledge-source { margin-top: 12px; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; }
 .dependency { display: flex; flex-direction: column; gap: 4px; width: 100%; padding: 10px 0; border: 0; border-bottom: 1px solid var(--border-subtle); background: transparent; color: var(--text-primary); text-align: left; cursor: pointer; font-size: var(--font-size-smaller); }
 .dependency:hover { color: var(--accent-primary); } .dependency small { color: var(--text-muted); line-height: 1.5; }
-@media (prefers-reduced-motion: reduce) { .map-tile, .label-layer text { transition: none; animation: none; } }
-@media (max-width: 760px) { .floating-legend { bottom: 56px; } }
+@media (prefers-reduced-motion: reduce) { .map-tile, .label-layer text { transition: none; animation: none; } #knowledge-filters, #knowledge-filters :deep(.m-collapse-inner) { transition-duration: 0ms; } }
+@media (max-width: 760px) {
+  .floating-info { top: 10px; left: 10px; max-width: calc(100% - 20px); }
+  .filter-toggle { width: min(260px, calc(100vw - 20px)); min-height: 44px; }
+  .knowledge-filters { width: min(320px, calc(100vw - 20px)); max-height: min(55dvh, 400px); overflow-y: auto; overscroll-behavior: contain; }
+  .knowledge-filters :deep(input), .knowledge-filters :deep(select) { min-height: 44px; font-size: 16px; }
+  .search-results ul { max-height: min(30dvh, 200px); }
+  .search-results li button, .search-result-head button { min-height: 44px; }
+  .floating-controls { right: 10px; bottom: max(10px, env(safe-area-inset-bottom)); }
+  .floating-controls :deep(button) { min-width: 44px; min-height: 44px; }
+  .floating-legend { left: 10px; bottom: calc(max(10px, env(safe-area-inset-bottom)) + 60px); max-width: calc(100% - 20px); gap: 6px 10px; padding: 7px 9px; }
+}
 </style>

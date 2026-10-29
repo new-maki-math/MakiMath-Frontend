@@ -179,5 +179,5 @@ onBeforeUnmount(() => { disposed = true; generation++; gpuScene?.dispose(); obse
 .point-header button:hover { background: var(--bg-hover); }
 .point-header button:focus-visible { outline: 2px solid var(--accent-primary); }
 .point-scroll { touch-action: pan-y; flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; }
-@media (max-width: 760px) { .point-shell, .point-content { inset: 0; } }
+@media (max-width: 760px) { .point-shell, .point-content { inset: 0; } .point-header { padding: 8px 12px; } .point-header button { flex: none; width: 44px; height: 44px; } }
 </style>

@@ -506,7 +506,7 @@ defineExpose({
 
 .search-clear-btn:hover {
   color: var(--text-primary);
-  background-color: var(--bg-base);
+  background-color: var(--bg-hover);
 }
 
 .kbd-wrap {
@@ -518,9 +518,9 @@ defineExpose({
   font-size: 10.5px;
   padding: 2px 6px;
   border-radius: var(--radius-xs, 3px);
-  background-color: var(--bg-base, #121212);
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
-  color: var(--text-muted, #888888);
+  background-color: var(--bg-app);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
 }
 
 /* ================== 下拉卡片 ================== */
@@ -640,7 +640,7 @@ defineExpose({
 
 .dropdown-footer {
   padding: 8px 16px;
-  background-color: var(--bg-base);
+  background-color: var(--bg-app);
   border-top: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;

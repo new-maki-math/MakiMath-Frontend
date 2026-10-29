@@ -32,6 +32,7 @@ const addSlug = ref('');
 const addSaving = ref(false);
 const loadedRevisionId = ref(null);
 const loadedHasCover = ref(false);
+const loadedCoverHash = ref('');
 const revisionStatus = ref('');
 const isPublicVersion = ref(false);
 const publicCheckError = ref(false);
@@ -251,6 +252,7 @@ const loadLectureData = async (slug) => {
   lecture.value = null;
   loadedRevisionId.value = null;
   loadedHasCover.value = false;
+  loadedCoverHash.value = '';
   revisionStatus.value = '';
   publicCheckSequence++;
   isPublicVersion.value = false;
@@ -265,6 +267,7 @@ const loadLectureData = async (slug) => {
     if (id !== loadId) return;
     loadedRevisionId.value = tree.revision_id || null;
     loadedHasCover.value = Boolean(tree.has_cover);
+    loadedCoverHash.value = tree.cover_hash || '';
     revisionStatus.value = tree.revision_status || '';
     lecture.value = bundle.lecture;
     chapters.value = bundle.chapters;
@@ -298,7 +301,7 @@ onUnmounted(() => { loadId++; publicCheckSequence++; });
       <!-- 课程头部 -->
       <header class="lecture-header">
         <div class="header-cover" aria-hidden="true" inert>
-          <MLectureCover :title="lecture.title" :image="lecture.cover || ''" :show-caption="false" :cover-revision-id="loadedRevisionId" :has-cover="loadedHasCover" />
+          <MLectureCover :title="lecture.title" :image="lecture.cover || ''" :show-caption="false" :cover-revision-id="loadedRevisionId" :cover-hash="loadedCoverHash" :has-cover="loadedHasCover" />
         </div>
         <template v-if="shelfSource === 'local'">
           <input ref="coverInput" class="cover-input" type="file" accept="image/jpeg,image/png,image/webp" @change="changeCover" />

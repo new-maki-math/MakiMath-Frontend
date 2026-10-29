@@ -14,5 +14,5 @@ const colors = computed(() => {
 
 <style scoped>
 .mm-tag { display: inline-flex; align-items: center; justify-content: center; padding: .08em .4em; border: 1px solid var(--mm-tag-dark-border); border-radius: var(--radius-xs); background: var(--mm-tag-dark-background); color: var(--mm-tag-dark-text); font-size: .88em; line-height: 1.3; vertical-align: middle; }
-:global([data-theme="light"]) .mm-tag, :global(.theme-light) .mm-tag { border-color: var(--mm-tag-light-border); background: var(--mm-tag-light-background); color: var(--mm-tag-light-text); }
+:global([data-theme="light"] .mm-tag), :global(.theme-light .mm-tag) { border-color: var(--mm-tag-light-border); background: var(--mm-tag-light-background); color: var(--mm-tag-light-text); }
 </style>

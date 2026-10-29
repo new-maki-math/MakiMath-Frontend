@@ -1073,7 +1073,9 @@ watch(() => props.tree, (newVal) => {
     z-index: 10;
     padding: 6px 12px;
     border-radius: var(--radius-full, 9999px);
-    background-color: rgba(24, 24, 27, 0.88);
+    background-color: var(--bg-surface);
+    background-color: color-mix(in srgb, var(--bg-surface) 88%, transparent);
+    -webkit-backdrop-filter: blur(8px);
     backdrop-filter: blur(8px);
     border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.15));
     color: var(--text-secondary, #a1a1aa);

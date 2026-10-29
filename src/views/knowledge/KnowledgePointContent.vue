@@ -94,5 +94,5 @@ async function copyReference() {
 .dependency span { flex: none; color: var(--text-muted); }
 .dependency:hover, .dependency:hover span { color: var(--accent-primary); }
 .dependency:focus-visible, .text-action:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: 2px; }
-@media (max-width: 600px) { .relations { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .detail-content { padding: 20px 16px max(32px, env(safe-area-inset-bottom)); } .detail-actions :deep(button) { min-height: 44px; } .dependency { min-height: 44px; align-items: center; } .relations { grid-template-columns: 1fr; } }
 </style>

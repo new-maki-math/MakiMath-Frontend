@@ -184,7 +184,6 @@ export function useLayoutState() {
       to: lectureLocation({ slug: route.params.lectureSlug, source: route.name === 'local-lecture-doc' ? 'local' : 'online', revisionId: route.query.revision_id, origin: lectureOrigin.value })
     } : { label: '课程讲义详情' });
     if (route.name === 'lecture-doc' || route.name === 'local-lecture-doc') {
-      const lectureId = route.params.lectureSlug;
       const chapters = layoutChapters.value;
       const chapterSlug = String(route.params.chapterSlug || '');
       const sectionSlug = String(route.params.sectionSlug || '');
@@ -195,7 +194,7 @@ export function useLayoutState() {
       for (const chap of chapters) {
         const sec = chap.slug === chapterSlug ? chap.sections?.find(s => s.slug === sectionSlug) : null;
         if (sec) {
-          chapterName = chap.tag ? `${chap.tag} ${chap.title}` : chap.title;
+          chapterName = chap.title;
           sectionName = sec.title;
           break;
         }
@@ -203,7 +202,7 @@ export function useLayoutState() {
 
       if (!sectionName && !sectionSlug && chapters.length > 0) {
         const firstChap = chapters[0];
-        chapterName = firstChap.tag ? `${firstChap.tag} ${firstChap.title}` : firstChap.title;
+        chapterName = firstChap.title;
         sectionName = firstChap.sections?.[0]?.title || '讲义阅读';
       }
 

@@ -36,7 +36,7 @@ const props = defineProps({
   },
   theme: {
     type: String,
-    default: 'vs-dark'
+    default: ''
   },
   tagVariant: {
     type: String,
@@ -62,6 +62,7 @@ const emit = defineEmits(['update:modelValue', 'save', 'scroll', 'knowledge-trig
 const editorMountRef = ref(null);
 let editorInstance = null;
 let monaco = null;
+let themeObserver = null;
 let disposed = false;
 let initializing = false;
 const editorLoading = ref(true);
@@ -70,6 +71,15 @@ let isSettingValue = false;
 
 const lineCount = computed(() => Math.max(1, String(props.modelValue || '').split('\n').length));
 const charCount = computed(() => String(props.modelValue || '').length);
+
+function currentEditorTheme() {
+  if (props.theme) return props.theme;
+  return document.documentElement.getAttribute('data-theme') === 'light' ? 'vs' : 'vs-dark';
+}
+
+function updateEditorTheme() {
+  if (monaco && editorInstance) monaco.editor.setTheme(currentEditorTheme());
+}
 
 const effectiveHeight = computed(() => {
   if (!props.height) return '360px';
@@ -103,7 +113,7 @@ async function initializeEditor() {
     editorInstance = monaco.editor.create(editorMountRef.value, {
       value: props.modelValue || '',
       language: resolvedLanguage.value,
-      theme: props.theme || 'vs-dark',
+      theme: currentEditorTheme(),
       readOnly: props.readonly,
       tabSize: props.tabSize || 2,
       automaticLayout: true,
@@ -175,7 +185,11 @@ async function initializeEditor() {
     initializing = false;
   }
 }
-onMounted(initializeEditor);
+onMounted(() => {
+  themeObserver = new MutationObserver(updateEditorTheme);
+  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  initializeEditor();
+});
 
 watch(
   () => props.modelValue,
@@ -204,11 +218,7 @@ watch(
 
 watch(
   () => props.theme,
-  (newTheme) => {
-    if (newTheme && monaco) {
-      monaco.editor.setTheme(newTheme);
-    }
-  }
+  updateEditorTheme
 );
 
 watch(
@@ -258,6 +268,7 @@ defineExpose({
 
 onBeforeUnmount(() => {
   disposed = true;
+  themeObserver?.disconnect();
   if (editorInstance) {
     editorInstance.dispose();
     editorInstance = null;

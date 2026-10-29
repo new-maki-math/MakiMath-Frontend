@@ -46,7 +46,7 @@ function optionLabel(index) {
   <pre v-else-if="node.type === 'raw' && node.block" class="typst-raw"><code>{{ node.text }}</code></pre>
   <code v-else-if="node.type === 'raw'" class="typst-inline-code">{{ node.text }}</code>
   <span v-else-if="node.type === 'math'" class="typst-math" :class="{ 'is-display': node.display }" v-html="node.html" />
-  <div v-else-if="node.type === 'table'" class="typst-table-wrap" :class="{ 'has-bottom-line': node.hasBottomLine }">
+  <div v-else-if="node.type === 'table'" class="typst-table-wrap" :class="{ 'has-bottom-line': node.hasBottomLine }" tabindex="0" role="region" aria-label="可横向滚动的表格">
     <table class="typst-table" :class="{ 'has-fractional-columns': node.fractional, 'has-mixed-columns': node.mixedColumns }">
       <colgroup v-if="node.widths"><col v-for="(width, index) in node.widths" :key="index" :style="{ width }" /></colgroup>
       <tbody>
@@ -88,12 +88,13 @@ function optionLabel(index) {
 .typst-hidden { visibility: hidden; }
 .typst-inline-box { display: inline-block; }
 .typst-heading { margin: 1.1em 0 .5em; color: var(--text-primary); line-height: 1.4; }
-.typst-table-wrap { max-width: 100%; overflow-x: auto; margin: 1em 0; }
+.typst-table-wrap { min-width: 0; max-width: 100%; overflow-x: auto; margin: 1em 0; overscroll-behavior-x: contain; }
+.typst-table-wrap:focus-visible { outline: 1px solid var(--accent-primary); outline-offset: 2px; }
 .typst-table-wrap.has-bottom-line { padding-bottom: 8px; }
 .typst-table .has-bottom-line { position: relative; }
 .typst-table .has-bottom-line::after { content: ""; position: absolute; left: 0; right: 0; bottom: -7px; border-bottom: var(--typst-bottom-line); }
-.typst-table { margin-left: var(--typst-table-margin-left, 0); margin-right: var(--typst-table-margin-right, 0); border-collapse: collapse; }
-.typst-table.has-fractional-columns { width: 100%; table-layout: fixed; }
+.typst-table { width: max-content; max-width: none; margin-left: var(--typst-table-margin-left, 0); margin-right: var(--typst-table-margin-right, 0); border-collapse: collapse; }
+.typst-table.has-fractional-columns { min-width: 100%; table-layout: auto; }
 .typst-table.has-mixed-columns { table-layout: auto; }
 .typst-table td, .typst-table th { min-width: 0; padding: 6px 10px; border: 1px solid var(--border-subtle); vertical-align: top; }
 .typst-table th { text-align: left; }

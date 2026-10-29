@@ -1,10 +1,20 @@
 import { request } from './client.js';
 import { invalidateCourseCaches } from './courses.js';
+import { getCachedLectureCover, invalidateLectureCover } from '../utils/lecture-cover-cache.js';
 
 const mutate = async (url, options) => {
   const result = await request(url, options);
   invalidateCourseCaches();
   return result;
+};
+
+const mutateCover = async (id, url, options) => {
+  await invalidateLectureCover(id);
+  try {
+    return await mutate(url, options);
+  } finally {
+    await invalidateLectureCover(id);
+  }
 };
 
 export const lectureApi = {
@@ -17,9 +27,9 @@ export const lectureApi = {
   create: (body) => mutate('/api/lectures', { method: 'POST', body }),
   importLecture: (body) => mutate('/api/lectures/import', { method: 'POST', body }),
   exportRevision: (id) => request(`/api/lecture-revisions/${id}/export`, { cache: 'no-store' }),
-  getCover: (id) => request(`/api/lecture-revisions/${id}/cover`, { cache: 'no-store' }),
-  setCover: (id, editVersion, cover) => mutate(`/api/lecture-revisions/${id}/cover`, { method: 'PUT', body: { edit_version: editVersion, cover } }),
-  removeCover: (id, editVersion) => mutate(`/api/lecture-revisions/${id}/cover?edit_version=${encodeURIComponent(editVersion)}`, { method: 'DELETE' }),
+  getCover: (id, hash) => getCachedLectureCover(id, hash, () => request(`/api/lecture-revisions/${id}/cover`, { cache: 'no-store' })),
+  setCover: (id, editVersion, cover) => mutateCover(id, `/api/lecture-revisions/${id}/cover`, { method: 'PUT', body: { edit_version: editVersion, cover } }),
+  removeCover: (id, editVersion) => mutateCover(id, `/api/lecture-revisions/${id}/cover?edit_version=${encodeURIComponent(editVersion)}`, { method: 'DELETE' }),
   revisions: (id) => request(`/api/lectures/${id}/revisions`),
   saveRevision: (id, body) => mutate(`/api/lecture-revisions/${id}`, { method: 'PUT', body }),
   saveSection: (id, occurrenceId, body) => mutate(`/api/lecture-revisions/${id}/sections/${encodeURIComponent(occurrenceId)}`, { method: 'PUT', body }),

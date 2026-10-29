@@ -40,14 +40,14 @@ async function loadCover() {
   if (props.lecture.isLocal || !props.revision.id || !props.revision.has_cover) return;
   coverLoading.value = true;
   try {
-    const result = await lectureApi.getCover(props.revision.id);
+    const result = await lectureApi.getCover(props.revision.id, props.revision.cover_hash);
     if (current !== coverSequence) return;
     if (String(result.revision_id) !== String(props.revision.id) || typeof result.cover !== 'string') throw new Error('封面数据不完整');
     onlineCover.value = result.cover;
   } catch (error) { if (current === coverSequence) coverError.value = error.message || '封面加载失败'; }
   finally { if (current === coverSequence) coverLoading.value = false; }
 }
-watch(() => [props.lecture.isLocal, props.revision.id, props.revision.edit_version, props.revision.has_cover], loadCover, { immediate: true });
+watch(() => [props.lecture.isLocal, props.revision.id, props.revision.edit_version, props.revision.has_cover, props.revision.cover_hash], loadCover, { immediate: true });
 
 async function changeCover(event) {
   const file = event.target.files?.[0];

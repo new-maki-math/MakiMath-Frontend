@@ -44,7 +44,7 @@ onUnmounted(() => { loadSequence++; });
     <p v-else-if="error" class="shelf-message error">{{ error }} <MButton size="sm" variant="ghost" @click="load">重试</MButton></p>
     <p v-else-if="!lectures.length" class="shelf-message">暂无讲义</p>
     <div v-else class="lecture-grid">
-      <MLectureCover v-for="lecture in lectures" :key="lecture.id" :title="lecture.title || '未命名讲义'" :subtitle="lecture.subtitle || ''" :cover-revision-id="lecture.revision_id" :has-cover="Boolean(lecture.has_cover)" @click="openLecture(lecture)" />
+      <MLectureCover v-for="lecture in lectures" :key="lecture.id" :title="lecture.title || '未命名讲义'" :subtitle="lecture.subtitle || ''" :cover-revision-id="lecture.revision_id" :cover-hash="lecture.cover_hash || ''" :has-cover="Boolean(lecture.has_cover)" @click="openLecture(lecture)" />
     </div>
   </main>
 </template>

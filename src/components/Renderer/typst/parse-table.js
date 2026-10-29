@@ -178,7 +178,7 @@ export function parseTable(parts, positioned, convertChildren) {
     }
     const call = callOf(value, positioned);
     if (call?.name === 'table.hline') {
-      const line = { y: null, start: 0, end: null, stroke: '1pt solid currentColor' };
+      const line = { y: null, start: 0, end: null, stroke: '1px solid var(--border-hover)' };
       const seen = new Set();
       for (const item of call.args) {
         if (item.node.kind !== K.Named) return { error: '暂不支持此横线参数' };
@@ -200,7 +200,7 @@ export function parseTable(parts, positioned, convertChildren) {
       continue;
     }
     if (call?.name === 'table.vline') {
-      const line = { x: null, start: 0, end: null, stroke: '1pt solid currentColor' };
+      const line = { x: null, start: 0, end: null, stroke: '1px solid var(--border-hover)' };
       const seen = new Set();
       for (const item of call.args) {
         if (item.node.kind !== K.Named) return { error: '暂不支持此竖线参数' };

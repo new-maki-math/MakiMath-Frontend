@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { request, setUnauthorizedHandler } from '../api/client.js';
 import { invalidateCourseCaches } from '../api/courses.js';
+import { clearLectureCoverCache } from './lecture-cover-cache.js';
 
 // 当前登录用户对象响应式
 export const currentUser = ref(null);
@@ -46,7 +47,10 @@ export function setAuth(token, user) {
   if (typeof localStorage === 'undefined') return;
   const previousToken = getAuthToken();
   authVersion++;
-  if (previousToken !== token || currentUser.value?.id !== user?.id || currentUser.value?.role !== user?.role) invalidateCourseCaches();
+  if (previousToken !== token || currentUser.value?.id !== user?.id || currentUser.value?.role !== user?.role) {
+    invalidateCourseCaches();
+    clearLectureCoverCache();
+  }
 
   localStorage.removeItem('token');
   localStorage.removeItem('auth_token');
@@ -112,6 +116,7 @@ const expireSession = () => {
   localStorage.removeItem('token');
   localStorage.removeItem('auth_token');
   invalidateCourseCaches();
+  clearLectureCoverCache();
   authStatus.value = 'expired';
 };
 

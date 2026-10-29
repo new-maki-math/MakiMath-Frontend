@@ -111,7 +111,8 @@ const treeNodes = computed(() => ['local', 'online', 'archived', ...(canManageAl
     const versions = lectureVersions.value.get(key) || [];
     const canAddChapter = item.publication_status !== 'archived' && !saving.value && !treeBusy.value && (source === 'local' || (active ? canEditOnline.value && versions.some((version) => version.status === 'draft') : canCreateOnline.value && item.canViewPrivate && (currentUser.value?.role === 'super_admin' || item.owner_id === currentUser.value?.id)));
     const versionTitle = versions.find((version) => version.status === 'draft' && version.title)?.title || versions.find((version) => version.title)?.title;
-    const title = source === 'local' ? (active ? revision.value?.title : item.revision?.title) : item.title || versionTitle || (active ? revision.value?.title : '');
+    const draftTitle = active && revision.value?.status === 'draft' ? revision.value.title : versionTitle;
+    const title = source === 'local' ? (active ? revision.value?.title : item.revision?.title) : draftTitle || item.title || (active ? revision.value?.title : '');
     const canArchive = source === 'online' && item.publication_status !== 'archived' && Boolean(title) && item.canViewPrivate && canBrowseOnline.value && (currentUser.value?.role === 'super_admin' || item.owner_id === currentUser.value?.id) && !archiveBusy.value && !saving.value;
     return {
       type: 'lecture', id: key, label: title || (versionNameErrors.value.has(key) ? '课程名称加载失败' : item.canViewPrivate && !lectureVersions.value.has(key) ? '正在加载课程名称' : '课程名称未提供'),
@@ -677,6 +678,10 @@ async function save() {
         return;
       }
       lectureTrees.value = new Map(lectureTrees.value).set(`${lecture.value.key}:version:${result.revision.id}`, JSON.parse(JSON.stringify(result.chapters)));
+      const versions = lectureVersions.value.get(lecture.value.key);
+      if (versions) {
+        lectureVersions.value = new Map(lectureVersions.value).set(lecture.value.key, versions.map((version) => version.id === result.revision.id ? { ...version, ...result.revision } : version));
+      }
       if (snapshot() === submitted) {
         const sources = new Map(data.chapters.flatMap((chapter) => chapter.sections).filter((section) => typeof section.source === 'string').map((section) => [section.occurrence_id, section.source]));
         for (const chapter of result.chapters) for (const section of chapter.sections) if (sources.has(section.occurrence_id)) section.source = sources.get(section.occurrence_id);
@@ -750,6 +755,7 @@ async function updateOnlineCover(cover) {
     }
     currentRevision.edit_version = result.edit_version;
     currentRevision.has_cover = result.has_cover;
+    currentRevision.cover_hash = result.cover_hash || '';
     if (currentRevision.metadata?.cover !== undefined) {
       const metadata = { ...currentRevision.metadata };
       delete metadata.cover;

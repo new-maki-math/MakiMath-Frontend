@@ -3,17 +3,17 @@ import { computed, onUnmounted, ref, watch } from 'vue';
 import { lectureApi } from '../api/lectures.js';
 import { authStatus, currentUser } from '../utils/auth.js';
 
-const props = defineProps({ title: { type: String, required: true }, subtitle: { type: String, default: '' }, image: { type: String, default: '' }, showCaption: { type: Boolean, default: true }, coverRevisionId: { type: [String, Number], default: '' }, hasCover: { type: Boolean, default: false } });
+const props = defineProps({ title: { type: String, required: true }, subtitle: { type: String, default: '' }, image: { type: String, default: '' }, showCaption: { type: Boolean, default: true }, coverRevisionId: { type: [String, Number], default: '' }, coverHash: { type: String, default: '' }, hasCover: { type: Boolean, default: false } });
 const remoteCover = ref('');
 const coverSource = computed(() => props.image || remoteCover.value);
 let sequence = 0;
-watch(() => [props.image, props.coverRevisionId, props.hasCover, authStatus.value, currentUser.value?.id], async () => {
+watch(() => [props.image, props.coverRevisionId, props.coverHash, props.hasCover, authStatus.value, currentUser.value?.id], async () => {
   const current = ++sequence;
   remoteCover.value = '';
   if (props.image || !props.hasCover || !props.coverRevisionId) return;
   try {
     const id = props.coverRevisionId;
-    const result = await lectureApi.getCover(id);
+    const result = await lectureApi.getCover(id, props.coverHash);
     if (current === sequence && String(result.revision_id) === String(id) && typeof result.cover === 'string') remoteCover.value = result.cover;
   } catch (error) {
     if (current === sequence) console.warn('[讲义封面] 读取失败', error);
@@ -63,12 +63,8 @@ onUnmounted(() => { sequence++; });
 .cover-grid { fill: none; stroke: var(--border-subtle); stroke-width: 0.65; }
 .cover-graph { fill: none; stroke: var(--accent-primary); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 .cover-dot { fill: var(--accent-primary); }
-.cover-caption { position: absolute; inset: auto 0 0; display: flex; flex-direction: column; max-height: 55%; padding: 12px 14px; overflow: hidden; background: var(--bg-surface); border-top: 1px solid var(--border-subtle); transition: background-color 180ms ease; }
-.lecture-cover:hover .cover-caption, .lecture-cover:focus-visible .cover-caption { background: var(--bg-elevated); }
-@supports ((backdrop-filter: blur(12px)) or (-webkit-backdrop-filter: blur(12px))) {
-  .cover-caption { background: color-mix(in srgb, var(--bg-surface) 78%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
-  .lecture-cover:hover .cover-caption, .lecture-cover:focus-visible .cover-caption { background: color-mix(in srgb, var(--bg-surface) 88%, transparent); }
-}
+.cover-caption { position: absolute; inset: auto 0 0; display: flex; flex-direction: column; max-height: 55%; padding: 12px 14px; overflow: hidden; background: var(--bg-surface); background: color-mix(in srgb, var(--bg-surface) 78%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); border-top: 1px solid var(--border-subtle); transition: background-color 180ms ease; }
+.lecture-cover:hover .cover-caption, .lecture-cover:focus-visible .cover-caption { background: var(--bg-elevated); background: color-mix(in srgb, var(--bg-surface) 88%, transparent); }
 .cover-title, .cover-subtitle { display: -webkit-box; overflow: hidden; overflow-wrap: anywhere; -webkit-box-orient: vertical; }
 .cover-title { -webkit-line-clamp: 3; font-size: var(--font-size); font-weight: var(--font-weight-semibold); line-height: 1.45; }
 .cover-subtitle-wrap { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows 180ms ease, opacity 180ms ease; }
