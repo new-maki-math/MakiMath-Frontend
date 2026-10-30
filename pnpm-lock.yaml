@@ -14,9 +14,6 @@ importers:
       '@iconoir/vue':
         specifier: ^7.12.1
         version: 7.12.1(vue@3.5.44)
-      '@playcanvas/msdfgen-wasm':
-        specifier: ^0.1.1
-        version: 0.1.1
       d3:
         specifier: ^7.9.0
         version: 7.9.0
@@ -81,10 +78,6 @@ packages:
 
   '@oxc-project/types@0.154.0':
     resolution: {integrity: sha512-KYOUGQFlLWR+s4QMV2Q9ko38TZm7EdO87Qm7rvZLqk/webse/cDjtyxKhg/47l0byCbs/k46LT8qc4PKjAikzA==}
-
-  '@playcanvas/msdfgen-wasm@0.1.1':
-    resolution: {integrity: sha512-8/2SYSKzhdZTUCLs2nOKvAlz0xFBTalt3slcgY9yDsDBW26UToKyUhWsz3yXBcI2S5pAFD/PFCGrKLtrp3gABQ==}
-    engines: {node: '>=18'}
 
   '@rolldown/binding-android-arm-eabi@1.2.14':
     resolution: {integrity: sha512-aWR+XKH9+rW7m5fWq/5360J3mHycrx/o6xZM2DQFdJnTMdyP7/WzxPjhtLbVWdKo2y612/4U1bWqb3HQhiF7vg==}
@@ -671,8 +664,6 @@ snapshots:
   '@jridgewell/sourcemap-codec@1.6.0': {}
 
   '@oxc-project/types@0.154.0': {}
-
-  '@playcanvas/msdfgen-wasm@0.1.1': {}
 
   '@rolldown/binding-android-arm-eabi@1.2.14':
     optional: true

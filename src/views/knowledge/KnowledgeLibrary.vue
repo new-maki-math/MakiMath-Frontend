@@ -2,7 +2,7 @@
 import { computed, inject, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { commandServiceKey } from '../../commands/index.js';
-import { hierarchy, select, treemap, treemapBinary, treemapSquarify, zoom, zoomIdentity } from 'd3';
+import { hierarchy, treemap, treemapBinary, treemapSquarify } from 'd3';
 import { knowledgeApi } from '../../api/knowledge.js';
 import { managementApi } from '../../api/management.js';
 import { getMasteredIds, setMastered, setMasteredBatch, subscribeMasteryChanges } from '../../utils/knowledge-mastery.js';
@@ -13,7 +13,7 @@ import MInput from '../../components/MInput.vue';
 import MSelect from '../../components/MSelect.vue';
 import MLoadingMask from '../../components/MLoadingMask.vue';
 import MCollapse from '../../components/MCollapse.vue';
-import { createKnowledgeRenderer } from './knowledge-webgpu-renderer.js';
+import KnowledgeCanvas2D from './KnowledgeCanvas2D.vue';
 
 const commandService = inject(commandServiceKey);
 const route = useRoute();
@@ -41,45 +41,19 @@ let mapSequence = 0;
 let detailSequence = 0;
 let suppressCategoryWatch = false;
 const storageError = ref('');
-const libraryMain = ref(null);
-const canvas = ref(null);
-const mapWorld = ref(null);
-const labelLayer = ref(null);
-const gpuCanvas = ref(null);
-const gpuReady = ref(false);
-const gpuError = ref('');
-const gpuInitializing = ref(false);
-const glyphLoading = ref(false);
-const glyphWarning = ref('');
+const canvas2dRef = ref(null);
 const reading = ref(false);
 const readingClosing = ref(false);
 const overlaySession = ref(0);
 const readingOverlay = ref(null);
 let returnFocus = null;
-let restoringFocus = false;
-const canvasWidth = ref(0);
-const canvasHeight = ref(0);
-let canvasTransform = zoomIdentity;
-let gpuRenderer = null;
-let gpuFrame = 0;
-let gpuInitSequence = 0;
-let gpuSceneSequence = 0;
-let gpuColor = [1, 1, 1, 1];
-let gpuPalette = null;
-let themeObserver;
 let disposed = false;
 const worldSize = 2000;
-let resizeObserver;
-let resolutionQuery;
-let canvasZoom;
-let fitted = false;
-let zoomFrame = 0;
-let zoomTarget = null;
 const selected = ref(null);
 watch(selected, (node) => { if (!node && reading.value) closeReading(); });
 const focusedId = ref('');
 const showingRelations = ref(false);
-const openingHighlight = ref('');
+const openingColor = ref('');
 const returnStack = ref([]);
 const graph = ref({ categories: [], nodes: [], edges: [] });
 const domains = ref([]);
@@ -187,7 +161,7 @@ async function loadMap({ preserveOnError = false } = {}) {
     focusedId.value = '';
     await nextTick();
     if (sequence !== mapSequence || disposed) return;
-    resetCanvas(false);
+    canvas2dRef.value?.fit();
     return true;
   } catch (error) {
     if (sequence === mapSequence && !disposed) {
@@ -334,203 +308,22 @@ const chipLayout = computed(() => {
     tiles: root.leaves().map((node) => ({ node: node.data.node, style: style(node) }))
   };
 });
-let titleMeasureContext;
-function groupScrollDistance(group) {
-  if (!libraryMain.value) return 0;
-  if (!titleMeasureContext) titleMeasureContext = document.createElement('canvas').getContext('2d');
-  if (!titleMeasureContext) return 0;
-  titleMeasureContext.font = `${group.fontSize}px ${getComputedStyle(libraryMain.value).fontFamily}`;
-  const margin = group.kind === 'domain' ? 24 : 16;
-  return Math.max(0, titleMeasureContext.measureText(group.title).width - Math.max(0, parseFloat(group.style.width) - margin));
-}
-function labelOpacity(scale, start, end) {
-  return Math.max(0, Math.min(1, (scale - start) / (end - start)));
-}
-function updateWorldTransform() {
-  if (mapWorld.value) {
-    mapWorld.value.style.transform = `translate(${canvasTransform.x}px, ${canvasTransform.y}px) scale(${canvasTransform.k})`;
-    const borderOpacity = `${Math.round(labelOpacity(canvasTransform.k, 0.2, 0.4) * 100)}%`;
-    if (mapWorld.value.style.getPropertyValue('--group-border-opacity') !== borderOpacity) mapWorld.value.style.setProperty('--group-border-opacity', borderOpacity);
-    const domainOpacity = labelOpacity(canvasTransform.k, 0.32, 0.52).toFixed(1);
-    const topicOpacity = labelOpacity(canvasTransform.k, 0.58, 0.8).toFixed(1);
-    if (mapWorld.value.style.getPropertyValue('--domain-label-opacity') !== domainOpacity) mapWorld.value.style.setProperty('--domain-label-opacity', domainOpacity);
-    if (mapWorld.value.style.getPropertyValue('--topic-label-opacity') !== topicOpacity) mapWorld.value.style.setProperty('--topic-label-opacity', topicOpacity);
-  }
-  const opacity = labelOpacity(canvasTransform.k, 0.95, 1.2);
-  if (labelLayer.value) {
-    labelLayer.value.style.visibility = opacity ? 'visible' : 'hidden';
-    labelLayer.value.style.opacity = opacity;
-  }
-  requestGpuDraw();
-  readingOverlay.value?.syncSource();
-}
-watch(mapWorld, updateWorldTransform);
-watch(labelLayer, updateWorldTransform, { flush: 'post' });
-function updateGpuColor() {
-  if (!gpuCanvas.value) return;
-  const probe = document.createElement('span');
-  probe.style.display = 'none';
-  libraryMain.value.appendChild(probe);
-  const readColor = (value) => {
-    probe.style.color = value;
-    const resolved = getComputedStyle(probe).color;
-    const parts = resolved.match(/[\d.]+/g) || [];
-    const divisor = resolved.startsWith('color(srgb ') ? 1 : 255;
-    return [Number(parts[0] || 0) / divisor, Number(parts[1] || 0) / divisor, Number(parts[2] || 0) / divisor, parts.length > 3 ? Number(parts[3]) : 1];
-  };
-  gpuColor = readColor('var(--text-primary)');
-  gpuPalette = {
-    library: readColor('var(--bg-surface)'), domain: readColor('var(--bg-elevated)'), topic: readColor('color-mix(in srgb, var(--bg-elevated) 80%, var(--text-muted))'),
-    domainBorder: readColor('color-mix(in srgb, var(--text-secondary) 38%, transparent)'), topicBorder: readColor('color-mix(in srgb, var(--text-secondary) 22%, transparent)'),
-    unmastered: readColor('color-mix(in srgb, var(--text-muted) 38%, var(--bg-hover))'),
-    mastered: readColor('color-mix(in srgb, var(--accent-primary) 50%, var(--tree-selected-bg))'),
-    text: readColor('var(--text-primary)'), masteredText: readColor('var(--tree-selected-fg)'),
-    selected: readColor('var(--text-primary)'), before: readColor('var(--tag-orange)'), after: readColor('var(--tag-green)')
-  };
-  probe.remove();
-}
-function drawGpuFrame() {
-  gpuFrame = 0;
-  const animating = gpuRenderer?.draw(canvasTransform, canvasWidth.value, canvasHeight.value, gpuColor, [
-    labelOpacity(canvasTransform.k, 0.32, 0.52), labelOpacity(canvasTransform.k, 0.58, 0.8), labelOpacity(canvasTransform.k, 0.95, 1.2)
-  ], !window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-  if (animating) requestGpuDraw();
-}
-function requestGpuDraw() {
-  if (!gpuRenderer || gpuFrame) return;
-  gpuFrame = requestAnimationFrame(drawGpuFrame);
-}
-function syncMapFrame() {
-  if (!gpuRenderer) return;
-  cancelAnimationFrame(gpuFrame);
-  drawGpuFrame();
-}
-async function rebuildGpuLabels() {
-  if (!gpuRenderer || !gpuCanvas.value) return;
-  const renderer = gpuRenderer;
-  const sequence = ++gpuSceneSequence;
-  try {
-    const groups = chipLayout.value.groups;
-    const applied = await renderer.setTiles(chipLayout.value.tiles, relationClass, getComputedStyle(gpuCanvas.value).fontFamily, groups, (node) => mastered.value.has(node.slug), gpuPalette);
-    if (applied && renderer === gpuRenderer && sequence === gpuSceneSequence) requestGpuDraw();
-  } catch {
-    if (renderer !== gpuRenderer || sequence !== gpuSceneSequence) return;
-    renderer.dispose();
-    gpuRenderer = null;
-    gpuReady.value = false;
-    glyphLoading.value = false;
-    gpuError.value = '字形加载或 WebGPU 渲染失败，当前使用备用显示。';
-  }
-}
-async function initializeGpu() {
-  if (!gpuCanvas.value || disposed) return;
-  const sequence = ++gpuInitSequence;
-  const started = performance.now();
-  console.info('[知识地图] 开始准备画布');
-  gpuRenderer?.dispose();
-  gpuRenderer = null;
-  gpuReady.value = false;
-  gpuInitializing.value = true;
-  glyphLoading.value = false;
-  glyphWarning.value = '';
-  try {
-    if (document.fonts) await document.fonts.ready;
-    console.info(`[知识地图] 页面字体就绪，耗时 ${Math.round(performance.now() - started)} ms`);
-    if (disposed || sequence !== gpuInitSequence) return;
-    const renderer = await createKnowledgeRenderer(gpuCanvas.value, () => {
-      if (!disposed && sequence === gpuInitSequence) handleGpuLost();
-    }, (loading) => {
-      if (!disposed && sequence === gpuInitSequence) glyphLoading.value = loading;
-    }, (codepoints) => {
-      if (!disposed && sequence === gpuInitSequence) glyphWarning.value = codepoints.length ? `当前字体不支持部分字符，画布以问号代替：${codepoints.map((value) => String.fromCodePoint(value)).join(' ')}` : '';
-    });
-    if (disposed || sequence !== gpuInitSequence) { renderer.dispose(); return; }
-    gpuRenderer = renderer;
-    updateGpuColor();
-    await rebuildGpuLabels();
-    await new Promise((resolve) => requestAnimationFrame(resolve));
-    if (disposed || sequence !== gpuInitSequence) return;
-    gpuReady.value = Boolean(gpuRenderer);
-    if (gpuReady.value) gpuError.value = '';
-    updateWorldTransform();
-    console.info(`[知识地图] 画布准备完成，总耗时 ${Math.round(performance.now() - started)} ms`);
-  } catch (error) {
-    console.error('[知识地图] 画布初始化失败', error);
-    if (disposed || sequence !== gpuInitSequence) return;
-    gpuRenderer = null;
-    gpuReady.value = false;
-    gpuError.value = 'WebGPU 渲染不可用，当前使用备用显示。';
-  } finally {
-    if (sequence === gpuInitSequence) gpuInitializing.value = false;
-  }
-}
-function handleGpuLost() {
-  gpuInitSequence++;
-  gpuInitializing.value = false;
-  glyphLoading.value = false;
-  gpuRenderer?.dispose();
-  gpuRenderer = null;
-  gpuReady.value = false;
-  gpuError.value = 'WebGPU 设备已断开，当前使用备用显示。';
-}
 watch(searchQuery, () => { showingRelations.value = false; });
 watch(categoryId, () => { if (!suppressCategoryWatch && categoryId.value) { returnStack.value = []; searchQuery.value = ''; loadMap(); } });
-watch([chipLayout, selected, reading, mastered, focusedId, detailPrerequisites, searchResultIds, showingRelations], rebuildGpuLabels, { flush: 'post' });
-watch([canvasWidth, canvasHeight], requestGpuDraw, { flush: 'post' });
-function watchResolution() {
-  resolutionQuery?.removeEventListener('change', watchResolution);
-  resolutionQuery = window.matchMedia(`(resolution: ${window.devicePixelRatio || 1}dppx)`);
-  resolutionQuery.addEventListener('change', watchResolution);
-  requestGpuDraw();
-}
 onMounted(() => {
   unregisterCommands = commandService?.registerKnowledgeContext({ unavailableReason: masteryCommandUnavailableReason, updateMastery: updateLibraryMastery });
-  window.addEventListener('resize', requestGpuDraw);
-  watchResolution();
-  canvasZoom = zoom().scaleExtent([0.1, 8]).filter((event) => {
-    if (event.button) return false;
-    return true;
-  }).on('start', (event) => { if (event.sourceEvent) stopSmoothZoom(); })
-    .on('zoom', (event) => { canvasTransform = event.transform; updateWorldTransform(); });
-  if (canvas.value) {
-    select(canvas.value).call(canvasZoom).on('dblclick.zoom', null).on('wheel.zoom', null);
-    canvas.value.addEventListener('wheel', handleCanvasWheel, { passive: false });
-  }
-  resizeObserver = new ResizeObserver((entries) => {
-    const rect = entries[0].contentRect;
-    canvasWidth.value = rect.width;
-    canvasHeight.value = rect.height;
-    if (!fitted && rect.width > 0 && rect.height > 0) { fitted = true; resetCanvas(false); }
-    else updateWorldTransform();
-  });
-  if (canvas.value) resizeObserver.observe(canvas.value);
   unsubscribeMastery = subscribeMasteryChanges(loadMastery);
   loadMastery();
   loadLibraries();
-  initializeGpu();
-  themeObserver = new MutationObserver(() => { updateGpuColor(); rebuildGpuLabels(); });
-  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
 });
 onUnmounted(() => {
   disposed = true;
   masteryReadSequence++;
   unsubscribeMastery?.();
   unregisterCommands?.();
-  window.removeEventListener('resize', requestGpuDraw);
-  resolutionQuery?.removeEventListener('change', watchResolution);
-  gpuInitSequence++;
   mapSequence++;
   librariesSequence++;
   detailSequence++;
-  resizeObserver?.disconnect();
-  themeObserver?.disconnect();
-  cancelAnimationFrame(gpuFrame);
-  gpuRenderer?.dispose();
-  stopSmoothZoom();
-  if (canvas.value) {
-    canvas.value.removeEventListener('wheel', handleCanvasWheel);
-    select(canvas.value).interrupt().on('.zoom', null);
-  }
 });
 function related(direction, target = selected.value) {
   if (!target) return [];
@@ -612,53 +405,6 @@ async function updateLibraryMastery(randomize) {
     if (!disposed) masterySaving.value = false;
   }
 }
-function stopSmoothZoom() {
-  cancelAnimationFrame(zoomFrame);
-  zoomFrame = 0;
-  zoomTarget = null;
-}
-function animateZoom() {
-  if (!zoomTarget || !canvas.value || !canvasZoom) { stopSmoothZoom(); return; }
-  const current = canvasTransform;
-  const target = zoomTarget;
-  const step = 0.2;
-  const x = current.x + (target.x - current.x) * step;
-  const y = current.y + (target.y - current.y) * step;
-  const k = current.k + (target.k - current.k) * step;
-  const done = Math.abs(target.x - x) < 0.1 && Math.abs(target.y - y) < 0.1 && Math.abs(target.k - k) < 0.0001;
-  const next = done ? target : { x, y, k };
-  select(canvas.value).call(canvasZoom.transform, zoomIdentity.translate(next.x, next.y).scale(next.k));
-  if (done) stopSmoothZoom();
-  else zoomFrame = requestAnimationFrame(animateZoom);
-}
-function scaleAt(factor, x, y) {
-  if (!canvas.value || !canvasZoom) return;
-  select(canvas.value).interrupt();
-  const current = zoomTarget || canvasTransform;
-  const k = Math.max(0.1, Math.min(8, current.k * factor));
-  const ratio = k / current.k;
-  zoomTarget = { x: x - (x - current.x) * ratio, y: y - (y - current.y) * ratio, k };
-  if (!zoomFrame) zoomFrame = requestAnimationFrame(animateZoom);
-}
-function handleCanvasWheel(event) {
-  if (!canvas.value) return;
-  event.preventDefault();
-  const bounds = canvas.value.getBoundingClientRect();
-  const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? bounds.height : 1);
-  scaleAt(Math.exp(-delta * 0.002), event.clientX - bounds.left, event.clientY - bounds.top);
-}
-function resetCanvas(animate = true) {
-  if (!canvas.value || !canvasZoom || !canvasWidth.value || !canvasHeight.value) return;
-  stopSmoothZoom();
-  const k = Math.max(0.1, Math.min((canvasWidth.value - 40) / worldSize, (canvasHeight.value - 40) / worldSize));
-  const transform = zoomIdentity.translate((canvasWidth.value - worldSize * k) / 2, (canvasHeight.value - worldSize * k) / 2).scale(k);
-  const surface = select(canvas.value).interrupt();
-  if (animate) surface.transition().duration(260).call(canvasZoom.transform, transform);
-  else surface.call(canvasZoom.transform, transform);
-}
-function zoomCanvas(factor) {
-  scaleAt(factor, canvasWidth.value / 2, canvasHeight.value / 2);
-}
 async function selectNode(node, preserveHistory = false) {
   const sequence = ++detailSequence;
   selected.value = node;
@@ -677,44 +423,10 @@ async function selectNode(node, preserveHistory = false) {
   else prerequisitesError.value = '前置知识加载失败。';
   detailLoading.value = false;
 }
-function tileAt(event) {
-  if (!gpuReady.value || !canvas.value || event.target !== gpuCanvas.value) return null;
-  const bounds = canvas.value.getBoundingClientRect();
-  const x = (event.clientX - bounds.left - canvasTransform.x) / canvasTransform.k;
-  const y = (event.clientY - bounds.top - canvasTransform.y) / canvasTransform.k;
-  return chipLayout.value.tiles.find((tile) => {
-    const left = parseFloat(tile.style.left);
-    const top = parseFloat(tile.style.top);
-    return x >= left && y >= top && x < left + parseFloat(tile.style.width) && y < top + parseFloat(tile.style.height);
-  }) || null;
-}
-function handleOverlayPan({ event, type }) {
-  if (!canvas.value || !canvasZoom) return;
-  const handler = select(canvas.value).on(`${type}.zoom`);
-  if (!handler) return;
-  const mapEvent = type === 'mousedown' ? new Proxy(event, {
-    get(target, key) {
-      if (key === 'currentTarget') return canvas.value;
-      const value = Reflect.get(target, key, target);
-      return typeof value === 'function' ? value.bind(target) : value;
-    }
-  }) : event;
-  handler.call(canvas.value, mapEvent);
-}
+function handleOverlayPan(event) { canvas2dRef.value?.handlePan(event); }
 function handleBackgroundClick(event) {
   if (event.defaultPrevented || reading.value || !showingRelations.value) return;
   showingRelations.value = false;
-}
-function handleMapClick(event) {
-  if (event.defaultPrevented) return;
-  const tile = tileAt(event);
-  if (tile) activateNode(tile.node);
-}
-function handleMapHover(event) {
-  if (!gpuReady.value || !gpuCanvas.value) return;
-  const tile = tileAt(event);
-  gpuCanvas.value.title = tile ? `${domainById.get(tile.node.domain_id)?.name} / ${topicNames.get(tile.node.topic_id)} · ${tileLabel(tile.node)}` : '';
-  gpuCanvas.value.style.cursor = tile ? 'pointer' : 'grab';
 }
 function showRelations() {
   if (!selectedTile.value) return;
@@ -723,14 +435,9 @@ function showRelations() {
 }
 function focusTile(tile) {
   focusedId.value = tile.node.id;
-  if (restoringFocus) return;
-  if (!canvas.value || !canvasZoom) return;
-  stopSmoothZoom();
-  const k = Math.max(canvasTransform.k, 1);
-  const x = parseFloat(tile.style.left) + parseFloat(tile.style.width) / 2;
-  const y = parseFloat(tile.style.top) + parseFloat(tile.style.height) / 2;
-  select(canvas.value).interrupt().call(canvasZoom.transform, zoomIdentity.translate(canvasWidth.value / 2 - x * k, canvasHeight.value / 2 - y * k).scale(k));
+  canvas2dRef.value?.focusTile(tile);
 }
+const nodeStates = computed(() => Object.fromEntries(chipLayout.value.tiles.map((tile) => [tile.node.id, relationClass(tile.node)])));
 const selectedTile = computed(() => selected.value && chipLayout.value.tiles.find((tile) => tile.node.id === selected.value.id));
 const selectedOutsideMap = computed(() => selected.value && !graph.value.nodes.some((node) => node.id === selected.value.id));
 
@@ -738,7 +445,7 @@ function followDependency(node) {
   if (selected.value) {
     returnStack.value.push({
       node: selected.value, categoryId: categoryId.value, query: searchQuery.value,
-      transform: { x: canvasTransform.x, y: canvasTransform.y, k: canvasTransform.k }
+      transform: canvas2dRef.value?.getTransform()
     });
   }
   const target = nodeById.get(node.id) || node;
@@ -827,10 +534,7 @@ async function returnToPrevious() {
   }
   selectNode(nodeById.get(previous.node.id) || previous.node, true);
   await nextTick();
-  if (canvas.value && canvasZoom) {
-    const { x, y, k } = previous.transform;
-    select(canvas.value).interrupt().call(canvasZoom.transform, zoomIdentity.translate(x, y).scale(k));
-  }
+  if (previous.transform) canvas2dRef.value?.setTransform(previous.transform);
 }
 
 function activateNode(node) {
@@ -839,43 +543,30 @@ function activateNode(node) {
     showingRelations.value = false;
     return;
   }
-  openingHighlight.value = relationClass(node);
+  openingColor.value = canvas2dRef.value?.sourceRect(node.id)?.color || '';
   showingRelations.value = false;
   readingClosing.value = false;
   overlaySession.value++;
   returnFocus = document.activeElement;
-  stopSmoothZoom();
-  select(canvas.value).interrupt();
   searchQuery.value = '';
   selectNode(node);
   reading.value = true;
 }
-function glyphAdvance(character) {
-  return gpuRenderer?.glyphAdvance(character);
-}
 function readingSourceRect() {
-  const tile = selectedTile.value;
-  if (!tile || !canvas.value) return null;
-  const bounds = canvas.value.getBoundingClientRect();
-  const left = bounds.left + canvasTransform.x + parseFloat(tile.style.left) * canvasTransform.k;
-  const top = bounds.top + canvasTransform.y + parseFloat(tile.style.top) * canvasTransform.k;
-  const width = parseFloat(tile.style.width) * canvasTransform.k;
-  const height = parseFloat(tile.style.height) * canvasTransform.k;
-  return { left, top, width, height, right: left + width, bottom: top + height, fontSize: 10 * canvasTransform.k, titleOpacity: labelOpacity(canvasTransform.k, 0.95, 1.2) };
+  return selected.value ? canvas2dRef.value?.sourceRect(selected.value.id) : null;
 }
 function closeReading(sessionId) {
   if (sessionId != null && sessionId !== overlaySession.value) return;
   readingClosing.value = false;
   reading.value = false;
-  nextTick(() => { restoringFocus = true; if (returnFocus?.isConnected && returnFocus !== document.body) returnFocus.focus(); else canvas.value?.focus(); restoringFocus = false; });
+  nextTick(() => { if (returnFocus?.isConnected && returnFocus !== document.body) returnFocus.focus(); });
 }
-const tileLabel = (node) => `${node.title}，${mastered.value.has(node.slug) ? '已掌握' : '未掌握'}，激活打开阅读`;
 </script>
 
 <template>
   <section class="knowledge-library">
-    <MLoadingMask :visible="mapLoading || gpuInitializing || glyphLoading" :text="mapLoading ? '正在加载知识地图…' : '正在准备知识点字形…'" :z-index="50" />
-    <main ref="libraryMain" class="library-main" @click="handleBackgroundClick">
+    <MLoadingMask :visible="mapLoading" text="正在加载知识地图…" :z-index="50" />
+    <main class="library-main" @click="handleBackgroundClick">
       <div class="floating-info" :inert="reading">
         <button class="filter-toggle" type="button" :aria-expanded="filtersOpen" aria-controls="knowledge-filters" @click="filtersOpen = !filtersOpen"><span>{{ currentLibraryName }}</span><span>{{ filtersOpen ? '收起' : '筛选与搜索' }}</span></button>
         <MCollapse id="knowledge-filters" :open="filtersOpen" :inert="!filtersOpen">
@@ -897,8 +588,6 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(node.slug) ? '
         <p v-else-if="categoryId && !mapLoading && !learningNodes.length" class="detail-note">当前分类暂无公开知识点</p>
         <p v-else-if="categoryId && !mapLoading && !chipNodes.length" class="detail-note">当前筛选没有匹配的知识点</p>
         <p v-if="storageError" class="storage-error" role="alert">{{ storageError }}</p>
-        <p v-if="gpuError" class="storage-error" role="alert">{{ gpuError }}</p>
-        <p v-if="glyphWarning" class="storage-error" role="alert">{{ glyphWarning }}</p>
         <div v-if="showingRelations && selected" class="relation-info">
           <p>正在查看：{{ selected.title }}</p>
           <p><span class="relation-label before">前置</span><span class="relation-label after">后续</span></p>
@@ -907,23 +596,9 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(node.slug) ? '
           <MButton size="sm" @click="showingRelations = false">退出关系查看</MButton>
         </div>
       </div>
-      <div ref="canvas" class="map-canvas" tabindex="-1" :inert="reading && !readingClosing" @click="handleMapClick" @mousemove="handleMapHover">
-        <div v-if="!gpuReady" ref="mapWorld" class="map-world" :style="{ width: `${worldSize}px`, height: `${worldSize}px` }">
-          <div v-for="group in chipLayout.groups" :key="group.id" :class="['chip-group', `is-${group.kind}`, { 'is-library': group.isLibrary }]" :style="group.style"><span class="group-heading"><span class="group-heading-text" :class="{ scrolling: groupScrollDistance(group) > 0 }" :style="{ '--scroll-distance': `-${groupScrollDistance(group)}px` }">{{ group.title }}</span></span></div>
-          <button v-for="tile in chipLayout.tiles" :key="tile.node.id" type="button" :data-node-id="tile.node.id" :class="['map-tile', relationClass(tile.node), { mastered: mastered.has(tile.node.slug) }]" :style="tile.style" :title="`${domainById.get(tile.node.domain_id)?.name} / ${topicNames.get(tile.node.topic_id)} · ${tileLabel(tile.node)}`" :aria-label="tileLabel(tile.node)" @click.stop="activateNode(tile.node)" />
-          <svg v-if="!gpuReady" ref="labelLayer" class="label-layer" :viewBox="`0 0 ${worldSize} ${worldSize}`" aria-hidden="true">
-            <defs><clipPath v-for="tile in chipLayout.tiles" :id="`knowledge-label-${tile.node.id}`" :key="tile.node.id"><rect :x="parseFloat(tile.style.left) + 4" :y="parseFloat(tile.style.top) + 4" :width="Math.max(0, parseFloat(tile.style.width) - 8)" :height="Math.max(0, parseFloat(tile.style.height) - 8)" /></clipPath></defs>
-            <text v-for="tile in chipLayout.tiles" :key="tile.node.id" :x="parseFloat(tile.style.left) + 4" :y="parseFloat(tile.style.top) + 14" :clip-path="`url(#knowledge-label-${tile.node.id})`" :class="[relationClass(tile.node), { mastered: mastered.has(tile.node.slug) }]">{{ tile.node.title }}</text>
-          </svg>
-        </div>
-        <div v-if="gpuReady" class="canvas-accessibility" aria-label="知识点列表">
-          <button v-for="tile in chipLayout.tiles" :key="tile.node.id" type="button" :aria-label="tileLabel(tile.node)" @focus="focusTile(tile)" @blur="focusedId = ''" @click.stop="activateNode(tile.node)" />
-        </div>
-        <canvas v-show="gpuReady" ref="gpuCanvas" class="gpu-labels" aria-hidden="true" />
-      </div>
-      <div class="floating-controls" :inert="reading"><MButton size="sm" aria-label="缩小画布" @click="zoomCanvas(0.8)">−</MButton><MButton size="sm" aria-label="放大画布" @click="zoomCanvas(1.25)">+</MButton><MButton size="sm" @click="resetCanvas">全览</MButton></div>
+      <KnowledgeCanvas2D ref="canvas2dRef" :layout="chipLayout" :mastered="mastered" :states="nodeStates" :pulse="showingRelations" :world-size="worldSize" :category-id="categoryId" @activate="activateNode" @background="showingRelations = false" @focus="focusedId = $event.id" @blur="focusedId = ''" />
       <div class="floating-legend" :inert="reading"><span><i class="swatch" />未掌握</span><span><i class="swatch mastered" />已掌握</span><span><i class="boundary-key domain" />分区</span><span><i class="boundary-key topic" />子分区</span><span>{{ totalStats.done }} / {{ totalStats.total }}</span></div>
-      <KnowledgePointOverlay v-if="reading && selected" ref="readingOverlay" :key="overlaySession" :session-id="overlaySession" :source-rect="readingSourceRect" :glyph-advance="glyphAdvance" :before-frame="syncMapFrame" :animation-title="selected.title" :title="detail?.title || selected.title" :node-id="selected.id" :gpu-enabled="gpuReady" :mastered="mastered.has(selected.slug)" :highlight="openingHighlight" @closing="readingClosing = true" @closed="closeReading" @zoom="handleCanvasWheel" @pan="handleOverlayPan">
+      <KnowledgePointOverlay v-if="reading && selected" ref="readingOverlay" :key="overlaySession" :session-id="overlaySession" :source-rect="readingSourceRect" :animation-title="selected.title" :title="detail?.title || selected.title" :node-id="selected.id" :canvas2d-enabled="true" :mastered="mastered.has(selected.slug)" :opening-color="openingColor" @closing="readingClosing = true" @closed="closeReading" @zoom="canvas2dRef?.onWheel($event)" @pan="handleOverlayPan">
         <KnowledgePointContent :selected="selected" :detail="detail" :selected-tile="selectedTile" :selected-outside-map="selectedOutsideMap" :locate-error="locateError" :detail-loading="detailLoading" :detail-error="detailError" :prerequisites-error="prerequisitesError" :detail-prerequisites="detailPrerequisites" :successors="successors" :can-return="Boolean(returnStack.length)" :is-mastered="mastered.has(selected.slug)" :mastery-loading="masteryLoading" :mastery-saving="masterySaving" :mastery-available="masteryAvailable" :storage-error="storageError" @relations="showRelations" @back="returnToPrevious" @locate="locateSelected" @mastery="toggleMastery" @retry="selectNode(selected, true)" @follow="followDependency" />
       </KnowledgePointOverlay>
     </main>
@@ -934,42 +609,14 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(node.slug) ? '
 <style scoped>
 .knowledge-library { position: relative; display: flex; flex: 1; min-height: 0; overflow: hidden; background: var(--bg-app); color: var(--text-primary); }
 .library-main { position: relative; display: flex; flex: 1; min-width: 0; min-height: 0; }
-.map-canvas { position: relative; flex: 1; min-width: 0; min-height: 0; overflow: hidden; cursor: grab; touch-action: none; }
-.map-canvas:active { cursor: grabbing; }
-.map-world { position: absolute; left: 0; top: 0; transform-origin: 0 0; background: var(--bg-app); border-radius: var(--radius-xs); }
-.chip-group { position: absolute; box-sizing: border-box; overflow: hidden; background: var(--bg-elevated); border: 1px solid color-mix(in srgb, color-mix(in srgb, var(--text-secondary) 38%, transparent) var(--group-border-opacity, 100%), transparent); border-radius: var(--radius-xs); pointer-events: none; }
-.chip-group.is-library { background: var(--bg-surface); }
-.chip-group.is-topic { background: color-mix(in srgb, var(--bg-elevated) 80%, var(--text-muted)); border-color: color-mix(in srgb, color-mix(in srgb, var(--text-secondary) 22%, transparent) var(--group-border-opacity, 100%), transparent); }
-.chip-group > .group-heading { position: absolute; top: 0; left: 0; right: 0; padding: 9px 12px; overflow: hidden; color: var(--text-primary); white-space: nowrap; text-overflow: ellipsis; font-size: 18px; font-weight: var(--font-weight-medium); opacity: var(--domain-label-opacity, 0); }
-.group-heading-text { display: inline-block; white-space: nowrap; }
-.group-heading-text.scrolling { animation: title-scroll 6s ease-in-out infinite alternate; }
-@keyframes title-scroll { 0%, 15% { transform: translateX(0); } 85%, 100% { transform: translateX(var(--scroll-distance)); } }
-@media (prefers-reduced-motion: reduce) { .group-heading-text.scrolling { animation: none; } }
-.chip-group.is-topic > .group-heading { padding: 5px 8px; color: var(--text-secondary); font-size: 14px; opacity: var(--topic-label-opacity, 0); }
-.map-tile { position: absolute; box-sizing: border-box; min-width: 0; min-height: 0; padding: 4px; overflow: hidden; border: 0; outline: 2px solid transparent; outline-offset: 1px; border-radius: var(--radius-xs); background: color-mix(in srgb, var(--text-muted) 38%, var(--bg-hover)); color: var(--text-primary); text-align: left; cursor: pointer; transition: opacity 200ms cubic-bezier(0.16, 1, 0.3, 1), outline-color 200ms cubic-bezier(0.16, 1, 0.3, 1), background-color 200ms cubic-bezier(0.16, 1, 0.3, 1); }
-.label-layer { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; visibility: hidden; }
-.label-layer text { transition: opacity 200ms cubic-bezier(0.16, 1, 0.3, 1); fill: var(--text-primary); font-family: var(--font-ui, sans-serif); font-size: 10px; }
-.label-layer text.mastered { fill: var(--tree-selected-fg); }
-.label-layer text.is-dimmed { opacity: .4; }
-.gpu-labels { position: absolute; inset: 0; width: 100%; height: 100%; color: var(--text-primary); }
-.canvas-accessibility { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-.map-tile.mastered { background: color-mix(in srgb, var(--accent-primary) 50%, var(--tree-selected-bg)); }
 .swatch.mastered { background: color-mix(in srgb, var(--accent-primary) 50%, var(--tree-selected-bg)); }
-.map-tile:hover { outline: 1px solid var(--border-focus); outline-offset: -1px; }
-.map-tile.is-dimmed { opacity: .4; }
-.map-tile.is-selected { background: color-mix(in srgb, color-mix(in srgb, var(--text-muted) 38%, var(--bg-hover)) 88%, white); }
-.map-tile.mastered.is-selected { background: color-mix(in srgb, color-mix(in srgb, var(--accent-primary) 50%, var(--tree-selected-bg)) 88%, white); }
-.map-tile.is-prerequisite { background: color-mix(in srgb, var(--tag-orange) 45%, var(--bg-hover)); animation: relation-breathe 2s ease-in-out infinite; }
-.map-tile.is-successor { background: color-mix(in srgb, var(--tag-green) 45%, var(--bg-hover)); animation: relation-breathe 2s ease-in-out infinite; }
-@keyframes relation-breathe { 0%, 100% { filter: brightness(.7); } 50% { filter: brightness(1.35); } }
-.map-tile:focus-visible { outline: 2px solid var(--text-primary); outline-offset: 1px; }
 .floating-info { position: absolute; z-index: 3; top: 16px; left: 18px; max-width: min(260px, calc(100% - 36px)); color: var(--text-secondary); font-size: var(--font-size-smallest); }
 .filter-toggle { display: flex; align-items: center; justify-content: space-between; gap: 14px; width: min(260px, calc(100vw - 36px)); min-height: 38px; padding: 0 12px; border: 1px solid var(--border-subtle); border-radius: var(--radius-xs); background: var(--bg-surface); color: var(--text-primary); text-align: left; cursor: pointer; }
 .filter-toggle span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .filter-toggle span:last-child { flex: none; color: var(--text-secondary); }
 .filter-toggle:hover { background: var(--bg-hover); }
 .filter-toggle:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: 2px; }
-.floating-legend, .floating-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.floating-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .knowledge-filters { display: flex; flex-direction: column; gap: 10px; width: min(260px, calc(100vw - 36px)); box-sizing: border-box; margin-top: 4px; padding: 12px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-xs); }
 .relation-info { margin-top: 8px; padding: 10px 12px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-xs); }
 .relation-label.before { color: var(--tag-orange); }
@@ -983,7 +630,6 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(node.slug) ? '
 .search-results li button:hover { background: var(--bg-hover); }
 .search-results li button:focus-visible, .dependency:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: -2px; }
 .storage-error { color: var(--tag-red); }
-.floating-controls { position: absolute; z-index: 3; right: 18px; bottom: 16px; gap: 4px; }
 .floating-legend { position: absolute; z-index: 3; left: 18px; bottom: 16px; gap: 12px; padding: 9px 10px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-xs); color: var(--text-secondary); font-size: var(--font-size-smallest); }
 .floating-legend span { display: inline-flex; align-items: center; gap: 5px; }
 .swatch { display: inline-block; width: 10px; height: 10px; flex-shrink: 0; border-radius: var(--radius-xs); }
@@ -999,7 +645,7 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(node.slug) ? '
 .knowledge-source { margin-top: 12px; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; }
 .dependency { display: flex; flex-direction: column; gap: 4px; width: 100%; padding: 10px 0; border: 0; border-bottom: 1px solid var(--border-subtle); background: transparent; color: var(--text-primary); text-align: left; cursor: pointer; font-size: var(--font-size-smaller); }
 .dependency:hover { color: var(--accent-primary); } .dependency small { color: var(--text-muted); line-height: 1.5; }
-@media (prefers-reduced-motion: reduce) { .map-tile, .label-layer text { transition: none; animation: none; } #knowledge-filters, #knowledge-filters :deep(.m-collapse-inner) { transition-duration: 0ms; } }
+@media (prefers-reduced-motion: reduce) { #knowledge-filters, #knowledge-filters :deep(.m-collapse-inner) { transition-duration: 0ms; } }
 @media (max-width: 760px) {
   .floating-info { top: 10px; left: 10px; max-width: calc(100% - 20px); }
   .filter-toggle { width: min(260px, calc(100vw - 20px)); min-height: 44px; }
@@ -1007,8 +653,6 @@ const tileLabel = (node) => `${node.title}，${mastered.value.has(node.slug) ? '
   .knowledge-filters :deep(input), .knowledge-filters :deep(select) { min-height: 44px; font-size: 16px; }
   .search-results ul { max-height: min(30dvh, 200px); }
   .search-results li button, .search-result-head button { min-height: 44px; }
-  .floating-controls { right: 10px; bottom: max(10px, env(safe-area-inset-bottom)); }
-  .floating-controls :deep(button) { min-width: 44px; min-height: 44px; }
   .floating-legend { left: 10px; bottom: calc(max(10px, env(safe-area-inset-bottom)) + 60px); max-width: calc(100% - 20px); gap: 6px 10px; padding: 7px 9px; }
 }
 </style>

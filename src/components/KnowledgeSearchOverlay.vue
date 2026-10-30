@@ -93,7 +93,7 @@ defineExpose({ openPoint });
 <template>
   <Teleport to="body">
     <div v-if="selected" class="search-knowledge-overlay">
-      <KnowledgePointOverlay ref="overlay" :key="session" :session-id="session" :source-rect="() => null" :title="detail?.title || selected.title" :node-id="selected.id" :mastered="isMastered" :gpu-enabled="false" @closed="closed">
+      <KnowledgePointOverlay ref="overlay" :key="session" :session-id="session" :source-rect="() => null" :title="detail?.title || selected.title" :node-id="selected.id" :mastered="isMastered" @closed="closed">
         <KnowledgePointContent :selected="selected" :detail="detail" :show-map-controls="false" :detail-loading="detailLoading" :detail-error="detailError" :prerequisites-error="prerequisitesError" :detail-prerequisites="prerequisites" :successors="[]" :can-return="Boolean(history.length)" :is-mastered="isMastered" :mastery-loading="masteryLoading" :mastery-saving="masterySaving" :mastery-available="masteryAvailable" :storage-error="storageError" @mastery="toggle" @retry="loadPoint(selected)" @follow="follow" @back="back" />
       </KnowledgePointOverlay>
     </div>
