@@ -57,7 +57,7 @@ const progressPercent = computed(() => {
 </template>
 
 <style scoped>
-.loading-backdrop {
+:global(.loading-backdrop) {
   display: flex;
   align-items: center;
   justify-content: center;

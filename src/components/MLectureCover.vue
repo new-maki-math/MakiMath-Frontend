@@ -6,6 +6,12 @@ import { authStatus, currentUser } from '../utils/auth.js';
 const props = defineProps({ title: { type: String, required: true }, subtitle: { type: String, default: '' }, image: { type: String, default: '' }, showCaption: { type: Boolean, default: true }, coverRevisionId: { type: [String, Number], default: '' }, coverHash: { type: String, default: '' }, hasCover: { type: Boolean, default: false } });
 const remoteCover = ref('');
 const coverSource = computed(() => props.image || remoteCover.value);
+const loadedCover = ref('');
+watch(coverSource, () => { loadedCover.value = ''; }, { flush: 'sync' });
+function showCover(event) {
+  const source = event.currentTarget.getAttribute('src');
+  if (source === coverSource.value) loadedCover.value = source;
+}
 let sequence = 0;
 watch(() => [props.image, props.coverRevisionId, props.coverHash, props.hasCover, authStatus.value, currentUser.value?.id], async () => {
   const current = ++sequence;
@@ -24,8 +30,7 @@ onUnmounted(() => { sequence++; });
 
 <template>
   <button class="lecture-cover" type="button" :aria-label="title" :title="title">
-    <img v-if="coverSource" class="cover-image" :src="coverSource" alt="" />
-    <svg v-else class="cover-art" viewBox="0 0 210 297" aria-hidden="true">
+    <svg class="cover-art" viewBox="0 0 210 297" aria-hidden="true">
       <rect width="210" height="297" class="cover-background" />
       <rect width="7" height="297" class="cover-spine" />
       <path d="M25 29h160 M25 263h160" class="cover-rule" />
@@ -42,6 +47,7 @@ onUnmounted(() => { sequence++; });
       <text x="25" y="277" class="cover-footer">KNOWLEDGE / PRACTICE</text>
       <text x="185" y="277" text-anchor="end" class="cover-footer">∑</text>
     </svg>
+    <img v-if="coverSource" :key="coverSource" class="cover-image" :class="{ 'is-loaded': loadedCover === coverSource }" :src="coverSource" alt="" @load="showCover" />
     <span v-if="showCaption" class="cover-caption">
       <span class="cover-title">{{ title }}</span>
       <span v-if="subtitle" class="cover-subtitle-wrap"><span class="cover-subtitle">{{ subtitle }}</span></span>
@@ -53,7 +59,8 @@ onUnmounted(() => { sequence++; });
 .lecture-cover { position: relative; display: block; width: 100%; aspect-ratio: 210 / 297; padding: 0; overflow: hidden; border: 1px solid var(--border-subtle); border-radius: var(--radius-xs); background: var(--bg-surface); color: var(--text-primary); text-align: left; cursor: pointer; transition: border-color 180ms ease; }
 .lecture-cover:hover, .lecture-cover:focus-visible { border-color: var(--accent-primary); }
 .lecture-cover:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: 2px; }
-.cover-image { display: block; width: 100%; height: 100%; object-fit: cover; }
+.cover-image { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 240ms ease; }
+.cover-image.is-loaded { opacity: 1; }
 .cover-art { display: block; width: 100%; height: 100%; pointer-events: none; }
 .cover-background { fill: var(--bg-surface); }
 .cover-spine { fill: var(--accent-primary); }
@@ -71,6 +78,6 @@ onUnmounted(() => { sequence++; });
 .cover-subtitle { min-height: 0; -webkit-line-clamp: 2; color: var(--text-secondary); font-size: var(--font-size-smaller); line-height: 1.45; }
 .lecture-cover:hover .cover-subtitle-wrap, .lecture-cover:focus-visible .cover-subtitle-wrap { grid-template-rows: 1fr; opacity: 1; }
 .lecture-cover:hover .cover-subtitle, .lecture-cover:focus-visible .cover-subtitle { padding-top: 5px; }
-@media (prefers-reduced-motion: reduce) { .lecture-cover, .cover-caption, .cover-subtitle-wrap { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .lecture-cover, .cover-image, .cover-caption, .cover-subtitle-wrap { transition: none; } }
 @media (hover: none) { .cover-subtitle-wrap { grid-template-rows: 1fr; opacity: 1; } .cover-subtitle { padding-top: 5px; } }
 </style>
