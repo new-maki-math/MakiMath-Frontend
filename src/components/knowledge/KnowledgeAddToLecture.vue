@@ -3,9 +3,9 @@ import { computed, nextTick, ref, watch } from 'vue';
 import { lectureApi } from '../../api/lectures.js';
 import { authStatus, currentUser } from '../../utils/auth.js';
 import { listLocalLectures, saveLocalLecture } from '../../utils/local-lectures.js';
-import { notify } from '../../components/MNotice.vue';
-import MModal from '../../components/MModal.vue';
-import MSelect from '../../components/MSelect.vue';
+import { notify } from '../MNotice.vue';
+import MModal from '../MModal.vue';
+import MSelect from '../MSelect.vue';
 
 const props = defineProps({ open: Boolean, knowledgeSlug: { type: String, default: '' } });
 const emit = defineEmits(['close']);

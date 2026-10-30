@@ -6,11 +6,7 @@ import MBackdrop from './MBackdrop.vue';
 const props = defineProps({
   open: {
     type: Boolean,
-    default: undefined
-  },
-  modelValue: {
-    type: Boolean,
-    default: undefined
+    default: false
   },
   placement: {
     type: String,
@@ -51,13 +47,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['close', 'update:open', 'update:modelValue']);
-
-const isOpen = computed(() => {
-  if (props.open !== undefined) return Boolean(props.open);
-  if (props.modelValue !== undefined) return Boolean(props.modelValue);
-  return false;
-});
+const emit = defineEmits(['close']);
 
 const drawerWidth = computed(() => {
   if (!props.width) return '280px';
@@ -78,18 +68,16 @@ const panelZIndex = computed(() => {
 
 const handleClose = () => {
   emit('close');
-  emit('update:open', false);
-  emit('update:modelValue', false);
 };
 
 const handleKeyDown = (e) => {
-  if (e.key === 'Escape' && isOpen.value) {
+  if (e.key === 'Escape' && props.open) {
     handleClose();
   }
 };
 
 watch(
-  isOpen,
+  () => props.open,
   (val) => {
     if (val) {
       window.addEventListener('keydown', handleKeyDown);
@@ -110,14 +98,14 @@ onBeforeUnmount(() => {
     class="m-drawer-container"
     :class="[
       fixed ? 'is-fixed' : 'is-absolute',
-      { 'is-open': isOpen, 'is-modal': modal }
+      { 'is-open': open, 'is-modal': modal }
     ]"
     :style="{ zIndex: panelZIndex }"
   >
     <!-- 压暗遮罩（仅限容器内容区或全局） -->
     <MBackdrop
       v-if="modal"
-      :open="isOpen"
+      :open="open"
       :teleport="teleport"
       :fixed="fixed"
       :z-index="backdropZIndex"
@@ -128,7 +116,7 @@ onBeforeUnmount(() => {
     <!-- 浮动抽屉主体 -->
     <Transition :name="transitionName" appear>
       <aside
-        v-if="isOpen"
+        v-if="open"
         class="m-drawer-panel"
         :class="[
           `placement-${placement}`,

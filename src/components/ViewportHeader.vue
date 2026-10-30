@@ -11,10 +11,6 @@ const props = defineProps({
   breadcrumbs: {
     type: Array,
     default: null
-  },
-  showActions: {
-    type: Boolean,
-    default: true
   }
 });
 
@@ -63,16 +59,12 @@ const handleRefresh = () => {
         </template>
       </div>
 
-      <!-- 页面自定义左侧扩展区挂载点 (如讲义册选择器) -->
-      <div id="viewport-header-extra" class="viewport-header-extra"></div>
     </div>
 
     <div class="viewport-header-right">
-      <!-- 页面自定义操作栏挂载点 -->
-      <div id="viewport-header-actions" class="viewport-header-actions"></div>
 
       <!-- 默认通用刷新按钮 (在非 doc 且非 my-lecture 页面显示) -->
-      <div v-if="showActions && !isDocPage && !isMyLecturePage" class="viewport-actions">
+      <div v-if="!isDocPage && !isMyLecturePage" class="viewport-actions">
         <slot name="actions">
           <MButton
             variant="secondary"
@@ -119,24 +111,11 @@ const handleRefresh = () => {
   flex: 1;
 }
 
-.viewport-header-extra {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
 .viewport-header-right {
   display: flex;
   align-items: center;
   gap: 10px;
   flex-shrink: 0;
-}
-
-.viewport-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 
 .breadcrumb {

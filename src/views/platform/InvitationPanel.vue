@@ -112,9 +112,9 @@ onMounted(() => {
           <template #icon><Plus width="14" height="14" /></template>
           生成邀请码
         </MButton>
-        <button class="icon-action-btn" title="刷新列表" @click="loadInvitations(invitePage)">
+        <MButton variant="secondary" icon-only title="刷新列表" aria-label="刷新列表" @click="loadInvitations(invitePage)">
           <Refresh width="14" height="14" />
-        </button>
+        </MButton>
       </div>
     </div>
 
@@ -261,25 +261,6 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.icon-action-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-xs);
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 120ms ease;
-}
-
-.icon-action-btn:hover {
-  background-color: var(--bg-hover);
-  color: var(--text-primary);
 }
 
 .col-dim {

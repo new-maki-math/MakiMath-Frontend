@@ -1,6 +1,6 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { getCourseCategories, invalidateCourseCaches } from '../api';
+import { invalidateCourseCaches } from '../api';
 import { authStatus } from '../utils/auth.js';
 import { toChapters } from '../api/courses.js';
 import { fetchShelfLectureTree } from '../utils/shelf-lecture.js';
@@ -84,13 +84,6 @@ export function useLayoutState() {
       document.documentElement.setAttribute('data-theme', 'light');
       localStorage.setItem('maki-theme', 'light');
     }
-  };
-
-  // 3. 知识库分类数据
-  const categories = ref([]);
-
-  const loadCategories = async () => {
-    categories.value = await getCourseCategories();
   };
 
   // 4. 用户信息与弹窗状态
@@ -263,7 +256,6 @@ export function useLayoutState() {
   onMounted(() => {
     initTheme();
     initAuth();
-    loadCategories();
     updateBreakpoint();
     window.addEventListener('resize', updateBreakpoint);
 
@@ -283,7 +275,6 @@ export function useLayoutState() {
     removeAfterHook = router.afterEach((to, from, failure) => {
       endNavigation();
       if (!failure) lectureOrigin.value = lectureNavigationOrigin();
-      if (!failure && ['lecture-workbench', 'platform'].includes(from.name)) loadCategories();
     });
   });
 
@@ -300,8 +291,6 @@ export function useLayoutState() {
     progressBarRef,
     isDark,
     toggleTheme,
-    categories,
-    loadCategories,
     currentUser,
     isLoggedIn,
     isSuperAdmin,

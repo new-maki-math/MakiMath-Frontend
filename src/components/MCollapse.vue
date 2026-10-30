@@ -5,26 +5,10 @@ const props = defineProps({
   // 是否展开
   open: {
     type: Boolean,
-    default: undefined
-  },
-  // 双向绑定展开状态
-  modelValue: {
-    type: Boolean,
-    default: undefined
-  },
-  // 折叠方向
-  direction: {
-    type: String,
-    default: 'vertical',
-    validator: (v) => ['vertical', 'horizontal'].includes(v)
+    default: false
   },
   // 横向折叠快捷属性
   horizontal: {
-    type: Boolean,
-    default: false
-  },
-  // 抽屉浮层模式
-  drawer: {
     type: Boolean,
     default: false
   },
@@ -37,16 +21,6 @@ const props = defineProps({
     type: Boolean,
     default: true
   }
-});
-
-const isOpen = computed(() => {
-  if (props.open !== undefined) return Boolean(props.open);
-  if (props.modelValue !== undefined) return Boolean(props.modelValue);
-  return false;
-});
-
-const isHorizontal = computed(() => {
-  return props.horizontal || props.direction === 'horizontal';
 });
 
 const durationMs = computed(() => {
@@ -63,8 +37,8 @@ const opacityDurationMs = computed(() => {
   <div
     class="m-collapse"
     :class="[
-      drawer ? 'is-drawer' : (isHorizontal ? 'is-horizontal' : 'is-vertical'),
-      { 'is-open': isOpen, 'no-fade': !fade }
+      horizontal ? 'is-horizontal' : 'is-vertical',
+      { 'is-open': open, 'no-fade': !fade }
     ]"
     :style="{
       '--collapse-duration': `${durationMs}ms`,
@@ -80,35 +54,9 @@ const opacityDurationMs = computed(() => {
 <style scoped>
 .m-collapse { --collapse-easing: cubic-bezier(0.16, 1, 0.3, 1); }
 
-.m-collapse:not(.is-drawer) {
+.m-collapse {
   position: relative;
   width: 100%;
-}
-
-/* 抽屉模式 */
-.m-collapse.is-drawer {
-  position: absolute;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  height: 100%;
-  z-index: 50;
-  transform: translate3d(-100%, 0, 0);
-  transition: transform var(--collapse-duration, 220ms) var(--collapse-easing),
-              visibility var(--collapse-duration, 220ms);
-  visibility: hidden;
-  will-change: transform;
-}
-
-.m-collapse.is-drawer.is-open {
-  transform: translate3d(0, 0, 0);
-  visibility: visible;
-}
-
-.m-collapse.is-drawer > .m-collapse-inner {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
 }
 
 /* 横向折叠模式 */

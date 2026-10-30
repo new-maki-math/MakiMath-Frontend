@@ -17,56 +17,22 @@ export const notify = (text, kind = 'ok', duration = 3200) => {
   }
 };
 
-notify.ok = (text, duration) => notify(text, 'ok', duration);
-notify.success = (text, duration) => notify(text, 'ok', duration);
-notify.error = (text, duration) => notify(text, 'error', duration);
-notify.warn = (text, duration) => notify(text, 'warn', duration);
-notify.info = (text, duration) => notify(text, 'info', duration);
 notify.clear = () => {
   clearTimeout(globalTimer);
   globalNotice.value = null;
 };
 
-export const useNotice = () => ({
-  notice: globalNotice,
-  notify,
-  clear: notify.clear
-});
 </script>
 
 <script setup>
-import { computed } from 'vue';
 import { CheckCircleSolid, WarningCircleSolid, InfoCircleSolid, Xmark } from '@iconoir/vue';
 
-const props = defineProps({
-  // 支持由外部主动传入 notice 结构 { text, kind }，未传入时回退到全局单例
-  notice: {
-    type: Object,
-    default: null
-  },
-  // 是否自动传送至 body 顶层
-  teleport: {
-    type: Boolean,
-    default: true
-  }
-});
-
-const emit = defineEmits(['close']);
-
-// 优先采用外部 props 传入的 notice，未传时使用全局响应式单例
-const currentNotice = computed(() => props.notice || globalNotice.value);
-
-const handleClose = () => {
-  if (props.notice) {
-    emit('close');
-  } else {
-    notify.clear();
-  }
-};
+const currentNotice = globalNotice;
+const handleClose = notify.clear;
 </script>
 
 <template>
-  <component :is="teleport ? 'teleport' : 'div'" to="body">
+  <Teleport to="body">
     <Transition name="notice-fade">
       <div
         v-if="currentNotice"
@@ -112,7 +78,7 @@ const handleClose = () => {
         </button>
       </div>
     </Transition>
-  </component>
+  </Teleport>
 </template>
 
 <style scoped>

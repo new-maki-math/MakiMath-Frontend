@@ -1,24 +1,14 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import MLoadingMask from './MLoadingMask.vue';
-import MButton from './MButton.vue';
-import MTag from './MTag.vue';
-import { findKnowledgeInsertion } from '../utils/knowledge-reference-editor.js';
+import MLoadingMask from '../MLoadingMask.vue';
+import MButton from '../MButton.vue';
 
 const props = defineProps({
   modelValue: {
     type: String,
     default: ''
   },
-  language: {
-    type: String,
-    default: ''
-  },
   label: {
-    type: String,
-    default: ''
-  },
-  placeholder: {
     type: String,
     default: ''
   },
@@ -29,35 +19,10 @@ const props = defineProps({
   height: {
     type: String,
     default: '360px'
-  },
-  tabSize: {
-    type: Number,
-    default: 2
-  },
-  theme: {
-    type: String,
-    default: ''
-  },
-  tagVariant: {
-    type: String,
-    default: 'muted'
-  },
-  showMeta: {
-    type: Boolean,
-    default: true
-  },
-  showLanguage: {
-    type: Boolean,
-    default: true
-  },
-  knowledgeReferences: { type: Boolean, default: false },
-  showPreview: {
-    type: Boolean,
-    default: false // 按照要求暂时屏蔽实时预览
   }
 });
 
-const emit = defineEmits(['update:modelValue', 'save', 'scroll', 'knowledge-trigger']);
+const emit = defineEmits(['update:modelValue', 'save', 'scroll', 'type']);
 
 const editorMountRef = ref(null);
 let editorInstance = null;
@@ -73,7 +38,6 @@ const lineCount = computed(() => Math.max(1, String(props.modelValue || '').spli
 const charCount = computed(() => String(props.modelValue || '').length);
 
 function currentEditorTheme() {
-  if (props.theme) return props.theme;
   return document.documentElement.getAttribute('data-theme') === 'light' ? 'vs' : 'vs-dark';
 }
 
@@ -81,41 +45,21 @@ function updateEditorTheme() {
   if (monaco && editorInstance) monaco.editor.setTheme(currentEditorTheme());
 }
 
-const effectiveHeight = computed(() => {
-  if (!props.height) return '360px';
-  return props.height;
-});
-
-// 智能推断代码语言
-const resolvedLanguage = computed(() => {
-  if (props.language) return props.language;
-  const text = String(props.modelValue || '').trim();
-  const lbl = String(props.label || '').toLowerCase();
-
-  if (lbl.includes('json') || text.startsWith('[') || text.startsWith('{')) {
-    return 'json';
-  }
-  if (lbl.includes('scenes') || lbl.includes('js') || text.includes('function') || text.includes('const ') || text.includes('=>')) {
-    return 'javascript';
-  }
-  return 'markdown';
-});
-
 async function initializeEditor() {
   if (disposed || initializing || editorInstance || !editorMountRef.value) return;
   initializing = true;
   editorLoading.value = true;
   editorError.value = '';
   try {
-    const module = await import('../utils/monaco.js');
+    const module = await import('../../utils/monaco.js');
     if (disposed || !editorMountRef.value) return;
     monaco = module.monaco;
     editorInstance = monaco.editor.create(editorMountRef.value, {
       value: props.modelValue || '',
-      language: resolvedLanguage.value,
+      language: 'markdown',
       theme: currentEditorTheme(),
       readOnly: props.readonly,
-      tabSize: props.tabSize || 2,
+      tabSize: 2,
       automaticLayout: true,
       lineNumbers: 'on',
       lineNumbersMinChars: 3,
@@ -162,10 +106,8 @@ async function initializeEditor() {
     });
 
     editorInstance.onDidType((text) => {
-      if (!props.knowledgeReferences || props.readonly || !['e', '('].includes(text)) return;
       const model = editorInstance.getModel();
-      const range = findKnowledgeInsertion(model, editorInstance.getSelection(), true);
-      if (range) emit('knowledge-trigger', { range, version: model.getVersionId(), model });
+      if (model && !props.readonly) emit('type', { text, model, selection: editorInstance.getSelection() });
     });
 
     // 绑定 Ctrl / Cmd + S 保存快捷键
@@ -206,22 +148,6 @@ watch(
 );
 
 watch(
-  resolvedLanguage,
-  (lang) => {
-    if (!editorInstance) return;
-    const model = editorInstance.getModel();
-    if (model) {
-      monaco.editor.setModelLanguage(model, lang);
-    }
-  }
-);
-
-watch(
-  () => props.theme,
-  updateEditorTheme
-);
-
-watch(
   () => props.readonly,
   (isRo) => {
     editorInstance?.updateOptions({ readOnly: isRo });
@@ -243,14 +169,14 @@ function getScrollPosition() {
 
 defineExpose({
   getScrollPosition,
-  insertKnowledge(target, slug) {
+  replaceRange(target, text) {
     const editor = editorInstance;
     const model = editor?.getModel();
-    if (props.readonly || !props.knowledgeReferences || !model || model !== target?.model || model.getVersionId() !== target.version || typeof slug !== 'string' || slug.length > 100 || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) return false;
+    if (props.readonly || !model || model !== target?.model || model.getVersionId() !== target.version || typeof text !== 'string') return false;
     const start = model.getPositionAt(target.range.start);
     const end = model.getPositionAt(target.range.end);
     editor.pushUndoStop();
-    editor.executeEdits('knowledge-reference', [{ range: new monaco.Range(start.lineNumber, start.column, end.lineNumber, end.column), text: `#mm-knowledge(slug: "${slug}")`, forceMoveMarkers: true }]);
+    editor.executeEdits('replace-range', [{ range: new monaco.Range(start.lineNumber, start.column, end.lineNumber, end.column), text, forceMoveMarkers: true }]);
     editor.pushUndoStop();
     editor.focus();
     return true;
@@ -278,22 +204,19 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="m-code">
-    <div v-if="label || showMeta" class="code-head">
+    <div class="code-head">
       <div class="code-head-left">
         <span v-if="label" class="code-label">{{ label }}</span>
-        <span v-if="showMeta" class="code-meta font-mono">
+        <span class="code-meta font-mono">
           {{ lineCount }} 行 · {{ charCount }} 字符
         </span>
       </div>
 
-      <div v-if="showLanguage" class="code-head-right">
-        <MTag size="md" :variant="tagVariant">{{ resolvedLanguage }}</MTag>
-      </div>
     </div>
 
     <div
       class="code-monaco-wrap"
-      :style="{ height: effectiveHeight }"
+      :style="{ height }"
     >
       <div ref="editorMountRef" class="monaco-mount"></div>
       <MLoadingMask :visible="editorLoading" text="正在加载编辑器…" />
@@ -323,8 +246,7 @@ onBeforeUnmount(() => {
   padding: 0 1px;
 }
 
-.code-head-left,
-.code-head-right {
+.code-head-left {
   display: flex;
   align-items: center;
   gap: 8px;

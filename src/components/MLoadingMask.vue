@@ -33,7 +33,7 @@ const progressPercent = computed(() => {
 
 <template>
   <MBackdrop
-    :visible="visible"
+    :open="visible"
     :fixed="fixed"
     :z-index="zIndex"
     :close-on-click="false"

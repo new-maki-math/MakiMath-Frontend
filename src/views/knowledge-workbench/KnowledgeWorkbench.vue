@@ -12,7 +12,7 @@ import WorkbenchPanel from '../lecture-workbench/WorkbenchPanel.vue';
 import MInput from '../../components/MInput.vue';
 import MTextarea from '../../components/MTextarea.vue';
 import MSelect from '../../components/MSelect.vue';
-import TypstEditorPreview from '../../components/TypstEditorPreview.vue';
+import TypstEditorPreview from '../../components/typst/TypstEditorPreview.vue';
 import MButton from '../../components/MButton.vue';
 import MModal from '../../components/MModal.vue';
 import '../lecture-workbench/workbench.css';

@@ -5,6 +5,9 @@ import * as d3 from 'd3';
 import { fetchCourseTree } from '../api/courses.js';
 import { lectureLocation, lectureNavigationOrigin } from '../utils/lecture-route.js';
 import { RoadmapWebGLRenderer } from '../utils/roadmap-webgl-renderer.js';
+import { buildLectureGraph } from './roadmap/lecture-graph.js';
+import { createRenderScheduler } from './roadmap/render-scheduler.js';
+import { createSmoothZoom } from './roadmap/smooth-zoom.js';
 import {
   ZoomIn,
   ZoomOut,
@@ -68,126 +71,20 @@ let simulation = null;
 let zoomBehavior = null;
 let currentTransform = d3.zoomIdentity;
 let targetTransform = { k: 1, x: 0, y: 0 };
-let isSmoothZooming = false;
-let smoothZoomRaf = null;
 let webglRenderer = null;
 let resizeObserver = null;
-let animFrameId = null;
 let draggedNode = null;
 let mouseDownPos = { x: 0, y: 0 };
 let currentSimLinks = [];
+let treeRequest = 0;
 
-// 章节调色板
-const CHAPTER_PALETTE = [
-  '#3b82f6', // 蓝
-  '#10b981', // 翡翠绿
-  '#8b5cf6', // 紫
-  '#ec4899', // 洋红
-  '#06b6d4', // 蔚蓝
-  '#f43f5e', // 绯红
-  '#14b8a6', // 青
-  '#a855f7'  // 紫罗兰
-];
+const graphData = computed(() => buildLectureGraph(rawTree.value));
 
-// 将课程 tree 直接构建为三级节点与层级关系：1. 课程 -> 2. 章节 -> 3. 小节
-const graphData = computed(() => {
-  const tree = rawTree.value;
-  if (!tree || !tree.id) {
-    return { nodes: [], links: [] };
-  }
-
-  const nodes = [];
-  const links = [];
-
-  // 一级节点：本课程
-  const courseNodeId = `course-${tree.id}`;
-  nodes.push({
-    id: courseNodeId,
-    rawId: tree.id,
-    title: tree.title || '当前课程',
-    tag: '课程',
-    level: 1,
-    type: 'course',
-    color: '#f59e0b',
-    radius: 22,
-    isOrigin: true
-  });
-
-  const chapters = Array.isArray(tree.chapters) ? tree.chapters : [];
-  chapters.forEach((ch, chIdx) => {
-    const chColor = CHAPTER_PALETTE[chIdx % CHAPTER_PALETTE.length];
-    // 二级节点：章节
-    const chNodeId = `ch-${ch.id}`;
-    nodes.push({
-      id: chNodeId,
-      rawId: ch.id,
-      lectureId: tree.id,
-      title: ch.title,
-      tag: '',
-      level: 2,
-      type: 'chapter',
-      parentId: courseNodeId,
-      chapterIndex: chIdx,
-      color: chColor,
-      radius: 14,
-      sectionsCount: ch.sections?.length || 0
-    });
-
-    // 连线：课程 -> 章节
-    links.push({
-      id: `${courseNodeId}->${chNodeId}`,
-      sourceId: courseNodeId,
-      targetId: chNodeId,
-      level: 2,
-      type: 'hierarchy'
-    });
-
-    // 三级节点：小节
-    const sections = Array.isArray(ch.sections) ? ch.sections : [];
-    sections.forEach((sec) => {
-      const secNodeId = `sec-${sec.id}`;
-      nodes.push({
-        id: secNodeId,
-        rawId: sec.id,
-        chapterId: ch.id,
-        lectureId: tree.id,
-        title: sec.title,
-        tag: '',
-        level: 3,
-        type: 'section',
-        parentId: chNodeId,
-        chapterIndex: chIdx,
-        color: chColor,
-        radius: 8
-      });
-
-      // 连线：章节 -> 小节
-      links.push({
-        id: `${chNodeId}->${secNodeId}`,
-        sourceId: chNodeId,
-        targetId: secNodeId,
-        level: 3,
-        type: 'hierarchy'
-      });
-    });
-  });
-
-  return { nodes, links };
-});
-
-// 选择章节时显示一级节点+二级节点，选择小节时全部显示
 const activeGraph = computed(() => {
-  const { nodes: allNodes, links: allLinks } = graphData.value;
-  const maxLevel = currentMode.value === 'chapter' ? 2 : 3;
-
-  const nodes = allNodes.filter((n) => n.level <= maxLevel);
-  const activeIds = new Set(nodes.map((n) => n.id));
-
-  const links = allLinks.filter((l) => {
-    return activeIds.has(l.sourceId) && activeIds.has(l.targetId);
-  });
-
-  return { nodes, links };
+  const { nodes, links } = graphData.value;
+  const visibleNodes = nodes.filter((node) => node.level <= (currentMode.value === 'chapter' ? 2 : 3));
+  const visibleIds = new Set(visibleNodes.map((node) => node.id));
+  return { nodes: visibleNodes, links: links.filter((link) => visibleIds.has(link.sourceId) && visibleIds.has(link.targetId)) };
 });
 
 // 计算高亮集（用于 WebGL 着色器聚焦）
@@ -214,29 +111,35 @@ const highlightState = computed(() => {
 
 // 加载数据（无兜底）
 async function loadTreeData() {
+  const requestId = ++treeRequest;
   isLoading.value = true;
   errorMsg.value = '';
   hoveredNode.value = null;
 
   try {
+    let tree;
     if (props.tree) {
-      rawTree.value = props.tree;
+      tree = props.tree;
     } else if (props.lectureSlug) {
-      const tree = await fetchCourseTree(props.lectureSlug, props.revisionId);
+      tree = await fetchCourseTree(props.lectureSlug, props.revisionId);
       if (!tree || !tree.id) {
         throw new Error('未获取到有效的课程目录树数据');
       }
-      rawTree.value = tree;
     } else {
       throw new Error('缺少课程标识或目录树数据');
     }
+    if (requestId !== treeRequest) return;
+    rawTree.value = tree;
   } catch (err) {
+    if (requestId !== treeRequest) return;
     console.error('[RoadmapGraph] 加载目录树失败:', err);
     errorMsg.value = err?.message || '目录树数据加载失败';
     rawTree.value = null;
   } finally {
-    isLoading.value = false;
-    updateSimulation();
+    if (requestId === treeRequest) {
+      isLoading.value = false;
+      updateSimulation();
+    }
   }
 }
 
@@ -335,27 +238,16 @@ function updateSimulation() {
   }
 }
 
-// 触发 WebGL 绘制
-function requestRender() {
-  if (animFrameId) return;
-  animFrameId = requestAnimationFrame(() => {
-    animFrameId = null;
-    if (!webglRenderer) return;
-
-    const { nodes } = activeGraph.value;
-    const needsMoreFrames = webglRenderer.render({
-      nodes,
-      links: currentSimLinks,
-      hl: highlightState.value,
-      query: searchQuery.value.trim().toLowerCase(),
-      transform: currentTransform
-    });
-
-    if (needsMoreFrames) {
-      requestRender();
-    }
+const { requestRender, cancelRender } = createRenderScheduler(() => {
+  if (!webglRenderer) return false;
+  return webglRenderer.render({
+    nodes: activeGraph.value.nodes,
+    links: currentSimLinks,
+    hl: highlightState.value,
+    query: searchQuery.value.trim().toLowerCase(),
+    transform: currentTransform
   });
-}
+});
 
 // 查找世界坐标 (graphX, graphY) 下的节点
 function findNodeAt(graphX, graphY) {
@@ -373,70 +265,13 @@ function findNodeAt(graphX, graphY) {
   return null;
 }
 
-// 平滑滚轮缩放循环
-function stopSmoothZoom() {
-  if (isSmoothZooming) {
-    isSmoothZooming = false;
-    if (smoothZoomRaf) cancelAnimationFrame(smoothZoomRaf);
-    smoothZoomRaf = null;
-  }
-}
-
-function smoothZoomLoop() {
-  if (!isSmoothZooming) return;
-
-  const curK = currentTransform.k;
-  const curX = currentTransform.x;
-  const curY = currentTransform.y;
-
-  const ease = 0.22;
-  const dk = targetTransform.k - curK;
-  const dx = targetTransform.x - curX;
-  const dy = targetTransform.y - curY;
-
-  if (Math.abs(dk) < 0.0005 && Math.abs(dx) < 0.1 && Math.abs(dy) < 0.1) {
-    currentTransform = d3.zoomIdentity.translate(targetTransform.x, targetTransform.y).scale(targetTransform.k);
-    if (canvasRef.value) canvasRef.value.__zoom = currentTransform;
-    isSmoothZooming = false;
-    smoothZoomRaf = null;
-    requestRender();
-    return;
-  }
-
-  const nextK = curK + dk * ease;
-  const nextX = curX + dx * ease;
-  const nextY = curY + dy * ease;
-
-  currentTransform = d3.zoomIdentity.translate(nextX, nextY).scale(nextK);
-  if (canvasRef.value) canvasRef.value.__zoom = currentTransform;
-  requestRender();
-
-  smoothZoomRaf = requestAnimationFrame(smoothZoomLoop);
-}
-
-function onCanvasWheel(e) {
-  e.preventDefault();
-  if (!canvasRef.value) return;
-
-  const [mouseX, mouseY] = d3.pointer(e, canvasRef.value);
-  let delta = e.deltaY;
-  if (e.deltaMode === 1) delta *= 30;
-  else if (e.deltaMode === 2) delta *= 100;
-
-  const zoomFactor = Math.exp(-delta * 0.0018);
-  const gx = (mouseX - targetTransform.x) / targetTransform.k;
-  const gy = (mouseY - targetTransform.y) / targetTransform.k;
-
-  const nextK = Math.max(0.15, Math.min(6.0, targetTransform.k * zoomFactor));
-  targetTransform.k = nextK;
-  targetTransform.x = mouseX - gx * nextK;
-  targetTransform.y = mouseY - gy * nextK;
-
-  if (!isSmoothZooming) {
-    isSmoothZooming = true;
-    smoothZoomRaf = requestAnimationFrame(smoothZoomLoop);
-  }
-}
+const { stop: stopSmoothZoom, onWheel: onCanvasWheel } = createSmoothZoom({
+  canvas: () => canvasRef.value,
+  getTransform: () => currentTransform,
+  setTransform: (transform) => { currentTransform = transform; },
+  target: targetTransform,
+  render: requestRender
+});
 
 // 鼠标悬停
 function onCanvasMouseMove(e) {
@@ -514,29 +349,19 @@ function onWindowMouseUp(e) {
       return;
     }
 
-    // 1. 点击课程 - 无反应
-    if (clicked.level === 1 || clicked.type === 'course') {
-      return;
-    }
+    activateNode(clicked);
+  }
+}
 
-    // 2. 点击章节 - 滚动到页面对应的章节处
-    if (clicked.level === 2 || clicked.type === 'chapter') {
-      const chapterId = clicked.rawId || clicked.id;
-      emit('select-chapter', chapterId);
-      emit('select-node', clicked);
-      const el = document.getElementById(`chapter-${chapterId}`);
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-      return;
-    }
-
-    // 3. 点击小节 - 跳转小节页面
-    if (clicked.level === 3 || clicked.type === 'section') {
-      emit('select-node', clicked);
-      goToSectionDoc(clicked);
-      return;
-    }
+function activateNode(node) {
+  if (node.level === 2 || node.type === 'chapter') {
+    const chapterId = node.rawId || node.id;
+    emit('select-chapter', chapterId);
+    emit('select-node', node);
+    document.getElementById(`chapter-${chapterId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } else if (node.level === 3 || node.type === 'section') {
+    emit('select-node', node);
+    goToSectionDoc(node);
   }
 }
 
@@ -617,22 +442,7 @@ function onCanvasTouchEnd(e) {
     const clicked = findNodeAt(gx, gy);
     if (!clicked) return;
 
-    if (clicked.level === 2 || clicked.type === 'chapter') {
-      const chapterId = clicked.rawId || clicked.id;
-      emit('select-chapter', chapterId);
-      emit('select-node', clicked);
-      const el = document.getElementById(`chapter-${chapterId}`);
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-      return;
-    }
-
-    if (clicked.level === 3 || clicked.type === 'section') {
-      emit('select-node', clicked);
-      goToSectionDoc(clicked);
-      return;
-    }
+    activateNode(clicked);
   }
 }
 
@@ -704,6 +514,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  treeRequest++;
   if (simulation) {
     simulation.stop();
     simulation = null;
@@ -713,10 +524,7 @@ onBeforeUnmount(() => {
     resizeObserver = null;
   }
   stopSmoothZoom();
-  if (animFrameId) {
-    cancelAnimationFrame(animFrameId);
-    animFrameId = null;
-  }
+  cancelRender();
   if (canvasRef.value) {
     canvasRef.value.removeEventListener('wheel', onCanvasWheel);
     canvasRef.value.removeEventListener('mousedown', onCanvasMouseDown);
@@ -733,16 +541,7 @@ onBeforeUnmount(() => {
   }
 });
 
-watch(() => props.lectureId, () => {
-  loadTreeData();
-});
-
-watch(() => props.tree, (newVal) => {
-  if (newVal) {
-    rawTree.value = newVal;
-    updateSimulation();
-  }
-});
+watch(() => [props.tree, props.lectureId, props.lectureSlug, props.revisionId], loadTreeData);
 </script>
 
 <template>

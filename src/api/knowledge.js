@@ -9,7 +9,6 @@ const mutate = async (url, options) => {
 
 export const knowledgeApi = {
   map: (categoryId) => request(`/api/knowledge-map${categoryId ? `?category_id=${encodeURIComponent(categoryId)}` : ''}`, { cache: 'no-store' }),
-  list: () => request('/api/knowledge-points', { cache: 'no-store' }),
   get: (id) => request(`/api/knowledge-points/${id}`, { cache: 'no-store' }),
   getBySlug: (slug) => request(`/api/knowledge-points/by-slug/${encodeURIComponent(slug)}`, { cache: 'no-store' }),
   manage: () => request('/api/knowledge-points/manage', { cache: 'no-store' }),
@@ -19,7 +18,6 @@ export const knowledgeApi = {
   import: (body) => mutate('/api/knowledge-points/import', { method: 'POST', body, retryAuth: false }),
   update: (id, body) => mutate(`/api/knowledge-points/${id}`, { method: 'PUT', body }),
   prerequisites: (id) => request(`/api/knowledge-points/${id}/prerequisites`),
-  setPrerequisites: (id, prerequisites) => mutate(`/api/knowledge-points/${id}/prerequisites`, { method: 'PUT', body: { prerequisites } }),
   setCategories: (id, categories) => mutate(`/api/knowledge-points/${id}/categories`, { method: 'PUT', body: { categories } }),
   setStatus: (id, status) => mutate(`/api/knowledge-points/${id}/status`, { method: 'PATCH', body: { status } })
 };

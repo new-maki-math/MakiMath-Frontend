@@ -1,8 +1,8 @@
 <script setup>
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
-import MModal from './MModal.vue';
-import MInput from './MInput.vue';
-import { useLectureSearch } from '../utils/search.js';
+import MModal from '../MModal.vue';
+import MInput from '../MInput.vue';
+import { useLectureSearch } from '../../utils/search.js';
 
 const props = defineProps({ open: { type: Boolean, default: false } });
 const emit = defineEmits(['close', 'select']);

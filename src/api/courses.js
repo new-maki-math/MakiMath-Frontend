@@ -1,5 +1,4 @@
 import { request } from './client.js';
-import { transformCourseCategories } from '../utils/course-adapter.js';
 
 // 内存单例缓存与 slug 映射
 const treeCache = new Map();
@@ -31,45 +30,6 @@ function cachedRequest(cache, pending, key, load) {
   });
   pending.set(key, promise);
   return promise;
-}
-
-// 获取分类与课程列表
-export async function getCourseCategories() {
-  try {
-    const [cats, courses] = await Promise.all([
-      request('/api/categories/lecture'),
-      fetchCourseList()
-    ]);
-    if (!Array.isArray(cats)) return [];
-
-    // 按分类归组课程
-    const grouped = new Map();
-    for (const course of Array.isArray(courses) ? courses : []) {
-      const key = String(course.category_id);
-      if (!grouped.has(key)) grouped.set(key, []);
-      grouped.get(key).push({
-        id: String(course.id),
-        slug: course.slug,
-        title: course.title,
-        desc: course.descr || course.subtitle || '',
-        live: true,
-        hidden: false
-      });
-    }
-
-    const knownIds = new Set(cats.map((cat) => String(cat.id)));
-    const uncategorized = [...grouped].filter(([id]) => !knownIds.has(id)).flatMap(([, entries]) => entries);
-    const groups = cats.map((cat) => ({
-      id: cat.id,
-      name: cat.name,
-      courses: grouped.get(String(cat.id)) || []
-    }));
-    if (uncategorized.length) groups.push({ id: 'uncategorized', name: '未分类', courses: uncategorized });
-    return transformCourseCategories(groups);
-  } catch (error) {
-    console.error('[API] 从服务器获取课程大类失败:', error);
-    return [];
-  }
 }
 
 // 获取课程目录树
@@ -168,12 +128,6 @@ export function toChapters(tree) {
   });
 }
 
-// 获取课程数据包
-export async function fetchLectureBundle(id) {
-  const tree = await fetchCourseTree(id);
-  return lectureBundleFromTree(tree);
-}
-
 export function lectureBundleFromTree(tree) {
   const chapters = toChapters(tree);
 
@@ -199,38 +153,6 @@ export function lectureBundleFromTree(tree) {
     chapters,
     edges: tree.edges ?? []
   };
-}
-
-// 获取课程详情
-export async function getCourseById(id) {
-  try {
-    const bundle = await fetchLectureBundle(id);
-    return bundle.lecture;
-  } catch (error) {
-    if (error?.status === 404) return null;
-    console.error(`[API] 加载课程 ${id} 失败:`, error);
-    return null;
-  }
-}
-
-// 获取课程章节树
-export async function getCourseChapters(id) {
-  try {
-    const bundle = await fetchLectureBundle(id);
-    return bundle.chapters;
-  } catch (error) {
-    console.error(`[API] 加载课程 ${id} 目录失败:`, error);
-    return [];
-  }
-}
-
-// 获取缓存的章节树
-export function getCachedCourseChapters(id) {
-  if (!id) return [];
-  const key = `${id}:`;
-  if (treeCache.has(key)) return toChapters(treeCache.get(key));
-  fetchLectureBundle(id).catch(() => {});
-  return [];
 }
 
 // 获取小节源码

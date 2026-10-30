@@ -51,9 +51,9 @@ onMounted(loadUsers);
         <h1 class="pane-title font-mono">USERS // 用户管理</h1>
         <p class="pane-subtitle">查看用户并管理账号状态</p>
       </div>
-      <button class="icon-action-btn" title="刷新列表" @click="loadUsers">
-        <Refresh width="14" height="14" />
-      </button>
+      <MButton variant="secondary" icon-only title="刷新列表" aria-label="刷新列表" @click="loadUsers">
+          <Refresh width="14" height="14" />
+        </MButton>
     </div>
     <MTable :data="users" :loading="loading">
       <template #header>
@@ -107,25 +107,6 @@ onMounted(loadUsers);
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.icon-action-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-xs);
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 120ms ease;
-}
-
-.icon-action-btn:hover {
-  background-color: var(--bg-hover);
-  color: var(--text-primary);
 }
 
 .col-dim {

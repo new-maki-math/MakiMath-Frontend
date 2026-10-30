@@ -1,9 +1,9 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
-import { knowledgeApi } from '../api/knowledge.js';
-import { getMasteredIds, subscribeMasteryChanges, toggleMastered } from '../utils/knowledge-mastery.js';
-import KnowledgePointOverlay from '../views/knowledge/KnowledgePointOverlay.vue';
-import KnowledgePointContent from '../views/knowledge/KnowledgePointContent.vue';
+import { knowledgeApi } from '../../api/knowledge.js';
+import { getMasteredIds, subscribeMasteryChanges, toggleMastered } from '../../utils/knowledge-mastery.js';
+import KnowledgePointOverlay from './KnowledgePointOverlay.vue';
+import KnowledgePointContent from './KnowledgePointContent.vue';
 
 const selected = ref(null);
 const detail = ref(null);

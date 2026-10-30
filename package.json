@@ -11,10 +11,8 @@
     "acl-deploy": "node scripts/deploy.ACL.js"
   },
   "dependencies": {
-    "@fontsource/noto-sans-sc": "^5.3.1",
     "@iconoir/vue": "^7.12.1",
     "d3": "^7.9.0",
-    "katex": "^0.19.1",
     "monaco-editor": "^0.57.0",
     "typlet": "^0.1.1",
     "vue": "^3.5.42",

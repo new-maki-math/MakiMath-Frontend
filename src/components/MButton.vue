@@ -18,6 +18,10 @@ defineProps({
     type: Boolean,
     default: false
   },
+  iconOnly: {
+    type: Boolean,
+    default: false
+  },
   disabled: {
     type: Boolean,
     default: false
@@ -39,7 +43,7 @@ defineEmits(['click']);
     :class="[
       `variant-${variant}`,
       `size-${size}`,
-      { 'is-mono': mono, 'is-block': block, 'is-disabled': disabled }
+      { 'is-mono': mono, 'is-block': block, 'is-icon-only': iconOnly, 'is-disabled': disabled }
     ]"
     @click="$emit('click', $event)"
   >
@@ -103,10 +107,17 @@ defineEmits(['click']);
   font-size: var(--font-size-larger);
 }
 
+.m-button.is-icon-only {
+  padding: 0;
+}
+.m-button.is-icon-only.size-sm { width: 28px; }
+.m-button.is-icon-only.size-md { width: 34px; }
+.m-button.is-icon-only.size-lg { width: 40px; }
+
 /* 风格变体 */
 .variant-primary {
   background-color: var(--accent-primary);
-  color: #ffffff;
+  color: var(--btn-primary-text);
 }
 .variant-primary:hover:not(:disabled) {
   background-color: var(--accent-hover);
@@ -138,11 +149,11 @@ defineEmits(['click']);
 }
 
 .variant-danger {
-  background-color: #8b1d1d;
-  color: #ffffff;
+  background-color: var(--btn-danger-bg);
+  color: var(--btn-primary-text);
 }
 .variant-danger:hover:not(:disabled) {
-  background-color: #a82828;
+  background-color: var(--btn-danger-hover-bg);
 }
 
 /* 禁用态 */

@@ -1,8 +1,8 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
-import MButton from '../../components/MButton.vue';
-import { notify } from '../../components/MNotice.vue';
-import TypstDoc from '../../components/Renderer/TypstDoc.vue';
+import MButton from '../MButton.vue';
+import { notify } from '../MNotice.vue';
+import TypstDoc from '../Renderer/TypstDoc.vue';
 import KnowledgeAddToLecture from './KnowledgeAddToLecture.vue';
 
 const props = defineProps({

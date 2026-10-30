@@ -50,26 +50,9 @@ defineEmits(['update:modelValue']);
   </label>
 </template>
 
+<style scoped src="./field.css"></style>
+
 <style scoped>
-.m-field {
-  display: block;
-  min-width: 0;
-}
-
-.field-label {
-  display: block;
-  margin-bottom: 6px;
-  font-size: var(--font-size-smaller);
-  color: var(--text-secondary);
-  letter-spacing: 0.3px;
-}
-
-.field-hint {
-  display: block;
-  margin-top: 5px;
-  font-size: var(--font-size-smaller);
-  color: var(--text-muted);
-}
 
 .m-textarea {
   display: block;

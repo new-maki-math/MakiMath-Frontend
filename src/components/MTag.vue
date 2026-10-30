@@ -1,15 +1,9 @@
 <script setup>
-import { computed } from 'vue';
-
-const props = defineProps({
+defineProps({
   variant: {
     type: String,
     default: 'cyan',
     validator: (v) => !v || ['purple', 'green', 'amber', 'cyan', 'blue', 'muted', 'teal', 'lime', 'red', 'orange', 'gray'].includes(v)
-  },
-  color: {
-    type: String,
-    default: ''
   },
   size: {
     type: String,
@@ -26,19 +20,6 @@ const props = defineProps({
   }
 });
 
-// 支持自定义颜色值
-const customStyle = computed(() => {
-  if (!props.color) return null;
-  const c = props.color.trim();
-  if (c.startsWith('#') || c.startsWith('rgb') || c.startsWith('hsl') || c.startsWith('var(')) {
-    return {
-      color: c,
-      backgroundColor: `color-mix(in srgb, ${c} 14%, transparent)`,
-      border: `1px solid color-mix(in srgb, ${c} 24%, transparent)`
-    };
-  }
-  return null;
-});
 </script>
 
 <template>
@@ -49,7 +30,6 @@ const customStyle = computed(() => {
       `size-${size}`,
       { 'is-mono': mono }
     ]"
-    :style="customStyle"
   >
     <span v-if="dot" class="tag-dot" />
     <slot />
@@ -99,14 +79,14 @@ const customStyle = computed(() => {
 
 /* 色彩变体 */
 .variant-purple { color: var(--tag-purple); background-color: var(--tag-purple-bg); }
-.variant-green  { color: #34d399; background-color: rgba(52, 211, 153, 0.14); }
+.variant-green  { color: var(--tag-green); background-color: var(--tag-green-bg); }
 .variant-amber  { color: var(--tag-amber); background-color: var(--tag-amber-bg); }
 .variant-cyan   { color: var(--tag-cyan); background-color: var(--tag-cyan-bg); }
-.variant-blue   { color: #38bdf8; background-color: rgba(56, 189, 248, 0.14); }
+.variant-blue   { color: var(--tag-blue); background-color: var(--tag-blue-bg); }
 .variant-muted  { color: var(--text-muted); background-color: var(--bg-elevated); }
-.variant-gray   { color: #94a3b8; background-color: rgba(148, 163, 184, 0.14); }
-.variant-red    { color: #fb7185; background-color: rgba(251, 113, 133, 0.14); }
-.variant-orange { color: #fb923c; background-color: rgba(251, 146, 60, 0.14); }
+.variant-gray   { color: var(--tag-gray); background-color: var(--tag-gray-bg); }
+.variant-red    { color: var(--tag-red); background-color: var(--tag-red-bg); }
+.variant-orange { color: var(--tag-orange); background-color: var(--tag-orange-bg); }
 .variant-teal   { color: var(--tag-teal, #2dd4bf); background-color: var(--tag-teal-bg, rgba(45, 212, 191, 0.16)); }
 .variant-lime   { color: var(--tag-lime, #a3e635); background-color: var(--tag-lime-bg, rgba(163, 230, 53, 0.14)); }
 </style>

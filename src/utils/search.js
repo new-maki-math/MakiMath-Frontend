@@ -24,11 +24,6 @@ export function getBrightTagVariant(text = '') {
   return BRIGHT_TAG_VARIANTS[Math.abs(hash) % BRIGHT_TAG_VARIANTS.length];
 }
 
-// 计算课程名称对应的标签变体
-export function getCourseTagVariant(courseName = '') {
-  return getBrightTagVariant(courseName);
-}
-
 // 解析小节附加标签列表
 export function getSectionTags(tag) {
   if (!tag) return [];
@@ -37,11 +32,6 @@ export function getSectionTags(tag) {
     .split(/[,，\s]+/)
     .map((t) => t.trim())
     .filter(Boolean);
-}
-
-// 计算小节标签色彩变体
-export function getSectionTagVariant(tag = '') {
-  return getBrightTagVariant(tag);
 }
 
 // 全局讲义搜索管理可复用函数

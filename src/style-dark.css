@@ -18,6 +18,9 @@
   --tree-selected-fg: #ffffff;
 
   --btn-secondary-bg: #282828;
+  --btn-primary-text: #ffffff;
+  --btn-danger-bg: #8b1d1d;
+  --btn-danger-hover-bg: #a82828;
   --btn-secondary-border: rgba(255, 255, 255, 0.08);
   --btn-secondary-color: #e0e0e0;
   --btn-secondary-hover-bg: #303030;

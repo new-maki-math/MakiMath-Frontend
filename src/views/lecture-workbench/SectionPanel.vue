@@ -2,7 +2,7 @@
 import WorkbenchPanel from './WorkbenchPanel.vue';
 import MInput from '../../components/MInput.vue';
 import MTextarea from '../../components/MTextarea.vue';
-import TypstEditorPreview from '../../components/TypstEditorPreview.vue';
+import TypstEditorPreview from '../../components/typst/TypstEditorPreview.vue';
 
 defineProps({
   section: { type: Object, required: true },

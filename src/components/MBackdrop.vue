@@ -1,19 +1,13 @@
 <script setup>
 import { computed } from 'vue';
 
+defineOptions({ inheritAttrs: false });
+
 const props = defineProps({
   // 是否显示遮罩
   open: {
     type: Boolean,
-    default: undefined
-  },
-  modelValue: {
-    type: Boolean,
-    default: undefined
-  },
-  visible: {
-    type: Boolean,
-    default: undefined
+    default: false
   },
   // 传送目标容器
   teleport: {
@@ -37,14 +31,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['close', 'click', 'update:modelValue']);
-
-const isOpen = computed(() => {
-  if (props.open !== undefined) return Boolean(props.open);
-  if (props.modelValue !== undefined) return Boolean(props.modelValue);
-  if (props.visible !== undefined) return Boolean(props.visible);
-  return false;
-});
+const emit = defineEmits(['close']);
 
 const shouldTeleport = computed(() => {
   return Boolean(props.teleport);
@@ -69,43 +56,28 @@ const backdropStyle = computed(() => {
   return style;
 });
 
-const handleClick = (e) => {
-  emit('click', e);
+const handleClick = () => {
   if (props.closeOnClick) {
     emit('close');
-    emit('update:modelValue', false);
   }
 };
 </script>
 
 <template>
-  <Teleport v-if="shouldTeleport" :to="teleportTarget">
+  <Teleport :disabled="!shouldTeleport" :to="teleportTarget">
     <div
+      v-bind="$attrs"
       class="m-backdrop"
       :class="[
         isFixed ? 'is-fixed' : 'is-absolute',
-        { 'is-open': isOpen }
+        { 'is-open': open }
       ]"
       :style="backdropStyle"
-      aria-hidden="true"
       @click.stop="handleClick"
     >
       <slot />
     </div>
   </Teleport>
-  <div
-    v-else
-    class="m-backdrop"
-    :class="[
-      isFixed ? 'is-fixed' : 'is-absolute',
-      { 'is-open': isOpen }
-    ]"
-    :style="backdropStyle"
-    aria-hidden="true"
-    @click.stop="handleClick"
-  >
-    <slot />
-  </div>
 </template>
 
 <style scoped>

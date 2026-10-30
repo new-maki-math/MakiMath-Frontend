@@ -4,7 +4,7 @@ import ProgressBar from '../components/ProgressBar.vue';
 import MNotice from '../components/MNotice.vue';
 import MUserModal from '../components/MUserModal.vue';
 import MHelpModal from '../components/MHelpModal.vue';
-import KnowledgeSearchOverlay from '../components/KnowledgeSearchOverlay.vue';
+import KnowledgeSearchOverlay from '../components/knowledge/KnowledgeSearchOverlay.vue';
 import MAuthForm from '../components/MAuthForm.vue';
 import MModal from '../components/MModal.vue';
 import MInput from '../components/MInput.vue';

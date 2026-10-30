@@ -4,6 +4,7 @@ import { ref, onMounted } from 'vue';
 import { Refresh } from '@iconoir/vue';
 import { request } from '../../api/client.js';
 import { notify } from '../../components/MNotice.vue';
+import MButton from '../../components/MButton.vue';
 import MTag from '../../components/MTag.vue';
 import MTable from '../../components/MTable.vue';
 import MPagination from '../../components/MPagination.vue';
@@ -50,9 +51,9 @@ onMounted(() => {
         <p class="pane-subtitle">实时留痕全站所有需鉴权管理与讲义编撰接口的调用流水，保障系统运维安全。</p>
       </div>
       <div class="toolbar-actions">
-        <button class="icon-action-btn" title="刷新日志" @click="loadAuditLogs(auditPage, auditLimit)">
+        <MButton variant="secondary" icon-only title="刷新日志" aria-label="刷新日志" @click="loadAuditLogs(auditPage, auditLimit)">
           <Refresh width="14" height="14" />
-        </button>
+        </MButton>
       </div>
     </div>
 
@@ -140,25 +141,6 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.icon-action-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-xs);
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 120ms ease;
-}
-
-.icon-action-btn:hover {
-  background-color: var(--bg-hover);
-  color: var(--text-primary);
 }
 
 .col-dim {
