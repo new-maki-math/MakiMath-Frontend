@@ -1,0 +1,220 @@
+@page {
+  size: A4;
+  margin: 16mm;
+
+  @top-left {
+    content: '';
+  }
+  @top-center {
+    content: '';
+  }
+  @top-right {
+    content: '';
+  }
+  @bottom-left {
+    content: '';
+  }
+  @bottom-center {
+    content: '';
+  }
+  @bottom-right {
+    content: '';
+  }
+}
+@page :first {
+  margin: 0;
+}
+html,
+body {
+  margin: 0;
+  height: auto !important;
+  min-height: 100%;
+  overflow: visible !important;
+  background: var(--bg-app);
+  color: var(--text-primary);
+  font-family: var(--font-doc);
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+.print-document {
+  position: relative;
+  padding: 0;
+  overflow: visible;
+  line-height: 1.7;
+}
+.print-watermark {
+  position: fixed;
+  z-index: 2;
+  top: 50%;
+  left: 50%;
+  width: 135mm;
+  height: auto;
+  color: var(--text-primary);
+  opacity: 0.09;
+  transform: translate(-50%, -50%) rotate(-25deg);
+  pointer-events: none;
+}
+.print-cover,
+.print-chapter-page {
+  box-sizing: border-box;
+  min-height: 230mm;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  break-after: page;
+  page-break-after: always;
+}
+.print-cover {
+  position: relative;
+  z-index: 3;
+  height: 297mm;
+  justify-content: space-between;
+  align-items: stretch;
+  padding: 21mm 19mm 19mm;
+  background: var(--bg-app);
+  text-align: left;
+  overflow: hidden;
+}
+.print-cover-brand {
+  margin: 0;
+  padding-bottom: 5mm;
+  border-bottom: 0.5pt solid var(--border-subtle);
+  color: var(--text-primary);
+  font-size: 11pt;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+.print-cover-main {
+  padding-top: 8mm;
+}
+.print-cover-label,
+.print-cover-footer {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 9pt;
+  letter-spacing: 0.1em;
+}
+.print-cover-subtitle {
+  margin: 6mm 0 0;
+  color: var(--text-secondary);
+  font-size: 15pt;
+}
+.print-cover-problem {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  gap: 2mm 6mm;
+  margin-top: 5mm;
+}
+.print-cover-problem-label,
+.print-cover-problem-note {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 9pt;
+  letter-spacing: 0.05em;
+}
+.print-cover-graph {
+  display: block;
+  grid-column: 1 / -1;
+  min-width: 0;
+  width: 100%;
+  height: 100mm;
+  margin: 0 0 3mm;
+  color: var(--accent-primary);
+  overflow: hidden;
+}
+.print-cover-footer {
+  padding-top: 4mm;
+  border-top: 0.5pt solid var(--border-subtle);
+}
+.print-chapter + .print-chapter,
+.print-section + .print-section {
+  break-before: page;
+  page-break-before: always;
+}
+.print-document h1,
+.print-document h2,
+.print-document h3 {
+  color: var(--text-primary);
+  break-after: avoid;
+  page-break-after: avoid;
+}
+.print-document h1 {
+  font-size: 22pt;
+}
+.print-document h2 {
+  margin-top: 1.5em;
+  font-size: 17pt;
+}
+.print-document h3 {
+  margin-top: 1.3em;
+  font-size: 14pt;
+}
+.print-document .print-cover h1 {
+  max-width: 100%;
+  margin: 5mm 0 0;
+  font-size: 34pt;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.print-document .print-chapter-page h2 {
+  margin: 0;
+  font-size: 30pt;
+  line-height: 1.4;
+}
+.print-document .typst-diagnostics,
+.print-document .mastery-button {
+  display: none !important;
+}
+.print-document .typst-document,
+.print-document .typst-content {
+  overflow: visible !important;
+  max-height: none !important;
+}
+.print-document .typst-table-wrap,
+.print-document .typst-math.is-display {
+  overflow: visible !important;
+}
+.print-document .typst-table {
+  max-width: 100%;
+  width: 100%;
+  table-layout: fixed !important;
+  overflow-wrap: anywhere;
+}
+.print-document img,
+.print-document svg,
+.print-document math {
+  max-width: 100%;
+}
+.print-document tr,
+.print-document h1,
+.print-document h2,
+.print-document h3 {
+  break-inside: avoid;
+}
+.print-document .mm-box,
+.print-document .mm-question {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+.print-document .mm-box-header,
+.print-document .mm-question-header {
+  break-after: avoid;
+  page-break-after: avoid;
+}
+.print-document .typst-math.is-display {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+.print-document .print-keep {
+  break-inside: avoid;
+}
+.print-document thead {
+  display: table-header-group;
+}
+.print-document p {
+  orphans: 2;
+  widows: 2;
+}

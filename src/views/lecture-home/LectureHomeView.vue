@@ -24,6 +24,7 @@ import {
   validateLocalLectureSlug
 } from '../../utils/local-lectures.js';
 import { fetchShelfLectureTree } from '../../utils/shelf-lecture.js';
+import LecturePrintDialog from '../lecture-doc/print/LecturePrintDialog.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -33,6 +34,12 @@ const shelfSource = computed(() => (route.name === 'local-lecture-home' ? 'local
 const revisionId = computed(() => route.query.revision_id ?? '');
 const lecture = ref(null);
 const chapters = ref([]);
+const printOpen = ref(false);
+const printContext = computed(() => ({
+  source: shelfSource.value,
+  slug: lectureId.value,
+  revisionId: revisionId.value
+}));
 const openChapters = ref(new Set());
 const isLoading = ref(true);
 const loadError = ref('');
@@ -591,6 +598,13 @@ onUnmounted(() => {
               查看大纲目录 // OUTLINE
             </MButton>
             <MButton
+              variant="secondary"
+              :disabled="!totalSectionsCount"
+              @click="printOpen = true"
+            >
+              打印讲义
+            </MButton>
+            <MButton
               v-if="shelfSource === 'online' && isPublicVersion"
               variant="secondary"
               :disabled="addSaving || publicChecking"
@@ -631,6 +645,12 @@ onUnmounted(() => {
         </div>
       </header>
 
+      <LecturePrintDialog
+        :open="printOpen"
+        :context="printContext"
+        :chapters="chapters"
+        @close="printOpen = false"
+      />
       <!-- 概览卡片区 -->
       <section class="lecture-sections">
         <div class="grid-layout">

@@ -38,6 +38,7 @@ export async function fetchShelfLectureTree(id, source, revisionId = '') {
     slug: snapshot.slug || '',
     cover: snapshot.cover || '',
     storageSource: 'local',
+    localEditVersion: snapshot.editVersion,
     status: 'live',
     chapters,
     edges: []

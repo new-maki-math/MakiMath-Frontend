@@ -12,6 +12,7 @@ const props = defineProps({
   }
 });
 const allowed = inject('typstKnowledgeReferencesAllowed', ref(true));
+const printReferences = inject('typstPrintReferences', null);
 const detail = ref(null);
 const loading = ref(false);
 const error = ref('');
@@ -26,7 +27,9 @@ async function load() {
   }
   loading.value = true;
   try {
-    const value = await getReferencedKnowledge(props.knowledgeSlug);
+    const value = printReferences
+      ? printReferences.get(props.knowledgeSlug)
+      : await getReferencedKnowledge(props.knowledgeSlug);
     if (current !== sequence) {
       return;
     }
@@ -84,7 +87,10 @@ onBeforeUnmount(() => {
     :source="detail.source"
     :box-title="detail.title || ''"
     :allow-knowledge-references="false"
-    ><template #boxActions><KnowledgeMasteryButton :knowledge-slug="detail.slug" /></template
+    ><template
+      v-if="!printReferences"
+      #boxActions
+      ><KnowledgeMasteryButton :knowledge-slug="detail.slug" /></template
   ></TypstDoc>
 </template>
 
