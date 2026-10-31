@@ -138,7 +138,8 @@ export async function createKnowledgeTransition2D(
           return;
         }
         const raw = Math.min(1, (now - started) / duration);
-        const movement = bezierProgress(Math.min(1, raw / 0.78), 0.12, 0.85, 0.24, 1);
+        const movementTime = reverse ? raw / 0.78 : Math.max(0, (raw - 0.08) / 0.7);
+        const movement = bezierProgress(Math.min(1, movementTime), 0.12, 0.85, 0.24, 1);
         const waveTime = reverse ? 1 - raw : raw;
         const wave = bezierProgress(
           Math.max(0, Math.min(1, (waveTime - 0.4) / 0.6)),
@@ -147,7 +148,9 @@ export async function createKnowledgeTransition2D(
           0.2,
           1
         );
-        const dim = bezierProgress(raw, 0.4, 0, 0.2, 1);
+        const dim = reverse
+          ? bezierProgress(raw, 0.4, 0, 0.2, 1)
+          : bezierProgress(raw, 0.08, 0.9, 0.25, 1);
         try {
           draw(reverse ? 1 - movement : movement, wave, reverse ? 1 - dim : dim);
           onWave?.(wave);
