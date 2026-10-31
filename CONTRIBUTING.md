@@ -94,5 +94,6 @@ if (epoch !== identityEpoch) {
 调整目录或组件引用时完成全量构建，并验证首页、知识库、书架、讲义阅读和工作台入口。
 涉及在线权限、提交和审核时，使用测试环境账号验证；本地构建通过不代表线上流程已经验证。
 
-部署入口为 `pnpm deploy` 和 `pnpm acl-deploy`，分别对应普通部署和 ACL 部署脚本。
+部署统一由 `scripts/deploy.js` 维护：`pnpm deploy` 执行普通部署，
+`pnpm acl-deploy` 使用 `--acl`，在已有服务器环境中通过 sudo 完成原 ACL 流程。
 部署配置和凭据留在忽略的本地文件或环境变量中。

@@ -9,6 +9,8 @@ import { NodeSSH } from 'node-ssh';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, '..');
 const configPath = path.join(rootDir, 'deploy.config.json');
+const aclMode = process.argv.includes('--acl');
+const sudo = aclMode ? 'sudo ' : '';
 
 if (!fs.existsSync(configPath)) {
   console.error('未找到 deploy.config.json，请先补充部署配置。');
@@ -21,6 +23,8 @@ const config = {
   port: Number(process.env.DEPLOY_PORT || fileConfig.port || 22),
   username: process.env.DEPLOY_USERNAME || fileConfig.username,
   password: process.env.DEPLOY_PASSWORD || fileConfig.password,
+  privateKeyPath: process.env.DEPLOY_PRIVATE_KEY_PATH || fileConfig.privateKeyPath || '',
+  passphrase: process.env.DEPLOY_SSH_PASSPHRASE || fileConfig.passphrase || '',
   remoteBaseDir: process.env.DEPLOY_BASE_DIR || fileConfig.remoteBaseDir || '/var/www/maki-math',
   domain: process.env.DEPLOY_DOMAIN || fileConfig.domain || '',
   backendPort: Number(process.env.DEPLOY_BACKEND_PORT || fileConfig.backendPort || 3000),
@@ -28,10 +32,11 @@ const config = {
   email: process.env.DEPLOY_EMAIL || fileConfig.email || ''
 };
 
+const hasAuth = Boolean(config.password || config.privateKeyPath);
 if (
   !config.host ||
   !config.username ||
-  !config.password ||
+  !hasAuth ||
   !config.remoteBaseDir ||
   !config.domain ||
   !config.email
@@ -101,13 +106,13 @@ async function main() {
 
   const buildResult =
     process.platform === 'win32'
-      ? spawnSync('cmd.exe', ['/d', '/s', '/c', 'npm run build'], {
+      ? spawnSync('cmd.exe', ['/d', '/s', '/c', 'pnpm run build'], {
           cwd: rootDir,
           env: process.env,
           stdio: 'inherit',
           windowsHide: true
         })
-      : spawnSync('npm', ['run', 'build'], {
+      : spawnSync('pnpm', ['run', 'build'], {
           cwd: rootDir,
           env: process.env,
           stdio: 'inherit'
@@ -128,13 +133,26 @@ async function main() {
 
   console.log(`开始连接 ${config.username}@${config.host}:${config.port} ...`);
 
-  await ssh.connect({
+  const sshOptions = {
     host: config.host,
     port: config.port,
     username: config.username,
-    password: config.password,
     tryKeyboard: false
-  });
+  };
+
+  if (config.privateKeyPath) {
+    if (!fs.existsSync(config.privateKeyPath)) {
+      throw new Error(`未找到指定的私钥文件：${config.privateKeyPath}`);
+    }
+    sshOptions.privateKey = fs.readFileSync(config.privateKeyPath, 'utf8');
+    if (config.passphrase) {
+      sshOptions.passphrase = config.passphrase;
+    }
+  } else {
+    sshOptions.password = config.password;
+  }
+
+  await ssh.connect(sshOptions);
 
   console.log('连接成功，准备上传前端构建产物...');
   const uploadFiles = collectFiles(localDistDir);
@@ -142,6 +160,7 @@ async function main() {
 
   const remotePrep = await ssh.execCommand(`
 set -e
+mkdir -p -m 700 ${quote(remoteTmpBase)}
 mkdir -p ${quote(remoteUploadDir)}
 mkdir -p ${quote(remoteFrontendDir)}
 `);
@@ -174,13 +193,13 @@ mkdir -p ${quote(remoteFrontendDir)}
 
   console.log('上传完成，开始远程部署前端服务与 Nginx...');
 
+  // 普通部署安装依赖，ACL 部署使用已有环境
+  const installDependencies = aclMode
+    ? ''
+    : 'export DEBIAN_FRONTEND=noninteractive\napt-get update\napt-get install -y nginx certbot python3-certbot-nginx curl';
   const deployScript = `
 set -e
-
-export DEBIAN_FRONTEND=noninteractive
-
-apt-get update
-apt-get install -y nginx certbot python3-certbot-nginx curl
+${installDependencies}
 
 mkdir -p ${quote(config.remoteBaseDir)}
 mkdir -p ${quote(remoteUploadDir)}
@@ -203,32 +222,32 @@ elif [ -d /etc/nginx/conf.d ]; then
   NGINX_SITE_DIR="/etc/nginx/conf.d"
   NGINX_SITE_PATH="/etc/nginx/conf.d/${config.domain}.conf"
 else
-  mkdir -p /etc/nginx/conf.d
+  ${sudo}mkdir -p /etc/nginx/conf.d
   NGINX_SITE_DIR="/etc/nginx/conf.d"
   NGINX_SITE_PATH="/etc/nginx/conf.d/${config.domain}.conf"
 fi
 
-cat > "$NGINX_SITE_PATH" <<'EOF'
+cat <<'EOF' | ${sudo}tee "$NGINX_SITE_PATH" > /dev/null
 ${nginxConfig}
 EOF
 
 if [ -d /etc/nginx/sites-enabled ] && [ -f "$NGINX_SITE_PATH" ]; then
-  ln -sf "$NGINX_SITE_PATH" "/etc/nginx/sites-enabled/${config.domain}"
+  ${sudo}ln -sf "$NGINX_SITE_PATH" "/etc/nginx/sites-enabled/${config.domain}"
 fi
 
-rm -f /etc/nginx/conf.d/default.conf || true
-rm -f /etc/nginx/sites-enabled/default || true
+${sudo}rm -f /etc/nginx/conf.d/default.conf || true
+${sudo}rm -f /etc/nginx/sites-enabled/default || true
 
-nginx -t
-systemctl enable nginx
-systemctl restart nginx
+${sudo}nginx -t
+${sudo}systemctl enable nginx
+${sudo}systemctl restart nginx
 
-certbot --nginx --non-interactive --agree-tos -m ${quote(config.email)} -d ${quote(config.domain)} --redirect
+${sudo}certbot --nginx --non-interactive --agree-tos -m ${quote(config.email)} -d ${quote(config.domain)} --redirect
 
-nginx -t
-systemctl reload nginx
+${sudo}nginx -t
+${sudo}systemctl reload nginx
 else
-  nginx -t
+  ${sudo}nginx -t
   echo "保留现有 Nginx 配置与 HTTPS 证书，仅更新前端文件。"
 fi
 
