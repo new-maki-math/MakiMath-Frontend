@@ -1,27 +1,18 @@
 <script setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
-import { useRouter } from 'vue-router';
+import { Expand, HandCard, Lock, Pause, Play, Search, Xmark, ZoomIn, ZoomOut } from '@iconoir/vue';
 import * as d3 from 'd3';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
+
 import { fetchCourseTree } from '../api/courses.js';
 import { lectureLocation, lectureNavigationOrigin } from '../utils/lecture-route.js';
-import { RoadmapWebGLRenderer } from '../utils/roadmap-webgl-renderer.js';
 import { buildLectureGraph } from './roadmap/lecture-graph.js';
 import { createRenderScheduler } from './roadmap/render-scheduler.js';
+import { RoadmapWebGLRenderer } from './roadmap/roadmap-webgl-renderer.js';
 import { createSmoothZoom } from './roadmap/smooth-zoom.js';
-import {
-  ZoomIn,
-  ZoomOut,
-  Expand,
-  Play,
-  Pause,
-  Search,
-  Xmark,
-  HandCard,
-  Lock
-} from '@iconoir/vue';
 
 const props = defineProps({
-  // 可直接传入已加载的目录树对象：{ id, title, chapters: [...] }
+  // 复用页面已加载的目录树
   tree: {
     type: Object,
     default: null
@@ -31,13 +22,22 @@ const props = defineProps({
     type: [String, Number],
     default: ''
   },
-  source: { type: String, default: '' },
-  lectureSlug: { type: String, default: '' },
-  revisionId: { type: [String, Number], default: '' },
-  // 初始视图模式：'chapter' (显示课程+章节) 或 'section' (全部显示)
+  source: {
+    type: String,
+    default: ''
+  },
+  lectureSlug: {
+    type: String,
+    default: ''
+  },
+  revisionId: {
+    type: [String, Number],
+    default: ''
+  },
+  // 设置初始展示层级
   initialMode: {
     type: String,
-    default: 'chapter' // 'chapter' | 'section'
+    default: 'chapter'
   },
   // 是否显示控制栏
   showControls: {
@@ -56,7 +56,7 @@ const canvasRef = ref(null);
 // 状态管理
 const isLoading = ref(true);
 const errorMsg = ref('');
-// 模式：'chapter'（1级课程 + 2级章节） 或 'section'（全部：1级课程 + 2级章节 + 3级小节）
+// 选择章节或小节层级
 const currentMode = ref(props.initialMode === 'section' ? 'section' : 'chapter');
 const searchQuery = ref('');
 const isPhysicsRunning = ref(true);
@@ -70,11 +70,18 @@ const rawTree = ref(null);
 let simulation = null;
 let zoomBehavior = null;
 let currentTransform = d3.zoomIdentity;
-let targetTransform = { k: 1, x: 0, y: 0 };
+const targetTransform = {
+  k: 1,
+  x: 0,
+  y: 0
+};
 let webglRenderer = null;
 let resizeObserver = null;
 let draggedNode = null;
-let mouseDownPos = { x: 0, y: 0 };
+let mouseDownPos = {
+  x: 0,
+  y: 0
+};
 let currentSimLinks = [];
 let treeRequest = 0;
 
@@ -82,15 +89,22 @@ const graphData = computed(() => buildLectureGraph(rawTree.value));
 
 const activeGraph = computed(() => {
   const { nodes, links } = graphData.value;
-  const visibleNodes = nodes.filter((node) => node.level <= (currentMode.value === 'chapter' ? 2 : 3));
+  const visibleNodes = nodes.filter(
+    (node) => node.level <= (currentMode.value === 'chapter' ? 2 : 3)
+  );
   const visibleIds = new Set(visibleNodes.map((node) => node.id));
-  return { nodes: visibleNodes, links: links.filter((link) => visibleIds.has(link.sourceId) && visibleIds.has(link.targetId)) };
+  return {
+    nodes: visibleNodes,
+    links: links.filter((link) => visibleIds.has(link.sourceId) && visibleIds.has(link.targetId))
+  };
 });
 
 // 计算高亮集（用于 WebGL 着色器聚焦）
 const highlightState = computed(() => {
   const target = hoveredNode.value;
-  if (!target) return null;
+  if (!target) {
+    return null;
+  }
 
   const inSet = new Set();
   const outSet = new Set();
@@ -98,8 +112,12 @@ const highlightState = computed(() => {
   for (const l of currentSimLinks) {
     const sId = typeof l.source === 'object' ? l.source.id : l.source;
     const tId = typeof l.target === 'object' ? l.target.id : l.target;
-    if (sId === target.id) outSet.add(tId);
-    if (tId === target.id) inSet.add(sId);
+    if (sId === target.id) {
+      outSet.add(tId);
+    }
+    if (tId === target.id) {
+      inSet.add(sId);
+    }
   }
 
   return {
@@ -128,10 +146,14 @@ async function loadTreeData() {
     } else {
       throw new Error('缺少课程标识或目录树数据');
     }
-    if (requestId !== treeRequest) return;
+    if (requestId !== treeRequest) {
+      return;
+    }
     rawTree.value = tree;
   } catch (err) {
-    if (requestId !== treeRequest) return;
+    if (requestId !== treeRequest) {
+      return;
+    }
     console.error('[RoadmapGraph] 加载目录树失败:', err);
     errorMsg.value = err?.message || '目录树数据加载失败';
     rawTree.value = null;
@@ -147,7 +169,9 @@ async function loadTreeData() {
 function resizeCanvas() {
   const container = containerRef.value;
   const canvas = canvasRef.value;
-  if (!container || !canvas || !webglRenderer) return;
+  if (!container || !canvas || !webglRenderer) {
+    return;
+  }
 
   const rect = container.getBoundingClientRect();
   const dpr = window.devicePixelRatio || 1;
@@ -169,7 +193,9 @@ function resizeCanvas() {
 
 // 启动并刷新 D3 力导向物理引擎
 function updateSimulation() {
-  if (!containerRef.value) return;
+  if (!containerRef.value) {
+    return;
+  }
   const rect = containerRef.value.getBoundingClientRect();
   const width = rect.width || 800;
   const height = rect.height || 600;
@@ -196,14 +222,14 @@ function updateSimulation() {
   nodes.forEach((n, idx) => {
     if (n.x == null || n.y == null) {
       const angle = (idx / nodes.length) * Math.PI * 2;
-      const dist = n.level === 1 ? 0 : (n.level === 2 ? 180 : 320);
+      const dist = n.level === 1 ? 0 : n.level === 2 ? 180 : 320;
       n.x = width / 2 + Math.cos(angle) * dist;
       n.y = height / 2 + Math.sin(angle) * dist;
     }
     nodeMap.set(n.id, n);
   });
 
-  // 构建具备 node 实体引用的 links（WebGL 需要直接读取 source.x/target.x）
+  // 让连线直接引用节点坐标
   currentSimLinks = links
     .map((l) => ({
       ...l,
@@ -222,13 +248,26 @@ function updateSimulation() {
         .distance((d) => (d.level === 2 ? 210 : 135))
         .strength(0.85)
     )
-    .force('charge', d3.forceManyBody().strength((d) => {
-      if (d.level === 1) return -850;
-      if (d.level === 2) return -400;
-      return -160;
-    }))
+    .force(
+      'charge',
+      d3.forceManyBody().strength((d) => {
+        if (d.level === 1) {
+          return -850;
+        }
+        if (d.level === 2) {
+          return -400;
+        }
+        return -160;
+      })
+    )
     .force('center', d3.forceCenter(width / 2, height / 2))
-    .force('collide', d3.forceCollide().radius((d) => (d.radius || 12) + 16).strength(0.85))
+    .force(
+      'collide',
+      d3
+        .forceCollide()
+        .radius((d) => (d.radius || 12) + 16)
+        .strength(0.85)
+    )
     .on('tick', () => {
       requestRender();
     });
@@ -239,7 +278,9 @@ function updateSimulation() {
 }
 
 const { requestRender, cancelRender } = createRenderScheduler(() => {
-  if (!webglRenderer) return false;
+  if (!webglRenderer) {
+    return false;
+  }
   return webglRenderer.render({
     nodes: activeGraph.value.nodes,
     links: currentSimLinks,
@@ -254,7 +295,9 @@ function findNodeAt(graphX, graphY) {
   const { nodes } = activeGraph.value;
   for (let i = nodes.length - 1; i >= 0; --i) {
     const n = nodes[i];
-    if (n.x == null || n.y == null) continue;
+    if (n.x == null || n.y == null) {
+      continue;
+    }
     const r = (n.radius || 12) + 6;
     const dx = graphX - n.x;
     const dy = graphY - n.y;
@@ -268,14 +311,18 @@ function findNodeAt(graphX, graphY) {
 const { stop: stopSmoothZoom, onWheel: onCanvasWheel } = createSmoothZoom({
   canvas: () => canvasRef.value,
   getTransform: () => currentTransform,
-  setTransform: (transform) => { currentTransform = transform; },
+  setTransform: (transform) => {
+    currentTransform = transform;
+  },
   target: targetTransform,
   render: requestRender
 });
 
 // 鼠标悬停
 function onCanvasMouseMove(e) {
-  if (draggedNode || !canvasRef.value) return;
+  if (draggedNode || !canvasRef.value) {
+    return;
+  }
   const [x, y] = d3.pointer(e, canvasRef.value);
   const [gx, gy] = currentTransform.invert([x, y]);
   const hovered = findNodeAt(gx, gy);
@@ -290,15 +337,22 @@ function onCanvasMouseMove(e) {
 function onCanvasMouseLeave() {
   if (hoveredNode.value) {
     hoveredNode.value = null;
-    if (canvasRef.value) canvasRef.value.style.cursor = 'grab';
+    if (canvasRef.value) {
+      canvasRef.value.style.cursor = 'grab';
+    }
     requestRender();
   }
 }
 
 // 节点拖拽与点击
 function onCanvasMouseDown(e) {
-  if (!canvasRef.value) return;
-  mouseDownPos = { x: e.clientX, y: e.clientY };
+  if (!canvasRef.value) {
+    return;
+  }
+  mouseDownPos = {
+    x: e.clientX,
+    y: e.clientY
+  };
 
   const [x, y] = d3.pointer(e, canvasRef.value);
   const [gx, gy] = currentTransform.invert([x, y]);
@@ -319,7 +373,9 @@ function onCanvasMouseDown(e) {
 }
 
 function onWindowMouseMove(e) {
-  if (!draggedNode || !canvasRef.value) return;
+  if (!draggedNode || !canvasRef.value) {
+    return;
+  }
   const [x, y] = d3.pointer(e, canvasRef.value);
   const [gx, gy] = currentTransform.invert([x, y]);
   draggedNode.fx = gx;
@@ -332,7 +388,9 @@ function onWindowMouseUp(e) {
   window.removeEventListener('mouseup', onWindowMouseUp);
 
   if (draggedNode) {
-    if (simulation) simulation.alphaTarget(0);
+    if (simulation) {
+      simulation.alphaTarget(0);
+    }
     draggedNode.fx = null;
     draggedNode.fy = null;
     draggedNode = null;
@@ -358,7 +416,10 @@ function activateNode(node) {
     const chapterId = node.rawId || node.id;
     emit('select-chapter', chapterId);
     emit('select-node', node);
-    document.getElementById(`chapter-${chapterId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document.getElementById(`chapter-${chapterId}`)?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start'
+    });
   } else if (node.level === 3 || node.type === 'section') {
     emit('select-node', node);
     goToSectionDoc(node);
@@ -393,7 +454,9 @@ function resetZoom() {
 // 仿真启停
 function togglePhysics() {
   isPhysicsRunning.value = !isPhysicsRunning.value;
-  if (!simulation) return;
+  if (!simulation) {
+    return;
+  }
   if (isPhysicsRunning.value) {
     simulation.alpha(0.3).restart();
   } else {
@@ -401,36 +464,63 @@ function togglePhysics() {
   }
 }
 
-// 切换模式：'chapter' (显示课程+章节) 或 'section' (全部显示)
+// 切换展示层级
 function setMode(mode) {
-  if (currentMode.value === mode) return;
+  if (currentMode.value === mode) {
+    return;
+  }
   currentMode.value = mode;
   updateSimulation();
 }
 
 // 小节阅读跳转
 function goToSectionDoc(node) {
-  if (!node) return;
-  const chapter = rawTree.value?.chapters?.find((item) => String(item.id) === String(node.chapterId));
-  const section = chapter?.sections?.find((item) => String(item.id) === String(node.rawId || node.id));
-  if (!chapter || !section) return;
-  const target = lectureLocation({ source: props.source, slug: props.lectureSlug, chapterSlug: chapter.slug, sectionSlug: section.slug, revisionId: props.revisionId, origin: lectureNavigationOrigin() });
+  if (!node) {
+    return;
+  }
+  const chapter = rawTree.value?.chapters?.find(
+    (item) => String(item.id) === String(node.chapterId)
+  );
+  const section = chapter?.sections?.find(
+    (item) => String(item.id) === String(node.rawId || node.id)
+  );
+  if (!chapter || !section) {
+    return;
+  }
+  const target = lectureLocation({
+    source: props.source,
+    slug: props.lectureSlug,
+    chapterSlug: chapter.slug,
+    sectionSlug: section.slug,
+    revisionId: props.revisionId,
+    origin: lectureNavigationOrigin()
+  });
   emit('navigate', router.resolve(target).href);
   router.push(target);
 }
 
 // 移动端触控点击检测 (零延迟响应)
-let touchStartPos = { x: 0, y: 0 };
+let touchStartPos = {
+  x: 0,
+  y: 0
+};
 let touchStartTime = 0;
 
 function onCanvasTouchStart(e) {
-  if (!canvasRef.value || !e.touches || e.touches.length !== 1) return;
-  touchStartPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  if (!canvasRef.value || !e.touches || e.touches.length !== 1) {
+    return;
+  }
+  touchStartPos = {
+    x: e.touches[0].clientX,
+    y: e.touches[0].clientY
+  };
   touchStartTime = Date.now();
 }
 
 function onCanvasTouchEnd(e) {
-  if (!canvasRef.value || !e.changedTouches || e.changedTouches.length !== 1) return;
+  if (!canvasRef.value || !e.changedTouches || e.changedTouches.length !== 1) {
+    return;
+  }
   const touch = e.changedTouches[0];
   const dist = Math.hypot(touch.clientX - touchStartPos.x, touch.clientY - touchStartPos.y);
   const duration = Date.now() - touchStartTime;
@@ -440,7 +530,9 @@ function onCanvasTouchEnd(e) {
     const [x, y] = d3.pointer(touch, canvasRef.value);
     const [gx, gy] = currentTransform.invert([x, y]);
     const clicked = findNodeAt(gx, gy);
-    if (!clicked) return;
+    if (!clicked) {
+      return;
+    }
 
     activateNode(clicked);
   }
@@ -460,7 +552,7 @@ onMounted(() => {
     targetTransform.y = currentTransform.y;
     targetTransform.k = currentTransform.k;
 
-    // 平移缩放行为：点击空白平移，命中节点放行拖拽；移动端单指默认放行滚动，开启手势后才拦截
+    // 分离画布平移、节点拖拽和移动端滚动
     zoomBehavior = d3
       .zoom()
       .scaleExtent([0.15, 6])
@@ -469,17 +561,25 @@ onMounted(() => {
           return Boolean(isTouchPanActive.value);
         }
         if (event.type === 'mousedown') {
-          if (!canvasRef.value) return true;
+          if (!canvasRef.value) {
+            return true;
+          }
           const [x, y] = d3.pointer(event, canvasRef.value);
           const [gx, gy] = currentTransform.invert([x, y]);
-          if (findNodeAt(gx, gy) != null) return false; // 命中节点交给拖拽
+          if (findNodeAt(gx, gy) != null) {
+            return false;
+          } // 命中节点交给拖拽
         }
-        if (event.type === 'wheel') return false; // 使用定制平滑滚轮
+        if (event.type === 'wheel') {
+          return false;
+        } // 使用定制平滑滚轮
         return !event.ctrlKey && !event.button;
       })
       .on('start', () => {
         stopSmoothZoom();
-        if (canvasRef.value && !draggedNode) canvasRef.value.style.cursor = 'grabbing';
+        if (canvasRef.value && !draggedNode) {
+          canvasRef.value.style.cursor = 'grabbing';
+        }
       })
       .on('zoom', (event) => {
         currentTransform = event.transform;
@@ -489,18 +589,26 @@ onMounted(() => {
         requestRender();
       })
       .on('end', () => {
-        if (canvasRef.value && !draggedNode) canvasRef.value.style.cursor = 'grab';
+        if (canvasRef.value && !draggedNode) {
+          canvasRef.value.style.cursor = 'grab';
+        }
       });
 
     d3.select(canvas).call(zoomBehavior);
 
     // 绑定平滑滚轮与鼠标拖拽事件
-    canvas.addEventListener('wheel', onCanvasWheel, { passive: false });
+    canvas.addEventListener('wheel', onCanvasWheel, {
+      passive: false
+    });
     canvas.addEventListener('mousedown', onCanvasMouseDown);
     canvas.addEventListener('mousemove', onCanvasMouseMove);
     canvas.addEventListener('mouseleave', onCanvasMouseLeave);
-    canvas.addEventListener('touchstart', onCanvasTouchStart, { passive: true });
-    canvas.addEventListener('touchend', onCanvasTouchEnd, { passive: true });
+    canvas.addEventListener('touchstart', onCanvasTouchStart, {
+      passive: true
+    });
+    canvas.addEventListener('touchend', onCanvasTouchEnd, {
+      passive: true
+    });
   }
 
   if (containerRef.value && typeof ResizeObserver !== 'undefined') {
@@ -545,12 +653,22 @@ watch(() => [props.tree, props.lectureId, props.lectureSlug, props.revisionId], 
 </script>
 
 <template>
-  <div ref="containerRef" class="roadmap-graph-container font-mono">
+  <div
+    ref="containerRef"
+    class="roadmap-graph-container font-mono"
+  >
     <!-- 顶部控制栏 -->
-    <div v-if="showControls" class="graph-toolbar">
+    <div
+      v-if="showControls"
+      class="graph-toolbar"
+    >
       <!-- 搜索框 -->
       <div class="search-box">
-        <Search width="14" height="14" class="search-icon" />
+        <Search
+          width="14"
+          height="14"
+          class="search-icon"
+        />
         <input
           v-model="searchQuery"
           type="text"
@@ -562,18 +680,26 @@ watch(() => [props.tree, props.lectureId, props.lectureSlug, props.revisionId], 
           v-if="searchQuery"
           type="button"
           class="clear-btn"
-          @click="searchQuery = ''; requestRender()"
+          @click="
+            searchQuery = '';
+            requestRender();
+          "
         >
-          <Xmark width="12" height="12" />
+          <Xmark
+            width="12"
+            height="12"
+          />
         </button>
       </div>
 
-      <!-- 层级切换控件：选择章节时显示一级(课程)+二级(章节)，选择小节时全部显示 -->
+      <!-- 切换章节和小节层级 -->
       <div class="level-selector">
         <button
           type="button"
           class="level-btn"
-          :class="{ active: currentMode === 'chapter' }"
+          :class="{
+            active: currentMode === 'chapter'
+          }"
           @click="setMode('chapter')"
         >
           章节
@@ -581,7 +707,9 @@ watch(() => [props.tree, props.lectureId, props.lectureSlug, props.revisionId], 
         <button
           type="button"
           class="level-btn"
-          :class="{ active: currentMode === 'section' }"
+          :class="{
+            active: currentMode === 'section'
+          }"
           @click="setMode('section')"
         >
           小节
@@ -590,14 +718,38 @@ watch(() => [props.tree, props.lectureId, props.lectureSlug, props.revisionId], 
 
       <!-- 视图控制 -->
       <div class="view-controls">
-        <button type="button" class="tool-btn" title="放大" @click="zoomIn">
-          <ZoomIn width="15" height="15" />
+        <button
+          type="button"
+          class="tool-btn"
+          title="放大"
+          @click="zoomIn"
+        >
+          <ZoomIn
+            width="15"
+            height="15"
+          />
         </button>
-        <button type="button" class="tool-btn" title="缩小" @click="zoomOut">
-          <ZoomOut width="15" height="15" />
+        <button
+          type="button"
+          class="tool-btn"
+          title="缩小"
+          @click="zoomOut"
+        >
+          <ZoomOut
+            width="15"
+            height="15"
+          />
         </button>
-        <button type="button" class="tool-btn" title="重置视角" @click="resetZoom">
-          <Expand width="15" height="15" />
+        <button
+          type="button"
+          class="tool-btn"
+          title="重置视角"
+          @click="resetZoom"
+        >
+          <Expand
+            width="15"
+            height="15"
+          />
         </button>
         <button
           type="button"
@@ -605,34 +757,57 @@ watch(() => [props.tree, props.lectureId, props.lectureSlug, props.revisionId], 
           :title="isPhysicsRunning ? '暂停物理力学' : '恢复物理力学'"
           @click="togglePhysics"
         >
-          <Pause v-if="isPhysicsRunning" width="15" height="15" />
-          <Play v-else width="15" height="15" />
+          <Pause
+            v-if="isPhysicsRunning"
+            width="15"
+            height="15"
+          />
+          <Play
+            v-else
+            width="15"
+            height="15"
+          />
         </button>
       </div>
     </div>
 
     <!-- WebGL 画布 -->
-    <canvas ref="canvasRef" class="graph-canvas" />
+    <canvas
+      ref="canvasRef"
+      class="graph-canvas"
+    />
 
     <!-- 移动端手势防劫持开关与提示浮标 -->
     <button
       type="button"
       class="touch-pan-pill font-mono"
-      :class="{ 'is-active': isTouchPanActive }"
+      :class="{
+        'is-active': isTouchPanActive
+      }"
       @click="isTouchPanActive = !isTouchPanActive"
     >
-      <component :is="isTouchPanActive ? HandCard : Lock" width="13" height="13" />
+      <component
+        :is="isTouchPanActive ? HandCard : Lock"
+        width="13"
+        height="13"
+      />
       <span>{{ isTouchPanActive ? '手势已开启 (点击锁定)' : '点击开启平移手势' }}</span>
     </button>
 
     <!-- 加载中 -->
-    <div v-if="isLoading" class="graph-overlay">
+    <div
+      v-if="isLoading"
+      class="graph-overlay"
+    >
       <div class="spinner"></div>
       <span>正在构建路线图...</span>
     </div>
 
     <!-- 错误状态（无兜底） -->
-    <div v-else-if="errorMsg" class="graph-overlay error-state">
+    <div
+      v-else-if="errorMsg"
+      class="graph-overlay error-state"
+    >
       <span class="error-title">无法加载路线图</span>
       <span class="error-desc">{{ errorMsg }}</span>
     </div>
@@ -809,7 +984,9 @@ watch(() => [props.tree, props.lectureId, props.lectureSlug, props.revisionId], 
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .error-state {

@@ -1,0 +1,9 @@
+node_modules/
+dist/
+docs/
+doc/
+src/vendor/
+public/
+*-lock.*
+deploy.config.json
+LICENSE

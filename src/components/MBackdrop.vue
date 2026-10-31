@@ -1,7 +1,9 @@
 <script setup>
 import { computed } from 'vue';
 
-defineOptions({ inheritAttrs: false });
+defineOptions({
+  inheritAttrs: false
+});
 
 const props = defineProps({
   // 是否显示遮罩
@@ -64,13 +66,18 @@ const handleClick = () => {
 </script>
 
 <template>
-  <Teleport :disabled="!shouldTeleport" :to="teleportTarget">
+  <Teleport
+    :disabled="!shouldTeleport"
+    :to="teleportTarget"
+  >
     <div
       v-bind="$attrs"
       class="m-backdrop"
       :class="[
         isFixed ? 'is-fixed' : 'is-absolute',
-        { 'is-open': open }
+        {
+          'is-open': open
+        }
       ]"
       :style="backdropStyle"
       @click.stop="handleClick"
@@ -86,8 +93,9 @@ const handleClick = () => {
   background-color: rgba(0, 0, 0, 0.4);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 190ms cubic-bezier(0.16, 1, 0.3, 1),
-              visibility 190ms;
+  transition:
+    opacity 190ms cubic-bezier(0.16, 1, 0.3, 1),
+    visibility 190ms;
   visibility: hidden;
   will-change: opacity;
 }

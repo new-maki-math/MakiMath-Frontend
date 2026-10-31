@@ -1,23 +1,25 @@
 <script setup>
-import { ref, inject, watch } from 'vue';
-import ViewportHeader from '../components/ViewportHeader.vue';
-import SearchBar from '../components/SearchBar.vue';
-import MUpdateLog from '../components/MUpdateLog.vue';
-import MDrawer from '../components/MDrawer.vue';
-import MTag from '../components/MTag.vue';
-import MButton from '../components/MButton.vue';
-import { useLayoutState } from './useLayoutState.js';
 import {
-  Menu,
-  Xmark,
-  Terminal,
-  Search,
-  SunLight,
   HalfMoon,
   HelpCircle,
+  LogOut,
+  Menu,
+  Search,
+  SunLight,
+  Terminal,
   UserCircle,
-  LogOut
+  Xmark
 } from '@iconoir/vue';
+import { inject, ref, watch } from 'vue';
+import { RouterView } from 'vue-router';
+
+import MButton from '../components/MButton.vue';
+import MDrawer from '../components/MDrawer.vue';
+import MTag from '../components/MTag.vue';
+import MUpdateLog from '../components/MUpdateLog.vue';
+import SearchBar from '../components/SearchBar.vue';
+import ViewportHeader from '../components/ViewportHeader.vue';
+import { useLayoutState } from './useLayoutState.js';
 
 // 注入共享布局状态
 const state = inject('layoutState', null) || useLayoutState();
@@ -82,7 +84,7 @@ watch(
 
 <template>
   <div class="maki-mobile-layout">
-    <!-- 移动端顶部轻量工具栏 (Mobile Topbar) -->
+    <!-- 移动端顶部轻量工具栏 -->
     <header class="mobile-topbar">
       <div class="topbar-left">
         <!-- 汉堡包侧边栏呼出按钮 (44px 舒适触控区) -->
@@ -93,12 +95,22 @@ watch(
           aria-label="打开导航目录"
           @click="openDrawer"
         >
-          <Menu width="20" height="20" />
+          <Menu
+            width="20"
+            height="20"
+          />
         </button>
 
         <!-- 品牌标识 -->
-        <div class="mobile-brand" @click="handleNavClick('/start')">
-          <Terminal width="16" height="16" class="brand-icon" />
+        <div
+          class="mobile-brand"
+          @click="handleNavClick('/start')"
+        >
+          <Terminal
+            width="16"
+            height="16"
+            class="brand-icon"
+          />
           <span class="brand-name">MAKI</span>
           <span class="brand-sep">//</span>
           <span class="brand-sub">MATH</span>
@@ -115,19 +127,83 @@ watch(
           aria-label="搜索数学节点或公式"
           @click="openSearch"
         >
-          <Search width="20" height="20" />
+          <Search
+            width="20"
+            height="20"
+          />
         </button>
 
-        <span v-if="isLoggedIn" class="mobile-user-name font-mono" :title="userDisplayName">{{ userDisplayName }}</span>
-        <button type="button" class="mobile-icon-btn user-btn" :class="{ active: isUserModalOpen }" :title="isLoggedIn ? '个人中心' : '登录或注册'" :aria-label="isLoggedIn ? '个人中心' : '登录或注册'" @click="openUserModal"><UserCircle width="20" height="20" /></button>
-        <button v-if="isLoggedIn" type="button" class="mobile-icon-btn" title="退出登录" aria-label="退出登录" @click="handleLogout"><LogOut width="20" height="20" /></button>
-        <button type="button" class="mobile-icon-btn" :class="{ active: isHelpModalOpen }" title="如何使用" aria-label="如何使用" @click="openHelpModal"><HelpCircle width="20" height="20" /></button>
-        <button type="button" class="mobile-icon-btn" :title="isDark ? '切换至浅色模式' : '切换至深色模式'" aria-label="切换浅色/深色模式" @click="toggleTheme"><SunLight v-if="isDark" width="20" height="20" /><HalfMoon v-else width="20" height="20" /></button>
+        <span
+          v-if="isLoggedIn"
+          class="mobile-user-name font-mono"
+          :title="userDisplayName"
+          >{{ userDisplayName }}</span
+        >
+        <button
+          type="button"
+          class="mobile-icon-btn user-btn"
+          :class="{
+            active: isUserModalOpen
+          }"
+          :title="isLoggedIn ? '个人中心' : '登录或注册'"
+          :aria-label="isLoggedIn ? '个人中心' : '登录或注册'"
+          @click="openUserModal"
+        >
+          <UserCircle
+            width="20"
+            height="20"
+          />
+        </button>
+        <button
+          v-if="isLoggedIn"
+          type="button"
+          class="mobile-icon-btn"
+          title="退出登录"
+          aria-label="退出登录"
+          @click="handleLogout"
+        >
+          <LogOut
+            width="20"
+            height="20"
+          />
+        </button>
+        <button
+          type="button"
+          class="mobile-icon-btn"
+          :class="{
+            active: isHelpModalOpen
+          }"
+          title="如何使用"
+          aria-label="如何使用"
+          @click="openHelpModal"
+        >
+          <HelpCircle
+            width="20"
+            height="20"
+          />
+        </button>
+        <button
+          type="button"
+          class="mobile-icon-btn"
+          :title="isDark ? '切换至浅色模式' : '切换至深色模式'"
+          aria-label="切换浅色/深色模式"
+          @click="toggleTheme"
+        >
+          <SunLight
+            v-if="isDark"
+            width="20"
+            height="20"
+          /><HalfMoon
+            v-else
+            width="20"
+            height="20"
+          />
+        </button>
         <MUpdateLog />
       </div>
     </header>
 
-    <!-- 移动端侧滑导航抽屉 (Mobile Navigation Drawer) -->
+    <!-- 移动端侧滑导航抽屉 -->
     <MDrawer
       :open="isDrawerOpen"
       placement="left"
@@ -142,10 +218,17 @@ watch(
             v-for="item in navigationGroups[0]"
             :key="item.id"
             class="drawer-nav-item"
-            :class="{ active: isItemActive(item) }"
+            :class="{
+              active: isItemActive(item)
+            }"
             @click="handleNavClick(item.path)"
           >
-            <component :is="item.icon" width="18" height="18" class="item-icon" />
+            <component
+              :is="item.icon"
+              width="18"
+              height="18"
+              class="item-icon"
+            />
             <span class="item-text">{{ item.label }}</span>
           </button>
 
@@ -153,10 +236,17 @@ watch(
             v-for="item in navigationGroups[1]"
             :key="item.id"
             class="drawer-nav-item"
-            :class="{ active: isItemActive(item) }"
+            :class="{
+              active: isItemActive(item)
+            }"
             @click="handleNavClick(item.path)"
           >
-            <component :is="item.icon" width="18" height="18" class="item-icon" />
+            <component
+              :is="item.icon"
+              width="18"
+              height="18"
+              class="item-icon"
+            />
             <span class="item-text">{{ item.label }}</span>
           </button>
 
@@ -166,20 +256,41 @@ watch(
             v-for="item in navigationGroups[2]"
             :key="item.id"
             class="drawer-nav-item"
-            :class="{ active: isItemActive(item) }"
+            :class="{
+              active: isItemActive(item)
+            }"
             @click="handleNavClick(item.path)"
           >
-            <component :is="item.icon" width="18" height="18" class="item-icon" />
+            <component
+              :is="item.icon"
+              width="18"
+              height="18"
+              class="item-icon"
+            />
             <span class="item-text">{{ item.label }}</span>
-            <MTag v-if="item.desktopOnly" variant="muted" size="sm">电脑端</MTag>
+            <MTag
+              v-if="item.desktopOnly"
+              variant="muted"
+              size="sm"
+              >电脑端</MTag
+            >
           </button>
-
         </nav>
 
         <!-- 抽屉底部用户账户栏 -->
-        <div v-if="isLoggedIn" class="drawer-user-footer">
-          <div class="user-info font-mono" @click="openUserModal">
-            <UserCircle width="18" height="18" class="user-avatar" />
+        <div
+          v-if="isLoggedIn"
+          class="drawer-user-footer"
+        >
+          <div
+            class="user-info font-mono"
+            @click="openUserModal"
+          >
+            <UserCircle
+              width="18"
+              height="18"
+              class="user-avatar"
+            />
             <span class="user-label">{{ userDisplayName }}</span>
           </div>
           <button
@@ -187,18 +298,29 @@ watch(
             title="退出登录"
             @click="handleLogout"
           >
-            <LogOut width="16" height="16" />
+            <LogOut
+              width="16"
+              height="16"
+            />
           </button>
         </div>
       </div>
     </MDrawer>
 
-    <!-- 移动端全屏搜索舱浮层 (Mobile Search Overlay) -->
+    <!-- 移动端全屏搜索舱浮层 -->
     <Transition name="search-overlay">
-      <div v-if="isSearchOpen" class="mobile-search-overlay">
+      <div
+        v-if="isSearchOpen"
+        class="mobile-search-overlay"
+      >
         <div class="search-overlay-header">
           <div class="search-box-wrap">
-            <SearchBar variant="hero" :auto-focus="true" @select="closeSearch" @navigate="closeSearch" />
+            <SearchBar
+              variant="hero"
+              :auto-focus="true"
+              @select="closeSearch"
+              @navigate="closeSearch"
+            />
           </div>
           <button
             type="button"
@@ -206,15 +328,26 @@ watch(
             title="关闭搜索"
             @click="closeSearch"
           >
-            <Xmark width="20" height="20" />
+            <Xmark
+              width="20"
+              height="20"
+            />
           </button>
         </div>
-        <div class="search-overlay-backdrop" @click="closeSearch"></div>
+        <div
+          class="search-overlay-backdrop"
+          @click="closeSearch"
+        ></div>
       </div>
     </Transition>
 
     <!-- 移动端主内容视口 (全屏单列，原生平滑滚动) -->
-    <main class="mobile-viewport" :class="{ 'is-lecture-shelf': route.name === 'my-lecture' }">
+    <main
+      class="mobile-viewport"
+      :class="{
+        'is-lecture-shelf': route.name === 'my-lecture'
+      }"
+    >
       <ViewportHeader
         v-if="showViewportHeader && !currentItem.desktopOnly"
         :title="currentLecture ? currentLecture.title : currentItem.label"
@@ -223,14 +356,24 @@ watch(
       />
 
       <div class="mobile-content-container">
-        <div v-if="currentItem.desktopOnly" class="desktop-only-notice">
+        <div
+          v-if="currentItem.desktopOnly"
+          class="desktop-only-notice"
+        >
           <span class="desktop-only-label font-mono">DESKTOP ONLY</span>
           <h2>请在电脑端使用</h2>
           <p>{{ currentItem.label }}暂不支持移动端，请使用电脑访问。</p>
-          <MButton size="sm" @click="handleNavClick('/start')">返回首页</MButton>
+          <MButton
+            size="sm"
+            @click="handleNavClick('/start')"
+            >返回首页</MButton
+          >
         </div>
-        <slot v-else :current-item="currentItem">
-          <router-view :key="docRefreshKey" />
+        <slot
+          v-else
+          :current-item="currentItem"
+        >
+          <RouterView :key="docRefreshKey" />
         </slot>
       </div>
     </main>
@@ -269,9 +412,23 @@ watch(
   gap: 4px;
 }
 
-.topbar-right { min-width: 0; overflow-x: auto; scrollbar-width: none; }
-.topbar-right::-webkit-scrollbar { display: none; }
-.mobile-user-name { flex: none; max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); font-size: var(--font-size-smaller); }
+.topbar-right {
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.topbar-right::-webkit-scrollbar {
+  display: none;
+}
+.mobile-user-name {
+  flex: none;
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-secondary);
+  font-size: var(--font-size-smaller);
+}
 
 .mobile-icon-btn {
   display: inline-flex;
@@ -284,7 +441,9 @@ watch(
   background: transparent;
   border: none;
   cursor: pointer;
-  transition: background-color 140ms ease, color 140ms ease;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease;
   flex-shrink: 0;
 }
 
@@ -362,7 +521,9 @@ watch(
   text-align: left;
   cursor: pointer;
   font-size: var(--font-size);
-  transition: background-color 140ms ease, color 140ms ease;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease;
 }
 
 .drawer-nav-item:hover,
@@ -474,7 +635,9 @@ watch(
 
 .search-overlay-enter-active,
 .search-overlay-leave-active {
-  transition: opacity 180ms ease, transform 180ms ease;
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
 }
 
 .search-overlay-enter-from,
@@ -495,8 +658,14 @@ watch(
   height: calc(100vh - 48px);
 }
 
-.mobile-viewport.is-lecture-shelf { overflow: hidden; min-height: 0; }
-.mobile-viewport.is-lecture-shelf .mobile-content-container { min-height: 0; overflow: hidden; }
+.mobile-viewport.is-lecture-shelf {
+  overflow: hidden;
+  min-height: 0;
+}
+.mobile-viewport.is-lecture-shelf .mobile-content-container {
+  min-height: 0;
+  overflow: hidden;
+}
 
 .mobile-content-container {
   flex: 1;
@@ -507,8 +676,31 @@ watch(
   position: relative;
 }
 
-.desktop-only-notice { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 24px; text-align: center; }
-.desktop-only-label { margin-bottom: 16px; color: var(--text-muted); font-size: var(--font-size-smaller); letter-spacing: 0.08em; }
-.desktop-only-notice h2 { margin: 0; color: var(--text-primary); font-size: var(--font-size-larger); font-weight: var(--font-weight-medium); }
-.desktop-only-notice p { margin: 12px 0 20px; color: var(--text-secondary); font-size: var(--font-size); line-height: 1.6; }
+.desktop-only-notice {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px;
+  text-align: center;
+}
+.desktop-only-label {
+  margin-bottom: 16px;
+  color: var(--text-muted);
+  font-size: var(--font-size-smaller);
+  letter-spacing: 0.08em;
+}
+.desktop-only-notice h2 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: var(--font-size-larger);
+  font-weight: var(--font-weight-medium);
+}
+.desktop-only-notice p {
+  margin: 12px 0 20px;
+  color: var(--text-secondary);
+  font-size: var(--font-size);
+  line-height: 1.6;
+}
 </style>

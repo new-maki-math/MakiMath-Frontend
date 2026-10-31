@@ -11,7 +11,10 @@ const CHAPTER_PALETTE = [
 
 export function buildLectureGraph(tree) {
   if (!tree || !tree.id) {
-    return { nodes: [], links: [] };
+    return {
+      nodes: [],
+      links: []
+    };
   }
 
   const nodes = [];
@@ -85,5 +88,8 @@ export function buildLectureGraph(tree) {
     });
   });
 
-  return { nodes, links };
+  return {
+    nodes,
+    links
+  };
 }

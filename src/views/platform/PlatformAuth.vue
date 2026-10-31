@@ -1,10 +1,11 @@
 <script setup>
 // 平台管理超级管理员登录组件
 import { ref } from 'vue';
-import { authenticate } from '../../utils/auth.js';
-import { notify } from '../../components/MNotice.vue';
-import MInput from '../../components/MInput.vue';
+
 import MButton from '../../components/MButton.vue';
+import MInput from '../../components/MInput.vue';
+import { notify } from '../../components/MNotice.vue';
+import { authenticate } from '../../utils/auth.js';
 
 // 声明登录成功事件
 const emit = defineEmits(['success']);
@@ -25,10 +26,14 @@ const handleLogin = async () => {
   }
   isSubmitting.value = true;
   try {
-    const user = await authenticate('/api/auth/login', {
-      username: form.value.username.trim(),
-      password: form.value.password
-    }, 'super_admin');
+    const user = await authenticate(
+      '/api/auth/login',
+      {
+        username: form.value.username.trim(),
+        password: form.value.password
+      },
+      'super_admin'
+    );
     notify('超级管理员认证成功', 'success');
     emit('success', user);
   } catch (err) {
@@ -48,7 +53,10 @@ const handleLogin = async () => {
           <p class="auth-desc">请验证超级管理员凭据以进入系统管理控制台</p>
         </header>
 
-        <form class="auth-form" @submit.prevent="handleLogin">
+        <form
+          class="auth-form"
+          @submit.prevent="handleLogin"
+        >
           <MInput
             v-model="form.username"
             label="管理员账号"

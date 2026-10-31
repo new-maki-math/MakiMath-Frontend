@@ -1,21 +1,24 @@
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted, inject } from 'vue';
+import { ArrowRight, Search, Xmark } from '@iconoir/vue';
+import { inject, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { Search, Xmark, ArrowRight } from '@iconoir/vue';
-import { fetchSearchRecommendations } from '../api';
-import { notify } from './MNotice.vue';
-import { lectureLocation } from '../utils/lecture-route.js';
+
+import { fetchSearchRecommendations } from '../api/courses.js';
 import {
-  useLectureSearch,
+  getBrightTagVariant,
   getSectionTags,
-  getBrightTagVariant
-} from '../utils';
+  useLectureSearch
+} from '../composables/useLectureSearch.js';
+import { lectureLocation } from '../utils/lecture-route.js';
+import MBackdrop from './MBackdrop.vue';
+import { notify } from './MNotice.vue';
+import MTag from './MTag.vue';
 
 const props = defineProps({
-  // 外观形态：'hero' (欢迎页中央大搜索舱) | 'topbar' (顶栏紧凑搜索框)
+  // 区分首页搜索框与顶栏搜索框
   variant: {
     type: String,
-    default: 'topbar' // 'hero' | 'topbar'
+    default: 'topbar'
   },
   autoFocus: {
     type: Boolean,
@@ -49,7 +52,9 @@ let placeholderTimer = null;
 let phIndex = 0;
 
 const startPlaceholderLoop = () => {
-  if (props.variant !== 'hero') return;
+  if (props.variant !== 'hero') {
+    return;
+  }
   placeholderTimer = setInterval(() => {
     phIndex = (phIndex + 1) % placeholders.length;
     currentPlaceholder.value = placeholders[phIndex];
@@ -111,20 +116,33 @@ const handleInputBlur = () => {
 
 // 确认选择或跳转
 const handleSelect = (item) => {
-  if (!item) return;
+  if (!item) {
+    return;
+  }
   closeSearch();
   inputRef.value?.blur();
   emit('select', item);
 
   if (item.type === 'knowledge') {
-    if (!openKnowledgeSearch?.(item, inputRef.value)) notify('无法打开知识点详情，请稍后重试', 'warn');
+    if (!openKnowledgeSearch?.(item, inputRef.value)) {
+      notify('无法打开知识点详情，请稍后重试', 'warn');
+    }
     return;
   }
-  const targetPath = item.type === 'lecture' && item.slug
-    ? router.resolve(lectureLocation({ slug: item.slug })).href
-    : '';
-  if (!targetPath && item.type !== 'knowledge') notify('搜索结果缺少讲义标识，无法打开', 'warn');
-  if (!targetPath) return;
+  const targetPath =
+    item.type === 'lecture' && item.slug
+      ? router.resolve(
+          lectureLocation({
+            slug: item.slug
+          })
+        ).href
+      : '';
+  if (!targetPath && item.type !== 'knowledge') {
+    notify('搜索结果缺少讲义标识，无法打开', 'warn');
+  }
+  if (!targetPath) {
+    return;
+  }
   emit('navigate', targetPath);
   router.push(targetPath);
 };
@@ -157,9 +175,13 @@ const handleKeyDown = (e) => {
 const handleGlobalKey = (e) => {
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
     const isStart = route.path === '/start';
-    // hero 模式仅响应 start 页面；topbar 模式响应除 start 外的页面
-    if (props.variant === 'hero' && !isStart) return;
-    if (props.variant === 'topbar' && isStart) return;
+    // 仅激活当前页面可见的搜索框
+    if (props.variant === 'hero' && !isStart) {
+      return;
+    }
+    if (props.variant === 'topbar' && isStart) {
+      return;
+    }
 
     e.preventDefault();
     if (isOpen.value && document.activeElement === inputRef.value) {
@@ -201,7 +223,9 @@ onMounted(async () => {
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside);
   window.removeEventListener('keydown', handleGlobalKey);
-  if (placeholderTimer) clearInterval(placeholderTimer);
+  if (placeholderTimer) {
+    clearInterval(placeholderTimer);
+  }
 });
 
 // 暴露焦点方法
@@ -218,7 +242,9 @@ defineExpose({
     class="search-bar-unified"
     :class="[
       `is-${variant}`,
-      { 'is-focused': isOpen }
+      {
+        'is-focused': isOpen
+      }
     ]"
     @click="inputRef?.focus()"
   >
@@ -255,9 +281,18 @@ defineExpose({
         />
 
         <!-- 仅 hero 模式展现的垂直滚动翻转占位符 -->
-        <div v-if="variant === 'hero' && !query" class="hero-placeholder-layer">
-          <transition name="placeholder-roll" mode="out-in">
-            <span :key="currentPlaceholder" class="placeholder-text">
+        <div
+          v-if="variant === 'hero' && !query"
+          class="hero-placeholder-layer"
+        >
+          <transition
+            name="placeholder-roll"
+            mode="out-in"
+          >
+            <span
+              :key="currentPlaceholder"
+              class="placeholder-text"
+            >
               {{ currentPlaceholder }}
             </span>
           </transition>
@@ -272,18 +307,27 @@ defineExpose({
         title="清除内容"
         @click.stop="handleClear"
       >
-        <Xmark :width="variant === 'hero' ? 16 : 14" :height="variant === 'hero' ? 16 : 14" />
+        <Xmark
+          :width="variant === 'hero' ? 16 : 14"
+          :height="variant === 'hero' ? 16 : 14"
+        />
       </button>
 
       <!-- 键盘快捷键徽标 -->
-      <div v-else class="kbd-wrap font-mono">
+      <div
+        v-else
+        class="kbd-wrap font-mono"
+      >
         <kbd class="kbd-badge">Ctrl+K</kbd>
       </div>
     </div>
 
     <!-- 检索结果浮层卡片 -->
     <transition name="dropdown-anim">
-      <div v-if="isOpen" class="search-dropdown-card">
+      <div
+        v-if="isOpen"
+        class="search-dropdown-card"
+      >
         <!-- 结果列表头部统计 -->
         <div class="dropdown-header">
           <span>{{ query ? '匹配知识点与讲义' : '推荐讲义' }}</span>
@@ -291,18 +335,28 @@ defineExpose({
         </div>
 
         <!-- 滚动列表 -->
-        <div ref="listRef" v-if="displayResults.length" class="dropdown-list">
+        <div
+          ref="listRef"
+          v-if="displayResults.length"
+          class="dropdown-list"
+        >
           <div
             v-for="(item, idx) in displayResults"
             :key="`${item.type}:${item.id}`"
             class="result-row"
-            :class="{ 'is-active': activeIndex === idx }"
+            :class="{
+              'is-active': activeIndex === idx
+            }"
             @mousedown.prevent="handleSelect(item)"
             @mouseenter="activeIndex = idx"
           >
-            <!-- 标签列：课程名称 + 小节标签（使用 MTag 原生无边框大号样式） -->
+            <!-- 展示课程名称和小节标签 -->
             <div class="result-tag-col">
-              <MTag :variant="getBrightTagVariant(item.type)" size="md" :mono="false">
+              <MTag
+                :variant="getBrightTagVariant(item.type)"
+                size="md"
+                :mono="false"
+              >
                 {{ item.type === 'knowledge' ? '知识点' : '讲义' }}
               </MTag>
               <MTag
@@ -319,22 +373,45 @@ defineExpose({
             <!-- 主内容列 -->
             <div class="result-content-col">
               <span class="result-title">{{ item.title }}</span>
-              <span v-if="item.type !== 'knowledge' && (item.descr || item.summary)" class="result-excerpt font-mono">
+              <span
+                v-if="item.type !== 'knowledge' && (item.descr || item.summary)"
+                class="result-excerpt font-mono"
+              >
                 {{ item.descr || item.summary }}
               </span>
             </div>
 
-            <ArrowRight width="14" height="14" class="result-arrow" />
+            <ArrowRight
+              width="14"
+              height="14"
+              class="result-arrow"
+            />
           </div>
         </div>
 
         <!-- 空状态 -->
-        <div v-else-if="searchError" class="empty-state">
+        <div
+          v-else-if="searchError"
+          class="empty-state"
+        >
           <span>{{ searchError }}</span>
-          <button type="button" @mousedown.prevent.stop="executeSearch(query)">重试</button>
+          <button
+            type="button"
+            @mousedown.prevent.stop="executeSearch(query)"
+          >
+            重试
+          </button>
         </div>
-        <div v-else-if="isSearching" class="empty-state">正在搜索</div>
-        <div v-else class="empty-state">
+        <div
+          v-else-if="isSearching"
+          class="empty-state"
+        >
+          正在搜索
+        </div>
+        <div
+          v-else
+          class="empty-state"
+        >
           <span>{{ query ? `未找到与「${query}」相关的内容` : '暂无推荐讲义' }}</span>
         </div>
 
@@ -356,7 +433,7 @@ defineExpose({
   user-select: none;
 }
 
-/* ================== Hero 模式（欢迎页中央大搜索舱） ================== */
+/* Hero 模式（欢迎页中央大搜索舱） */
 .search-bar-unified.is-hero {
   max-width: 640px;
   margin: 0 auto;
@@ -369,7 +446,10 @@ defineExpose({
   border-radius: var(--radius-sm, 6px);
   padding: 0 16px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  transition: border-color 200ms ease, background-color 200ms ease, box-shadow 200ms ease;
+  transition:
+    border-color 200ms ease,
+    background-color 200ms ease,
+    box-shadow 200ms ease;
   cursor: text;
 }
 
@@ -381,14 +461,16 @@ defineExpose({
 .search-bar-unified.is-hero.is-focused .search-input-inner {
   background-color: var(--bg-elevated);
   border-color: var(--accent-primary);
-  box-shadow: 0 0 0 1px var(--accent-primary), 0 8px 30px rgba(0, 0, 0, 0.25);
+  box-shadow:
+    0 0 0 1px var(--accent-primary),
+    0 8px 30px rgba(0, 0, 0, 0.25);
 }
 
 .search-bar-unified.is-hero .native-search-input {
   font-size: var(--font-size, 14px);
 }
 
-/* ================== Topbar 模式（顶栏紧凑搜索框） ================== */
+/* Topbar 模式（顶栏紧凑搜索框） */
 .search-bar-unified.is-topbar {
   max-width: 500px;
 }
@@ -400,7 +482,9 @@ defineExpose({
   border-radius: var(--radius-xs, 4px);
   padding: 0 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transition: border-color 160ms ease, background-color 160ms ease;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease;
   cursor: text;
 }
 
@@ -419,7 +503,7 @@ defineExpose({
   font-size: 12.5px;
 }
 
-/* ================== 通用输入结构 ================== */
+/* 通用输入结构 */
 .search-input-inner {
   display: flex;
   align-items: center;
@@ -478,7 +562,9 @@ defineExpose({
 
 .placeholder-roll-enter-active,
 .placeholder-roll-leave-active {
-  transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1), opacity 240ms ease;
+  transition:
+    transform 260ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 240ms ease;
 }
 
 .placeholder-roll-enter-from {
@@ -523,7 +609,7 @@ defineExpose({
   color: var(--text-secondary);
 }
 
-/* ================== 下拉卡片 ================== */
+/* 下拉卡片 */
 .search-dropdown-card {
   position: absolute;
   top: calc(100% + 8px);
@@ -574,7 +660,10 @@ defineExpose({
   padding: 9px 16px;
   cursor: pointer;
   border-left: 2px solid transparent;
-  transition: background-color 150ms ease, border-left-color 150ms ease, padding-left 150ms ease;
+  transition:
+    background-color 150ms ease,
+    border-left-color 150ms ease,
+    padding-left 150ms ease;
 }
 
 .result-row:hover,
@@ -621,7 +710,10 @@ defineExpose({
   color: var(--text-muted);
   opacity: 0.3;
   flex-shrink: 0;
-  transition: transform 180ms ease, opacity 180ms ease, color 180ms ease;
+  transition:
+    transform 180ms ease,
+    opacity 180ms ease,
+    color 180ms ease;
 }
 
 .result-row:hover .result-arrow,
@@ -661,7 +753,9 @@ defineExpose({
 /* 下拉菜单淡入动效 */
 .dropdown-anim-enter-active,
 .dropdown-anim-leave-active {
-  transition: opacity 160ms ease, transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    opacity 160ms ease,
+    transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .dropdown-anim-enter-from,

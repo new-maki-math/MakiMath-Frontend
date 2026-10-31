@@ -38,7 +38,10 @@ const opacityDurationMs = computed(() => {
     class="m-collapse"
     :class="[
       horizontal ? 'is-horizontal' : 'is-vertical',
-      { 'is-open': open, 'no-fade': !fade }
+      {
+        'is-open': open,
+        'no-fade': !fade
+      }
     ]"
     :style="{
       '--collapse-duration': `${durationMs}ms`,
@@ -52,7 +55,9 @@ const opacityDurationMs = computed(() => {
 </template>
 
 <style scoped>
-.m-collapse { --collapse-easing: cubic-bezier(0.16, 1, 0.3, 1); }
+.m-collapse {
+  --collapse-easing: cubic-bezier(0.16, 1, 0.3, 1);
+}
 
 .m-collapse {
   position: relative;
@@ -75,8 +80,9 @@ const opacityDurationMs = computed(() => {
   overflow: hidden;
   height: 100%;
   transform: translate3d(0, 0, 0);
-  transition: transform var(--collapse-duration, 220ms) var(--collapse-easing),
-              opacity var(--collapse-opacity-duration, 180ms) var(--collapse-easing);
+  transition:
+    transform var(--collapse-duration, 220ms) var(--collapse-easing),
+    opacity var(--collapse-opacity-duration, 180ms) var(--collapse-easing);
   will-change: transform, opacity;
 }
 
@@ -105,8 +111,9 @@ const opacityDurationMs = computed(() => {
   min-height: 0;
   overflow: hidden;
   transform: translate3d(0, 0, 0);
-  transition: transform var(--collapse-duration, 220ms) var(--collapse-easing),
-              opacity var(--collapse-opacity-duration, 180ms) var(--collapse-easing);
+  transition:
+    transform var(--collapse-duration, 220ms) var(--collapse-easing),
+    opacity var(--collapse-opacity-duration, 180ms) var(--collapse-easing);
   will-change: transform, opacity;
 }
 

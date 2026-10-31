@@ -1,6 +1,8 @@
 <script setup>
 import { NavArrowLeft, NavArrowRight } from '@iconoir/vue';
 
+import MTag from '../../components/MTag.vue';
+
 defineProps({
   prevSection: {
     type: Object,
@@ -22,7 +24,10 @@ const handleNavigate = (section) => {
 </script>
 
 <template>
-  <footer class="doc-footer-nav" aria-label="讲义章节切换导航">
+  <footer
+    class="doc-footer-nav"
+    aria-label="讲义章节切换导航"
+  >
     <!-- 上一讲 -->
     <button
       v-if="prevSection"
@@ -31,19 +36,35 @@ const handleNavigate = (section) => {
       @click="handleNavigate(prevSection)"
     >
       <div class="card-direction font-mono">
-        <NavArrowLeft width="14" height="14" class="arrow-icon prev-arrow" />
+        <NavArrowLeft
+          width="14"
+          height="14"
+          class="arrow-icon prev-arrow"
+        />
         <span>PREV // 上一讲</span>
       </div>
       <div class="card-content">
-        <MTag v-if="prevSection.chapterTag" variant="cyan" size="sm" class="chapter-tag">
+        <MTag
+          v-if="prevSection.chapterTag"
+          variant="cyan"
+          size="sm"
+          class="chapter-tag"
+        >
           {{ prevSection.chapterTag }}
         </MTag>
-        <span class="section-title" :title="prevSection.title">
+        <span
+          class="section-title"
+          :title="prevSection.title"
+        >
           {{ prevSection.title }}
         </span>
       </div>
     </button>
-    <div v-else class="nav-placeholder" aria-hidden="true" />
+    <div
+      v-else
+      class="nav-placeholder"
+      aria-hidden="true"
+    />
 
     <!-- 下一讲 -->
     <button
@@ -54,18 +75,34 @@ const handleNavigate = (section) => {
     >
       <div class="card-direction font-mono">
         <span>下一讲 // NEXT</span>
-        <NavArrowRight width="14" height="14" class="arrow-icon next-arrow" />
+        <NavArrowRight
+          width="14"
+          height="14"
+          class="arrow-icon next-arrow"
+        />
       </div>
       <div class="card-content">
-        <span class="section-title" :title="nextSection.title">
+        <span
+          class="section-title"
+          :title="nextSection.title"
+        >
           {{ nextSection.title }}
         </span>
-        <MTag v-if="nextSection.chapterTag" variant="cyan" size="sm" class="chapter-tag">
+        <MTag
+          v-if="nextSection.chapterTag"
+          variant="cyan"
+          size="sm"
+          class="chapter-tag"
+        >
           {{ nextSection.chapterTag }}
         </MTag>
       </div>
     </button>
-    <div v-else class="nav-placeholder" aria-hidden="true" />
+    <div
+      v-else
+      class="nav-placeholder"
+      aria-hidden="true"
+    />
   </footer>
 </template>
 
@@ -102,7 +139,9 @@ const handleNavigate = (section) => {
   cursor: pointer;
   text-align: left;
   user-select: none;
-  transition: background-color 120ms ease, border-color 120ms ease;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease;
   min-height: 80px;
 }
 

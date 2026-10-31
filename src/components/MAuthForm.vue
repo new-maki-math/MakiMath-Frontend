@@ -1,11 +1,12 @@
 <script setup>
 // 登录与邀请注册组件
 import { ref } from 'vue';
-import { authenticate } from '../utils/auth.js';
+
 import { request } from '../api/client.js';
-import { notify } from './MNotice.vue';
-import MInput from './MInput.vue';
+import { authenticate } from '../utils/auth.js';
 import MButton from './MButton.vue';
+import MInput from './MInput.vue';
+import { notify } from './MNotice.vue';
 import MTabs from './MTabs.vue';
 
 // 声明认证成功回调事件
@@ -32,7 +33,9 @@ const registerForm = ref({
 
 // 执行登录操作
 const handleLogin = async () => {
-  if (isSubmitting.value) return;
+  if (isSubmitting.value) {
+    return;
+  }
   if (!loginForm.value.username.trim() || !loginForm.value.password) {
     notify('用户名和密码不能为空', 'error');
     return;
@@ -54,7 +57,9 @@ const handleLogin = async () => {
 
 // 执行邀请码注册操作
 const handleRegister = async () => {
-  if (isSubmitting.value) return;
+  if (isSubmitting.value) {
+    return;
+  }
   if (!registerForm.value.inviteCode.trim()) {
     notify('请输入邀请码', 'error');
     return;
@@ -63,7 +68,10 @@ const handleRegister = async () => {
     notify('用户名至少需要三个字符', 'error');
     return;
   }
-  if (registerForm.value.password.length < 8 || new TextEncoder().encode(registerForm.value.password).length > 72) {
+  if (
+    registerForm.value.password.length < 8 ||
+    new TextEncoder().encode(registerForm.value.password).length > 72
+  ) {
     notify('密码至少需要八位字符且不能超过七十二字节', 'error');
     return;
   }
@@ -73,12 +81,15 @@ const handleRegister = async () => {
   }
   isSubmitting.value = true;
   try {
-    await request('/api/auth/register', { method: 'POST', body: {
-      invite_code: registerForm.value.inviteCode.trim(),
-      username: registerForm.value.username.trim(),
-      display_name: registerForm.value.displayName.trim(),
-      password: registerForm.value.password
-    } });
+    await request('/api/auth/register', {
+      method: 'POST',
+      body: {
+        invite_code: registerForm.value.inviteCode.trim(),
+        username: registerForm.value.username.trim(),
+        display_name: registerForm.value.displayName.trim(),
+        password: registerForm.value.password
+      }
+    });
     loginForm.value.username = registerForm.value.username.trim();
     mode.value = 'login';
     notify('注册成功，请登录', 'success');
@@ -95,13 +106,27 @@ const handleRegister = async () => {
     <MTabs
       v-model="mode"
       :tabs="[
-        { label: '账号登录', value: 'login' },
-        { label: '邀请码注册', value: 'register' }
+        {
+          label: '账号登录',
+          value: 'login'
+        },
+        {
+          label: '邀请码注册',
+          value: 'register'
+        }
       ]"
     />
 
-    <transition name="auth-fade" mode="out-in">
-      <form v-if="mode === 'login'" key="login" class="auth-form" @submit.prevent="handleLogin">
+    <transition
+      name="auth-fade"
+      mode="out-in"
+    >
+      <form
+        v-if="mode === 'login'"
+        key="login"
+        class="auth-form"
+        @submit.prevent="handleLogin"
+      >
         <MInput
           v-model="loginForm.username"
           label="用户名"
@@ -128,7 +153,12 @@ const handleRegister = async () => {
         </div>
       </form>
 
-      <form v-else key="register" class="auth-form" @submit.prevent="handleRegister">
+      <form
+        v-else
+        key="register"
+        class="auth-form"
+        @submit.prevent="handleRegister"
+      >
         <MInput
           v-model="registerForm.inviteCode"
           label="邀请码"
@@ -194,7 +224,9 @@ const handleRegister = async () => {
 
 .auth-fade-enter-active,
 .auth-fade-leave-active {
-  transition: opacity 140ms ease, transform 140ms ease;
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease;
 }
 
 .auth-fade-enter-from {

@@ -1,7 +1,6 @@
 import { request } from './client.js';
 
-// 内存单例缓存与 slug 映射
-const treeCache = new Map();
+// 推荐列表缓存与目录请求去重
 const courseListCache = new Map();
 const treeRequests = new Map();
 const courseListRequests = new Map();
@@ -10,45 +9,82 @@ let cacheVersion = 0;
 // 清除内容缓存并使进行中的请求失效
 export function invalidateCourseCaches() {
   cacheVersion++;
-  treeCache.clear();
   courseListCache.clear();
   treeRequests.clear();
   courseListRequests.clear();
 }
 
-const fetchCourseList = () => cachedRequest(courseListCache, courseListRequests, 'all', () => request('/api/lectures'));
+const fetchCourseList = () =>
+  cachedRequest(courseListCache, courseListRequests, 'all', () => request('/api/lectures'));
 
 function cachedRequest(cache, pending, key, load) {
-  if (cache.has(key)) return Promise.resolve(cache.get(key));
-  if (pending.has(key)) return pending.get(key);
+  if (cache.has(key)) {
+    return Promise.resolve(cache.get(key));
+  }
+  if (pending.has(key)) {
+    return pending.get(key);
+  }
   const version = cacheVersion;
-  const promise = load().then((value) => {
-    if (version === cacheVersion) cache.set(key, value);
-    return value;
-  }).finally(() => {
-    if (pending.get(key) === promise) pending.delete(key);
-  });
+  const promise = load()
+    .then((value) => {
+      if (version === cacheVersion) {
+        cache.set(key, value);
+      }
+      return value;
+    })
+    .finally(() => {
+      if (pending.get(key) === promise) {
+        pending.delete(key);
+      }
+    });
   pending.set(key, promise);
   return promise;
 }
 
 // 获取课程目录树
 export async function fetchCourseTree(slug, revisionId = '') {
-  if (!slug) throw new Error('缺少讲义标识');
-  const startedVersion = cacheVersion;
+  if (!slug) {
+    throw new Error('缺少讲义标识');
+  }
   const key = `${slug}:${revisionId || ''}`;
   const loadTree = async () => {
-    const query = revisionId !== '' && revisionId != null ? `?revision_id=${encodeURIComponent(revisionId)}` : '';
-    const snapshot = await request(`/api/lectures/by-slug/${encodeURIComponent(slug)}/outline${query}`, { cache: 'no-store' });
+    const query =
+      revisionId !== '' && revisionId != null
+        ? `?revision_id=${encodeURIComponent(revisionId)}`
+        : '';
+    const snapshot = await request(
+      `/api/lectures/by-slug/${encodeURIComponent(slug)}/outline${query}`,
+      {
+        cache: 'no-store'
+      }
+    );
     const lecture = snapshot.lecture;
     const revision = snapshot.revision;
-    if (!lecture || !revision || !Number.isInteger(revision.edit_version) || revision.edit_version < 1 || !Array.isArray(snapshot.chapters)) throw new Error('讲义数据不完整');
-    if (lecture.slug !== String(slug) || (revisionId && String(revision.id) !== String(revisionId))) throw new Error('讲义或版本数据不匹配');
-    if (snapshot.chapters.some((chapter) =>
-      !chapter.occurrence_id || !Array.isArray(chapter.sections) || chapter.sections.some((section) =>
-        !section.occurrence_id
+    if (
+      !lecture ||
+      !revision ||
+      !Number.isInteger(revision.edit_version) ||
+      revision.edit_version < 1 ||
+      !Array.isArray(snapshot.chapters)
+    ) {
+      throw new Error('讲义数据不完整');
+    }
+    if (
+      lecture.slug !== String(slug) ||
+      (revisionId && String(revision.id) !== String(revisionId))
+    ) {
+      throw new Error('讲义或版本数据不匹配');
+    }
+    if (
+      snapshot.chapters.some(
+        (chapter) =>
+          !chapter.occurrence_id ||
+          !Array.isArray(chapter.sections) ||
+          chapter.sections.some((section) => !section.occurrence_id)
       )
-    )) throw new Error('讲义目录数据不完整');
+    ) {
+      throw new Error('讲义目录数据不完整');
+    }
     return {
       ...revision,
       id: lecture.id,
@@ -67,16 +103,13 @@ export async function fetchCourseTree(slug, revisionId = '') {
       edges: []
     };
   };
-  if (startedVersion !== cacheVersion) return loadTree();
-  const version = cacheVersion;
-  if (treeRequests.has(key)) return treeRequests.get(key);
-  const promise = loadTree().then((tree) => {
-    if (version === cacheVersion) {
-      treeCache.set(key, tree);
+  if (treeRequests.has(key)) {
+    return treeRequests.get(key);
+  }
+  const promise = loadTree().finally(() => {
+    if (treeRequests.get(key) === promise) {
+      treeRequests.delete(key);
     }
-    return tree;
-  }).finally(() => {
-    if (treeRequests.get(key) === promise) treeRequests.delete(key);
   });
   treeRequests.set(key, promise);
   return promise;
@@ -89,7 +122,9 @@ export function toChapters(tree) {
 
   const preds = new Map();
   for (const [from, to] of tree?.edges ?? []) {
-    if (!preds.has(to)) preds.set(to, []);
+    if (!preds.has(to)) {
+      preds.set(to, []);
+    }
     preds.get(to).push(from);
   }
 
@@ -99,7 +134,12 @@ export function toChapters(tree) {
       const p = byId.get(id) ?? {};
       const tag = p.tag || '';
       const title = p.title || String(id);
-      return { id, tag, title, label: tag ? `${tag} ${title}` : title };
+      return {
+        id,
+        tag,
+        title,
+        label: tag ? `${tag} ${title}` : title
+      };
     });
 
     return {
@@ -157,8 +197,10 @@ export function lectureBundleFromTree(tree) {
 
 // 获取小节源码
 export async function getCourseSectionContent(courseKey, sectionId, existingTree = null) {
-  const tree = existingTree || await fetchCourseTree(courseKey);
-  const chapter = tree.chapters.find((item) => item.sections.some((section) => String(section.id) === String(sectionId)));
+  const tree = existingTree || (await fetchCourseTree(courseKey));
+  const chapter = tree.chapters.find((item) =>
+    item.sections.some((section) => String(section.id) === String(sectionId))
+  );
   const section = chapter?.sections.find((item) => String(item.id) === String(sectionId));
   if (!section) {
     const error = new Error('讲义小节不存在');
@@ -168,17 +210,34 @@ export async function getCourseSectionContent(courseKey, sectionId, existingTree
   let source = section.source;
   if (tree.storageSource !== 'local') {
     const path = `/api/lectures/by-slug/${encodeURIComponent(tree.slug)}/revisions/${encodeURIComponent(tree.revision_id)}/chapters/${encodeURIComponent(chapter.slug)}/sections/${encodeURIComponent(section.slug)}?edit_version=${encodeURIComponent(tree.edit_version)}`;
-    const response = await request(path, { cache: 'no-store' });
-    if (String(response.revision_id) !== String(tree.revision_id) || String(response.occurrence_id) !== String(section.id) || response.edit_version !== tree.edit_version || typeof response.source !== 'string') throw new Error('讲义小节数据不完整或版本不匹配');
+    const response = await request(path, {
+      cache: 'no-store'
+    });
+    if (
+      String(response.revision_id) !== String(tree.revision_id) ||
+      String(response.occurrence_id) !== String(section.id) ||
+      response.edit_version !== tree.edit_version ||
+      typeof response.source !== 'string'
+    ) {
+      throw new Error('讲义小节数据不完整或版本不匹配');
+    }
     source = response.source;
   }
-  return { id: section.id, title: section.title, lead: section.summary || '', updatedAt: tree.updated_at || null, source: source || '' };
+  return {
+    id: section.id,
+    title: section.title,
+    lead: section.summary || '',
+    updatedAt: tree.updated_at || null,
+    source: source || ''
+  };
 }
 
 // 全文搜索讲义与课程节点
 export async function searchLectures(q, limit = 20) {
   const trimmed = String(q || '').trim();
-  if (!trimmed) return [];
+  if (!trimmed) {
+    return [];
+  }
   const res = await request(`/api/search?q=${encodeURIComponent(trimmed)}&limit=${limit}`);
   return Array.isArray(res?.hits) ? res.hits : [];
 }
@@ -186,5 +245,11 @@ export async function searchLectures(q, limit = 20) {
 // 获取随机搜索推荐讲义小节
 export async function fetchSearchRecommendations(limit = 6) {
   const list = await fetchCourseList();
-  return list.filter((item) => item.is_recommended).slice(0, limit).map((item) => ({ ...item, type: 'lecture' }));
+  return list
+    .filter((item) => item.is_recommended)
+    .slice(0, limit)
+    .map((item) => ({
+      ...item,
+      type: 'lecture'
+    }));
 }

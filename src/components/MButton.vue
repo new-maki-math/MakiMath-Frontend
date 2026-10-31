@@ -43,11 +43,19 @@ defineEmits(['click']);
     :class="[
       `variant-${variant}`,
       `size-${size}`,
-      { 'is-mono': mono, 'is-block': block, 'is-icon-only': iconOnly, 'is-disabled': disabled }
+      {
+        'is-mono': mono,
+        'is-block': block,
+        'is-icon-only': iconOnly,
+        'is-disabled': disabled
+      }
     ]"
     @click="$emit('click', $event)"
   >
-    <span v-if="$slots.icon" class="btn-icon">
+    <span
+      v-if="$slots.icon"
+      class="btn-icon"
+    >
       <slot name="icon" />
     </span>
     <span class="btn-content">
@@ -71,7 +79,10 @@ defineEmits(['click']);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   /* 颜色过渡 */
-  transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease,
+    border-color 140ms ease;
 }
 
 .m-button.is-block {
@@ -110,9 +121,15 @@ defineEmits(['click']);
 .m-button.is-icon-only {
   padding: 0;
 }
-.m-button.is-icon-only.size-sm { width: 28px; }
-.m-button.is-icon-only.size-md { width: 34px; }
-.m-button.is-icon-only.size-lg { width: 40px; }
+.m-button.is-icon-only.size-sm {
+  width: 28px;
+}
+.m-button.is-icon-only.size-md {
+  width: 34px;
+}
+.m-button.is-icon-only.size-lg {
+  width: 40px;
+}
 
 /* 风格变体 */
 .variant-primary {

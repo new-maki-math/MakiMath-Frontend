@@ -1,16 +1,14 @@
 // 统一请求客户端
+import { getAuthToken } from '../utils/auth-storage.js';
 import { beginApiRequest, endApiRequest } from '../utils/progress.js';
 import {
-  encryptPayload,
   decryptPayload,
-  isEncryptedPayload,
+  encryptPayload,
   getClientPublicKey,
+  isEncryptedPayload
 } from '../vendor/secure-core.min.js';
 
-const env = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env : (typeof process !== 'undefined' ? process.env : {});
-
-// API 基地址
-const API_BASE = env.VITE_API_BASE ?? '';
+const API_BASE = import.meta.env?.VITE_API_BASE ?? '';
 let unauthorizedHandler = null;
 
 export function setUnauthorizedHandler(handler) {
@@ -18,7 +16,7 @@ export function setUnauthorizedHandler(handler) {
 }
 
 // 请求拦截处理器
-export async function requestInterceptor(config) {
+async function requestInterceptor(config) {
   if (config.body != null) {
     let payload = config.body;
     if (typeof payload === 'string') {
@@ -40,7 +38,7 @@ export async function requestInterceptor(config) {
 }
 
 // 响应拦截处理器
-export async function responseInterceptor(data) {
+async function responseInterceptor(data) {
   if (isEncryptedPayload(data)) {
     return await decryptPayload(data);
   }
@@ -48,13 +46,7 @@ export async function responseInterceptor(data) {
 }
 
 export async function request(url, options = {}) {
-  const {
-    method = 'GET',
-    headers = {},
-    body,
-    retryAuth = true,
-    ...rest
-  } = options;
+  const { method = 'GET', headers = {}, body, retryAuth = true, ...rest } = options;
 
   // 仅在带 body 时声明 json 请求头
   const hasBody = body !== undefined && body !== null;
@@ -68,9 +60,7 @@ export async function request(url, options = {}) {
   }
 
   // 注入认证 Token
-  const token = typeof localStorage !== 'undefined'
-    ? (localStorage.getItem('maki_auth_token') || localStorage.getItem('token') || localStorage.getItem('auth_token'))
-    : null;
+  const token = getAuthToken();
   if (token) {
     defaultHeaders['Authorization'] = `Bearer ${token}`;
   }
@@ -88,7 +78,9 @@ export async function request(url, options = {}) {
 
   // 注入公钥
   const cp = await getClientPublicKey();
-  if (!cp) throw new Error('无法建立安全通信');
+  if (!cp) {
+    throw new Error('无法建立安全通信');
+  }
   config.headers['x-cp'] = cp;
 
   // 混淆加密
@@ -107,10 +99,19 @@ export async function request(url, options = {}) {
       const error = new Error(errData.error || errData.message || `HTTP Error ${res.status}`);
       error.status = res.status;
       error.data = errData;
-      const authEndpoint = ['/api/auth/login', '/api/auth/register', '/api/auth/refresh', '/api/auth/logout', '/api/auth/password'].some((path) => url.split('?')[0] === path);
+      const authEndpoint = [
+        '/api/auth/login',
+        '/api/auth/register',
+        '/api/auth/refresh',
+        '/api/auth/logout',
+        '/api/auth/password'
+      ].some((path) => url.split('?')[0] === path);
       if (res.status === 401 && token && retryAuth && !authEndpoint && unauthorizedHandler) {
         if (await unauthorizedHandler(token)) {
-          const result = await request(url, { ...options, retryAuth: false });
+          const result = await request(url, {
+            ...options,
+            retryAuth: false
+          });
           succeeded = true;
           return result;
         }

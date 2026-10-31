@@ -1,6 +1,7 @@
 <script setup>
-import { computed, onBeforeUnmount, watch } from 'vue';
 import { NavArrowLeft, NavArrowRight } from '@iconoir/vue';
+import { computed, onBeforeUnmount, watch } from 'vue';
+
 import MBackdrop from './MBackdrop.vue';
 
 const props = defineProps({
@@ -50,7 +51,9 @@ const props = defineProps({
 const emit = defineEmits(['close']);
 
 const drawerWidth = computed(() => {
-  if (!props.width) return '280px';
+  if (!props.width) {
+    return '280px';
+  }
   return props.width;
 });
 
@@ -85,7 +88,9 @@ watch(
       window.removeEventListener('keydown', handleKeyDown);
     }
   },
-  { immediate: true }
+  {
+    immediate: true
+  }
 );
 
 onBeforeUnmount(() => {
@@ -98,9 +103,14 @@ onBeforeUnmount(() => {
     class="m-drawer-container"
     :class="[
       fixed ? 'is-fixed' : 'is-absolute',
-      { 'is-open': open, 'is-modal': modal }
+      {
+        'is-open': open,
+        'is-modal': modal
+      }
     ]"
-    :style="{ zIndex: panelZIndex }"
+    :style="{
+      zIndex: panelZIndex
+    }"
   >
     <!-- 压暗遮罩（仅限容器内容区或全局） -->
     <MBackdrop
@@ -114,14 +124,14 @@ onBeforeUnmount(() => {
     />
 
     <!-- 浮动抽屉主体 -->
-    <Transition :name="transitionName" appear>
+    <Transition
+      :name="transitionName"
+      appear
+    >
       <aside
         v-if="open"
         class="m-drawer-panel"
-        :class="[
-          `placement-${placement}`,
-          fixed ? 'is-fixed' : 'is-absolute'
-        ]"
+        :class="[`placement-${placement}`, fixed ? 'is-fixed' : 'is-absolute']"
         :style="{
           width: drawerWidth,
           maxWidth: '85vw',
@@ -131,7 +141,10 @@ onBeforeUnmount(() => {
         @click.stop
       >
         <!-- 抽屉头部 -->
-        <header v-if="$slots.header || title || showClose" class="drawer-header">
+        <header
+          v-if="$slots.header || title || showClose"
+          class="drawer-header"
+        >
           <slot name="header">
             <div class="drawer-title font-mono">
               <span>{{ title }}</span>
@@ -142,8 +155,16 @@ onBeforeUnmount(() => {
               :title="placement === 'right' ? '收起面板' : '收起目录'"
               @click="handleClose"
             >
-              <NavArrowRight v-if="placement === 'right'" width="14" height="14" />
-              <NavArrowLeft v-else width="14" height="14" />
+              <NavArrowRight
+                v-if="placement === 'right'"
+                width="14"
+                height="14"
+              />
+              <NavArrowLeft
+                v-else
+                width="14"
+                height="14"
+              />
             </button>
           </slot>
         </header>
@@ -154,7 +175,10 @@ onBeforeUnmount(() => {
         </div>
 
         <!-- 抽屉底部扩展插槽 -->
-        <footer v-if="$slots.footer" class="drawer-footer">
+        <footer
+          v-if="$slots.footer"
+          class="drawer-footer"
+        >
           <slot name="footer" />
         </footer>
       </aside>
@@ -252,7 +276,9 @@ onBeforeUnmount(() => {
   border: 1px solid transparent;
   color: var(--text-muted, #808080);
   cursor: pointer;
-  transition: background-color 120ms ease, color 120ms ease;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
 }
 
 .drawer-toggle-btn:hover {
@@ -279,7 +305,9 @@ onBeforeUnmount(() => {
 /* 左展开平移动效 */
 .drawer-slide-left-enter-active,
 .drawer-slide-left-leave-active {
-  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1), opacity 180ms ease;
+  transition:
+    transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 180ms ease;
 }
 
 .drawer-slide-left-enter-from,
@@ -291,7 +319,9 @@ onBeforeUnmount(() => {
 /* 右展开平移动效 */
 .drawer-slide-right-enter-active,
 .drawer-slide-right-leave-active {
-  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1), opacity 180ms ease;
+  transition:
+    transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 180ms ease;
 }
 
 .drawer-slide-right-enter-from,

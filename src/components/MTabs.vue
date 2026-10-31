@@ -22,7 +22,10 @@ const normalizedTabs = computed(() => {
         value: tab.value ?? tab.label
       };
     }
-    return { label: String(tab), value: tab };
+    return {
+      label: String(tab),
+      value: tab
+    };
   });
 });
 
@@ -48,14 +51,19 @@ const lineTransform = computed(() => {
       :key="tab.value"
       type="button"
       class="auth-tab"
-      :class="{ active: modelValue === tab.value }"
+      :class="{
+        active: modelValue === tab.value
+      }"
       @click="$emit('update:modelValue', tab.value)"
     >
       {{ tab.label }}
     </button>
     <div
       class="auth-tab-line"
-      :style="{ width: lineWidth, transform: lineTransform }"
+      :style="{
+        width: lineWidth,
+        transform: lineTransform
+      }"
     />
   </div>
 </template>

@@ -21,7 +21,9 @@ export function startProgress() {
 // 完成进度条冲刺
 export function finishProgress(force = false) {
   if (force) {
-    if (finishTimeout) clearTimeout(finishTimeout);
+    if (finishTimeout) {
+      clearTimeout(finishTimeout);
+    }
     finishTimeout = null;
     activeRequests = 0;
     isNavigating = false;
@@ -31,7 +33,9 @@ export function finishProgress(force = false) {
 
   // 待全部请求完成且导航结束时完成
   if (activeRequests === 0 && !isNavigating) {
-    if (finishTimeout) clearTimeout(finishTimeout);
+    if (finishTimeout) {
+      clearTimeout(finishTimeout);
+    }
     // 防抖缓冲避免频闪
     finishTimeout = setTimeout(() => {
       if (activeRequests === 0 && !isNavigating) {
@@ -43,7 +47,9 @@ export function finishProgress(force = false) {
 
 // 标记加载失败
 export function failProgress() {
-  if (finishTimeout) clearTimeout(finishTimeout);
+  if (finishTimeout) {
+    clearTimeout(finishTimeout);
+  }
   finishTimeout = null;
   barInstance?.fail();
 }

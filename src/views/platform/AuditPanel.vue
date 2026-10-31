@@ -1,13 +1,14 @@
 <script setup>
 // 全站审计日志面板组件
-import { ref, onMounted } from 'vue';
 import { Refresh } from '@iconoir/vue';
+import { onMounted, ref } from 'vue';
+
 import { request } from '../../api/client.js';
-import { notify } from '../../components/MNotice.vue';
 import MButton from '../../components/MButton.vue';
-import MTag from '../../components/MTag.vue';
-import MTable from '../../components/MTable.vue';
+import { notify } from '../../components/MNotice.vue';
 import MPagination from '../../components/MPagination.vue';
+import MTable from '../../components/MTable.vue';
+import MTag from '../../components/MTag.vue';
 import { formatDate } from './utils.js';
 
 const auditLogs = ref([]);
@@ -48,16 +49,30 @@ onMounted(() => {
     <div class="pane-toolbar">
       <div class="toolbar-title-wrap">
         <h1 class="pane-title font-mono">AUDIT // 全站操作审计日志</h1>
-        <p class="pane-subtitle">实时留痕全站所有需鉴权管理与讲义编撰接口的调用流水，保障系统运维安全。</p>
+        <p class="pane-subtitle">
+          实时留痕全站所有需鉴权管理与讲义编撰接口的调用流水，保障系统运维安全。
+        </p>
       </div>
       <div class="toolbar-actions">
-        <MButton variant="secondary" icon-only title="刷新日志" aria-label="刷新日志" @click="loadAuditLogs(auditPage, auditLimit)">
-          <Refresh width="14" height="14" />
+        <MButton
+          variant="secondary"
+          icon-only
+          title="刷新日志"
+          aria-label="刷新日志"
+          @click="loadAuditLogs(auditPage, auditLimit)"
+        >
+          <Refresh
+            width="14"
+            height="14"
+          />
         </MButton>
       </div>
     </div>
 
-    <MTable :data="auditLogs" :loading="isLoadingAudit">
+    <MTable
+      :data="auditLogs"
+      :loading="isLoadingAudit"
+    >
       <template #header>
         <th>时间</th>
         <th>操作者</th>
@@ -69,20 +84,34 @@ onMounted(() => {
         <th>IP 地址</th>
       </template>
       <template #rows="{ data }">
-        <tr v-for="log in data" :key="log.id">
+        <tr
+          v-for="log in data"
+          :key="log.id"
+        >
           <td class="col-dim">{{ formatDate(log.created_at) }}</td>
           <td class="col-bold">{{ log.username || '匿名/系统' }}</td>
           <td>
-            <MTag :variant="log.user_role === 'super_admin' ? 'purple' : 'gray'" size="sm">
+            <MTag
+              :variant="log.user_role === 'super_admin' ? 'purple' : 'gray'"
+              size="sm"
+            >
               {{ log.user_role || '-' }}
             </MTag>
           </td>
           <td>
-            <span class="method-tag" :class="`is-${log.method.toLowerCase()}`">
+            <span
+              class="method-tag"
+              :class="`is-${log.method.toLowerCase()}`"
+            >
               {{ log.method }}
             </span>
           </td>
-          <td class="col-path" :title="log.path">{{ log.path }}</td>
+          <td
+            class="col-path"
+            :title="log.path"
+          >
+            {{ log.path }}
+          </td>
           <td>
             <span
               class="status-dot"

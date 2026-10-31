@@ -1,13 +1,15 @@
 <script setup>
 // 用户中心模态窗口组件
-import { ref, computed, watch } from 'vue';
-import { UserCircle, User, Lock, Xmark } from '@iconoir/vue';
+import { Lock, User, UserCircle, Xmark } from '@iconoir/vue';
+import { computed, ref, watch } from 'vue';
+
 import { request } from '../api/client.js';
-import { notify } from './MNotice.vue';
-import { setAuth, getAuthToken, invalidateSession } from '../utils/auth.js';
+import { invalidateSession, setAuth } from '../utils/auth.js';
+import { getAuthToken } from '../utils/auth-storage.js';
 import MBackdrop from './MBackdrop.vue';
-import MInput from './MInput.vue';
 import MButton from './MButton.vue';
+import MInput from './MInput.vue';
+import { notify } from './MNotice.vue';
 import MTag from './MTag.vue';
 
 // 声明组件属性与事件
@@ -26,8 +28,16 @@ const emit = defineEmits(['close', 'updated']);
 
 // 侧边标签栏列表
 const tabs = [
-  { id: 'info', label: '基本信息', icon: User },
-  { id: 'security', label: '账号安全', icon: Lock }
+  {
+    id: 'info',
+    label: '基本信息',
+    icon: User
+  },
+  {
+    id: 'security',
+    label: '账号安全',
+    icon: Lock
+  }
 ];
 
 // 当前选中的 Tab 项
@@ -65,18 +75,29 @@ watch(
       };
     }
   },
-  { immediate: true }
+  {
+    immediate: true
+  }
 );
 
 // 用户角色标签配置
 const roleMeta = computed(() => {
   if (props.user?.role === 'super_admin') {
-    return { label: '超级管理员', variant: 'purple' };
+    return {
+      label: '超级管理员',
+      variant: 'purple'
+    };
   }
   if (props.user?.role === 'admin') {
-    return { label: '管理员', variant: 'blue' };
+    return {
+      label: '管理员',
+      variant: 'blue'
+    };
   }
-  return { label: '普通用户', variant: 'gray' };
+  return {
+    label: '普通用户',
+    variant: 'gray'
+  };
 });
 
 // 保存基本信息修改
@@ -89,7 +110,9 @@ const handleSaveProfile = async () => {
   try {
     const res = await request('/api/auth/profile', {
       method: 'PATCH',
-      body: { display_name: profileForm.value.displayName.trim() }
+      body: {
+        display_name: profileForm.value.displayName.trim()
+      }
     });
     if (res?.user) {
       const token = getAuthToken();
@@ -110,7 +133,10 @@ const handleSavePassword = async () => {
     notify('请输入原密码', 'error');
     return;
   }
-  if (passwordForm.value.newPassword.length < 8 || new TextEncoder().encode(passwordForm.value.newPassword).length > 72) {
+  if (
+    passwordForm.value.newPassword.length < 8 ||
+    new TextEncoder().encode(passwordForm.value.newPassword).length > 72
+  ) {
     notify('新密码至少需要八位字符且不能超过七十二字节', 'error');
     return;
   }
@@ -127,7 +153,11 @@ const handleSavePassword = async () => {
         new_password: passwordForm.value.newPassword
       }
     });
-    passwordForm.value = { oldPassword: '', newPassword: '', confirmPassword: '' };
+    passwordForm.value = {
+      oldPassword: '',
+      newPassword: '',
+      confirmPassword: ''
+    };
     emit('close');
     invalidateSession();
     notify('密码修改成功，请重新登录', 'success');
@@ -137,16 +167,32 @@ const handleSavePassword = async () => {
     isSavingPassword.value = false;
   }
 };
-
 </script>
 
 <template>
-  <MBackdrop :open="open" teleport fixed :z-index="120" @close="emit('close')">
-    <transition name="modal-pop" appear>
-      <div v-if="open" class="user-modal-panel font-mono" @click.stop>
+  <MBackdrop
+    :open="open"
+    teleport
+    fixed
+    :z-index="120"
+    @close="emit('close')"
+  >
+    <transition
+      name="modal-pop"
+      appear
+    >
+      <div
+        v-if="open"
+        class="user-modal-panel font-mono"
+        @click.stop
+      >
         <div class="user-modal-sidebar">
           <div class="sidebar-brand">
-            <UserCircle width="18" height="18" class="brand-icon" />
+            <UserCircle
+              width="18"
+              height="18"
+              class="brand-icon"
+            />
             <span class="brand-title">ACCOUNT</span>
           </div>
           <nav class="sidebar-tab-list">
@@ -155,10 +201,17 @@ const handleSavePassword = async () => {
               :key="tab.id"
               type="button"
               class="sidebar-tab-btn"
-              :class="{ active: currentTab === tab.id }"
+              :class="{
+                active: currentTab === tab.id
+              }"
               @click="currentTab = tab.id"
             >
-              <component :is="tab.icon" width="16" height="16" class="tab-icon" />
+              <component
+                :is="tab.icon"
+                width="16"
+                height="16"
+                class="tab-icon"
+              />
               <span class="tab-text">{{ tab.label }}</span>
             </button>
           </nav>
@@ -171,18 +224,35 @@ const handleSavePassword = async () => {
                 {{ tabs.find((t) => t.id === currentTab)?.label }}
               </span>
             </div>
-            <button class="header-close-btn" title="关闭窗口" @click="emit('close')">
-              <Xmark width="16" height="16" />
+            <button
+              class="header-close-btn"
+              title="关闭窗口"
+              @click="emit('close')"
+            >
+              <Xmark
+                width="16"
+                height="16"
+              />
             </button>
           </div>
 
           <div class="content-body">
-            <section v-if="currentTab === 'info'" class="tab-pane">
-              <form class="pane-form" @submit.prevent="handleSaveProfile">
+            <section
+              v-if="currentTab === 'info'"
+              class="tab-pane"
+            >
+              <form
+                class="pane-form"
+                @submit.prevent="handleSaveProfile"
+              >
                 <div class="field-item">
                   <span class="field-label">账号角色</span>
                   <div class="field-static-row">
-                    <MTag :variant="roleMeta.variant" size="md">{{ roleMeta.label }}</MTag>
+                    <MTag
+                      :variant="roleMeta.variant"
+                      size="md"
+                      >{{ roleMeta.label }}</MTag
+                    >
                     <span class="role-desc">Role: {{ user?.role || 'user' }}</span>
                   </div>
                 </div>
@@ -215,8 +285,14 @@ const handleSavePassword = async () => {
               </form>
             </section>
 
-            <section v-else-if="currentTab === 'security'" class="tab-pane">
-              <form class="pane-form" @submit.prevent="handleSavePassword">
+            <section
+              v-else-if="currentTab === 'security'"
+              class="tab-pane"
+            >
+              <form
+                class="pane-form"
+                @submit.prevent="handleSavePassword"
+              >
                 <MInput
                   v-model="passwordForm.oldPassword"
                   label="当前密码"
@@ -254,8 +330,6 @@ const handleSavePassword = async () => {
                 </div>
               </form>
             </section>
-
-
           </div>
         </div>
       </div>
@@ -440,7 +514,9 @@ const handleSavePassword = async () => {
 
 .modal-pop-enter-active,
 .modal-pop-leave-active {
-  transition: opacity 160ms cubic-bezier(0.16, 1, 0.3, 1), transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    opacity 160ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .modal-pop-enter-from,

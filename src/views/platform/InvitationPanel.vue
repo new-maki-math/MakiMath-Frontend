@@ -1,14 +1,15 @@
 <script setup>
 // 邀请码管理面板组件
-import { ref, onMounted } from 'vue';
-import { Plus, Refresh, Copy } from '@iconoir/vue';
+import { Copy, Plus, Refresh } from '@iconoir/vue';
+import { onMounted, ref } from 'vue';
+
 import { request } from '../../api/client.js';
-import { notify } from '../../components/MNotice.vue';
 import MButton from '../../components/MButton.vue';
 import MInput from '../../components/MInput.vue';
-import MTag from '../../components/MTag.vue';
 import MModal from '../../components/MModal.vue';
+import { notify } from '../../components/MNotice.vue';
 import MTable from '../../components/MTable.vue';
+import MTag from '../../components/MTag.vue';
 import { formatDate } from './utils.js';
 
 const invitations = ref([]);
@@ -57,7 +58,9 @@ const handleCreateInvite = async () => {
   isCreatingInvite.value = true;
   try {
     const days = Number(createInviteForm.value.expiresInDays);
-    if (!Number.isFinite(days) || days < 0) throw new Error('有效期天数不正确');
+    if (!Number.isFinite(days) || days < 0) {
+      throw new Error('有效期天数不正确');
+    }
     await request('/api/invitations', {
       method: 'POST',
       body: {
@@ -79,9 +82,13 @@ const handleCreateInvite = async () => {
 
 // 作废指定邀请码
 const handleRevokeInvite = async (inv) => {
-  if (!window.confirm(`确定要作废邀请码 ${inv.code} 吗？`)) return;
+  if (!window.confirm(`确定要作废邀请码 ${inv.code} 吗？`)) {
+    return;
+  }
   try {
-    await request(`/api/invitations/${inv.id}`, { method: 'DELETE' });
+    await request(`/api/invitations/${inv.id}`, {
+      method: 'DELETE'
+    });
     notify('邀请码已作废', 'success');
     loadInvitations(invitePage.value);
   } catch (err) {
@@ -105,20 +112,43 @@ onMounted(() => {
     <div class="pane-toolbar">
       <div class="toolbar-title-wrap">
         <h1 class="pane-title font-mono">INVITATIONS // 邀请码管理</h1>
-        <p class="pane-subtitle">生成系统准入注册邀请码，设定授权角色、限制使用频次与监控使用进度。</p>
+        <p class="pane-subtitle">
+          生成系统准入注册邀请码，设定授权角色、限制使用频次与监控使用进度。
+        </p>
       </div>
       <div class="toolbar-actions">
-        <MButton variant="primary" size="sm" :mono="true" @click="handleOpenCreateInvite">
-          <template #icon><Plus width="14" height="14" /></template>
+        <MButton
+          variant="primary"
+          size="sm"
+          :mono="true"
+          @click="handleOpenCreateInvite"
+        >
+          <template #icon
+            ><Plus
+              width="14"
+              height="14"
+          /></template>
           生成邀请码
         </MButton>
-        <MButton variant="secondary" icon-only title="刷新列表" aria-label="刷新列表" @click="loadInvitations(invitePage)">
-          <Refresh width="14" height="14" />
+        <MButton
+          variant="secondary"
+          icon-only
+          title="刷新列表"
+          aria-label="刷新列表"
+          @click="loadInvitations(invitePage)"
+        >
+          <Refresh
+            width="14"
+            height="14"
+          />
         </MButton>
       </div>
     </div>
 
-    <MTable :data="invitations" :loading="isLoadingInvitations">
+    <MTable
+      :data="invitations"
+      :loading="isLoadingInvitations"
+    >
       <template #header>
         <th>邀请码</th>
         <th>角色</th>
@@ -130,15 +160,28 @@ onMounted(() => {
         <th>操作</th>
       </template>
       <template #rows="{ data }">
-        <tr v-for="inv in data" :key="inv.id">
+        <tr
+          v-for="inv in data"
+          :key="inv.id"
+        >
           <td class="col-code">
             <span>{{ inv.code }}</span>
-            <button class="copy-inline-btn" title="复制邀请码" @click="handleCopy(inv.code)">
-              <Copy width="12" height="12" />
+            <button
+              class="copy-inline-btn"
+              title="复制邀请码"
+              @click="handleCopy(inv.code)"
+            >
+              <Copy
+                width="12"
+                height="12"
+              />
             </button>
           </td>
           <td>
-            <MTag :variant="inv.role === 'super_admin' ? 'purple' : 'gray'" size="sm">
+            <MTag
+              :variant="inv.role === 'super_admin' ? 'purple' : 'gray'"
+              size="sm"
+            >
               {{ inv.role }}
             </MTag>
           </td>
@@ -152,7 +195,9 @@ onMounted(() => {
                 'status-disabled': inv.status === 'revoked'
               }"
             >
-              {{ inv.status === 'active' ? '有效' : inv.status === 'exhausted' ? '已耗尽' : '已作废' }}
+              {{
+                inv.status === 'active' ? '有效' : inv.status === 'exhausted' ? '已耗尽' : '已作废'
+              }}
             </span>
           </td>
           <td class="col-dim">{{ inv.note || '-' }}</td>
@@ -169,7 +214,11 @@ onMounted(() => {
             >
               作废
             </MButton>
-            <span v-else class="col-dim">-</span>
+            <span
+              v-else
+              class="col-dim"
+              >-</span
+            >
           </td>
         </tr>
       </template>
@@ -208,7 +257,9 @@ onMounted(() => {
             <button
               type="button"
               class="role-opt"
-              :class="{ active: createInviteForm.role === 'editor' }"
+              :class="{
+                active: createInviteForm.role === 'editor'
+              }"
               @click="createInviteForm.role = 'editor'"
             >
               编者
@@ -216,7 +267,9 @@ onMounted(() => {
             <button
               type="button"
               class="role-opt"
-              :class="{ active: createInviteForm.role === 'super_admin' }"
+              :class="{
+                active: createInviteForm.role === 'super_admin'
+              }"
               @click="createInviteForm.role = 'super_admin'"
             >
               超级管理员

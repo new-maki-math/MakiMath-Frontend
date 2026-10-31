@@ -2,7 +2,9 @@
 import { ref } from 'vue';
 
 const inputRef = ref(null);
-defineExpose({ focus: () => inputRef.value?.focus() });
+defineExpose({
+  focus: () => inputRef.value?.focus()
+});
 
 defineProps({
   modelValue: {
@@ -44,7 +46,16 @@ defineEmits(['update:modelValue', 'enter']);
 
 <template>
   <label class="m-field">
-    <span v-if="label" class="field-label"><span v-if="required" class="required-mark" aria-hidden="true">*</span>{{ label }}</span>
+    <span
+      v-if="label"
+      class="field-label"
+      ><span
+        v-if="required"
+        class="required-mark"
+        aria-hidden="true"
+        >*</span
+      >{{ label }}</span
+    >
     <input
       ref="inputRef"
       class="m-input"
@@ -59,14 +70,17 @@ defineEmits(['update:modelValue', 'enter']);
       @input="$emit('update:modelValue', $event.target.value)"
       @keydown.enter="$emit('enter', $event)"
     />
-    <span v-if="hint" class="field-hint">{{ hint }}</span>
+    <span
+      v-if="hint"
+      class="field-hint"
+      >{{ hint }}</span
+    >
   </label>
 </template>
 
 <style scoped src="./field.css"></style>
 
 <style scoped>
-
 .required-mark {
   margin-right: 4px;
   color: var(--tag-red);
@@ -83,7 +97,9 @@ defineEmits(['update:modelValue', 'enter']);
   color: var(--text-primary);
   font-size: var(--font-size);
   user-select: text;
-  transition: border-color 140ms ease, background-color 140ms ease;
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease;
 }
 
 .m-input:hover:not(:disabled) {

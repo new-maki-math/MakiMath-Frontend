@@ -1,7 +1,7 @@
 <script setup>
+import MButton from './MButton.vue';
 import MModal from './MModal.vue';
 import MTag from './MTag.vue';
-import MButton from './MButton.vue';
 
 defineProps({
   open: {
@@ -21,10 +21,19 @@ const emit = defineEmits(['close']);
     @close="emit('close')"
   >
     <div class="help-content font-mono">
-      <MTag variant="blue" size="sm">DOCS // 手册</MTag>
+      <MTag
+        variant="blue"
+        size="sm"
+        >DOCS // 手册</MTag
+      >
       <h2 class="help-title">COMING SOON</h2>
       <p class="help-desc">使用手册正在编撰完善中，敬请期待</p>
-      <MButton variant="secondary" size="sm" @click="emit('close')">关闭</MButton>
+      <MButton
+        variant="secondary"
+        size="sm"
+        @click="emit('close')"
+        >关闭</MButton
+      >
     </div>
   </MModal>
 </template>

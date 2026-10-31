@@ -1,7 +1,7 @@
 <script setup>
 // 全局通用数据分页组件
-import { computed } from 'vue';
 import { NavArrowLeft, NavArrowRight } from '@iconoir/vue';
+import { computed } from 'vue';
 
 const props = defineProps({
   page: {
@@ -30,7 +30,9 @@ const emit = defineEmits(['update:page', 'update:pageSize', 'change']);
 
 // 计算总页数
 const totalPages = computed(() => {
-  if (!props.total || props.total <= 0) return 1;
+  if (!props.total || props.total <= 0) {
+    return 1;
+  }
   return Math.ceil(props.total / props.pageSize);
 });
 
@@ -64,23 +66,38 @@ const pageItems = computed(() => {
 
 // 切换页码事件
 const goToPage = (p) => {
-  if (props.disabled || p < 1 || p > totalPages.value || p === props.page) return;
+  if (props.disabled || p < 1 || p > totalPages.value || p === props.page) {
+    return;
+  }
   emit('update:page', p);
-  emit('change', { page: p, pageSize: props.pageSize });
+  emit('change', {
+    page: p,
+    pageSize: props.pageSize
+  });
 };
 
 // 切换每页展示数量
 const handlePageSizeChange = (e) => {
-  if (props.disabled) return;
+  if (props.disabled) {
+    return;
+  }
   const newSize = Number(e.target.value) || 20;
   emit('update:pageSize', newSize);
   emit('update:page', 1);
-  emit('change', { page: 1, pageSize: newSize });
+  emit('change', {
+    page: 1,
+    pageSize: newSize
+  });
 };
 </script>
 
 <template>
-  <div class="m-pagination font-mono" :class="{ 'is-disabled': disabled }">
+  <div
+    class="m-pagination font-mono"
+    :class="{
+      'is-disabled': disabled
+    }"
+  >
     <div class="pagination-info">
       <span class="info-muted">共 {{ total }} 条</span>
     </div>
@@ -93,17 +110,29 @@ const handlePageSizeChange = (e) => {
         title="上一页"
         @click="goToPage(page - 1)"
       >
-        <NavArrowLeft width="14" height="14" />
+        <NavArrowLeft
+          width="14"
+          height="14"
+        />
       </button>
 
       <div class="page-numbers">
-        <template v-for="item in pageItems" :key="item">
-          <span v-if="typeof item === 'string'" class="page-ellipsis">...</span>
+        <template
+          v-for="item in pageItems"
+          :key="item"
+        >
+          <span
+            v-if="typeof item === 'string'"
+            class="page-ellipsis"
+            >...</span
+          >
           <button
             v-else
             type="button"
             class="page-num-btn"
-            :class="{ 'is-active': item === page }"
+            :class="{
+              'is-active': item === page
+            }"
             :disabled="disabled"
             @click="goToPage(item)"
           >
@@ -119,7 +148,10 @@ const handlePageSizeChange = (e) => {
         title="下一页"
         @click="goToPage(page + 1)"
       >
-        <NavArrowRight width="14" height="14" />
+        <NavArrowRight
+          width="14"
+          height="14"
+        />
       </button>
 
       <div class="page-size-wrap">
@@ -129,7 +161,11 @@ const handlePageSizeChange = (e) => {
           :disabled="disabled"
           @change="handlePageSizeChange"
         >
-          <option v-for="opt in pageSizeOptions" :key="opt" :value="opt">
+          <option
+            v-for="opt in pageSizeOptions"
+            :key="opt"
+            :value="opt"
+          >
             {{ opt }} 条/页
           </option>
         </select>

@@ -1,7 +1,9 @@
 // 用户认证与权限状态管理
-import { ref, computed } from 'vue';
+import { computed, ref } from 'vue';
+
 import { request, setUnauthorizedHandler } from '../api/client.js';
 import { invalidateCourseCaches } from '../api/courses.js';
+import { getAuthToken, setAuthToken } from './auth-storage.js';
 import { clearLectureCoverCache } from './lecture-cover-cache.js';
 
 // 当前登录用户对象响应式
@@ -12,25 +14,11 @@ let refreshInFlight = null;
 let authVersion = 0;
 const REFRESH_TOKEN_KEY = 'maki_refresh_token';
 
-export function getAuthToken() {
-  if (typeof localStorage === 'undefined') return null;
-  return localStorage.getItem('maki_auth_token') || localStorage.getItem('token') || localStorage.getItem('auth_token');
-}
-
-// 读取本地存储的用户信息
-export function getStoredUser() {
-  if (typeof localStorage === 'undefined') return null;
-  try {
-    const raw = localStorage.getItem('maki_auth_user');
-    return raw ? JSON.parse(raw) : null;
-  } catch {
+// 归一化用户信息对象
+function normalizeUser(rawUser) {
+  if (!rawUser) {
     return null;
   }
-}
-
-// 归一化用户信息对象
-export function normalizeUser(rawUser) {
-  if (!rawUser) return null;
   return {
     ...rawUser,
     displayName: rawUser.displayName || rawUser.display_name || '',
@@ -44,22 +32,21 @@ export function normalizeUser(rawUser) {
 
 // 设置认证凭据与用户信息
 export function setAuth(token, user) {
-  if (typeof localStorage === 'undefined') return;
+  if (typeof localStorage === 'undefined') {
+    return;
+  }
   const previousToken = getAuthToken();
   authVersion++;
-  if (previousToken !== token || currentUser.value?.id !== user?.id || currentUser.value?.role !== user?.role) {
+  if (
+    previousToken !== token ||
+    currentUser.value?.id !== user?.id ||
+    currentUser.value?.role !== user?.role
+  ) {
     invalidateCourseCaches();
     clearLectureCoverCache();
   }
 
-  localStorage.removeItem('token');
-  localStorage.removeItem('auth_token');
-  if (token) {
-    localStorage.setItem('maki_auth_token', token);
-  } else {
-    localStorage.removeItem('maki_auth_token');
-    localStorage.removeItem('token');
-  }
+  setAuthToken(token);
 
   if (user) {
     const normalized = normalizeUser(user);
@@ -74,17 +61,30 @@ export function setAuth(token, user) {
 
 // 清除登录态
 export function clearAuth() {
-  if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(REFRESH_TOKEN_KEY);
+  if (typeof sessionStorage !== 'undefined') {
+    sessionStorage.removeItem(REFRESH_TOKEN_KEY);
+  }
   setAuth(null, null);
 }
 
 export async function authenticate(path, credentials, requiredRole = '') {
-  const result = await request(path, { method: 'POST', body: credentials });
-  if (!result?.access_token || !result?.refresh_token || !result?.user) throw new Error('登录响应不完整');
-  if (authStatus.value === 'expired' && currentUser.value && String(result.user.id) !== String(currentUser.value.id)) {
+  const result = await request(path, {
+    method: 'POST',
+    body: credentials
+  });
+  if (!result?.access_token || !result?.refresh_token || !result?.user) {
+    throw new Error('登录响应不完整');
+  }
+  if (
+    authStatus.value === 'expired' &&
+    currentUser.value &&
+    String(result.user.id) !== String(currentUser.value.id)
+  ) {
     throw new Error('请使用原账号重新登录，以继续当前编辑');
   }
-  if (requiredRole && result.user.role !== requiredRole) throw new Error('当前账号无权访问平台管理控制台');
+  if (requiredRole && result.user.role !== requiredRole) {
+    throw new Error('当前账号无权访问平台管理控制台');
+  }
   if (typeof sessionStorage !== 'undefined') {
     sessionStorage.setItem(REFRESH_TOKEN_KEY, result.refresh_token);
   }
@@ -93,11 +93,17 @@ export async function authenticate(path, credentials, requiredRole = '') {
 }
 
 export async function logout() {
-  const refreshToken = typeof sessionStorage === 'undefined' ? null : sessionStorage.getItem(REFRESH_TOKEN_KEY);
+  const refreshToken =
+    typeof sessionStorage === 'undefined' ? null : sessionStorage.getItem(REFRESH_TOKEN_KEY);
   let revoked = false;
   try {
     if (refreshToken && getAuthToken()) {
-      await request('/api/auth/logout', { method: 'POST', body: { refresh_token: refreshToken } });
+      await request('/api/auth/logout', {
+        method: 'POST',
+        body: {
+          refresh_token: refreshToken
+        }
+      });
       revoked = true;
     }
   } finally {
@@ -112,23 +118,28 @@ const expireSession = () => {
     return;
   }
   authVersion++;
-  localStorage.removeItem('maki_auth_token');
-  localStorage.removeItem('token');
-  localStorage.removeItem('auth_token');
+  setAuthToken(null);
   invalidateCourseCaches();
   clearLectureCoverCache();
   authStatus.value = 'expired';
 };
 
 export function invalidateSession() {
-  if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(REFRESH_TOKEN_KEY);
+  if (typeof sessionStorage !== 'undefined') {
+    sessionStorage.removeItem(REFRESH_TOKEN_KEY);
+  }
   expireSession();
 }
 
 setUnauthorizedHandler(async (token) => {
-  if (token !== getAuthToken()) return Boolean(getAuthToken());
-  if (refreshInFlight) return refreshInFlight;
-  const refreshToken = typeof sessionStorage === 'undefined' ? null : sessionStorage.getItem(REFRESH_TOKEN_KEY);
+  if (token !== getAuthToken()) {
+    return Boolean(getAuthToken());
+  }
+  if (refreshInFlight) {
+    return refreshInFlight;
+  }
+  const refreshToken =
+    typeof sessionStorage === 'undefined' ? null : sessionStorage.getItem(REFRESH_TOKEN_KEY);
   if (!refreshToken) {
     expireSession();
     return false;
@@ -136,21 +147,34 @@ setUnauthorizedHandler(async (token) => {
   const version = authVersion;
   refreshInFlight = (async () => {
     try {
-      const result = await request('/api/auth/refresh', { method: 'POST', body: { refresh_token: refreshToken } });
-      if (version !== authVersion) return Boolean(getAuthToken());
-      if (!result?.access_token || !result?.refresh_token || !result?.user) throw new Error('刷新登录响应不完整');
+      const result = await request('/api/auth/refresh', {
+        method: 'POST',
+        body: {
+          refresh_token: refreshToken
+        }
+      });
+      if (version !== authVersion) {
+        return Boolean(getAuthToken());
+      }
+      if (!result?.access_token || !result?.refresh_token || !result?.user) {
+        throw new Error('刷新登录响应不完整');
+      }
       sessionStorage.setItem(REFRESH_TOKEN_KEY, result.refresh_token);
       setAuth(result.access_token, result.user);
       return true;
     } catch (err) {
-      if (version !== authVersion) return Boolean(getAuthToken());
+      if (version !== authVersion) {
+        return Boolean(getAuthToken());
+      }
       if (err.status === 401) {
         expireSession();
         return false;
       }
       throw err;
     }
-  })().finally(() => { refreshInFlight = null; });
+  })().finally(() => {
+    refreshInFlight = null;
+  });
   return refreshInFlight;
 });
 
@@ -166,8 +190,12 @@ export const isSuperAdmin = computed(() => {
 
 // 初始化鉴权信息
 export function initAuth() {
-  if (initialization) return initialization;
-  if (authStatus.value === 'authenticated' || authStatus.value === 'anonymous') return Promise.resolve(currentUser.value);
+  if (initialization) {
+    return initialization;
+  }
+  if (authStatus.value === 'authenticated' || authStatus.value === 'anonymous') {
+    return Promise.resolve(currentUser.value);
+  }
   const token = getAuthToken();
   if (!token) {
     authStatus.value = 'anonymous';
@@ -178,15 +206,27 @@ export function initAuth() {
   initialization = (async () => {
     try {
       const res = await request('/api/auth/me');
-      if (version !== authVersion) return currentUser.value;
-      if (res?.user) setAuth(token, res.user);
-      else authStatus.value = 'error';
+      if (version !== authVersion) {
+        return currentUser.value;
+      }
+      if (res?.user) {
+        setAuth(token, res.user);
+      } else {
+        authStatus.value = 'error';
+      }
     } catch (err) {
-      if (version !== authVersion) return currentUser.value;
-      if (err.status === 401) clearAuth();
-      else authStatus.value = 'error';
+      if (version !== authVersion) {
+        return currentUser.value;
+      }
+      if (err.status === 401) {
+        clearAuth();
+      } else {
+        authStatus.value = 'error';
+      }
     }
     return currentUser.value;
-  })().finally(() => { initialization = null; });
+  })().finally(() => {
+    initialization = null;
+  });
   return initialization;
 }

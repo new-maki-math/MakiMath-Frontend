@@ -35,7 +35,11 @@ defineEmits(['update:modelValue']);
 
 <template>
   <label class="m-field">
-    <span v-if="label" class="field-label">{{ label }}</span>
+    <span
+      v-if="label"
+      class="field-label"
+      >{{ label }}</span
+    >
     <textarea
       class="m-textarea"
       :rows="rows"
@@ -46,14 +50,17 @@ defineEmits(['update:modelValue']);
       spellcheck="false"
       @input="$emit('update:modelValue', $event.target.value)"
     ></textarea>
-    <span v-if="hint" class="field-hint">{{ hint }}</span>
+    <span
+      v-if="hint"
+      class="field-hint"
+      >{{ hint }}</span
+    >
   </label>
 </template>
 
 <style scoped src="./field.css"></style>
 
 <style scoped>
-
 .m-textarea {
   display: block;
   width: 100%;
@@ -67,7 +74,9 @@ defineEmits(['update:modelValue']);
   line-height: 1.7;
   resize: vertical;
   user-select: text;
-  transition: border-color 140ms ease, background-color 140ms ease;
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease;
 }
 
 .m-textarea:hover:not(:disabled) {

@@ -12,6 +12,7 @@ MakiMath 现代化结构化数学讲义与拓扑学习平台的核心前端单�
 - **在线文档站点**：[https://docs.maki-math.com/](https://docs.maki-math.com/)
 
 ### 推荐阅读
+
 - [面向开发者快速上手](https://docs.maki-math.com/guide/dev-getting-started.html)
 - [面向编者入驻指南](https://docs.maki-math.com/guide/editor-getting-started.html)
 - [前端架构设计 (Vue 3 + WASM)](https://docs.maki-math.com/architecture/frontend.html)
@@ -20,21 +21,34 @@ MakiMath 现代化结构化数学讲义与拓扑学习平台的核心前端单�
 ## 本地开发快速启动
 
 ### 1. 安装依赖
+
 ```bash
 pnpm install
 ```
 
 ### 2. 启动本地开发服务器
+
 ```bash
 pnpm dev
 ```
-本地开发服务默认运行于 `http://localhost:5173`。
+
+本地开发服务默认运行于 `https://localhost:5173`。
 
 ### 3. 构建生产环境产物
+
 ```bash
 pnpm build
 ```
+
 构建产物将输出至 `dist/` 目录，可直接交由 Nginx 静态托管。
+
+### 4. 提交前检查
+
+```bash
+pnpm check
+```
+
+项目统一使用 pnpm。目录职责、命名、中文注释和模块拆分约定见 [前端开发约定](./CONTRIBUTING.md)。
 
 ## 技术特性
 
@@ -46,9 +60,8 @@ pnpm build
 
 ## 开源生态矩阵
 
-| 仓库名称 | 职责说明 |
-|---|---|
-| **[MakiMath-Frontend](https://github.com/new-maki-math/MakiMath-Frontend)** | 核心前端应用（本仓库） |
-| **[MakiMath-Backend](https://github.com/new-maki-math/MakiMath-Backend)** | 高性能 Fastify + PostgreSQL 后端微内核 |
-| **[MakiMath-Docs](https://github.com/new-maki-math/MakiMath-Docs)** | 官方技术文档站与开发者指南 |
-
+| 仓库名称                                                                    | 职责说明                               |
+| --------------------------------------------------------------------------- | -------------------------------------- |
+| **[MakiMath-Frontend](https://github.com/new-maki-math/MakiMath-Frontend)** | 核心前端应用（本仓库）                 |
+| **[MakiMath-Backend](https://github.com/new-maki-math/MakiMath-Backend)**   | 高性能 Fastify + PostgreSQL 后端微内核 |
+| **[MakiMath-Docs](https://github.com/new-maki-math/MakiMath-Docs)**         | 官方技术文档站与开发者指南             |

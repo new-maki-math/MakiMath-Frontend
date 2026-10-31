@@ -41,7 +41,11 @@ const getRowKey = (row, index, rowKey) => {
             <th
               v-for="col in columns"
               :key="col.key || col.prop"
-              :style="{ width: col.width, minWidth: col.minWidth, textAlign: col.align || 'left' }"
+              :style="{
+                width: col.width,
+                minWidth: col.minWidth,
+                textAlign: col.align || 'left'
+              }"
             >
               {{ col.label || col.title }}
             </th>
@@ -49,30 +53,55 @@ const getRowKey = (row, index, rowKey) => {
         </tr>
       </thead>
       <tbody>
-        <tr v-if="loading" class="m-table-empty-row">
-          <td :colspan="columns.length || 1" class="m-table-empty-cell">
+        <tr
+          v-if="loading"
+          class="m-table-empty-row"
+        >
+          <td
+            :colspan="columns.length || 1"
+            class="m-table-empty-cell"
+          >
             加载数据中...
           </td>
         </tr>
-        <tr v-else-if="!data || data.length === 0" class="m-table-empty-row">
-          <td :colspan="columns.length || 1" class="m-table-empty-cell">
+        <tr
+          v-else-if="!data || data.length === 0"
+          class="m-table-empty-row"
+        >
+          <td
+            :colspan="columns.length || 1"
+            class="m-table-empty-cell"
+          >
             {{ emptyText }}
           </td>
         </tr>
         <template v-else>
-          <slot name="rows" :data="data">
+          <slot
+            name="rows"
+            :data="data"
+          >
             <tr
               v-for="(row, idx) in data"
               :key="getRowKey(row, idx, rowKey)"
               class="m-table-row"
             >
-              <slot name="row" :row="row" :index="idx">
+              <slot
+                name="row"
+                :row="row"
+                :index="idx"
+              >
                 <td
                   v-for="col in columns"
                   :key="col.key || col.prop"
-                  :style="{ textAlign: col.align || 'left' }"
+                  :style="{
+                    textAlign: col.align || 'left'
+                  }"
                 >
-                  <slot :name="col.key || col.prop" :row="row" :index="idx">
+                  <slot
+                    :name="col.key || col.prop"
+                    :row="row"
+                    :index="idx"
+                  >
                     {{ row[col.prop || col.key] ?? '-' }}
                   </slot>
                 </td>

@@ -1,8 +1,12 @@
 // 格式化时间字符串
 export function formatDate(isoStr) {
-  if (!isoStr) return '-';
+  if (!isoStr) {
+    return '-';
+  }
   const d = new Date(isoStr);
-  if (Number.isNaN(d.getTime())) return isoStr;
+  if (Number.isNaN(d.getTime())) {
+    return isoStr;
+  }
   const pad = (n) => String(n).padStart(2, '0');
   const month = pad(d.getMonth() + 1);
   const day = pad(d.getDate());

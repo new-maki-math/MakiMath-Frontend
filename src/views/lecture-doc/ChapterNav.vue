@@ -1,9 +1,8 @@
 <script setup>
+import { NavArrowLeft, NavArrowRight } from '@iconoir/vue';
 import { ref, watch } from 'vue';
-import {
-  NavArrowRight,
-  NavArrowLeft
-} from '@iconoir/vue';
+
+import MCollapse from '../../components/MCollapse.vue';
 
 const props = defineProps({
   chapters: {
@@ -33,14 +32,18 @@ watch(
   () => [props.chapters, props.currentSectionId],
   ([newChaps, secId]) => {
     if (newChaps && newChaps.length > 0) {
-      newChaps.forEach(c => {
+      newChaps.forEach((c) => {
         expandedChapters.value.add(c.id);
         expandedChapters.value.add(String(c.id));
       });
       if (secId) {
         const target = String(secId).trim();
         for (const chap of newChaps) {
-          if (chap.sections?.some(s => String(s.id) === target || (s.slug && String(s.slug) === target))) {
+          if (
+            chap.sections?.some(
+              (s) => String(s.id) === target || (s.slug && String(s.slug) === target)
+            )
+          ) {
             expandedChapters.value.add(chap.id);
             expandedChapters.value.add(String(chap.id));
             break;
@@ -49,7 +52,10 @@ watch(
       }
     }
   },
-  { immediate: true, deep: true }
+  {
+    immediate: true,
+    deep: true
+  }
 );
 
 const toggleChapter = (chapterId) => {
@@ -71,12 +77,17 @@ const handleSelect = (section) => {
 <template>
   <aside
     class="chapter-nav-sidebar"
-    :class="{ 'is-collapsed': collapsed }"
+    :class="{
+      'is-collapsed': collapsed
+    }"
     aria-label="课程章节目录导航"
   >
     <div class="chapter-nav-inner">
       <!-- 目录头部与收起触发按钮（可选） -->
-      <div v-if="showHeader" class="nav-header">
+      <div
+        v-if="showHeader"
+        class="nav-header"
+      >
         <div class="nav-header-title font-mono">
           <span>CHAPTERS // 目录</span>
         </div>
@@ -85,7 +96,10 @@ const handleSelect = (section) => {
           title="收起章节目录"
           @click="emit('toggle-collapse')"
         >
-          <NavArrowLeft width="14" height="14" />
+          <NavArrowLeft
+            width="14"
+            height="14"
+          />
         </button>
       </div>
 
@@ -99,7 +113,9 @@ const handleSelect = (section) => {
           <!-- 大章行（点击折叠/展开） -->
           <div
             class="chapter-row"
-            :class="{ 'is-open': expandedChapters.has(chap.id) }"
+            :class="{
+              'is-open': expandedChapters.has(chap.id)
+            }"
             :title="chap.prereqText ? `${chap.title} · ${chap.prereqText}` : chap.title"
             @click="toggleChapter(chap.id)"
           >
@@ -108,7 +124,9 @@ const handleSelect = (section) => {
                 width="11"
                 height="11"
                 class="chapter-chevron"
-                :class="{ 'is-open': expandedChapters.has(chap.id) }"
+                :class="{
+                  'is-open': expandedChapters.has(chap.id)
+                }"
               />
             </div>
             <span class="chapter-title">{{ chap.title }}</span>
@@ -121,10 +139,18 @@ const handleSelect = (section) => {
                 v-for="sec in chap.sections"
                 :key="sec.id"
                 class="section-row"
-                :class="{ active: String(currentSectionId) === String(sec.id) || (sec.slug && String(currentSectionId) === String(sec.slug)) }"
+                :class="{
+                  active:
+                    String(currentSectionId) === String(sec.id) ||
+                    (sec.slug && String(currentSectionId) === String(sec.slug))
+                }"
                 @click="handleSelect(sec)"
               >
-                <span class="section-title" :title="sec.desc || sec.title">{{ sec.title }}</span>
+                <span
+                  class="section-title"
+                  :title="sec.desc || sec.title"
+                  >{{ sec.title }}</span
+                >
               </div>
             </div>
           </MCollapse>
@@ -181,7 +207,9 @@ const handleSelect = (section) => {
   border: 1px solid transparent;
   color: var(--text-muted);
   cursor: pointer;
-  transition: background-color 120ms ease, color 120ms ease;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
 }
 
 .nav-toggle-btn:hover {
@@ -213,7 +241,9 @@ const handleSelect = (section) => {
   cursor: pointer;
   user-select: none;
   color: var(--text-secondary);
-  transition: background-color 120ms ease, color 120ms ease;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
 }
 
 .chapter-row:hover {
@@ -268,7 +298,9 @@ const handleSelect = (section) => {
   color: var(--text-secondary);
   cursor: pointer;
   user-select: none;
-  transition: background-color 120ms ease, color 120ms ease;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
 }
 
 .section-row:hover {

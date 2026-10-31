@@ -7,14 +7,26 @@ function masteryChannel() {
   if (!channel && typeof BroadcastChannel !== 'undefined') {
     try {
       channel = new BroadcastChannel('maki-knowledge-mastery');
-      channel.onmessage = () => { for (const listener of listeners) listener(); };
-    } catch { channel = null; }
+      channel.onmessage = () => {
+        for (const listener of listeners) {
+          listener();
+        }
+      };
+    } catch {
+      channel = null;
+    }
   }
   return channel;
 }
 function notifyMasteryChanged() {
-  for (const listener of listeners) listener();
-  try { masteryChannel()?.postMessage('changed'); } catch {}
+  for (const listener of listeners) {
+    listener();
+  }
+  try {
+    masteryChannel()?.postMessage('changed');
+  } catch {
+    // 跨页通知失败不影响当前页面更新
+  }
 }
 export function subscribeMasteryChanges(listener) {
   listeners.add(listener);
@@ -26,7 +38,10 @@ function openMasteryDB() {
   if (!dbPromise) {
     dbPromise = new Promise((resolve, reject) => {
       const request = indexedDB.open(DB_NAME, 1);
-      request.onupgradeneeded = () => request.result.createObjectStore(STORE_NAME, { keyPath: 'id' });
+      request.onupgradeneeded = () =>
+        request.result.createObjectStore(STORE_NAME, {
+          keyPath: 'id'
+        });
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
       request.onblocked = () => reject(new Error('本地掌握记录数据库被占用'));
@@ -43,20 +58,31 @@ export async function getMasteredIds() {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(STORE_NAME, 'readonly');
     const request = transaction.objectStore(STORE_NAME).getAllKeys();
-    request.onsuccess = () => resolve(new Set(request.result.filter((id) => typeof id === 'string' && id.length > 0)));
+    request.onsuccess = () =>
+      resolve(new Set(request.result.filter((id) => typeof id === 'string' && id.length > 0)));
     request.onerror = () => reject(request.error);
   });
 }
 
 export async function setMastered(id, mastered) {
-  if (typeof id !== 'string' || !id) throw new Error('知识点标识无效');
+  if (typeof id !== 'string' || !id) {
+    throw new Error('知识点标识无效');
+  }
   const db = await openMasteryDB();
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(STORE_NAME, 'readwrite');
     const store = transaction.objectStore(STORE_NAME);
-    if (mastered) store.put({ id });
-    else store.delete(id);
-    transaction.oncomplete = () => { notifyMasteryChanged(); resolve(); };
+    if (mastered) {
+      store.put({
+        id
+      });
+    } else {
+      store.delete(id);
+    }
+    transaction.oncomplete = () => {
+      notifyMasteryChanged();
+      resolve();
+    };
     transaction.onerror = () => reject(transaction.error);
     transaction.onabort = () => reject(transaction.error || new Error('保存掌握状态失败'));
   });
@@ -67,14 +93,24 @@ export async function setMasteredBatch(changes) {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(STORE_NAME, 'readwrite');
     const store = transaction.objectStore(STORE_NAME);
-    transaction.oncomplete = () => { notifyMasteryChanged(); resolve(); };
+    transaction.oncomplete = () => {
+      notifyMasteryChanged();
+      resolve();
+    };
     transaction.onerror = () => reject(transaction.error || new Error('保存掌握状态失败'));
     transaction.onabort = () => reject(transaction.error || new Error('保存掌握状态失败'));
     try {
       for (const [id, mastered] of changes) {
-        if (typeof id !== 'string' || !id) throw new Error('知识点标识无效');
-        if (mastered) store.put({ id });
-        else store.delete(id);
+        if (typeof id !== 'string' || !id) {
+          throw new Error('知识点标识无效');
+        }
+        if (mastered) {
+          store.put({
+            id
+          });
+        } else {
+          store.delete(id);
+        }
       }
     } catch (error) {
       transaction.abort();
@@ -84,7 +120,9 @@ export async function setMasteredBatch(changes) {
 }
 
 export async function toggleMastered(id) {
-  if (typeof id !== 'string' || !id) throw new Error('知识点标识无效');
+  if (typeof id !== 'string' || !id) {
+    throw new Error('知识点标识无效');
+  }
   const db = await openMasteryDB();
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(STORE_NAME, 'readwrite');
@@ -93,10 +131,18 @@ export async function toggleMastered(id) {
     const request = store.get(id);
     request.onsuccess = () => {
       mastered = !request.result;
-      if (mastered) store.put({ id });
-      else store.delete(id);
+      if (mastered) {
+        store.put({
+          id
+        });
+      } else {
+        store.delete(id);
+      }
     };
-    transaction.oncomplete = () => { notifyMasteryChanged(); resolve(mastered); };
+    transaction.oncomplete = () => {
+      notifyMasteryChanged();
+      resolve(mastered);
+    };
     transaction.onerror = () => reject(transaction.error);
     transaction.onabort = () => reject(transaction.error || new Error('保存掌握状态失败'));
   });

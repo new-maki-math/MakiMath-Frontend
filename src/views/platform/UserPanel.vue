@@ -1,12 +1,13 @@
 <script setup>
-import { ref, onMounted } from 'vue';
 import { Refresh } from '@iconoir/vue';
+import { onMounted, ref } from 'vue';
+
 import { request } from '../../api/client.js';
-import { notify } from '../../components/MNotice.vue';
-import { currentUser } from '../../utils/auth.js';
 import MButton from '../../components/MButton.vue';
-import MTag from '../../components/MTag.vue';
+import { notify } from '../../components/MNotice.vue';
 import MTable from '../../components/MTable.vue';
+import MTag from '../../components/MTag.vue';
+import { currentUser } from '../../utils/auth.js';
 import { formatDate } from './utils.js';
 
 const users = ref([]);
@@ -25,12 +26,16 @@ const loadUsers = async () => {
 };
 
 const toggleUserStatus = async (user) => {
-  if (changingId.value !== null || user.id === currentUser.value?.id) return;
+  if (changingId.value !== null || user.id === currentUser.value?.id) {
+    return;
+  }
   changingId.value = user.id;
   try {
     const updated = await request(`/api/users/${user.id}/status`, {
       method: 'PATCH',
-      body: { status: user.status === 'active' ? 'disabled' : 'active' }
+      body: {
+        status: user.status === 'active' ? 'disabled' : 'active'
+      }
     });
     Object.assign(user, updated);
     notify('账号状态已更新', 'success');
@@ -51,23 +56,63 @@ onMounted(loadUsers);
         <h1 class="pane-title font-mono">USERS // 用户管理</h1>
         <p class="pane-subtitle">查看用户并管理账号状态</p>
       </div>
-      <MButton variant="secondary" icon-only title="刷新列表" aria-label="刷新列表" @click="loadUsers">
-          <Refresh width="14" height="14" />
-        </MButton>
+      <MButton
+        variant="secondary"
+        icon-only
+        title="刷新列表"
+        aria-label="刷新列表"
+        @click="loadUsers"
+      >
+        <Refresh
+          width="14"
+          height="14"
+        />
+      </MButton>
     </div>
-    <MTable :data="users" :loading="loading">
+    <MTable
+      :data="users"
+      :loading="loading"
+    >
       <template #header>
-        <th>ID</th><th>用户名</th><th>显示昵称</th><th>系统角色</th><th>账号状态</th><th>注册时间</th><th>操作</th>
+        <th>ID</th>
+        <th>用户名</th>
+        <th>显示昵称</th>
+        <th>系统角色</th>
+        <th>账号状态</th>
+        <th>注册时间</th>
+        <th>操作</th>
       </template>
       <template #rows="{ data }">
-        <tr v-for="user in data" :key="user.id">
+        <tr
+          v-for="user in data"
+          :key="user.id"
+        >
           <td class="col-dim">#{{ user.id }}</td>
           <td class="col-bold">{{ user.username }}</td>
           <td>{{ user.display_name || '-' }}</td>
-          <td><MTag :variant="user.role === 'super_admin' ? 'purple' : 'blue'" size="sm">{{ user.role === 'super_admin' ? '超级管理员' : '编者' }}</MTag></td>
-          <td><span class="status-pill" :class="user.status === 'active' ? 'status-active' : 'status-disabled'">{{ user.status === 'active' ? '正常' : '已禁用' }}</span></td>
+          <td>
+            <MTag
+              :variant="user.role === 'super_admin' ? 'purple' : 'blue'"
+              size="sm"
+              >{{ user.role === 'super_admin' ? '超级管理员' : '编者' }}</MTag
+            >
+          </td>
+          <td>
+            <span
+              class="status-pill"
+              :class="user.status === 'active' ? 'status-active' : 'status-disabled'"
+              >{{ user.status === 'active' ? '正常' : '已禁用' }}</span
+            >
+          </td>
           <td class="col-dim">{{ formatDate(user.created_at) }}</td>
-          <td><MButton size="sm" :disabled="changingId !== null || user.id === currentUser?.id" @click="toggleUserStatus(user)">{{ user.status === 'active' ? '禁用' : '启用' }}</MButton></td>
+          <td>
+            <MButton
+              size="sm"
+              :disabled="changingId !== null || user.id === currentUser?.id"
+              @click="toggleUserStatus(user)"
+              >{{ user.status === 'active' ? '禁用' : '启用' }}</MButton
+            >
+          </td>
         </tr>
       </template>
     </MTable>

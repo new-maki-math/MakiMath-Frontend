@@ -1,5 +1,5 @@
 <script setup>
-import { ref, nextTick } from 'vue';
+import { nextTick, onBeforeUnmount, ref } from 'vue';
 
 const progress = ref(0);
 const opacity = ref(0);
@@ -11,9 +11,15 @@ let finishTimer = null;
 let resetTimer = null;
 
 const clearAllTimers = () => {
-  if (trickleTimer) clearInterval(trickleTimer);
-  if (finishTimer) clearTimeout(finishTimer);
-  if (resetTimer) clearTimeout(resetTimer);
+  if (trickleTimer) {
+    clearInterval(trickleTimer);
+  }
+  if (finishTimer) {
+    clearTimeout(finishTimer);
+  }
+  if (resetTimer) {
+    clearTimeout(resetTimer);
+  }
   trickleTimer = null;
   finishTimer = null;
   resetTimer = null;
@@ -50,7 +56,9 @@ const start = () => {
 
 // 完成进度
 const finish = () => {
-  if (trickleTimer) clearInterval(trickleTimer);
+  if (trickleTimer) {
+    clearInterval(trickleTimer);
+  }
   trickleTimer = null;
 
   isTransitioning.value = true;
@@ -71,7 +79,9 @@ const finish = () => {
 
 // 失败状态
 const fail = () => {
-  if (trickleTimer) clearInterval(trickleTimer);
+  if (trickleTimer) {
+    clearInterval(trickleTimer);
+  }
   trickleTimer = null;
 
   status.value = 'error';
@@ -88,6 +98,8 @@ const fail = () => {
   }, 220);
 };
 
+onBeforeUnmount(clearAllTimers);
+
 defineExpose({
   start,
   finish,
@@ -100,7 +112,9 @@ defineExpose({
 <template>
   <div
     class="top-progress-track"
-    :style="{ opacity }"
+    :style="{
+      opacity
+    }"
     role="progressbar"
     :aria-valuenow="Math.round(progress)"
     aria-valuemin="0"
@@ -112,7 +126,9 @@ defineExpose({
         'is-error': status === 'error',
         'no-transition': !isTransitioning
       }"
-      :style="{ width: `${progress}%` }"
+      :style="{
+        width: `${progress}%`
+      }"
     />
   </div>
 </template>
@@ -135,7 +151,9 @@ defineExpose({
   height: 100%;
   background-color: var(--accent-primary);
   /* 进度条宽度过渡 */
-  transition: width 260ms cubic-bezier(0.16, 1, 0.3, 1), background-color 200ms ease;
+  transition:
+    width 260ms cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 200ms ease;
   will-change: width, opacity;
 }
 

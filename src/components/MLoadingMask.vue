@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue';
+
 import MBackdrop from './MBackdrop.vue';
 
 const props = defineProps({
@@ -26,7 +27,9 @@ const props = defineProps({
 });
 
 const progressPercent = computed(() => {
-  if (props.progress === undefined || props.progress === null) return null;
+  if (props.progress === undefined || props.progress === null) {
+    return null;
+  }
   return Math.max(0, Math.min(100, Math.round(props.progress)));
 });
 </script>
@@ -42,13 +45,24 @@ const progressPercent = computed(() => {
     <div class="loading-content">
       <div class="loading-spinner"></div>
 
-      <div v-if="text" class="loading-text font-mono">
+      <div
+        v-if="text"
+        class="loading-text font-mono"
+      >
         {{ text }}
       </div>
 
-      <div v-if="progressPercent !== null" class="loading-bar-wrap">
+      <div
+        v-if="progressPercent !== null"
+        class="loading-bar-wrap"
+      >
         <div class="loading-bar-track">
-          <div class="loading-bar-fill" :style="{ width: progressPercent + '%' }"></div>
+          <div
+            class="loading-bar-fill"
+            :style="{
+              width: progressPercent + '%'
+            }"
+          ></div>
         </div>
         <span class="loading-bar-num font-mono">{{ progressPercent }}%</span>
       </div>

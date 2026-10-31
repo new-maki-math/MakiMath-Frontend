@@ -6,11 +6,17 @@ function openDatabase() {
   if (!database) {
     database = new Promise((resolve, reject) => {
       const request = indexedDB.open(DB_NAME, 1);
-      request.onupgradeneeded = () => request.result.createObjectStore(STORE, { keyPath: 'id' });
+      request.onupgradeneeded = () =>
+        request.result.createObjectStore(STORE, {
+          keyPath: 'id'
+        });
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
       request.onblocked = () => reject(new Error('本地讲义数据库被占用'));
-    }).catch((error) => { database = null; throw error; });
+    }).catch((error) => {
+      database = null;
+      throw error;
+    });
   }
   return database;
 }
@@ -33,8 +39,14 @@ export function validateLocalLectureSlug(slug) {
 export async function findLocalLectureBySlug(slug) {
   validateLocalLectureSlug(slug);
   const matches = (await listLocalLectures()).filter((item) => item.slug === slug);
-  if (matches.length > 1) throw new Error('本地讲义标识重复，请先在讲义工作台处理冲突');
-  if (!matches.length) { const error = new Error('本地讲义不存在'); error.status = 404; throw error; }
+  if (matches.length > 1) {
+    throw new Error('本地讲义标识重复，请先在讲义工作台处理冲突');
+  }
+  if (!matches.length) {
+    const error = new Error('本地讲义不存在');
+    error.status = 404;
+    throw error;
+  }
   return matches[0];
 }
 
@@ -55,7 +67,10 @@ export async function createLocalLecture(record) {
       try {
         store.add(record);
       } catch (error) {
-        issue = error?.name === 'DataCloneError' ? '讲义数据无法写入本地，请检查文件内容' : error?.message || '创建本地讲义失败';
+        issue =
+          error?.name === 'DataCloneError'
+            ? '讲义数据无法写入本地，请检查文件内容'
+            : error?.message || '创建本地讲义失败';
         tx.abort();
       }
     };
@@ -79,15 +94,23 @@ export async function saveLocalLecture(record, expectedVersion) {
         return;
       }
       if (current.slug !== record.slug) {
-        try { validateLocalLectureSlug(record.slug); }
-        catch (error) { issue = error.message; tx.abort(); return; }
+        try {
+          validateLocalLectureSlug(record.slug);
+        } catch (error) {
+          issue = error.message;
+          tx.abort();
+          return;
+        }
         if (request.result.some((item) => item.id !== record.id && item.slug === record.slug)) {
           issue = '本地讲义标识已存在，请修改标识后重试';
           tx.abort();
           return;
         }
       }
-      store.put({ ...record, editVersion: expectedVersion + 1 });
+      store.put({
+        ...record,
+        editVersion: expectedVersion + 1
+      });
     };
     tx.oncomplete = () => resolve(expectedVersion + 1);
     tx.onabort = () => reject(new Error(issue || tx.error?.message || '保存本地讲义失败'));
@@ -113,11 +136,28 @@ export async function updateLocalLectureCover(id, cover) {
     const request = store.get(id);
     let missing = false;
     request.onsuccess = () => {
-      if (!request.result) { missing = true; tx.abort(); return; }
-      const revision = { ...request.result.revision, metadata: { ...(request.result.revision?.metadata || {}) } };
-      if (cover) revision.metadata.cover = cover;
-      else delete revision.metadata.cover;
-      store.put({ ...request.result, cover, revision, editVersion: request.result.editVersion + 1 });
+      if (!request.result) {
+        missing = true;
+        tx.abort();
+        return;
+      }
+      const revision = {
+        ...request.result.revision,
+        metadata: {
+          ...(request.result.revision?.metadata || {})
+        }
+      };
+      if (cover) {
+        revision.metadata.cover = cover;
+      } else {
+        delete revision.metadata.cover;
+      }
+      store.put({
+        ...request.result,
+        cover,
+        revision,
+        editVersion: request.result.editVersion + 1
+      });
     };
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);

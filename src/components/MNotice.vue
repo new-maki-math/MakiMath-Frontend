@@ -7,8 +7,13 @@ let globalTimer = null;
 
 // 全局函数式通知触发器
 export const notify = (text, kind = 'ok', duration = 3200) => {
-  if (!text) return;
-  globalNotice.value = { text, kind };
+  if (!text) {
+    return;
+  }
+  globalNotice.value = {
+    text,
+    kind
+  };
   clearTimeout(globalTimer);
   if (duration > 0) {
     globalTimer = setTimeout(() => {
@@ -21,11 +26,10 @@ notify.clear = () => {
   clearTimeout(globalTimer);
   globalNotice.value = null;
 };
-
 </script>
 
 <script setup>
-import { CheckCircleSolid, WarningCircleSolid, InfoCircleSolid, Xmark } from '@iconoir/vue';
+import { CheckCircleSolid, InfoCircleSolid, WarningCircleSolid, Xmark } from '@iconoir/vue';
 
 const currentNotice = globalNotice;
 const handleClose = notify.clear;
@@ -67,14 +71,25 @@ const handleClose = notify.clear;
             class="m-notice-icon is-info"
           />
         </div>
-        <span class="m-notice-text" @click="typeof currentNotice.text === 'string' && currentNotice.text.includes('\n') && $event.stopPropagation()">{{ currentNotice.text }}</span>
+        <span
+          class="m-notice-text"
+          @click="
+            typeof currentNotice.text === 'string' &&
+            currentNotice.text.includes('\n') &&
+            $event.stopPropagation()
+          "
+          >{{ currentNotice.text }}</span
+        >
         <button
           type="button"
           class="m-notice-close"
           title="关闭通知"
           @click.stop="handleClose"
         >
-          <Xmark width="13" height="13" />
+          <Xmark
+            width="13"
+            height="13"
+          />
         </button>
       </div>
     </Transition>
@@ -102,7 +117,9 @@ const handleClose = notify.clear;
   gap: 10px;
   cursor: pointer;
   user-select: none;
-  transition: border-color 140ms ease, background-color 140ms ease;
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease;
 }
 
 .m-notice:hover {
@@ -179,7 +196,9 @@ const handleClose = notify.clear;
 /* 过渡动画 */
 .notice-fade-enter-active,
 .notice-fade-leave-active {
-  transition: opacity 180ms ease, transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    opacity 180ms ease,
+    transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .notice-fade-enter-from,

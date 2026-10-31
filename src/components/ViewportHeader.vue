@@ -1,7 +1,9 @@
 <script setup>
-import { ref, computed } from 'vue';
-import { RouterLink, useRoute } from 'vue-router';
 import { Refresh } from '@iconoir/vue';
+import { computed, ref } from 'vue';
+import { RouterLink, useRoute } from 'vue-router';
+
+import MButton from './MButton.vue';
 
 const props = defineProps({
   title: {
@@ -35,11 +37,21 @@ const resolvedBreadcrumbs = computed(() => {
   if (props.breadcrumbs && Array.isArray(props.breadcrumbs) && props.breadcrumbs.length > 0) {
     return props.breadcrumbs;
   }
-  return [{ label: 'APP', to: '/start' }, { label: displayTitle.value }];
+  return [
+    {
+      label: 'APP',
+      to: '/start'
+    },
+    {
+      label: displayTitle.value
+    }
+  ];
 });
 
 const handleRefresh = () => {
-  if (isRefreshing.value) return;
+  if (isRefreshing.value) {
+    return;
+  }
   isRefreshing.value = true;
   emit('refresh');
   setTimeout(() => {
@@ -52,19 +64,38 @@ const handleRefresh = () => {
   <div class="viewport-header">
     <div class="viewport-header-left">
       <div class="breadcrumb font-mono">
-        <template v-for="(seg, idx) in resolvedBreadcrumbs" :key="idx">
-          <span v-if="idx > 0" class="crumb-sep">/</span>
-          <RouterLink v-if="typeof seg === 'object' && seg.to && idx < resolvedBreadcrumbs.length - 1" class="crumb-link" :to="seg.to">{{ seg.label }}</RouterLink>
-          <span v-else :class="{ 'crumb-active': idx === resolvedBreadcrumbs.length - 1 }">{{ typeof seg === 'string' ? seg : seg.label }}</span>
+        <template
+          v-for="(seg, idx) in resolvedBreadcrumbs"
+          :key="idx"
+        >
+          <span
+            v-if="idx > 0"
+            class="crumb-sep"
+            >/</span
+          >
+          <RouterLink
+            v-if="typeof seg === 'object' && seg.to && idx < resolvedBreadcrumbs.length - 1"
+            class="crumb-link"
+            :to="seg.to"
+            >{{ seg.label }}</RouterLink
+          >
+          <span
+            v-else
+            :class="{
+              'crumb-active': idx === resolvedBreadcrumbs.length - 1
+            }"
+            >{{ typeof seg === 'string' ? seg : seg.label }}</span
+          >
         </template>
       </div>
-
     </div>
 
     <div class="viewport-header-right">
-
-      <!-- 默认通用刷新按钮 (在非 doc 且非 my-lecture 页面显示) -->
-      <div v-if="!isDocPage && !isMyLecturePage" class="viewport-actions">
+      <!-- 阅读页和书架隐藏刷新按钮 -->
+      <div
+        v-if="!isDocPage && !isMyLecturePage"
+        class="viewport-actions"
+      >
         <slot name="actions">
           <MButton
             variant="secondary"
@@ -77,7 +108,9 @@ const handleRefresh = () => {
               <Refresh
                 width="13"
                 height="13"
-                :class="{ 'spin-icon': isRefreshing }"
+                :class="{
+                  'spin-icon': isRefreshing
+                }"
               />
             </template>
             <span>刷新</span>

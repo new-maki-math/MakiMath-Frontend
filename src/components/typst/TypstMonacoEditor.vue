@@ -1,7 +1,8 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import MLoadingMask from '../MLoadingMask.vue';
+
 import MButton from '../MButton.vue';
+import MLoadingMask from '../MLoadingMask.vue';
 
 const props = defineProps({
   modelValue: {
@@ -42,17 +43,23 @@ function currentEditorTheme() {
 }
 
 function updateEditorTheme() {
-  if (monaco && editorInstance) monaco.editor.setTheme(currentEditorTheme());
+  if (monaco && editorInstance) {
+    monaco.editor.setTheme(currentEditorTheme());
+  }
 }
 
 async function initializeEditor() {
-  if (disposed || initializing || editorInstance || !editorMountRef.value) return;
+  if (disposed || initializing || editorInstance || !editorMountRef.value) {
+    return;
+  }
   initializing = true;
   editorLoading.value = true;
   editorError.value = '';
   try {
-    const module = await import('../../utils/monaco.js');
-    if (disposed || !editorMountRef.value) return;
+    const module = await import('./monaco.js');
+    if (disposed || !editorMountRef.value) {
+      return;
+    }
     monaco = module.monaco;
     editorInstance = monaco.editor.create(editorMountRef.value, {
       value: props.modelValue || '',
@@ -65,10 +72,13 @@ async function initializeEditor() {
       lineNumbersMinChars: 3,
       lineHeight: 21,
       fontSize: 13,
-      fontFamily: 'var(--font-mono, "Cascadia Code", Consolas, Menlo, Monaco, "Courier New", monospace)',
+      fontFamily:
+        'var(--font-mono, "Cascadia Code", Consolas, Menlo, Monaco, "Courier New", monospace)',
       renderLineHighlight: 'all',
       scrollBeyondLastLine: false,
-      minimap: { enabled: false },
+      minimap: {
+        enabled: false
+      },
       overviewRulerBorder: false,
       hideCursorInOverviewRuler: true,
       scrollbar: {
@@ -77,7 +87,9 @@ async function initializeEditor() {
         verticalScrollbarSize: 8,
         horizontalScrollbarSize: 8
       },
-      bracketPairColorization: { enabled: true },
+      bracketPairColorization: {
+        enabled: true
+      },
       guides: {
         indentation: true,
         bracketPairs: false
@@ -88,7 +100,9 @@ async function initializeEditor() {
 
     // 双向绑定输入监听
     editorInstance.onDidChangeModelContent(() => {
-      if (isSettingValue) return;
+      if (isSettingValue) {
+        return;
+      }
       if (props.readonly) {
         isSettingValue = true;
         editorInstance.setValue(props.modelValue || '');
@@ -100,14 +114,24 @@ async function initializeEditor() {
     });
 
     editorInstance.onDidScrollChange((event) => {
-      if (!event.scrollTopChanged) return;
+      if (!event.scrollTopChanged) {
+        return;
+      }
       const position = getScrollPosition();
-      if (position) emit('scroll', position);
+      if (position) {
+        emit('scroll', position);
+      }
     });
 
     editorInstance.onDidType((text) => {
       const model = editorInstance.getModel();
-      if (model && !props.readonly) emit('type', { text, model, selection: editorInstance.getSelection() });
+      if (model && !props.readonly) {
+        emit('type', {
+          text,
+          model,
+          selection: editorInstance.getSelection()
+        });
+      }
     });
 
     // 绑定 Ctrl / Cmd + S 保存快捷键
@@ -129,14 +153,19 @@ async function initializeEditor() {
 }
 onMounted(() => {
   themeObserver = new MutationObserver(updateEditorTheme);
-  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  themeObserver.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['data-theme']
+  });
   initializeEditor();
 });
 
 watch(
   () => props.modelValue,
   (newVal) => {
-    if (!editorInstance) return;
+    if (!editorInstance) {
+      return;
+    }
     const current = editorInstance.getValue();
     const incoming = newVal ?? '';
     if (current !== incoming) {
@@ -150,21 +179,37 @@ watch(
 watch(
   () => props.readonly,
   (isRo) => {
-    editorInstance?.updateOptions({ readOnly: isRo });
+    editorInstance?.updateOptions({
+      readOnly: isRo
+    });
   }
 );
 
 function getScrollPosition() {
   const model = editorInstance?.getModel();
   const range = editorInstance?.getVisibleRanges()[0];
-  if (!model || !range) return null;
+  if (!model || !range) {
+    return null;
+  }
   const line = range.startLineNumber;
   const scrollTop = editorInstance.getScrollTop();
   const lineHeight = editorInstance.getOption(monaco.editor.EditorOption.lineHeight);
-  const fraction = Math.max(0, Math.min(1, (scrollTop - editorInstance.getTopForLineNumber(line)) / lineHeight));
-  const start = model.getOffsetAt({ lineNumber: line, column: 1 });
-  const end = model.getOffsetAt({ lineNumber: line, column: model.getLineMaxColumn(line) });
-  return { offset: start + (end - start) * fraction, scrollTop };
+  const fraction = Math.max(
+    0,
+    Math.min(1, (scrollTop - editorInstance.getTopForLineNumber(line)) / lineHeight)
+  );
+  const start = model.getOffsetAt({
+    lineNumber: line,
+    column: 1
+  });
+  const end = model.getOffsetAt({
+    lineNumber: line,
+    column: model.getLineMaxColumn(line)
+  });
+  return {
+    offset: start + (end - start) * fraction,
+    scrollTop
+  };
 }
 
 defineExpose({
@@ -172,20 +217,40 @@ defineExpose({
   replaceRange(target, text) {
     const editor = editorInstance;
     const model = editor?.getModel();
-    if (props.readonly || !model || model !== target?.model || model.getVersionId() !== target.version || typeof text !== 'string') return false;
+    if (
+      props.readonly ||
+      !model ||
+      model !== target?.model ||
+      model.getVersionId() !== target.version ||
+      typeof text !== 'string'
+    ) {
+      return false;
+    }
     const start = model.getPositionAt(target.range.start);
     const end = model.getPositionAt(target.range.end);
     editor.pushUndoStop();
-    editor.executeEdits('replace-range', [{ range: new monaco.Range(start.lineNumber, start.column, end.lineNumber, end.column), text, forceMoveMarkers: true }]);
+    editor.executeEdits('replace-range', [
+      {
+        range: new monaco.Range(start.lineNumber, start.column, end.lineNumber, end.column),
+        text,
+        forceMoveMarkers: true
+      }
+    ]);
     editor.pushUndoStop();
     editor.focus();
     return true;
   },
-  focus() { editorInstance?.focus(); },
+  focus() {
+    editorInstance?.focus();
+  },
   scrollToOffset(offset) {
     const model = editorInstance?.getModel();
-    if (!model) return null;
-    const position = model.getPositionAt(Math.max(0, Math.min(model.getValueLength(), Math.floor(offset))));
+    if (!model) {
+      return null;
+    }
+    const position = model.getPositionAt(
+      Math.max(0, Math.min(model.getValueLength(), Math.floor(offset)))
+    );
     const target = editorInstance.getTopForLineNumber(position.lineNumber);
     editorInstance.setScrollTop(target, monaco.editor.ScrollType.Immediate);
     return editorInstance.getScrollTop();
@@ -206,24 +271,46 @@ onBeforeUnmount(() => {
   <div class="m-code">
     <div class="code-head">
       <div class="code-head-left">
-        <span v-if="label" class="code-label">{{ label }}</span>
-        <span class="code-meta font-mono">
-          {{ lineCount }} 行 · {{ charCount }} 字符
-        </span>
+        <span
+          v-if="label"
+          class="code-label"
+          >{{ label }}</span
+        >
+        <span class="code-meta font-mono"> {{ lineCount }} 行 · {{ charCount }} 字符 </span>
       </div>
-
     </div>
 
     <div
       class="code-monaco-wrap"
-      :style="{ height }"
+      :style="{
+        height
+      }"
     >
-      <div ref="editorMountRef" class="monaco-mount"></div>
-      <MLoadingMask :visible="editorLoading" text="正在加载编辑器…" />
-      <span v-if="editorLoading" class="editor-status" role="status">正在加载编辑器…</span>
-      <div v-if="editorError" class="editor-error" role="alert">
+      <div
+        ref="editorMountRef"
+        class="monaco-mount"
+      ></div>
+      <MLoadingMask
+        :visible="editorLoading"
+        text="正在加载编辑器…"
+      />
+      <span
+        v-if="editorLoading"
+        class="editor-status"
+        role="status"
+        >正在加载编辑器…</span
+      >
+      <div
+        v-if="editorError"
+        class="editor-error"
+        role="alert"
+      >
         <span>{{ editorError }}</span>
-        <MButton size="sm" @click="initializeEditor">重试</MButton>
+        <MButton
+          size="sm"
+          @click="initializeEditor"
+          >重试</MButton
+        >
       </div>
     </div>
   </div>
@@ -263,7 +350,6 @@ onBeforeUnmount(() => {
   color: var(--text-muted);
 }
 
-
 .code-monaco-wrap {
   position: relative;
   width: 100%;
@@ -279,8 +365,26 @@ onBeforeUnmount(() => {
   border-color: var(--border-focus);
 }
 
-.editor-status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-.editor-error { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 16px; background: var(--bg-surface); color: var(--text-secondary); text-align: center; }
+.editor-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.editor-error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px;
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  text-align: center;
+}
 
 .monaco-mount {
   width: 100%;

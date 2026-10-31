@@ -31,7 +31,11 @@ defineEmits(['update:modelValue']);
 
 <template>
   <label class="m-field">
-    <span v-if="label" class="field-label">{{ label }}</span>
+    <span
+      v-if="label"
+      class="field-label"
+      >{{ label }}</span
+    >
     <div class="select-shell">
       <select
         class="m-select"
@@ -49,16 +53,22 @@ defineEmits(['update:modelValue']);
           {{ opt.label }}
         </option>
       </select>
-      <span class="select-caret" aria-hidden="true"></span>
+      <span
+        class="select-caret"
+        aria-hidden="true"
+      ></span>
     </div>
-    <span v-if="hint" class="field-hint">{{ hint }}</span>
+    <span
+      v-if="hint"
+      class="field-hint"
+      >{{ hint }}</span
+    >
   </label>
 </template>
 
 <style scoped src="./field.css"></style>
 
 <style scoped>
-
 .select-shell {
   position: relative;
 }
@@ -75,7 +85,9 @@ defineEmits(['update:modelValue']);
   font-size: var(--font-size);
   appearance: none;
   cursor: pointer;
-  transition: border-color 140ms ease, background-color 140ms ease;
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease;
 }
 
 .m-select:hover:not(:disabled) {

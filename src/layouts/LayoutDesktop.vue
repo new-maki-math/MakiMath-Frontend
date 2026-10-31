@@ -1,26 +1,27 @@
 <script setup>
-import { ref, inject } from 'vue';
-import ViewportHeader from '../components/ViewportHeader.vue';
-import SearchBar from '../components/SearchBar.vue';
-import MUpdateLog from '../components/MUpdateLog.vue';
-import MCollapse from '../components/MCollapse.vue';
-import { useLayoutState } from './useLayoutState.js';
 import {
-  Terminal,
-  NavArrowRight,
-  NavArrowLeft,
-  SunLight,
   HalfMoon,
   HelpCircle,
   LogOut,
+  NavArrowLeft,
+  NavArrowRight,
+  SunLight,
+  Terminal,
   UserCircle
 } from '@iconoir/vue';
+import { inject, ref } from 'vue';
+import { RouterView } from 'vue-router';
 
-// 注入共享布局状态（若外层 provide，则直接复用；否则独立兜底调用）
+import MCollapse from '../components/MCollapse.vue';
+import MUpdateLog from '../components/MUpdateLog.vue';
+import SearchBar from '../components/SearchBar.vue';
+import ViewportHeader from '../components/ViewportHeader.vue';
+import { useLayoutState } from './useLayoutState.js';
+
+// 复用根布局的共享状态
 const state = inject('layoutState', null) || useLayoutState();
 
 const {
-  route,
   isDark,
   toggleTheme,
   isLoggedIn,
@@ -59,37 +60,57 @@ const handleNavClick = (item) => {
   }
   navigateTo(item.path);
 };
-
 </script>
 
 <template>
   <div class="maki-layout">
-    <!-- 顶部全局工具栏 (Header Bar) -->
+    <!-- 顶部全局工具栏 -->
     <header class="maki-topbar">
       <div class="topbar-left">
-        <div class="brand-badge" @click="navigateTo('/start')">
-          <Terminal width="18" height="18" />
+        <div
+          class="brand-badge"
+          @click="navigateTo('/start')"
+        >
+          <Terminal
+            width="18"
+            height="18"
+          />
           <span class="brand-text">MAKI</span>
           <span class="brand-sep">//</span>
           <span class="brand-sub">MATH</span>
         </div>
       </div>
 
-      <div class="topbar-center" :class="{ 'is-hidden-on-start': isStartRoute }">
+      <div
+        class="topbar-center"
+        :class="{
+          'is-hidden-on-start': isStartRoute
+        }"
+      >
         <SearchBar variant="topbar" />
       </div>
 
       <div class="topbar-right">
         <div class="user-profile-anchor font-mono">
-          <span v-if="isLoggedIn" class="user-name" :title="userDisplayName">{{ userDisplayName }}</span>
+          <span
+            v-if="isLoggedIn"
+            class="user-name"
+            :title="userDisplayName"
+            >{{ userDisplayName }}</span
+          >
           <button
             class="topbar-action-btn"
-            :class="{ active: isUserModalOpen }"
+            :class="{
+              active: isUserModalOpen
+            }"
             :title="isLoggedIn ? '用户设置与详情' : '登录或注册'"
             :aria-label="isLoggedIn ? '查看用户设置与详情' : '登录或注册'"
             @click="openUserModal"
           >
-            <UserCircle width="20" height="20" />
+            <UserCircle
+              width="20"
+              height="20"
+            />
           </button>
         </div>
 
@@ -100,18 +121,26 @@ const handleNavClick = (item) => {
           aria-label="退出登录"
           @click="handleLogout"
         >
-          <LogOut width="20" height="20" />
+          <LogOut
+            width="20"
+            height="20"
+          />
         </button>
 
         <button
           type="button"
           class="topbar-action-btn"
-          :class="{ active: isHelpModalOpen }"
+          :class="{
+            active: isHelpModalOpen
+          }"
           title="如何使用"
           aria-label="如何使用"
           @click="openHelpModal"
         >
-          <HelpCircle width="20" height="20" />
+          <HelpCircle
+            width="20"
+            height="20"
+          />
         </button>
 
         <button
@@ -120,8 +149,16 @@ const handleNavClick = (item) => {
           aria-label="切换浅色/深色模式"
           @click="toggleTheme"
         >
-          <SunLight v-if="isDark" width="20" height="20" />
-          <HalfMoon v-else width="20" height="20" />
+          <SunLight
+            v-if="isDark"
+            width="20"
+            height="20"
+          />
+          <HalfMoon
+            v-else
+            width="20"
+            height="20"
+          />
         </button>
         <MUpdateLog />
       </div>
@@ -129,10 +166,23 @@ const handleNavClick = (item) => {
 
     <!-- 主体区域：左侧导航 + 工作区 -->
     <div class="maki-main">
-      <!-- 桌面端侧边栏 (In-Page Navigation Sidebar) -->
-      <aside class="maki-sidebar" :class="{ 'is-collapsed': isSidebarCollapsed }">
-        <div class="sidebar-header" :class="{ 'is-collapsed': isSidebarCollapsed }">
-          <MCollapse horizontal :open="!isSidebarCollapsed">
+      <!-- 桌面端侧边栏 -->
+      <aside
+        class="maki-sidebar"
+        :class="{
+          'is-collapsed': isSidebarCollapsed
+        }"
+      >
+        <div
+          class="sidebar-header"
+          :class="{
+            'is-collapsed': isSidebarCollapsed
+          }"
+        >
+          <MCollapse
+            horizontal
+            :open="!isSidebarCollapsed"
+          >
             <span class="sidebar-section-title font-mono">NAVIGATION</span>
           </MCollapse>
           <button
@@ -140,7 +190,11 @@ const handleNavClick = (item) => {
             :title="isSidebarCollapsed ? '展开导航栏' : '收起导航栏'"
             @click="toggleSidebar"
           >
-            <component :is="isSidebarCollapsed ? NavArrowRight : NavArrowLeft" width="13" height="13" />
+            <component
+              :is="isSidebarCollapsed ? NavArrowRight : NavArrowLeft"
+              width="13"
+              height="13"
+            />
           </button>
         </div>
 
@@ -149,14 +203,25 @@ const handleNavClick = (item) => {
             v-for="item in navigationGroups[0]"
             :key="item.id"
             class="nav-button"
-            :class="{ active: isItemActive(item) }"
+            :class="{
+              active: isItemActive(item)
+            }"
             :title="isSidebarCollapsed ? item.label : undefined"
             @click="handleNavClick(item)"
           >
             <div class="nav-icon-wrap">
-              <component :is="item.icon" width="18" height="18" class="nav-icon" />
+              <component
+                :is="item.icon"
+                width="18"
+                height="18"
+                class="nav-icon"
+              />
             </div>
-            <MCollapse horizontal :open="!isSidebarCollapsed" class="nav-label-collapse">
+            <MCollapse
+              horizontal
+              :open="!isSidebarCollapsed"
+              class="nav-label-collapse"
+            >
               <span class="nav-label">{{ item.label }}</span>
             </MCollapse>
           </button>
@@ -165,21 +230,34 @@ const handleNavClick = (item) => {
             v-for="item in navigationGroups[1].concat(navigationGroups[2])"
             :key="item.id"
             class="nav-button"
-            :class="{ active: isItemActive(item) }"
+            :class="{
+              active: isItemActive(item)
+            }"
             :title="isSidebarCollapsed ? item.label : undefined"
             @click="handleNavClick(item)"
           >
             <div class="nav-icon-wrap">
-              <component :is="item.icon" width="18" height="18" class="nav-icon" />
+              <component
+                :is="item.icon"
+                width="18"
+                height="18"
+                class="nav-icon"
+              />
             </div>
-            <MCollapse horizontal :open="!isSidebarCollapsed" class="nav-label-collapse">
+            <MCollapse
+              horizontal
+              :open="!isSidebarCollapsed"
+              class="nav-label-collapse"
+            >
               <span class="nav-label">{{ item.label }}</span>
             </MCollapse>
           </button>
-
         </nav>
 
-        <MCollapse horizontal :open="!isSidebarCollapsed">
+        <MCollapse
+          horizontal
+          :open="!isSidebarCollapsed"
+        >
           <div class="sidebar-footer">
             <div class="palette-indicator">
               <span class="palette-box base"></span>
@@ -193,7 +271,12 @@ const handleNavClick = (item) => {
       </aside>
 
       <!-- 工作视口 -->
-      <main class="maki-viewport" :class="{ 'is-locked': isViewportLocked }">
+      <main
+        class="maki-viewport"
+        :class="{
+          'is-locked': isViewportLocked
+        }"
+      >
         <ViewportHeader
           v-if="showViewportHeader"
           :title="currentLecture ? currentLecture.title : currentItem.label"
@@ -202,7 +285,7 @@ const handleNavClick = (item) => {
         />
 
         <slot :current-item="currentItem">
-          <router-view :key="docRefreshKey" />
+          <RouterView :key="docRefreshKey" />
         </slot>
       </main>
     </div>
@@ -269,7 +352,9 @@ const handleNavClick = (item) => {
   flex: 1;
   max-width: 500px;
   margin: 0 20px;
-  transition: opacity 240ms cubic-bezier(0.16, 1, 0.3, 1), transform 240ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    opacity 240ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 240ms cubic-bezier(0.16, 1, 0.3, 1);
   opacity: 1;
   transform: translateY(0);
 }
@@ -316,7 +401,9 @@ const handleNavClick = (item) => {
   color: var(--text-secondary);
   background-color: transparent;
   border: none;
-  transition: background-color 140ms ease, color 140ms ease;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease;
   flex-shrink: 0;
   cursor: pointer;
 }
@@ -346,7 +433,10 @@ const handleNavClick = (item) => {
   flex-shrink: 0;
   position: relative;
   z-index: 40;
-  transition: width 160ms cubic-bezier(0.2, 0, 0, 1), min-width 160ms cubic-bezier(0.2, 0, 0, 1), max-width 160ms cubic-bezier(0.2, 0, 0, 1);
+  transition:
+    width 160ms cubic-bezier(0.2, 0, 0, 1),
+    min-width 160ms cubic-bezier(0.2, 0, 0, 1),
+    max-width 160ms cubic-bezier(0.2, 0, 0, 1);
   overflow: hidden;
 }
 
@@ -397,7 +487,10 @@ const handleNavClick = (item) => {
   color: var(--text-muted);
   cursor: pointer;
   flex-shrink: 0;
-  transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease,
+    border-color 120ms ease;
 }
 
 .sidebar-header.is-collapsed .sidebar-collapse-btn {
@@ -439,7 +532,9 @@ const handleNavClick = (item) => {
   border: 1px solid transparent;
   cursor: pointer;
   text-align: left;
-  transition: background-color 140ms ease, color 140ms ease;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease;
   position: relative;
   flex-shrink: 0;
 }
@@ -530,10 +625,18 @@ const handleNavClick = (item) => {
   border-radius: var(--radius-xs);
 }
 
-.palette-box.base { background-color: var(--bg-topbar); }
-.palette-box.surface { background-color: var(--bg-sidebar); }
-.palette-box.elevated { background-color: var(--bg-surface); }
-.palette-box.accent { background-color: var(--accent-primary); }
+.palette-box.base {
+  background-color: var(--bg-topbar);
+}
+.palette-box.surface {
+  background-color: var(--bg-sidebar);
+}
+.palette-box.elevated {
+  background-color: var(--bg-surface);
+}
+.palette-box.accent {
+  background-color: var(--accent-primary);
+}
 
 .footer-meta {
   font-size: var(--font-size-smallest);

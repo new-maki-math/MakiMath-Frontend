@@ -1,12 +1,12 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 
 const canvasRef = ref(null);
 const isReady = ref(false);
 let animationFrameId = null;
 let resizeTimer = null;
 let isTabActive = true;
-let startTime = Date.now();
+const startTime = Date.now();
 
 const ENTER_DURATION = 1400;
 
@@ -19,16 +19,22 @@ const mousePos = {
 
 // 检查当前是否为浅色模式
 const checkIsLight = () => {
-  if (typeof document === 'undefined') return false;
+  if (typeof document === 'undefined') {
+    return false;
+  }
   return document.documentElement.getAttribute('data-theme') === 'light';
 };
 
 // 绘制平滑连续的拓扑函数曲线与微积分投影
 const renderFrame = () => {
   const canvas = canvasRef.value;
-  if (!canvas) return;
+  if (!canvas) {
+    return;
+  }
   const ctx = canvas.getContext('2d');
-  if (!ctx) return;
+  if (!ctx) {
+    return;
+  }
 
   const w = window.innerWidth;
   const h = window.innerHeight;
@@ -49,10 +55,42 @@ const renderFrame = () => {
 
   // 多层数学波形配置
   const waveConfigs = [
-    { amp: 46, freq: 0.0020, speed: 1.05, yRatio: 0.52, lineAlpha: 0.20, hasFill: true, fillAlpha: 0.04 },
-    { amp: 34, freq: 0.0028, speed: 0.82, yRatio: 0.58, lineAlpha: 0.15, hasFill: true, fillAlpha: 0.022 },
-    { amp: 24, freq: 0.0036, speed: 1.30, yRatio: 0.65, lineAlpha: 0.11, hasFill: false, fillAlpha: 0 },
-    { amp: 16, freq: 0.0046, speed: 1.65, yRatio: 0.72, lineAlpha: 0.07, hasFill: false, fillAlpha: 0 }
+    {
+      amp: 46,
+      freq: 0.002,
+      speed: 1.05,
+      yRatio: 0.52,
+      lineAlpha: 0.2,
+      hasFill: true,
+      fillAlpha: 0.04
+    },
+    {
+      amp: 34,
+      freq: 0.0028,
+      speed: 0.82,
+      yRatio: 0.58,
+      lineAlpha: 0.15,
+      hasFill: true,
+      fillAlpha: 0.022
+    },
+    {
+      amp: 24,
+      freq: 0.0036,
+      speed: 1.3,
+      yRatio: 0.65,
+      lineAlpha: 0.11,
+      hasFill: false,
+      fillAlpha: 0
+    },
+    {
+      amp: 16,
+      freq: 0.0046,
+      speed: 1.65,
+      yRatio: 0.72,
+      lineAlpha: 0.07,
+      hasFill: false,
+      fillAlpha: 0
+    }
   ];
 
   ctx.save();
@@ -70,9 +108,9 @@ const renderFrame = () => {
     for (let x = 0; x <= w; x += 4) {
       const p1 = x * cfg.freq + t * cfg.speed;
       const p2 = x * cfg.freq * 0.5 - t * cfg.speed * 0.45;
-      const wave = (Math.sin(p1) * currentAmp + Math.cos(p2) * (currentAmp * 0.42));
+      const wave = Math.sin(p1) * currentAmp + Math.cos(p2) * (currentAmp * 0.42);
 
-      // 全域平滑高斯微重力凹陷，杜绝任何阶跃抽搐
+      // 用高斯曲线平滑鼠标附近的波形
       let distortion = 0;
       if (mousePos.intensity > 0.001) {
         const dx = x - mousePos.x;
@@ -85,7 +123,10 @@ const renderFrame = () => {
         }
       }
 
-      points.push({ x, y: baseY + wave + distortion });
+      points.push({
+        x,
+        y: baseY + wave + distortion
+      });
     }
 
     // 填充曲线下方微积分积分区域
@@ -131,7 +172,13 @@ const renderFrame = () => {
   }
 
   // 鼠标工程十字游标与坐标轴
-  if (mousePos.intensity > 0.01 && mousePos.x > 0 && mousePos.x < w && mousePos.y > 0 && mousePos.y < h) {
+  if (
+    mousePos.intensity > 0.01 &&
+    mousePos.x > 0 &&
+    mousePos.x < w &&
+    mousePos.y > 0 &&
+    mousePos.y < h
+  ) {
     const curAlpha = mousePos.intensity * enterFactor;
 
     ctx.save();
@@ -175,10 +222,12 @@ const renderFrame = () => {
   }
 };
 
-// 画布尺寸固定绑定全屏窗口，杜绝侧边栏折叠挤压
+// 让画布尺寸跟随窗口
 const syncCanvasSize = () => {
   const canvas = canvasRef.value;
-  if (!canvas) return;
+  if (!canvas) {
+    return;
+  }
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const w = window.innerWidth;
   const h = window.innerHeight;
@@ -224,7 +273,9 @@ const handleTouchEnd = () => {
 const handleVisibilityChange = () => {
   if (document.hidden) {
     isTabActive = false;
-    if (animationFrameId) cancelAnimationFrame(animationFrameId);
+    if (animationFrameId) {
+      cancelAnimationFrame(animationFrameId);
+    }
   } else {
     isTabActive = true;
     renderFrame();
@@ -238,17 +289,31 @@ onMounted(() => {
     isReady.value = true;
   });
 
-  window.addEventListener('resize', handleWindowResize, { passive: true });
-  window.addEventListener('mousemove', handleMouseMove, { passive: true });
-  window.addEventListener('mouseleave', handleMouseLeave, { passive: true });
-  window.addEventListener('touchmove', handleTouchMove, { passive: true });
-  window.addEventListener('touchend', handleTouchEnd, { passive: true });
-  window.addEventListener('touchcancel', handleTouchEnd, { passive: true });
+  window.addEventListener('resize', handleWindowResize, {
+    passive: true
+  });
+  window.addEventListener('mousemove', handleMouseMove, {
+    passive: true
+  });
+  window.addEventListener('mouseleave', handleMouseLeave, {
+    passive: true
+  });
+  window.addEventListener('touchmove', handleTouchMove, {
+    passive: true
+  });
+  window.addEventListener('touchend', handleTouchEnd, {
+    passive: true
+  });
+  window.addEventListener('touchcancel', handleTouchEnd, {
+    passive: true
+  });
   document.addEventListener('visibilitychange', handleVisibilityChange);
 });
 
 onUnmounted(() => {
-  if (animationFrameId) cancelAnimationFrame(animationFrameId);
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId);
+  }
   clearTimeout(resizeTimer);
   window.removeEventListener('resize', handleWindowResize);
   window.removeEventListener('mousemove', handleMouseMove);
@@ -261,12 +326,20 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="start-bg-root" :class="{ 'is-ready': isReady }">
+  <div
+    class="start-bg-root"
+    :class="{
+      'is-ready': isReady
+    }"
+  >
     <!-- 数学笛卡尔正交网格与刻度点阵 -->
     <div class="cartesian-grid"></div>
 
     <!-- 动态微积分拓扑曲线画布 -->
-    <canvas ref="canvasRef" class="math-canvas"></canvas>
+    <canvas
+      ref="canvasRef"
+      class="math-canvas"
+    ></canvas>
 
     <!-- 中心检索区安全留白径向蒙版 -->
     <div class="readability-vignette"></div>
@@ -274,7 +347,7 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-/* 固定全屏视口布局，彻底不受侧边栏挤压 */
+/* 固定背景画布位置 */
 .start-bg-root {
   position: fixed;
   inset: 0;
@@ -285,7 +358,9 @@ onUnmounted(() => {
   z-index: 0;
   opacity: 0;
   transform: scale(0.985);
-  transition: opacity 900ms cubic-bezier(0.16, 1, 0.3, 1), transform 1100ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    opacity 900ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 1100ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .start-bg-root.is-ready {
@@ -303,12 +378,15 @@ onUnmounted(() => {
     radial-gradient(circle, rgba(255, 255, 255, 0.12) 1px, transparent 1px),
     linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
-  background-size: 40px 40px, 40px 40px, 40px 40px;
+  background-size:
+    40px 40px,
+    40px 40px,
+    40px 40px;
   background-position: center center;
   opacity: 0.75;
 }
 
-:root[data-theme="light"] .cartesian-grid {
+:root[data-theme='light'] .cartesian-grid {
   background-image:
     radial-gradient(circle, rgba(0, 0, 0, 0.12) 1px, transparent 1px),
     linear-gradient(to right, rgba(0, 0, 0, 0.04) 1px, transparent 1px),
@@ -324,27 +402,19 @@ onUnmounted(() => {
   display: block;
 }
 
-/* 精准保留中心搜索栏高对比度的渐变暗角 */
+/* 提高中心搜索栏的对比度 */
 .readability-vignette {
   position: absolute;
   inset: 0;
   width: 100vw;
   height: 100vh;
-  background: radial-gradient(
-    ellipse 620px 340px at 50% 36%,
-    var(--bg-app) 20%,
-    transparent 100%
-  );
+  background: radial-gradient(ellipse 620px 340px at 50% 36%, var(--bg-app) 20%, transparent 100%);
   opacity: 0.92;
 }
 
 @media (max-width: 640px) {
   .readability-vignette {
-    background: radial-gradient(
-      ellipse 94vw 360px at 50% 38%,
-      var(--bg-app) 35%,
-      transparent 100%
-    );
+    background: radial-gradient(ellipse 94vw 360px at 50% 38%, var(--bg-app) 35%, transparent 100%);
   }
 }
 </style>

@@ -1,7 +1,8 @@
 <script setup>
+import { Xmark } from '@iconoir/vue';
+
 import MBackdrop from './MBackdrop.vue';
 import MButton from './MButton.vue';
-import { Xmark } from '@iconoir/vue';
 
 defineProps({
   open: {
@@ -57,24 +58,48 @@ const emit = defineEmits(['close', 'confirm']);
     :z-index="90"
     @close="emit('close')"
   >
-    <transition name="modal-pop" appear>
+    <transition
+      name="modal-pop"
+      appear
+    >
       <section
         v-if="open"
         class="modal-panel"
-        :style="{ width }"
+        :style="{
+          width
+        }"
         @click.stop
       >
         <header class="modal-head">
           <h2 class="modal-title">{{ title }}</h2>
-          <button v-if="showClose" type="button" class="modal-close" aria-label="关闭窗口" @click="emit('close')"><Xmark width="16" height="16" /></button>
-          <p v-if="desc" class="modal-desc">{{ desc }}</p>
+          <button
+            v-if="showClose"
+            type="button"
+            class="modal-close"
+            aria-label="关闭窗口"
+            @click="emit('close')"
+          >
+            <Xmark
+              width="16"
+              height="16"
+            />
+          </button>
+          <p
+            v-if="desc"
+            class="modal-desc"
+          >
+            {{ desc }}
+          </p>
         </header>
 
         <div class="modal-body">
           <slot />
         </div>
 
-        <footer v-if="!hideFooter" class="modal-foot">
+        <footer
+          v-if="!hideFooter"
+          class="modal-foot"
+        >
           <MButton
             variant="ghost"
             size="sm"
@@ -166,7 +191,9 @@ const emit = defineEmits(['close', 'confirm']);
 
 .modal-pop-enter-active,
 .modal-pop-leave-active {
-  transition: opacity 160ms cubic-bezier(0.16, 1, 0.3, 1), transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    opacity 160ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .modal-pop-enter-from,
