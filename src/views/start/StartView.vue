@@ -116,8 +116,8 @@ onUnmounted(() => {
           />
           <span>{{ displayPillText || TARGET_PILL_TEXT }}</span>
         </div>
-        <h1 class="start-title">结构化数学讲义与知识拓扑平台</h1>
-        <p class="start-desc">Typst 实时排版 · 知识依赖可视化 · 流畅细腻的交互体验</p>
+        <h1 class="start-title">连接数学知识，让学习与创作相互启发。</h1>
+        <p class="start-desc">查找知识点、了解知识关联并记录掌握情况，阅读、创作和分享讲义。</p>
       </header>
 
       <!-- 中央超级检索舱（Hero 模式） -->
