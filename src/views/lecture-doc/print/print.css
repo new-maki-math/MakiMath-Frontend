@@ -42,6 +42,9 @@ body {
   overflow: visible;
   line-height: 1.7;
 }
+[data-print-scope='lecture'] .print-document {
+  zoom: 1.5;
+}
 .print-watermark {
   position: fixed;
   z-index: 2;
@@ -74,6 +77,16 @@ body {
   background: var(--bg-app);
   text-align: left;
   overflow: hidden;
+}
+[data-print-scope='lecture'] .print-cover {
+  height: 198mm;
+  min-height: 0;
+}
+[data-print-scope='lecture'] .print-chapter-page {
+  min-height: 153.33mm;
+}
+[data-print-scope='lecture'] .print-cover-graph {
+  height: 66.67mm;
 }
 .print-cover-brand {
   margin: 0;
@@ -194,8 +207,9 @@ body {
 }
 .print-document .mm-box,
 .print-document .mm-question {
-  break-inside: avoid;
-  page-break-inside: avoid;
+  break-inside: auto;
+  page-break-inside: auto;
+  padding-block: 3mm;
   -webkit-box-decoration-break: clone;
   box-decoration-break: clone;
 }

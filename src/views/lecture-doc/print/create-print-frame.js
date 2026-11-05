@@ -24,6 +24,7 @@ export async function createPrintFrame(documentData, theme, ensureCurrent, progr
   try {
     const target = frame.contentDocument;
     target.documentElement.setAttribute('data-theme', theme);
+    target.documentElement.setAttribute('data-print-scope', options.scope || 'lecture');
     target.title = documentData.title;
     const styles = [];
     for (const original of document.querySelectorAll('style, link[rel="stylesheet"]')) {

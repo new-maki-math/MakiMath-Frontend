@@ -2,14 +2,22 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 
 import MButton from '../../../components/MButton.vue';
+import MCheckbox from '../../../components/MCheckbox.vue';
 import MModal from '../../../components/MModal.vue';
+import MRadio from '../../../components/MRadio.vue';
 import { createPrintFrame } from './create-print-frame.js';
 import { prepareLecturePrint, verifyLecturePrint } from './prepare-lecture-print.js';
 
 const props = defineProps({
   open: Boolean,
-  context: { type: Object, required: true },
-  chapters: { type: Array, default: () => [] }
+  context: {
+ type: Object,
+required: true 
+},
+  chapters: {
+ type: Array,
+default: () => [] 
+}
 });
 const emit = defineEmits(['close']);
 const scope = ref('lecture');
@@ -47,8 +55,11 @@ function close() {
 watch(
   () => props.open,
   (open) => {
-    if (!open) clear();
-    else selectedChapter.value = chapterOptions.value[0]?.slug || '';
+    if (!open) {
+clear();
+} else {
+selectedChapter.value = chapterOptions.value[0]?.slug || '';
+}
   }
 );
 watch(selectedChapter, () => {
@@ -58,7 +69,9 @@ watch([scope, theme, hideSectionTitles, selectedChapter, selectedSection], clear
 watch(
   () => props.context,
   () => {
-    if (props.open) close();
+    if (props.open) {
+close();
+}
   }
 );
 onBeforeUnmount(clear);
@@ -72,10 +85,14 @@ async function prepare() {
     sectionSlug: selectedSection.value
   };
   const ensureCurrent = () => {
-    if (current !== sequence) throw new Error('打印准备已取消');
+    if (current !== sequence) {
+throw new Error('打印准备已取消');
+}
   };
   const progress = (value) => {
-    if (current === sequence) message.value = value;
+    if (current === sequence) {
+message.value = value;
+}
   };
   busy.value = true;
   message.value = '正在读取讲义目录';
@@ -83,24 +100,42 @@ async function prepare() {
     const result = await prepareLecturePrint(context, scope.value, ensureCurrent, progress);
     ensureCurrent();
     const frame = await createPrintFrame(result, theme.value, ensureCurrent, progress, {
-      hideSectionTitles: hideSectionTitles.value
+      hideSectionTitles: hideSectionTitles.value,
+      scope: scope.value
     });
     ensureCurrent();
     output = frame;
-    prepared = { context, version: result.version };
+    prepared = {
+ context,
+version: result.version 
+};
     ready.value = true;
     message.value = '准备完成，请在打印窗口选择另存为 PDF';
   } catch (failure) {
-    if (current === sequence) error.value = failure.message || '打印准备失败，请重试';
+    if (current === sequence) {
+      message.value = '';
+      error.value =
+        failure.status === 429
+          ? '请求过于频繁，已停止准备。请稍后重试，或选择较小的打印范围。'
+          : failure.status === 409
+            ? '讲义版本已变化，请重新准备。'
+            : failure.message || '打印准备失败，请重试';
+    }
   } finally {
-    if (current === sequence) busy.value = false;
+    if (current === sequence) {
+busy.value = false;
+}
   }
 }
 async function print() {
-  if (!output || !prepared || busy.value) return;
+  if (!output || !prepared || busy.value) {
+return;
+}
   const current = sequence;
   const ensureCurrent = () => {
-    if (current !== sequence) throw new Error('打印准备已取消');
+    if (current !== sequence) {
+throw new Error('打印准备已取消');
+}
   };
   busy.value = true;
   error.value = '';
@@ -115,7 +150,9 @@ async function print() {
       ready.value = false;
     }
   } finally {
-    if (current === sequence) busy.value = false;
+    if (current === sequence) {
+busy.value = false;
+}
   }
 }
 </script>
@@ -131,30 +168,15 @@ async function print() {
   >
     <fieldset :disabled="busy">
       <legend>打印范围</legend>
-      <label
-        ><input
-          v-model="scope"
-          type="radio"
-          value="section"
-        />
-        指定小节</label
-      >
-      <label
-        ><input
-          v-model="scope"
-          type="radio"
-          value="chapter"
-        />
-        指定章节</label
-      >
-      <label
-        ><input
-          v-model="scope"
-          type="radio"
-          value="lecture"
-        />
-        整本讲义</label
-      >
+      <MRadio v-model="scope"
+name="print-scope"
+value="section">指定小节</MRadio>
+      <MRadio v-model="scope"
+name="print-scope"
+value="chapter">指定章节</MRadio>
+      <MRadio v-model="scope"
+name="print-scope"
+value="lecture">整本讲义</MRadio>
     </fieldset>
     <label
       v-if="scope !== 'lecture'"
@@ -192,31 +214,15 @@ async function print() {
     </label>
     <fieldset :disabled="busy">
       <legend>页面主题</legend>
-      <label
-        ><input
-          v-model="theme"
-          type="radio"
-          value="light"
-        />
-        浅色</label
-      >
-      <label
-        ><input
-          v-model="theme"
-          type="radio"
-          value="dark"
-        />
-        深色</label
-      >
+      <MRadio v-model="theme"
+name="print-theme"
+value="light">浅色</MRadio>
+      <MRadio v-model="theme"
+name="print-theme"
+value="dark">深色</MRadio>
     </fieldset>
-    <label>
-      <input
-        v-model="hideSectionTitles"
-        type="checkbox"
-        :disabled="busy"
-      />
-      不显示系统添加的小节标题
-    </label>
+    <MCheckbox v-model="hideSectionTitles"
+:disabled="busy">不显示系统添加的小节标题</MCheckbox>
     <p
       v-if="message"
       class="print-message"
@@ -224,7 +230,10 @@ async function print() {
     >
       {{ message }}
     </p>
-    <p v-if="theme === 'dark'" class="print-message">
+    <p
+      v-if="theme === 'dark'"
+      class="print-message"
+    >
       深色打印时请在浏览器设置中启用背景图形。
     </p>
     <p

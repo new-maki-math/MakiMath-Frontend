@@ -33,6 +33,10 @@ export const lectureApi = {
         cache: 'no-store'
       }
     ),
+  printData: (slug, params) =>
+    request(`/api/lectures/by-slug/${encodeURIComponent(slug)}/print-data?${params}`, {
+      cache: 'no-store'
+    }),
   mine: () => request('/api/lectures/mine'),
   manage: () =>
     request('/api/lectures/manage', {

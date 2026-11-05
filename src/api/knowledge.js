@@ -23,6 +23,14 @@ export const knowledgeApi = {
     request(`/api/knowledge-points/by-slug/${encodeURIComponent(slug)}`, {
       cache: 'no-store'
     }),
+  batch: (slugs) =>
+    request('/api/knowledge-points/batch', {
+      method: 'POST',
+      body: {
+        slugs
+      },
+      cache: 'no-store'
+    }),
   manage: () =>
     request('/api/knowledge-points/manage', {
       cache: 'no-store'

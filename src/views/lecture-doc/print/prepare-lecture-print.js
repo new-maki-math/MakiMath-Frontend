@@ -1,8 +1,6 @@
-import { getCourseSectionContent } from '../../../api/courses.js';
 import { knowledgeApi } from '../../../api/knowledge.js';
 import { lectureApi } from '../../../api/lectures.js';
 import { parseDocument } from '../../../components/typst-renderer/typst/parse-document.js';
-import { checkExportMetadata } from '../../../utils/lecture-portable.js';
 import { fetchShelfLectureTree } from '../../../utils/shelf-lecture.js';
 
 function collectReferences(value, result) {
@@ -17,72 +15,74 @@ function collectReferences(value, result) {
   }
 }
 
-async function runQueue(items, task, ensureCurrent) {
-  let index = 0;
-  const failures = [];
-  async function worker() {
-    while (index < items.length) {
-      ensureCurrent();
-      const item = items[index++];
-      try {
-        await task(item);
-        ensureCurrent();
-      } catch (error) {
-        ensureCurrent();
-        const message =
-          error.status === 409 ? '讲义版本已变化，请重新准备' : error.message || '加载失败';
-        failures.push(`${item.label}：${message}`);
-      }
-    }
-  }
-  await Promise.all(Array.from({ length: Math.min(3, items.length) }, () => worker()));
-  if (failures.length) {
-    throw new Error(failures.join('\n'));
-  }
-}
-
 export async function prepareLecturePrint(context, scope, ensureCurrent, progress) {
   const tree = await fetchShelfLectureTree(context.slug, context.source, context.revisionId);
   ensureCurrent();
   if (context.source === 'local' && !Number.isSafeInteger(tree.localEditVersion)) {
     throw new Error('本地讲义缺少编辑版本，无法确认打印内容一致性');
   }
-  if (context.source === 'online') {
-    const portable = await lectureApi.exportRevision(tree.revision_id);
-    ensureCurrent();
-    if (!portable?.lecture || !Array.isArray(portable.chapters)) {
-      throw new Error('讲义导出权限检查返回的数据不完整');
-    }
-    checkExportMetadata(portable?.lecture?.metadata);
-  }
   const chapter = tree.chapters.find((item) => item.slug === context.chapterSlug);
   const section = chapter?.sections.find((item) => item.slug === context.sectionSlug);
   if ((scope !== 'lecture' && !chapter) || (scope === 'section' && !section)) {
     throw new Error('当前章节或小节已更新，请重新打开讲义');
   }
-  const chapters = (scope === 'lecture' ? tree.chapters : [chapter]).map((item) => ({
+  const expected = (scope === 'lecture' ? tree.chapters : [chapter]).map((item) => ({
+    ...item,
+    sections: scope === 'section' ? [section] : item.sections
+  }));
+  let printChapters = expected;
+  let title = tree.title;
+  let subtitle = tree.subtitle || '';
+  if (context.source === 'online') {
+    const params = new URLSearchParams({
+      revision_id: String(tree.revision_id),
+      edit_version: String(tree.edit_version)
+    });
+    if (scope !== 'lecture') {
+      params.set('chapter_slug', context.chapterSlug);
+    }
+    if (scope === 'section') {
+      params.set('section_slug', context.sectionSlug);
+    }
+    progress('正在读取打印内容');
+    const result = await lectureApi.printData(context.slug, params);
+    ensureCurrent();
+    if (
+      result?.lecture?.slug !== context.slug ||
+      String(result?.revision?.id) !== String(tree.revision_id) ||
+      result?.revision?.edit_version !== tree.edit_version ||
+      !Array.isArray(result.chapters) ||
+      result.chapters.length !== expected.length ||
+      result.chapters.some(
+        (item, index) =>
+          item.slug !== expected[index].slug ||
+          !Array.isArray(item.sections) ||
+          item.sections.length !== expected[index].sections.length ||
+          item.sections.some(
+            (entry, sectionIndex) =>
+              entry.slug !== expected[index].sections[sectionIndex].slug ||
+              typeof entry.source !== 'string'
+          )
+      )
+    ) {
+      throw new Error('打印内容不完整或讲义版本已变化，请重新准备');
+    }
+    printChapters = result.chapters;
+    title = result.revision.title;
+    subtitle = result.revision.subtitle || '';
+  }
+  const chapters = printChapters.map((item) => ({
     title: item.title,
-    sections: (scope === 'section' ? [section] : item.sections).map((entry) => ({
-      id: entry.id,
+    sections: item.sections.map((entry) => ({
       title: entry.title,
       label: `${item.title} / ${entry.title}`,
-      source: ''
+      source: entry.source
     }))
   }));
   const sections = chapters.flatMap((item) => item.sections);
   if (!sections.length) {
     throw new Error('当前范围没有可打印的小节');
   }
-  let completed = 0;
-  await runQueue(
-    sections,
-    async (item) => {
-      const content = await getCourseSectionContent(context.slug, item.id, tree);
-      item.source = content.source;
-      progress(`正在读取小节 ${++completed} / ${sections.length}`);
-    },
-    ensureCurrent
-  );
   const slugs = new Set();
   for (const item of sections) {
     ensureCurrent();
@@ -94,33 +94,55 @@ export async function prepareLecturePrint(context, scope, ensureCurrent, progres
     await new Promise((resolve) => setTimeout(resolve, 0));
   }
   const references = new Map();
-  const pending = [...slugs].map((slug) => ({
-    slug,
-    label: `知识点 ${slug}`
-  }));
-  completed = 0;
-  await runQueue(
-    pending,
-    async (item) => {
-      const detail = await knowledgeApi.getBySlug(item.slug);
+  const pending = [...slugs];
+  for (let index = 0; index < pending.length; index += 1000) {
+    ensureCurrent();
+    const batch = pending.slice(index, index + 1000);
+    progress(`正在读取知识点 ${index} / ${pending.length}`);
+    const result = await knowledgeApi.batch(batch);
+    ensureCurrent();
+    if (!Array.isArray(result?.points) || !Array.isArray(result?.missing)) {
+      throw new Error('知识点批量读取结果不完整');
+    }
+    const requested = new Set(batch);
+    const returned = new Set();
+    for (const slug of result.missing) {
+      if (typeof slug !== 'string' || !requested.has(slug) || returned.has(slug)) {
+        throw new Error('知识点批量读取结果不完整');
+      }
+      returned.add(slug);
+    }
+    for (const detail of result.points) {
       if (
-        detail?.slug !== item.slug ||
+        !requested.has(detail?.slug) ||
+        returned.has(detail.slug) ||
         !Number.isSafeInteger(detail.id) ||
+        detail.id < 1 ||
         typeof detail.source !== 'string'
       ) {
-        throw new Error('内容不完整');
+        throw new Error('知识点批量读取结果不完整');
       }
+      returned.add(detail.slug);
       const parsed = parseDocument(detail.source);
       const nested = new Set();
       collectReferences(parsed.nodes, nested);
       if (nested.size || parsed.diagnostics.some((diagnostic) => diagnostic.severity === 'error')) {
-        throw new Error('正文包含无法完整打印的嵌套引用或解析错误');
+        throw new Error(`知识点 ${detail.slug} 的正文包含无法完整打印的嵌套引用或解析错误`);
       }
-      references.set(item.slug, detail);
-      progress(`正在读取知识点 ${++completed} / ${pending.length}`);
-    },
-    ensureCurrent
-  );
+      references.set(detail.slug, detail);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      ensureCurrent();
+    }
+    if (returned.size !== batch.length) {
+      throw new Error('知识点批量读取结果不完整');
+    }
+    if (result.missing.length) {
+      throw new Error(`以下知识点不可用，请检查引用：${result.missing.join('、')}`);
+    }
+    progress(
+      `正在读取知识点 ${Math.min(index + batch.length, pending.length)} / ${pending.length}`
+    );
+  }
   const latest = await fetchShelfLectureTree(context.slug, context.source, context.revisionId);
   ensureCurrent();
   if (
@@ -132,8 +154,8 @@ export async function prepareLecturePrint(context, scope, ensureCurrent, progres
     throw new Error('讲义版本已变化，请重新准备');
   }
   return {
-    title: tree.title,
-    subtitle: tree.subtitle || '',
+    title,
+    subtitle,
     chapters,
     references,
     version: {
@@ -155,13 +177,5 @@ export async function verifyLecturePrint(context, version, ensureCurrent) {
     tree.localEditVersion !== version.localEditVersion
   ) {
     throw new Error('讲义版本已变化，请重新准备');
-  }
-  if (context.source === 'online') {
-    const portable = await lectureApi.exportRevision(tree.revision_id);
-    ensureCurrent();
-    if (!portable?.lecture || !Array.isArray(portable.chapters)) {
-      throw new Error('讲义导出权限检查返回的数据不完整');
-    }
-    checkExportMetadata(portable.lecture.metadata);
   }
 }
