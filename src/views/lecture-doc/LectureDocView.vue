@@ -12,6 +12,8 @@ import { lectureLocation, lectureNavigationOrigin } from '../../utils/lecture-ro
 import { fetchShelfLectureTree } from '../../utils/shelf-lecture.js';
 import ChapterNav from './ChapterNav.vue';
 import DocFooterNav from './DocFooterNav.vue';
+import OutlineNav from './OutlineNav.vue';
+import { useReadingOutline } from './useReadingOutline.js';
 
 const route = useRoute();
 const router = useRouter();
@@ -26,6 +28,17 @@ const loading = ref(true);
 const error = ref('');
 const retryKey = ref(0);
 const drawerOpen = ref(false);
+const readingViewport = ref(null);
+const outlineContent = ref(null);
+const outlineIdentity = computed(
+  () =>
+    `${source.value}:${slug.value}:${revisionId.value}:${chapterSlug.value}:${sectionSlug.value}`
+);
+const {
+  items: outlineItems,
+  activeKey: activeOutline,
+  select: selectOutline
+} = useReadingOutline(readingViewport, outlineContent, outlineIdentity);
 let sequence = 0;
 
 const sections = computed(() =>
@@ -157,7 +170,23 @@ onUnmounted(() => {
         @select-section="selectSection"
       />
     </MDrawer>
-    <main class="reading-viewport">
+    <main
+      ref="readingViewport"
+      class="reading-viewport"
+      :class="{
+        'has-outline': outlineItems.length > 0
+      }"
+    >
+      <div
+        v-if="outlineItems.length"
+        class="outline-overlay"
+      >
+        <OutlineNav
+          :items="outlineItems"
+          :active-key="activeOutline"
+          @select="selectOutline"
+        />
+      </div>
       <div class="reading-content-wrap">
         <p
           v-if="loading"
@@ -181,10 +210,12 @@ onUnmounted(() => {
             <h1>{{ content.title }}</h1>
             <p v-if="content.lead">{{ content.lead }}</p>
           </header>
-          <TypstDoc
+          <div
             v-if="content.source"
-            :source="content.source"
-          />
+            ref="outlineContent"
+          >
+            <TypstDoc :source="content.source" />
+          </div>
           <p
             v-else
             class="reading-note"
@@ -245,6 +276,22 @@ onUnmounted(() => {
   min-width: 0;
   overflow-y: auto;
 }
+.outline-overlay {
+  position: sticky;
+  top: 36px;
+  z-index: 2;
+  height: 0;
+  width: 194px;
+  margin-left: auto;
+  margin-right: -180px;
+}
+@media (min-width: 1201px) {
+  .reading-viewport.has-outline {
+    box-sizing: border-box;
+    padding-left: 100px;
+    padding-right: 218px;
+  }
+}
 .reading-content-wrap {
   box-sizing: border-box;
   max-width: 920px;
@@ -267,6 +314,11 @@ onUnmounted(() => {
 @media (max-width: 768px) {
   .reading-content-wrap {
     padding-top: 64px;
+  }
+}
+@media (max-width: 1200px) {
+  .outline-overlay {
+    display: none;
   }
 }
 </style>
