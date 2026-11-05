@@ -1,4 +1,5 @@
 import { getAuthToken } from './auth-storage.js';
+import { withStorageWrite } from './storage-write-lock.js';
 
 // 讲义封面按内容哈希缓存
 const covers = new Map();
@@ -55,7 +56,7 @@ async function readCover(key) {
   });
 }
 
-async function writeCover(key, cover) {
+async function writeCoverUnlocked(key, cover) {
   const db = await openDatabase();
   return new Promise((resolve, reject) => {
     const transaction = db.transaction('covers', 'readwrite');
@@ -64,6 +65,10 @@ async function writeCover(key, cover) {
     transaction.onerror = () => reject(transaction.error);
     transaction.onabort = () => reject(transaction.error);
   });
+}
+
+function writeCover(key, cover) {
+  return withStorageWrite(() => writeCoverUnlocked(key, cover));
 }
 
 export function clearLectureCoverCache() {

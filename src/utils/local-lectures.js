@@ -1,3 +1,5 @@
+import { withStorageWrite } from './storage-write-lock.js';
+
 const DB_NAME = 'MakiMath_LocalLectures';
 const STORE = 'lectures';
 let database;
@@ -10,7 +12,13 @@ function openDatabase() {
         request.result.createObjectStore(STORE, {
           keyPath: 'id'
         });
-      request.onsuccess = () => resolve(request.result);
+      request.onsuccess = () => {
+        request.result.onversionchange = () => {
+          request.result.close();
+          database = null;
+        };
+        resolve(request.result);
+      };
       request.onerror = () => reject(request.error);
       request.onblocked = () => reject(new Error('本地讲义数据库被占用'));
     }).catch((error) => {
@@ -50,7 +58,7 @@ export async function findLocalLectureBySlug(slug) {
   return matches[0];
 }
 
-export async function createLocalLecture(record) {
+async function createLocalLectureUnlocked(record) {
   validateLocalLectureSlug(record.slug);
   const db = await openDatabase();
   return new Promise((resolve, reject) => {
@@ -79,7 +87,7 @@ export async function createLocalLecture(record) {
   });
 }
 
-export async function saveLocalLecture(record, expectedVersion) {
+async function saveLocalLectureUnlocked(record, expectedVersion) {
   const db = await openDatabase();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE, 'readwrite');
@@ -117,7 +125,7 @@ export async function saveLocalLecture(record, expectedVersion) {
   });
 }
 
-export async function deleteLocalLecture(id) {
+async function deleteLocalLectureUnlocked(id) {
   const db = await openDatabase();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE, 'readwrite');
@@ -128,7 +136,7 @@ export async function deleteLocalLecture(id) {
   });
 }
 
-export async function updateLocalLectureCover(id, cover) {
+async function updateLocalLectureCoverUnlocked(id, cover) {
   const db = await openDatabase();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE, 'readwrite');
@@ -163,4 +171,20 @@ export async function updateLocalLectureCover(id, cover) {
     tx.onerror = () => reject(tx.error);
     tx.onabort = () => reject(new Error(missing ? '本地讲义不存在' : '保存封面失败'));
   });
+}
+
+export function createLocalLecture(record) {
+  return withStorageWrite(() => createLocalLectureUnlocked(record));
+}
+
+export function saveLocalLecture(record, expectedVersion) {
+  return withStorageWrite(() => saveLocalLectureUnlocked(record, expectedVersion));
+}
+
+export function deleteLocalLecture(id) {
+  return withStorageWrite(() => deleteLocalLectureUnlocked(id));
+}
+
+export function updateLocalLectureCover(id, cover) {
+  return withStorageWrite(() => updateLocalLectureCoverUnlocked(id, cover));
 }

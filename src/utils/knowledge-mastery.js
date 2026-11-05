@@ -1,3 +1,5 @@
+import { withStorageWrite } from './storage-write-lock.js';
+
 const DB_NAME = 'MakiMath_KnowledgeMastery';
 const STORE_NAME = 'mastered';
 let dbPromise;
@@ -42,7 +44,13 @@ function openMasteryDB() {
         request.result.createObjectStore(STORE_NAME, {
           keyPath: 'id'
         });
-      request.onsuccess = () => resolve(request.result);
+      request.onsuccess = () => {
+        request.result.onversionchange = () => {
+          request.result.close();
+          dbPromise = null;
+        };
+        resolve(request.result);
+      };
       request.onerror = () => reject(request.error);
       request.onblocked = () => reject(new Error('本地掌握记录数据库被占用'));
     }).catch((error) => {
@@ -64,7 +72,7 @@ export async function getMasteredIds() {
   });
 }
 
-export async function setMastered(id, mastered) {
+async function setMasteredUnlocked(id, mastered) {
   if (typeof id !== 'string' || !id) {
     throw new Error('知识点标识无效');
   }
@@ -88,7 +96,7 @@ export async function setMastered(id, mastered) {
   });
 }
 
-export async function setMasteredBatch(changes) {
+async function setMasteredBatchUnlocked(changes) {
   const db = await openMasteryDB();
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(STORE_NAME, 'readwrite');
@@ -119,7 +127,7 @@ export async function setMasteredBatch(changes) {
   });
 }
 
-export async function toggleMastered(id) {
+async function toggleMasteredUnlocked(id) {
   if (typeof id !== 'string' || !id) {
     throw new Error('知识点标识无效');
   }
@@ -146,4 +154,16 @@ export async function toggleMastered(id) {
     transaction.onerror = () => reject(transaction.error);
     transaction.onabort = () => reject(transaction.error || new Error('保存掌握状态失败'));
   });
+}
+
+export function setMastered(id, mastered) {
+  return withStorageWrite(() => setMasteredUnlocked(id, mastered));
+}
+
+export function setMasteredBatch(changes) {
+  return withStorageWrite(() => setMasteredBatchUnlocked(changes));
+}
+
+export function toggleMastered(id) {
+  return withStorageWrite(() => toggleMasteredUnlocked(id));
 }

@@ -1,3 +1,5 @@
+import { withStorageWrite } from './storage-write-lock.js';
+
 const DB_NAME = 'MakiMath_UpdateLog';
 const STORE = 'read_versions';
 let database;
@@ -10,7 +12,13 @@ function openDatabase() {
         request.result.createObjectStore(STORE, {
           keyPath: 'version'
         });
-      request.onsuccess = () => resolve(request.result);
+      request.onsuccess = () => {
+        request.result.onversionchange = () => {
+          request.result.close();
+          database = null;
+        };
+        resolve(request.result);
+      };
       request.onerror = () => reject(request.error);
       request.onblocked = () => reject(new Error('更新日志数据库被占用'));
     }).catch((error) => {
@@ -32,7 +40,7 @@ export async function readUpdateVersions() {
   });
 }
 
-export async function markUpdateRead(version) {
+async function markUpdateReadUnlocked(version) {
   const db = await openDatabase();
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(STORE, 'readwrite');
@@ -43,4 +51,8 @@ export async function markUpdateRead(version) {
     transaction.onerror = () => reject(transaction.error);
     transaction.onabort = () => reject(transaction.error || new Error('保存已读状态失败'));
   });
+}
+
+export function markUpdateRead(version) {
+  return withStorageWrite(() => markUpdateReadUnlocked(version));
 }

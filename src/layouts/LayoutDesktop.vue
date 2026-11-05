@@ -15,6 +15,7 @@ import { RouterView } from 'vue-router';
 import MCollapse from '../components/MCollapse.vue';
 import MUpdateLog from '../components/MUpdateLog.vue';
 import SearchBar from '../components/SearchBar.vue';
+import UserDataBackup from '../components/UserDataBackup.vue';
 import ViewportHeader from '../components/ViewportHeader.vue';
 import { useLayoutState } from './useLayoutState.js';
 
@@ -254,20 +255,9 @@ const handleNavClick = (item) => {
           </button>
         </nav>
 
-        <MCollapse
-          horizontal
-          :open="!isSidebarCollapsed"
-        >
-          <div class="sidebar-footer">
-            <div class="palette-indicator">
-              <span class="palette-box base"></span>
-              <span class="palette-box surface"></span>
-              <span class="palette-box elevated"></span>
-              <span class="palette-box accent"></span>
-            </div>
-            <div class="footer-meta font-mono">SOLID ICONS / VUE_ROUTER</div>
-          </div>
-        </MCollapse>
+        <div class="sidebar-footer">
+          <UserDataBackup />
+        </div>
       </aside>
 
       <!-- 工作视口 -->
@@ -607,41 +597,16 @@ const handleNavClick = (item) => {
 }
 
 .sidebar-footer {
-  padding: 14px 16px;
+  padding: 10px 12px;
   border-top: 1px solid var(--border-subtle);
   display: flex;
+}
+
+.maki-sidebar.is-collapsed .sidebar-footer {
+  justify-content: center;
+}
+.maki-sidebar.is-collapsed .sidebar-footer :deep(.backup-actions) {
   flex-direction: column;
-  gap: 10px;
-}
-
-.palette-indicator {
-  display: flex;
-  gap: 6px;
-}
-
-.palette-box {
-  flex: 1;
-  height: 6px;
-  border-radius: var(--radius-xs);
-}
-
-.palette-box.base {
-  background-color: var(--bg-topbar);
-}
-.palette-box.surface {
-  background-color: var(--bg-sidebar);
-}
-.palette-box.elevated {
-  background-color: var(--bg-surface);
-}
-.palette-box.accent {
-  background-color: var(--accent-primary);
-}
-
-.footer-meta {
-  font-size: var(--font-size-smallest);
-  color: var(--text-muted);
-  letter-spacing: 0.5px;
 }
 
 /* 主视口区域 */
