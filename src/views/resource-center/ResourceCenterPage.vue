@@ -329,7 +329,6 @@ onUnmounted(() => {
           </div>
           <MEmpty
             v-if="!data.items.length"
-            description="暂无资源"
           />
           <div
             v-if="total > pageSize"

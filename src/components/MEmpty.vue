@@ -2,16 +2,16 @@
 defineProps({
   description: {
     type: String,
-    default: '空空如也'
+    default: ''
   }
 });
 </script>
 
 <template>
   <div class="m-empty">
-    <span class="m-empty-face"
-aria-hidden="true">( ·_· )</span>
-    <p>{{ description }}</p>
+    <span class="m-empty-face" aria-hidden="true">( ·_· )</span>
+    <p>空空如也</p>
+    <p v-if="description" class="m-empty-description">{{ description }}</p>
     <slot />
   </div>
 </template>
@@ -34,6 +34,9 @@ aria-hidden="true">( ·_· )</span>
   line-height: 1;
 }
 
+.m-empty-description {
+  color: var(--text-muted);
+}
 p {
   margin: 0;
   font-size: var(--font-size-smaller);
