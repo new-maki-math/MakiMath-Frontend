@@ -68,11 +68,4 @@ export const knowledgeApi = {
         categories
       }
     }),
-  setStatus: (id, status) =>
-    mutate(`/api/knowledge-points/${id}/status`, {
-      method: 'PATCH',
-      body: {
-        status
-      }
-    })
 };

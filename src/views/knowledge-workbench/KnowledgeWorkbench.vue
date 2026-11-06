@@ -45,7 +45,6 @@ const selecting = ref(false);
 const saving = ref(false);
 const createOpen = ref(false);
 const createCategoryId = ref(null);
-const statusTarget = ref('');
 const deleteTarget = ref(null);
 const deleteError = ref('');
 const deleteUncertain = ref(false);
@@ -85,10 +84,6 @@ const snapshot = () =>
 const dirty = computed(() =>
   Boolean(point.value && baseline.value && snapshot() !== baseline.value)
 );
-const statusLabels = {
-  active: '有效',
-  archived: '已归档'
-};
 const categoryLinksMissing = computed(() => {
   const ids = new Set(categories.value.map((item) => item.id));
   return points.value.some(
@@ -139,7 +134,7 @@ const treeNodes = computed(() => {
           removeLabel: '永久删除知识点'
         }
       : false,
-    label: `${item.title || '未命名知识点'}${item.status && item.status !== 'active' ? ` · ${statusLabels[item.status] || item.status}` : ''}`
+    label: item.title || '未命名知识点'
   });
   for (const item of categories.value) {
     const group = groups.get(item.id);
@@ -309,11 +304,8 @@ function validateImport(data) {
   ) {
     throw new Error('文件必须包含 categories、points 和 edges 数组。');
   }
-  if (data.categories.length > 150 || data.points.length > 1000 || data.edges.length > 6000) {
-    throw new Error('文件超过数量上限：分类 150、知识点 1000、前置关系 6000。');
-  }
-  if (new TextEncoder().encode(JSON.stringify(data)).byteLength > 2 * 1024 * 1024) {
-    throw new Error('文件数据序列化后超过 2 MiB 上限。');
+  if (new TextEncoder().encode(JSON.stringify(data)).byteLength > 32 * 1024 * 1024) {
+    throw new Error('文件数据序列化后超过 32 MiB 上限。');
   }
   const id = (value) => typeof value === 'string' && Boolean(value.trim());
   const categoryIds = new Set();
@@ -781,34 +773,6 @@ async function confirmDelete() {
     saving.value = false;
   }
 }
-async function changeStatus() {
-  if (!ownsContext.value || !point.value || !statusTarget.value || saving.value || dirty.value) {
-    return;
-  }
-  saving.value = true;
-  const epoch = identityEpoch;
-  try {
-    const result = await knowledgeApi.setStatus(point.value.id, statusTarget.value);
-    if (epoch !== identityEpoch) {
-      notify('账号状态已变化，请重新核对知识点状态', 'warn');
-      return;
-    }
-    if (!result?.id || !result.status) {
-      throw new Error('状态响应不完整，请重新读取知识点');
-    }
-    point.value = {
-      ...point.value,
-      ...result
-    };
-    statusTarget.value = '';
-    notify('知识点状态已更新', 'success');
-    await loadList();
-  } catch (err) {
-    notify(err.message || '更新状态失败', 'error');
-  } finally {
-    saving.value = false;
-  }
-}
 watch(
   [authStatus, () => currentUser.value?.id, () => currentUser.value?.role],
   () => {
@@ -830,7 +794,6 @@ watch(
     closeImport();
     createOpen.value = false;
     createCategoryId.value = null;
-    statusTarget.value = '';
     deleteTarget.value = null;
     deleteError.value = '';
     deleteUncertain.value = false;
@@ -910,32 +873,11 @@ onUnmounted(() => {
         @save="save"
         @reset="discard"
       >
-        <template #actions>
-          <MButton
-            v-if="authorized && point.status === 'archived'"
-            size="sm"
-            :disabled="saving || selecting || dirty"
-            @click="statusTarget = 'active'"
-            >恢复</MButton
-          >
-          <MButton
-            v-if="authorized && point.status === 'active'"
-            size="sm"
-            :disabled="saving || selecting || dirty"
-            @click="statusTarget = 'archived'"
-            >归档</MButton
-          >
-        </template>
         <div
           v-if="pendingPointVerification !== null"
           class="status-notice"
         >
           分类已删除，正在核对当前知识点。若列表加载失败，请刷新后再继续编辑。
-        </div>
-        <div class="status-notice">
-          状态：{{
-            statusLabels[point.status] || '未提供'
-          }}。保存后立即生效，内容以最后一次成功保存为准。
         </div>
         <div
           class="wb-block"
@@ -1118,19 +1060,6 @@ onUnmounted(() => {
         </div>
       </div>
     </MModal>
-    <MModal
-      :open="Boolean(statusTarget)"
-      :title="`${statusLabels[statusTarget] || '更新'}知识点`"
-      :desc="
-        statusTarget === 'active'
-          ? '恢复后知识点可再次公开访问。'
-          : '归档后知识点不再公开，讲义中引用该知识点的位置将显示缺失提示。'
-      "
-      :busy="saving"
-      confirm-text="确认"
-      @close="!saving && (statusTarget = '')"
-      @confirm="changeStatus"
-    />
     <MModal
       :open="leaveOpen"
       title="放弃未保存的修改"
