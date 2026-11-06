@@ -1,10 +1,11 @@
 <script setup>
 import { Xmark } from '@iconoir/vue';
+import { nextTick, onUnmounted, ref, watch } from 'vue';
 
 import MBackdrop from './MBackdrop.vue';
 import MButton from './MButton.vue';
 
-defineProps({
+const props = defineProps({
   open: {
     type: Boolean,
     default: false
@@ -20,6 +21,10 @@ defineProps({
   width: {
     type: String,
     default: '440px'
+  },
+  height: {
+    type: String,
+    default: ''
   },
   confirmText: {
     type: String,
@@ -48,6 +53,67 @@ defineProps({
 });
 
 const emit = defineEmits(['close', 'confirm']);
+const panel = ref(null);
+const head = ref(null);
+const body = ref(null);
+const content = ref(null);
+const foot = ref(null);
+const panelHeight = ref(null);
+let observer;
+let frame = 0;
+let generation = 0;
+
+function updateHeight() {
+  cancelAnimationFrame(frame);
+  frame = requestAnimationFrame(() => {
+    if (!panel.value || !head.value || !body.value || !content.value) {
+      return;
+    }
+    const bodyStyle = getComputedStyle(body.value);
+    const panelStyle = getComputedStyle(panel.value);
+    const padding = parseFloat(bodyStyle.paddingTop) + parseFloat(bodyStyle.paddingBottom);
+    const borders =
+      parseFloat(panelStyle.borderTopWidth) + parseFloat(panelStyle.borderBottomWidth);
+    panelHeight.value = Math.ceil(
+      head.value.offsetHeight +
+        content.value.scrollHeight +
+        padding +
+        (foot.value?.offsetHeight || 0) +
+        borders
+    );
+  });
+}
+
+watch(
+  () => [props.open, props.height],
+  async ([open, height]) => {
+    const current = ++generation;
+    observer?.disconnect();
+    cancelAnimationFrame(frame);
+    panelHeight.value = null;
+    if (!open || height) {
+      return;
+    }
+    await nextTick();
+    if (current !== generation || !panel.value) {
+      return;
+    }
+    observer = new ResizeObserver(updateHeight);
+    [head.value, content.value, foot.value]
+      .filter(Boolean)
+      .forEach((element) => observer.observe(element));
+    updateHeight();
+  },
+  {
+    immediate: true
+  }
+);
+
+onUnmounted(() => {
+  generation++;
+  observer?.disconnect();
+  cancelAnimationFrame(frame);
+});
 </script>
 
 <template>
@@ -64,13 +130,21 @@ const emit = defineEmits(['close', 'confirm']);
     >
       <section
         v-if="open"
+        ref="panel"
         class="modal-panel"
+        :class="{
+          'is-fixed-height': height
+        }"
         :style="{
-          width
+          width,
+          height: height || (panelHeight === null ? undefined : `${panelHeight}px`)
         }"
         @click.stop
       >
-        <header class="modal-head">
+        <header
+          ref="head"
+          class="modal-head"
+        >
           <h2 class="modal-title">{{ title }}</h2>
           <button
             v-if="showClose"
@@ -92,12 +166,21 @@ const emit = defineEmits(['close', 'confirm']);
           </p>
         </header>
 
-        <div class="modal-body">
-          <slot />
+        <div
+          ref="body"
+          class="modal-body"
+        >
+          <div
+            ref="content"
+            class="modal-content"
+          >
+            <slot />
+          </div>
         </div>
 
         <footer
           v-if="!hideFooter"
+          ref="foot"
           class="modal-foot"
         >
           <MButton
@@ -130,6 +213,7 @@ const emit = defineEmits(['close', 'confirm']);
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+  box-sizing: border-box;
   max-width: calc(100vw - 48px);
   max-height: calc(100vh - 96px);
   display: flex;
@@ -139,6 +223,7 @@ const emit = defineEmits(['close', 'confirm']);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   overflow: hidden;
+  transition: height 220ms cubic-bezier(0.2, 0, 0, 1);
 }
 
 .modal-head {
@@ -174,11 +259,25 @@ const emit = defineEmits(['close', 'confirm']);
 }
 
 .modal-body {
+  flex: 1;
+  min-height: 0;
   padding: 16px 20px;
   overflow-y: auto;
+}
+
+.modal-content {
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+.is-fixed-height .modal-body {
+  box-sizing: border-box;
+}
+
+.is-fixed-height .modal-content {
+  height: 100%;
+  min-height: 0;
 }
 
 .modal-foot {
@@ -193,12 +292,18 @@ const emit = defineEmits(['close', 'confirm']);
 .modal-pop-leave-active {
   transition:
     opacity 160ms cubic-bezier(0.16, 1, 0.3, 1),
-    transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
+    transform 160ms cubic-bezier(0.16, 1, 0.3, 1),
+    height 220ms cubic-bezier(0.2, 0, 0, 1);
 }
 
 .modal-pop-enter-from,
 .modal-pop-leave-to {
   opacity: 0;
   transform: translate(-50%, calc(-50% - 8px)) scale(0.98);
+}
+@media (prefers-reduced-motion: reduce) {
+  .modal-panel {
+    transition: none;
+  }
 }
 </style>
