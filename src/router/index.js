@@ -4,7 +4,7 @@ import { initAuth } from '../utils/auth.js';
 
 // 页面视图
 const RecomLectureView = () => import('../views/recom-lecture/RecomLectureView.vue');
-const ResourceCenterView = () => import('../views/resource-center/ResourceCenterView.vue');
+const ResourceCenterView = () => import('../views/resource-center/ResourceCenterPage.vue');
 const MyLectureView = () => import('../views/my-lecture/MyLectureView.vue');
 const LectureHomeView = () => import('../views/lecture-home/LectureHomeView.vue');
 const LectureDocView = () => import('../views/lecture-doc/LectureDocView.vue');

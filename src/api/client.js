@@ -15,6 +15,13 @@ export function setUnauthorizedHandler(handler) {
   unauthorizedHandler = handler;
 }
 
+export async function handleUnauthorized(token) {
+  if (!token || !unauthorizedHandler) {
+    return false;
+  }
+  return unauthorizedHandler(token);
+}
+
 // 请求拦截处理器
 async function requestInterceptor(config) {
   if (config.body != null) {
