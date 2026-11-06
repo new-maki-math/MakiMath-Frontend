@@ -1,9 +1,9 @@
 import {
   BookmarkSolid,
+  BookSolid,
   CubeScanSolid,
   DatabaseSolid,
   FlaskSolid,
-  PlaySolid,
   StarSolid
 } from '@iconoir/vue';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
@@ -32,11 +32,11 @@ import { fetchShelfLectureTree } from '../utils/shelf-lecture.js';
 // 基础页面导航项配置
 export const navItems = [
   {
-    id: 'start',
-    label: '开始',
-    path: '/start',
-    icon: PlaySolid,
-    tag: 'INIT',
+    id: 'my-lecture',
+    label: '我的书架',
+    path: '/my-lecture',
+    icon: BookmarkSolid,
+    tag: 'LOCAL',
     group: 'primary'
   },
   {
@@ -49,18 +49,18 @@ export const navItems = [
   },
   {
     id: 'recom-lecture',
-    label: '创意工坊',
+    label: '讲义推荐',
     path: '/recom-lecture',
     icon: StarSolid,
     tag: 'HOT',
     group: 'reader'
   },
   {
-    id: 'my-lecture',
-    label: '我的书架',
-    path: '/my-lecture',
-    icon: BookmarkSolid,
-    tag: 'LOCAL',
+    id: 'resource-center',
+    label: '资源中心',
+    path: '/resource-center',
+    icon: BookSolid,
+    tag: 'RESOURCES',
     group: 'reader'
   },
   {
@@ -184,7 +184,7 @@ export function useLayoutState() {
 
   const handleLogout = async () => {
     if (['lecture-workbench', 'knowledge-workbench'].includes(route.name)) {
-      const result = await router.push('/start');
+      const result = await router.push('/my-lecture');
       if (result) {
         return;
       }
@@ -200,7 +200,7 @@ export function useLayoutState() {
       notify('已在本地退出，服务端会话撤销失败', 'warn');
     }
     if (route.path === '/platform') {
-      router.push('/start');
+      router.push('/my-lecture');
     }
   };
 
@@ -267,10 +267,20 @@ export function useLayoutState() {
   );
 
   const lectureOrigin = ref(lectureNavigationOrigin());
+  const resourceBreadcrumbs = ref([]);
   const currentBreadcrumbs = computed(() => {
+    if (route.name === 'resource-center') {
+      return [
+        {
+ label: 'APP',
+to: '/my-lecture'
+},
+        ...resourceBreadcrumbs.value
+      ];
+    }
     const origins = {
       'recom-lecture': {
-        label: '创意工坊',
+        label: '讲义推荐',
         to: '/recom-lecture'
       },
       'my-lecture': {
@@ -292,7 +302,7 @@ export function useLayoutState() {
     const prefix = [
       {
         label: 'APP',
-        to: '/start'
+        to: '/my-lecture'
       }
     ];
     if (origin) {
@@ -354,7 +364,7 @@ export function useLayoutState() {
     return [
       {
         label: 'APP',
-        to: '/start'
+        to: '/my-lecture'
       },
       {
         label: currentItem.value.label
@@ -364,8 +374,6 @@ export function useLayoutState() {
 
   const showViewportHeader = computed(() => {
     return (
-      route.path !== '/start' &&
-      route.name !== 'start' &&
       route.name !== 'knowledge-library' &&
       route.name !== 'knowledge-workbench' &&
       route.name !== 'lecture-workbench' &&
@@ -379,14 +387,10 @@ export function useLayoutState() {
       route.name === 'lecture-workbench' ||
       route.name === 'platform' ||
       route.path === '/platform' ||
-      route.name === 'start' ||
-      route.path === '/start' ||
       route.name === 'my-lecture' ||
       route.path === '/my-lecture'
     );
   });
-
-  const isStartRoute = computed(() => route.path === '/start' || route.name === 'start');
 
   const isItemActive = (item) =>
     route.path === item.path || (item.id === 'knowledge' && route.name === 'knowledge');
@@ -466,9 +470,9 @@ export function useLayoutState() {
     currentLecture,
     layoutChapters,
     currentBreadcrumbs,
+    resourceBreadcrumbs,
     showViewportHeader,
     isViewportLocked,
-    isStartRoute,
     isItemActive,
     navigateTo,
     docRefreshKey,

@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 
 import { lectureApi } from '../../api/lectures.js';
 import MButton from '../../components/MButton.vue';
+import MDataView from '../../components/MDataView.vue';
 import MLectureCover from '../../components/MLectureCover.vue';
 import { notify } from '../../components/MNotice.vue';
 import { lectureLocation } from '../../utils/lecture-route.js';
@@ -60,45 +61,45 @@ onUnmounted(() => {
 <template>
   <main class="recom-lecture-view">
     <h1>所有讲义</h1>
-    <p
-      v-if="loading"
-      class="shelf-message"
+    <MDataView
+      :loading="loading"
+      text="正在加载讲义…"
+      :animate="!!lectures.length && !error"
     >
-      正在加载讲义…
-    </p>
-    <p
-      v-else-if="error"
-      class="shelf-message error"
-    >
-      {{ error }}
-      <MButton
-        size="sm"
-        variant="ghost"
-        @click="load"
-        >重试</MButton
+      <p
+        v-if="error"
+        class="shelf-message error"
       >
-    </p>
-    <p
-      v-else-if="!lectures.length"
-      class="shelf-message"
-    >
-      暂无讲义
-    </p>
-    <div
-      v-else
-      class="lecture-grid"
-    >
-      <MLectureCover
-        v-for="lecture in lectures"
-        :key="lecture.id"
-        :title="lecture.title || '未命名讲义'"
-        :subtitle="lecture.subtitle || ''"
-        :cover-revision-id="lecture.revision_id"
-        :cover-hash="lecture.cover_hash || ''"
-        :has-cover="Boolean(lecture.has_cover)"
-        @click="openLecture(lecture)"
-      />
-    </div>
+        {{ error }}
+        <MButton
+          size="sm"
+          variant="ghost"
+          @click="load"
+          >重试</MButton
+        >
+      </p>
+      <p
+        v-else-if="!lectures.length"
+        class="shelf-message"
+      >
+        暂无讲义
+      </p>
+      <div
+        v-else
+        class="lecture-grid"
+      >
+        <MLectureCover
+          v-for="lecture in lectures"
+          :key="lecture.id"
+          :title="lecture.title || '未命名讲义'"
+          :subtitle="lecture.subtitle || ''"
+          :cover-revision-id="lecture.revision_id"
+          :cover-hash="lecture.cover_hash || ''"
+          :has-cover="Boolean(lecture.has_cover)"
+          @click="openLecture(lecture)"
+        />
+      </div>
+    </MDataView>
   </main>
 </template>
 

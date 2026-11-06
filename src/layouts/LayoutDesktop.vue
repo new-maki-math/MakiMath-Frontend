@@ -38,7 +38,6 @@ const {
   currentBreadcrumbs,
   showViewportHeader,
   isViewportLocked,
-  isStartRoute,
   isItemActive,
   navigateTo,
   docRefreshKey,
@@ -70,7 +69,7 @@ const handleNavClick = (item) => {
       <div class="topbar-left">
         <div
           class="brand-badge"
-          @click="navigateTo('/start')"
+          @click="navigateTo('/my-lecture')"
         >
           <Terminal
             width="18"
@@ -82,12 +81,7 @@ const handleNavClick = (item) => {
         </div>
       </div>
 
-      <div
-        class="topbar-center"
-        :class="{
-          'is-hidden-on-start': isStartRoute
-        }"
-      >
+      <div class="topbar-center">
         <SearchBar variant="topbar" />
       </div>
 
@@ -230,6 +224,7 @@ const handleNavClick = (item) => {
           <button
             v-for="item in navigationGroups[1].concat(navigationGroups[2])"
             :key="item.id"
+            :data-navigation-id="item.id"
             class="nav-button"
             :class="{
               active: isItemActive(item)
@@ -347,12 +342,6 @@ const handleNavClick = (item) => {
     transform 240ms cubic-bezier(0.16, 1, 0.3, 1);
   opacity: 1;
   transform: translateY(0);
-}
-
-.topbar-center.is-hidden-on-start {
-  opacity: 0;
-  transform: translateY(-4px);
-  pointer-events: none;
 }
 
 .topbar-right {

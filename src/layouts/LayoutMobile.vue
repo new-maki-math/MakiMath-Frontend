@@ -40,7 +40,6 @@ const {
   currentLecture,
   currentBreadcrumbs,
   showViewportHeader,
-  isStartRoute,
   isItemActive,
   navigateTo,
   docRefreshKey,
@@ -104,7 +103,7 @@ watch(
         <!-- 品牌标识 -->
         <div
           class="mobile-brand"
-          @click="handleNavClick('/start')"
+          @click="handleNavClick('/my-lecture')"
         >
           <Terminal
             width="16"
@@ -118,9 +117,8 @@ watch(
       </div>
 
       <div class="topbar-right">
-        <!-- 搜索呼出按钮（欢迎页中央已有大搜索舱，此处自适应隐藏） -->
+        <!-- 搜索呼出按钮 -->
         <button
-          v-if="!isStartRoute"
           type="button"
           class="mobile-icon-btn"
           title="搜索数学节点或公式"
@@ -365,7 +363,7 @@ watch(
           <p>{{ currentItem.label }}暂不支持移动端，请使用电脑访问。</p>
           <MButton
             size="sm"
-            @click="handleNavClick('/start')"
+            @click="handleNavClick('/my-lecture')"
             >返回首页</MButton
           >
         </div>

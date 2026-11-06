@@ -1,9 +1,11 @@
 <script setup>
-import { onMounted, onUnmounted, ref, watch } from 'vue';
+import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { lectureApi } from '../../api/lectures.js';
 import MButton from '../../components/MButton.vue';
+import MDataView from '../../components/MDataView.vue';
+import MEmpty from '../../components/MEmpty.vue';
 import MHorizontalShelf from '../../components/MHorizontalShelf.vue';
 import MLectureCover from '../../components/MLectureCover.vue';
 import { notify } from '../../components/MNotice.vue';
@@ -14,6 +16,54 @@ import LectureVersionStack from './LectureVersionStack.vue';
 
 const router = useRouter();
 const localLectures = ref([]);
+const guideRef = ref(null);
+const arrowPath = ref('');
+const guidePosition = ref(null);
+const guideVisible = ref(true);
+let guideObserver;
+
+function updateGuideArrow() {
+  const guide = guideRef.value;
+  const target = document.querySelector('[data-navigation-id="recom-lecture"]');
+  const shelf = guide?.closest('.my-lecture');
+  guideVisible.value = window.innerWidth < 768 || !shelf || shelf.scrollTop < 1;
+  if (!guide || !target || window.innerWidth < 768) {
+    arrowPath.value = '';
+    guidePosition.value = null;
+    return;
+  }
+  const to = target.getBoundingClientRect();
+  const x = to.right + 24;
+  const y = to.top + to.height / 2;
+  const startX = x + 100;
+  const startY = y + 18;
+  guidePosition.value = {
+    left: `${startX + 12}px`,
+    top: `${startY - 18}px`
+  };
+  arrowPath.value = `M ${startX} ${startY} C ${startX - 65} ${startY}, ${x + 75} ${y}, ${x} ${y} M ${x + 12} ${y - 6} L ${x} ${y} L ${x + 12} ${y + 6}`;
+}
+
+watch(guideRef, async (guide) => {
+  guideObserver?.disconnect();
+  await nextTick();
+  if (!guide) {
+    arrowPath.value = '';
+    guidePosition.value = null;
+    return;
+  }
+  const target = document.querySelector('[data-navigation-id="recom-lecture"]');
+  guideObserver = new ResizeObserver(updateGuideArrow);
+  guideObserver.observe(guide);
+  const shelf = guide.closest('.shelf-section');
+  if (shelf) {
+    guideObserver.observe(shelf);
+  }
+  if (target) {
+    guideObserver.observe(target);
+  }
+  updateGuideArrow();
+});
 const onlineLectures = ref([]);
 const localLoading = ref(true);
 const onlineLoading = ref(false);
@@ -149,10 +199,15 @@ watch([authStatus, () => currentUser.value?.id], loadOnline, {
   immediate: true
 });
 onMounted(() => {
+  window.addEventListener('resize', updateGuideArrow);
+  window.addEventListener('scroll', updateGuideArrow, true);
   loadLocal();
   initAuth();
 });
 onUnmounted(() => {
+  window.removeEventListener('resize', updateGuideArrow);
+  window.removeEventListener('scroll', updateGuideArrow, true);
+  guideObserver?.disconnect();
   localSequence++;
   onlineSequence++;
 });
@@ -162,94 +217,114 @@ onUnmounted(() => {
   <main class="my-lecture">
     <section class="shelf-section">
       <h1>本地讲义</h1>
-      <p
-        v-if="localLoading"
-        class="shelf-message"
+      <MDataView
+        :loading="localLoading"
+        text="正在加载本地讲义…"
+        :animate="!!localLectures.length && !localError"
       >
-        正在加载本地讲义…
-      </p>
-      <p
-        v-else-if="localError"
-        class="shelf-message error"
-      >
-        {{ localError }}
-        <MButton
-          size="sm"
-          variant="ghost"
-          @click="loadLocal"
-          >重试</MButton
+        <p
+          v-if="localError"
+          class="shelf-message error"
         >
-      </p>
-      <p
-        v-else-if="!localLectures.length"
-        class="shelf-message"
+          {{ localError }}
+          <MButton
+            size="sm"
+            variant="ghost"
+            @click="loadLocal"
+            >重试</MButton
+          >
+        </p>
+        <MEmpty
+          v-else-if="!localLectures.length"
+          class="shelf-empty"
+          description="暂无本地讲义"
+        >
+          <div
+            ref="guideRef"
+            class="shelf-guide"
+            :class="{
+ 'is-positioned': guidePosition,
+ 'is-hidden': !guideVisible
+}"
+            :style="guidePosition"
+            :aria-hidden="!guideVisible"
+          >
+            <svg
+              v-if="arrowPath"
+              class="shelf-guide-arrow"
+              fill="none"
+              aria-hidden="true"
+            >
+              <path :d="arrowPath" />
+            </svg>
+            <MButton
+              variant="ghost"
+              :tabindex="guideVisible ? undefined : -1"
+              @click="router.push('/recom-lecture')"
+              >去讲义推荐，添加一本讲义到本地</MButton
+            >
+          </div>
+        </MEmpty>
+        <MHorizontalShelf v-else>
+          <MLectureCover
+            v-for="lecture in localLectures"
+            :key="lecture.id"
+            :title="lecture.revision?.title || '未命名讲义'"
+            :subtitle="lecture.revision?.subtitle || ''"
+            :image="lecture.cover || ''"
+            @click="openLecture('local', lecture)"
+          />
+        </MHorizontalShelf>
+      </MDataView>
+    </section>
+    <section
+      v-if="authStatus === 'authenticated'"
+      class="shelf-section"
+    >
+      <h2>我创作的讲义</h2>
+      <MDataView
+        :loading="onlineLoading"
+        text="正在加载我创作的讲义…"
+        :animate="!!onlineLectures.length && !onlineError"
       >
-        暂无本地讲义
-      </p>
-      <MHorizontalShelf v-else>
-        <MLectureCover
-          v-for="lecture in localLectures"
-          :key="lecture.id"
-          :title="lecture.revision?.title || '未命名讲义'"
-          :subtitle="lecture.revision?.subtitle || ''"
-          :image="lecture.cover || ''"
-          @click="openLecture('local', lecture)"
+        <p
+          v-if="onlineError"
+          class="shelf-message error"
+        >
+          {{ onlineError }}
+          <MButton
+            size="sm"
+            variant="ghost"
+            @click="loadOnline"
+            >重试</MButton
+          >
+        </p>
+        <MEmpty
+          v-else-if="!onlineLectures.length"
+          class="shelf-empty"
+          description="暂无我创作的讲义"
         />
-      </MHorizontalShelf>
+        <MHorizontalShelf v-else>
+          <LectureVersionStack
+            v-for="lecture in onlineLectures"
+            :key="lecture.id"
+            :lecture="lecture"
+            @open="openVersion"
+            @retry="loadOnline"
+          />
+        </MHorizontalShelf>
+      </MDataView>
     </section>
     <section class="shelf-section">
-      <h2>我创作的讲义</h2>
-      <p
-        v-if="authStatus === 'initializing' || (onlineLoading && !onlineLectures.length)"
-        class="shelf-message"
-      >
-        正在加载我创作的讲义…
-      </p>
-      <p
-        v-else-if="authStatus === 'error'"
-        class="shelf-message error"
-      >
-        登录状态确认失败
-        <MButton
-          size="sm"
-          variant="ghost"
-          @click="initAuth"
-          >重试</MButton
-        >
-      </p>
-      <p
-        v-else-if="authStatus !== 'authenticated'"
-        class="shelf-message"
-      >
-        登录后查看我创作的讲义
-      </p>
-      <p
-        v-else-if="onlineError"
-        class="shelf-message error"
-      >
-        {{ onlineError }}
-        <MButton
-          size="sm"
-          variant="ghost"
-          @click="loadOnline"
-          >重试</MButton
-        >
-      </p>
-      <p
-        v-else-if="!onlineLectures.length"
-        class="shelf-message"
-      >
-        暂无我创作的讲义
-      </p>
-      <MHorizontalShelf v-else>
-        <LectureVersionStack
-          v-for="lecture in onlineLectures"
-          :key="lecture.id"
-          :lecture="lecture"
-          @open="openVersion"
-          @retry="loadOnline"
-        />
-      </MHorizontalShelf>
+      <h2>本地题目册</h2>
+      <MEmpty class="shelf-empty" />
+    </section>
+    <section
+      v-if="authStatus === 'authenticated'"
+      class="shelf-section"
+    >
+      <h2>我创作的题目册</h2>
+      <MEmpty class="shelf-empty" />
     </section>
   </main>
 </template>
@@ -263,16 +338,53 @@ onUnmounted(() => {
   box-sizing: border-box;
   min-width: 0;
   min-height: 0;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   padding: 20px clamp(20px, 3vw, 40px) clamp(20px, 3vw, 40px);
   color: var(--text-primary);
 }
 .shelf-section {
   display: flex;
-  flex: 1 1 0;
+  flex: 0 0 auto;
   flex-direction: column;
   min-width: 0;
-  min-height: 0;
+  min-height: 220px;
+}
+.shelf-section :deep(.horizontal-shelf) {
+  flex: 0 0 255px;
+}
+.shelf-section + .shelf-section {
+  padding-top: clamp(20px, 3vh, 36px);
+  border-top: 1px solid var(--border-subtle);
+}
+.shelf-empty {
+  flex: 1;
+}
+.shelf-guide {
+  position: relative;
+  opacity: 1;
+  transition: opacity 180ms ease;
+}
+.shelf-guide.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+.shelf-guide.is-positioned {
+  position: fixed;
+  z-index: 21;
+}
+.shelf-guide-arrow {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  width: 100vw;
+  height: 100vh;
+  color: var(--text-muted);
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
 }
 h1,
 h2 {
@@ -292,6 +404,14 @@ h2 {
 @media (max-width: 480px) {
   .my-lecture {
     padding: 14px 16px 20px;
+  }
+  .shelf-guide-arrow {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shelf-guide {
+    transition: none;
   }
 }
 </style>

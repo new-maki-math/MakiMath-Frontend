@@ -40,7 +40,7 @@ const resolvedBreadcrumbs = computed(() => {
   return [
     {
       label: 'APP',
-      to: '/start'
+      to: '/my-lecture'
     },
     {
       label: displayTitle.value
@@ -78,6 +78,13 @@ const handleRefresh = () => {
             class="crumb-link"
             :to="seg.to"
             >{{ seg.label }}</RouterLink
+          >
+          <button
+            v-else-if="typeof seg === 'object' && seg.action && idx < resolvedBreadcrumbs.length - 1"
+            type="button"
+            class="crumb-link"
+            @click="seg.action"
+            >{{ seg.label }}</button
           >
           <span
             v-else

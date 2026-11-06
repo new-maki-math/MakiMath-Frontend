@@ -3,8 +3,8 @@ import { createRouter, createWebHistory } from 'vue-router';
 import { initAuth } from '../utils/auth.js';
 
 // 页面视图
-const StartView = () => import('../views/start/StartView.vue');
 const RecomLectureView = () => import('../views/recom-lecture/RecomLectureView.vue');
+const ResourceCenterView = () => import('../views/resource-center/ResourceCenterView.vue');
 const MyLectureView = () => import('../views/my-lecture/MyLectureView.vue');
 const LectureHomeView = () => import('../views/lecture-home/LectureHomeView.vue');
 const LectureDocView = () => import('../views/lecture-doc/LectureDocView.vue');
@@ -17,20 +17,11 @@ const PlatformView = () => import('../views/platform/PlatformView.vue');
 export const routes = [
   {
     path: '/',
-    redirect: '/start'
-  },
-  {
-    path: '/start',
-    name: 'start',
-    component: StartView,
-    meta: {
-      title: '开始',
-      tag: 'INIT'
-    }
+    redirect: '/my-lecture'
   },
   {
     path: '/how-to-use',
-    redirect: '/start'
+    redirect: '/my-lecture'
   },
   {
     path: '/lecture/online/:lectureSlug',
@@ -91,8 +82,17 @@ export const routes = [
     name: 'recom-lecture',
     component: RecomLectureView,
     meta: {
-      title: '创意工坊',
+      title: '讲义推荐',
       tag: 'HOT'
+    }
+  },
+  {
+    path: '/resource-center',
+    name: 'resource-center',
+    component: ResourceCenterView,
+    meta: {
+      title: '资源中心',
+      tag: 'RESOURCES'
     }
   },
   {
