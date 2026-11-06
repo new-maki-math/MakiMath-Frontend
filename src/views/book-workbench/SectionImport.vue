@@ -146,7 +146,7 @@ function confirmImport() {
   }
   emit('imported');
   close();
-  notify(`已添加 ${sections.length} 个小节，请保存讲义`, 'success');
+  notify(`已添加 ${sections.length} 个小节，请保存图书`, 'success');
 }
 </script>
 
@@ -158,7 +158,7 @@ function confirmImport() {
     <div class="wb-block-head"><span class="wb-block-title">批量导入小节</span></div>
     <MFilePicker
       title="Typst 文件"
-      :detail="reading ? '正在读取文件…' : '可选择一个或多个 .typ 文件，导入后请保存讲义'"
+      :detail="reading ? '正在读取文件…' : '可选择一个或多个 .typ 文件，导入后请保存图书'"
       accept=".typ"
       multiple
       :disabled="saving || reading"
@@ -169,7 +169,7 @@ function confirmImport() {
   <MModal
     :open="open"
     title="批量导入小节"
-    desc="请确认每个文件的小节标题和小节标识，导入后保存讲义生效。"
+    desc="请确认每个文件的小节标题和小节标识，导入后保存图书生效。"
     width="720px"
     confirm-text="添加小节"
     :busy="saving || !editable"

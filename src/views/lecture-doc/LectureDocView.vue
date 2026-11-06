@@ -106,6 +106,9 @@ watch(
       if (current !== sequence) {
         return;
       }
+      if (tree.kind === 'workbook') {
+        throw new Error('题目册阅读暂未开放');
+      }
       const items = toChapters(tree);
       const chapter = items.find((item) => item.slug === selectedChapter);
       const section = chapter?.sections.find((item) => item.slug === selectedSection);

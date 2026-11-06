@@ -82,7 +82,11 @@ const reviewedDate = computed(() => formatDate(props.reviewedAt));
     <header class="panel-head">
       <div class="head-main">
         <div class="head-title-row">
-          <span class="head-kind font-mono">{{ kind }}</span>
+          <span
+            v-if="kind"
+            class="head-kind font-mono"
+            >{{ kind }}</span
+          >
           <h2 class="head-title">{{ title }}</h2>
           <span
             v-if="dirty"

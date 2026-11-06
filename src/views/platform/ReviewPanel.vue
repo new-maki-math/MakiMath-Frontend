@@ -9,7 +9,7 @@ import MTable from '../../components/MTable.vue';
 import { lectureLocation } from '../../utils/lecture-route.js';
 
 const router = useRouter();
-const kind = ref('lecture');
+const kind = ref('book');
 const items = ref([]);
 const loading = ref(false);
 let loadId = 0;
@@ -34,13 +34,17 @@ async function load() {
 }
 
 function openReview(item) {
-  if (!item.lecture_slug || !item.id) {
+  if (item.book_kind === 'workbook') {
+    notify('题目册审核页面暂未开放', 'info');
+    return;
+  }
+  if (!item.book_slug || !item.id) {
     notify('讲义或审核版本标识缺失，请刷新审核列表', 'error');
     return;
   }
   router.push(
     lectureLocation({
-      slug: item.lecture_slug,
+      slug: item.book_slug,
       revisionId: String(item.id),
       origin: 'platform-reviews'
     })

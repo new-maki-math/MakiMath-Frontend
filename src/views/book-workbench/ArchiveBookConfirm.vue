@@ -54,7 +54,7 @@ function advance() {
 <template>
   <MModal
     :open="open"
-    :title="`归档讲义 · 第 ${step} / 3 步`"
+    :title="`归档图书 · 第 ${step} / 3 步`"
     :busy="busy"
     :confirm-text="step === 3 ? '确认归档' : '下一步'"
     cancel-text="取消"
@@ -65,16 +65,16 @@ function advance() {
       v-if="step === 1"
       class="archive-copy"
     >
-      确定要归档这份讲义吗？
+      确定要归档这份图书吗？
     </p>
     <p
       v-else-if="step === 2"
       class="archive-copy"
     >
-      请核对讲义名称：<strong>{{ title || '未命名讲义' }}</strong>
+      请核对图书名称：<strong>{{ title || '未命名图书' }}</strong>
     </p>
     <template v-else>
-      <p class="archive-copy">将归档整本讲义，并移入已归档讲义列表。</p>
+      <p class="archive-copy">将归档整本图书，并移入已归档图书列表。</p>
       <p class="archive-copy">{{ impact }}</p>
     </template>
   </MModal>

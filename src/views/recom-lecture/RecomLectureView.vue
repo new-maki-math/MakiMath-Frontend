@@ -1,16 +1,34 @@
 <script setup>
-import { onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { lectureApi } from '../../api/lectures.js';
 import MButton from '../../components/MButton.vue';
 import MDataView from '../../components/MDataView.vue';
+import MEmpty from '../../components/MEmpty.vue';
 import MLectureCover from '../../components/MLectureCover.vue';
 import { notify } from '../../components/MNotice.vue';
+import MTabs from '../../components/MTabs.vue';
 import { lectureLocation } from '../../utils/lecture-route.js';
 
 const router = useRouter();
 const lectures = ref([]);
+const selectedType = ref('lecture');
+const bookTypes = [
+  {
+    label: '讲义',
+    value: 'lecture'
+  },
+  {
+    label: '题目册',
+    value: 'question-book'
+  }
+];
+const visibleBooks = computed(() =>
+  lectures.value.filter(
+    (item) => item.kind === (selectedType.value === 'lecture' ? 'lecture' : 'workbook')
+  )
+);
 const loading = ref(true);
 const error = ref('');
 let loadSequence = 0;
@@ -21,8 +39,11 @@ async function load() {
   error.value = '';
   try {
     const items = await lectureApi.list();
-    if (!Array.isArray(items)) {
-      throw new Error('讲义列表格式错误');
+    if (
+      !Array.isArray(items) ||
+      items.some((item) => !['lecture', 'workbook'].includes(item.kind))
+    ) {
+      throw new Error('图书列表格式错误');
     }
     if (sequence === loadSequence) {
       lectures.value = items;
@@ -30,7 +51,7 @@ async function load() {
   } catch {
     if (sequence === loadSequence) {
       lectures.value = [];
-      error.value = '讲义加载失败';
+      error.value = '图书加载失败';
     }
   } finally {
     if (sequence === loadSequence) {
@@ -40,6 +61,10 @@ async function load() {
 }
 
 function openLecture(lecture) {
+  if (lecture.kind === 'workbook') {
+    notify('题目册阅读暂未开放', 'info');
+    return;
+  }
   if (!lecture.slug) {
     notify('讲义标识缺失，请刷新列表', 'warn');
     return;
@@ -60,11 +85,15 @@ onUnmounted(() => {
 
 <template>
   <main class="recom-lecture-view">
-    <h1>所有讲义</h1>
+    <MTabs
+      v-model="selectedType"
+      :tabs="bookTypes"
+      class="book-tabs"
+    />
     <MDataView
       :loading="loading"
-      text="正在加载讲义…"
-      :animate="!!lectures.length && !error"
+      text="正在加载图书…"
+      :animate="!!visibleBooks.length && !error"
     >
       <p
         v-if="error"
@@ -78,20 +107,15 @@ onUnmounted(() => {
           >重试</MButton
         >
       </p>
-      <p
-        v-else-if="!lectures.length"
-        class="shelf-message"
-      >
-        暂无讲义
-      </p>
+      <MEmpty v-else-if="!visibleBooks.length" />
       <div
         v-else
         class="lecture-grid"
       >
         <MLectureCover
-          v-for="lecture in lectures"
+          v-for="lecture in visibleBooks"
           :key="lecture.id"
-          :title="lecture.title || '未命名讲义'"
+          :title="lecture.title || '未命名图书'"
           :subtitle="lecture.subtitle || ''"
           :cover-revision-id="lecture.revision_id"
           :cover-hash="lecture.cover_hash || ''"
@@ -114,11 +138,10 @@ onUnmounted(() => {
   padding: 20px clamp(20px, 3vw, 40px) clamp(20px, 3vw, 40px);
   color: var(--text-primary);
 }
-h1 {
+.book-tabs {
   flex: none;
-  margin: 0 0 16px;
-  font-size: var(--font-size-larger);
-  font-weight: var(--font-weight-semibold);
+  width: 240px;
+  max-width: 100%;
 }
 .lecture-grid {
   display: grid;

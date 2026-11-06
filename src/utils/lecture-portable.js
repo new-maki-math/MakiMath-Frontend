@@ -1,11 +1,11 @@
 import { validateLocalLectureSlug } from './local-lectures.js';
 
-function object(value, keys, label) {
+function object(value, keys, label, optional = []) {
   if (
     !value ||
     typeof value !== 'object' ||
     Array.isArray(value) ||
-    Object.keys(value).some((key) => !keys.includes(key)) ||
+    Object.keys(value).some((key) => !keys.includes(key) && !optional.includes(key)) ||
     keys.some((key) => !(key in value))
   ) {
     throw new Error(`${label}格式不正确`);
@@ -40,23 +40,27 @@ export function validatePortableLecture(data) {
     !data ||
     typeof data !== 'object' ||
     Array.isArray(data) ||
-    data.type !== 'maki-lecture' ||
+    !['maki-lecture', 'maki-book'].includes(data.type) ||
     data.schema_version !== 1
   ) {
     throw new Error('文件不是支持的讲义 JSON 格式，请使用讲义工作台导出的文件');
   }
-  object(data, ['type', 'schema_version', 'lecture', 'chapters'], '讲义文件');
-  const lecture = data.lecture;
+  const legacy = data.type === 'maki-lecture';
+  object(data, ['type', 'schema_version', legacy ? 'lecture' : 'book', 'chapters'], '图书文件');
+  const lecture = legacy ? data.lecture : data.book;
   object(
     lecture,
-    ['slug', 'title', 'subtitle', 'summary', 'typst_version', 'metadata'],
-    '讲义信息'
+    ['slug', 'title', 'subtitle', 'summary', 'metadata', ...(legacy ? [] : ['kind'])],
+    '图书信息',
+    legacy ? ['kind', 'typst_version'] : []
   );
   validateLocalLectureSlug(lecture.slug);
-  string(lecture.title, '课程名称', 200, true);
+  string(lecture.title, '图书名称', 200, true);
   string(lecture.subtitle, '副标题', 500);
   string(lecture.summary, '简介', 5000);
-  string(lecture.typst_version, 'Typst 版本', 50, true);
+  if (lecture.kind !== undefined && !['lecture', 'workbook'].includes(lecture.kind)) {
+    throw new Error('图书类型不正确');
+  }
   if (
     !lecture.metadata ||
     typeof lecture.metadata !== 'object' ||
@@ -99,7 +103,19 @@ export function validatePortableLecture(data) {
       }
     }
   }
-  return data;
+  const info = {
+    ...lecture
+  };
+  delete info.typst_version;
+  return {
+    type: 'maki-book',
+    schema_version: 1,
+    book: {
+      ...info,
+      kind: info.kind ?? 'lecture'
+    },
+    chapters: data.chapters
+  };
 }
 export function localLectureToPortable(record) {
   const revision = record.revision;
@@ -113,14 +129,14 @@ export function localLectureToPortable(record) {
     metadata.cover = record.cover;
   }
   return validatePortableLecture({
-    type: 'maki-lecture',
+    type: 'maki-book',
     schema_version: 1,
-    lecture: {
+    book: {
       slug: record.slug,
       title: revision.title,
       subtitle: revision.subtitle || '',
       summary: revision.descr || '',
-      typst_version: revision.typst_version,
+      kind: record.kind ?? revision.kind ?? 'lecture',
       metadata
     },
     chapters: record.chapters.map((chapter) => ({
@@ -144,12 +160,12 @@ export function localLectureToPortable(record) {
   });
 }
 export function portableToLocalLecture(data) {
-  validatePortableLecture(data);
-  const plain = JSON.parse(JSON.stringify(data));
-  const info = plain.lecture;
+  const plain = JSON.parse(JSON.stringify(validatePortableLecture(data)));
+  const info = plain.book;
   return {
     id: crypto.randomUUID(),
     slug: info.slug,
+    kind: info.kind,
     editVersion: 1,
     sourceLectureId: null,
     sourceRevisionId: null,
@@ -159,7 +175,6 @@ export function portableToLocalLecture(data) {
       subtitle: info.subtitle,
       descr: info.summary,
       category_id: null,
-      typst_version: info.typst_version,
       metadata: info.metadata,
       change_note: ''
     },

@@ -303,7 +303,7 @@ async function submitReview() {
   const decision = reviewDecision.value;
   reviewSaving.value = true;
   try {
-    await reviewApi.decide('lecture', id, decision, reviewComment.value);
+    await reviewApi.decide('book', id, decision, reviewComment.value);
     if (current === loadId) {
       revisionStatus.value = decision;
       reviewDecision.value = '';
@@ -426,6 +426,9 @@ const loadLectureData = async (slug) => {
   chapters.value = [];
   try {
     const tree = await fetchShelfLectureTree(slug, shelfSource.value, revisionId.value);
+    if (tree.kind === 'workbook') {
+      throw new Error('题目册阅读暂未开放');
+    }
     const bundle = lectureBundleFromTree(tree);
     if (id !== loadId) {
       return;
@@ -681,10 +684,6 @@ onUnmounted(() => {
                 <span class="spec-value">{{
                   shelfSource === 'local' ? '本地编辑' : reviewStatusLabel
                 }}</span>
-              </div>
-              <div class="spec-item">
-                <span class="spec-label">排版引擎</span>
-                <span class="spec-value font-mono">Typst {{ lecture.typstVersion || '—' }}</span>
               </div>
               <div
                 v-if="updatedAt"

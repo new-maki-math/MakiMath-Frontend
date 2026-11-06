@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 
-import LectureTreeSection from './LectureTreeSection.vue';
+import BookTreeSection from './BookTreeSection.vue';
 
 const props = defineProps({
   nodes: {
@@ -115,7 +115,7 @@ defineExpose({
 <template>
   <aside class="workbench-tree">
     <header class="tree-head">
-      <span class="tree-title font-mono">LECTURE WORKBENCH</span>
+      <span class="tree-title font-mono">BOOK WORKBENCH</span>
     </header>
     <div
       ref="treeBody"
@@ -125,7 +125,7 @@ defineExpose({
         '--section-duration': `${sectionDuration}ms`
       }"
     >
-      <LectureTreeSection
+      <BookTreeSection
         v-for="node in prepare(visibleNodes)"
         :key="node.id"
         :node="node"

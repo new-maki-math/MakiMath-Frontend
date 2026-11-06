@@ -10,6 +10,7 @@ import MFilePicker from '../../components/MFilePicker.vue';
 import MInput from '../../components/MInput.vue';
 import MModal from '../../components/MModal.vue';
 import { notify } from '../../components/MNotice.vue';
+import MSelect from '../../components/MSelect.vue';
 import { useWorkbenchGuard } from '../../composables/useWorkbenchGuard.js';
 import { authStatus, currentUser, initAuth } from '../../utils/auth.js';
 import {
@@ -24,12 +25,12 @@ import {
   listLocalLectures,
   saveLocalLecture
 } from '../../utils/local-lectures.js';
-import ArchiveLectureConfirm from './ArchiveLectureConfirm.vue';
+import ArchiveBookConfirm from './ArchiveBookConfirm.vue';
+import BookManageSummary from './BookManageSummary.vue';
+import BookWorkbenchTree from './BookWorkbenchTree.vue';
 import ChapterPanel from './ChapterPanel.vue';
 import CoursePanel from './CoursePanel.vue';
-import DeleteLectureConfirm from './DeleteLectureConfirm.vue';
-import LectureManageSummary from './LectureManageSummary.vue';
-import LectureWorkbenchTree from './LectureWorkbenchTree.vue';
+import DeleteBookConfirm from './DeleteBookConfirm.vue';
 import SectionPanel from './SectionPanel.vue';
 
 const lectures = ref([]);
@@ -88,7 +89,8 @@ const downloadSlug = ref('');
 const createSource = ref('local');
 const createForm = ref({
   title: '',
-  slug: ''
+  slug: '',
+  kind: 'lecture'
 });
 const removeTarget = ref(null);
 const treeBusy = ref(false);
@@ -154,10 +156,10 @@ const canEdit = computed(() =>
 );
 const readOnlyMessage = computed(() =>
   isArchived.value
-    ? '讲义已归档，当前内容只供查看。'
+    ? '图书已归档，当前内容只供查看。'
     : canEditOnline.value && revision.value?.status !== 'draft'
       ? '当前版本只供查看，请选择草稿继续编辑。'
-      : '当前账号无法编辑此讲义，可下载到本地查看。'
+      : '当前账号无法编辑此图书，可下载到本地查看。'
 );
 const canBrowseOnline = computed(
   () => authStatus.value === 'authenticated' && Boolean(currentUser.value)
@@ -183,10 +185,10 @@ const treeNodes = computed(() =>
     type: 'group',
     id: group,
     label: {
-      local: '本地讲义',
-      online: '我创作的讲义',
-      archived: '已归档讲义',
-      all: '全部讲义'
+      local: '本地图书',
+      online: '我创作的图书',
+      archived: '已归档图书',
+      all: '全部图书'
     }[group],
     actions:
       group === 'local' || (group === 'online' && canCreateOnline.value)
@@ -239,6 +241,8 @@ const treeNodes = computed(() =>
             ? revision.value?.title
             : item.revision?.title
           : draftTitle || item.title || (active ? revision.value?.title : '');
+      const bookKind =
+        source === 'local' ? (item.kind ?? item.revision?.kind ?? 'lecture') : item.kind;
       const canArchive =
         source === 'online' &&
         item.publication_status !== 'archived' &&
@@ -251,13 +255,13 @@ const treeNodes = computed(() =>
       return {
         type: 'lecture',
         id: key,
-        label:
-          title ||
-          (versionNameErrors.value.has(key)
-            ? '课程名称加载失败'
+        label: title
+          ? `${title} · ${bookKind === 'workbook' ? '题目册' : bookKind === 'lecture' ? '讲义' : '类型未知'}`
+          : versionNameErrors.value.has(key)
+            ? '图书名称加载失败'
             : item.canViewPrivate && !lectureVersions.value.has(key)
-              ? '正在加载课程名称'
-              : '课程名称未提供'),
+              ? '正在加载图书名称'
+              : '图书名称未提供',
         item,
         source,
         group,
@@ -289,10 +293,11 @@ const treeNodes = computed(() =>
                 item,
                 source,
                 version,
-                label:
+                label: `${
                   version.status === 'draft'
                     ? '草稿版本'
-                    : `${version.revision_no == null ? '版本号未提供' : `V${version.revision_no}`} · ${versionStatus(version.status)}`,
+                    : `${version.revision_no == null ? '版本号未提供' : `V${version.revision_no}`} · ${versionStatus(version.status)}`
+                } · ${item.kind === 'workbook' ? '题目册' : item.kind === 'lecture' ? '讲义' : '类型未知'}`,
                 actions:
                   canAddChapter && version.status === 'draft'
                     ? {
@@ -502,7 +507,7 @@ async function loadLectures() {
       };
       listErrors.value = {
         ...listErrors.value,
-        local: '本地讲义加载失败'
+        local: '本地图书加载失败'
       };
     }
   );
@@ -512,11 +517,11 @@ async function loadLectures() {
     }
     let error = '';
     if (online.status === 'rejected' && mine.status === 'rejected') {
-      error = '我创作的讲义加载失败';
+      error = '我创作的图书加载失败';
     } else if (online.status === 'rejected') {
-      error = '我创作的讲义加载失败';
+      error = '我创作的图书加载失败';
     } else if (mine.status === 'rejected') {
-      error = '我创作的讲义加载失败';
+      error = '我创作的图书加载失败';
     }
     listLoading.value = {
       ...listLoading.value,
@@ -531,7 +536,7 @@ async function loadLectures() {
     localPromise,
     onlinePromise,
     minePromise,
-    managementApi.categories('lecture')
+    managementApi.categories('book')
   ]);
   if (sequence !== listSequence) {
     return;
@@ -544,16 +549,16 @@ async function loadLectures() {
   if (local.status === 'fulfilled') {
     localLectures.value = local.value;
   } else {
-    sectionErrors.local = '本地讲义加载失败';
+    sectionErrors.local = '本地图书加载失败';
     errors.push(sectionErrors.local);
   }
   if (online.status === 'rejected') {
-    sectionErrors.online = '我创作的讲义加载失败';
+    sectionErrors.online = '我创作的图书加载失败';
     errors.push(sectionErrors.online);
   }
   if (mine.status === 'rejected') {
-    sectionErrors.online = '我创作的讲义加载失败';
-    errors.push('我创作的讲义加载失败');
+    sectionErrors.online = '我创作的图书加载失败';
+    errors.push('我创作的图书加载失败');
   }
   listErrors.value = sectionErrors;
   listLoading.value = {
@@ -574,14 +579,14 @@ async function loadManagedLectures(sequence) {
   try {
     const result = await lectureApi.manage();
     if (!Array.isArray(result)) {
-      throw new Error('全部讲义列表格式不正确');
+      throw new Error('全部图书列表格式不正确');
     }
     if (sequence === listSequence && canManageAll.value) {
       managedLectures.value = result;
     }
   } catch (error) {
     if (sequence === listSequence && canManageAll.value) {
-      managedError.value = error.message || '全部讲义加载失败';
+      managedError.value = error.message || '全部图书加载失败';
     }
   } finally {
     if (sequence === listSequence) {
@@ -612,11 +617,11 @@ async function openManageSummary(item, skipConfirm = false) {
   try {
     const result = await lectureApi.manage();
     if (!Array.isArray(result)) {
-      throw new Error('全部讲义列表格式不正确');
+      throw new Error('全部图书列表格式不正确');
     }
     const found = result.find((entry) => entry.id === item.id);
     if (!found) {
-      throw new Error('讲义不存在或已被删除');
+      throw new Error('图书不存在或已被删除');
     }
     if (current !== summarySequence || !canManageAll.value) {
       return;
@@ -625,7 +630,7 @@ async function openManageSummary(item, skipConfirm = false) {
     summaryItem.value = found;
   } catch (error) {
     if (current === summarySequence) {
-      summaryError.value = error.message || '讲义信息加载失败';
+      summaryError.value = error.message || '图书信息加载失败';
     }
   } finally {
     if (current === summarySequence) {
@@ -803,9 +808,17 @@ async function selectLecture(item, source, force = false, discardConfirmed = fal
     if (sequence !== loadSequence) {
       return false;
     }
+    if (
+      source === 'online' &&
+      (String(data.book?.id) !== String(item.id) ||
+        !['lecture', 'workbook'].includes(data.book?.kind))
+    ) {
+      throw new Error('图书信息不完整或不匹配，请刷新后重试');
+    }
     lecture.value = {
       id: item.id,
-      slug: item.slug || data.lecture?.slug,
+      slug: item.slug || data.book?.slug,
+      kind: source === 'local' ? (item.kind ?? item.revision?.kind ?? 'lecture') : data.book.kind,
       key,
       isLocal: source === 'local',
       ownerUserId: source === 'online' ? (currentUser.value?.id ?? null) : null,
@@ -834,7 +847,7 @@ async function selectLecture(item, source, force = false, discardConfirmed = fal
     return true;
   } catch (err) {
     if (sequence === loadSequence) {
-      notify(err.message || '讲义加载失败', 'error');
+      notify(err.message || '图书加载失败', 'error');
     }
     return false;
   } finally {
@@ -876,7 +889,9 @@ async function selectRevision(node) {
     }
     if (
       data.revision?.id !== node.revisionId ||
-      data.revision?.lecture_id !== node.item.id ||
+      data.revision?.book_id !== node.item.id ||
+      data.book?.id !== node.item.id ||
+      !['lecture', 'workbook'].includes(data.book?.kind) ||
       !Array.isArray(data.chapters)
     ) {
       throw new Error('版本数据不匹配');
@@ -890,6 +905,7 @@ async function selectRevision(node) {
     lecture.value = {
       id: node.item.id,
       slug: node.item.slug,
+      kind: data.book.kind,
       key: node.courseKey,
       isLocal: false,
       ownerUserId: currentUser.value?.id ?? null,
@@ -972,7 +988,7 @@ async function readLectureImport(event) {
       data = JSON.parse(await file.text());
     } catch (error) {
       if (error instanceof SyntaxError) {
-        throw new Error('文件不是有效的 JSON，请选择讲义导出文件');
+        throw new Error('文件不是有效的 JSON，请选择图书导出文件');
       }
       throw error;
     }
@@ -980,11 +996,11 @@ async function readLectureImport(event) {
       return;
     }
     importFile.value = validatePortableLecture(data);
-    importSlug.value = data.lecture.slug;
+    importSlug.value = importFile.value.book.slug;
   } catch (error) {
     if (sequence === importSequence) {
       importFile.value = null;
-      importError.value = `无法导入讲义：${error?.message || '文件读取失败'}`;
+      importError.value = `无法导入图书：${error?.message || '文件读取失败'}`;
     }
   } finally {
     if (sequence === importSequence) {
@@ -1005,15 +1021,15 @@ async function submitLectureImport() {
   if (importSource.value === 'online' && !canCreateOnline.value) {
     return;
   }
-  const data = {
+  let data = {
     ...importFile.value,
-    lecture: {
-      ...importFile.value.lecture,
+    book: {
+      ...importFile.value.book,
       slug: importSlug.value.trim()
     }
   };
   try {
-    validatePortableLecture(data);
+    data = validatePortableLecture(data);
   } catch (error) {
     importError.value = error.message;
     return;
@@ -1026,33 +1042,33 @@ async function submitLectureImport() {
     if (source === 'local') {
       await createLocalLecture(portableToLocalLecture(data));
       closeLectureImport();
-      notify('本地讲义已导入', 'success');
+      notify('本地图书已导入', 'success');
       await loadLectures();
     } else {
       const result = await lectureApi.importLecture(data);
       if (epoch !== identityEpoch) {
-        notify('导入请求已完成，账号已变化，请核对讲义列表', 'warn', 0);
+        notify('导入请求已完成，账号已变化，请核对图书列表', 'warn', 0);
         return;
       }
-      if (!result?.lecture?.id || !result?.revision?.id) {
+      if (!result?.book?.id || !result?.revision?.id) {
         importUncertain.value = true;
         importError.value = '导入结果未确认，请刷新列表核对后再操作';
         return;
       }
       closeLectureImport();
-      notify('讲义已导入为新草稿', 'success');
+      notify('图书已导入为新草稿', 'success');
       await loadLectures();
     }
     treeRef.value?.expand('group', source);
   } catch (error) {
     if (source === 'online' && epoch !== identityEpoch) {
-      notify('导入结果未确认，请重新核对讲义列表', 'warn', 0);
+      notify('导入结果未确认，请重新核对图书列表', 'warn', 0);
     } else if (source === 'online' && ![400, 401, 403, 404, 409, 413, 422].includes(error.status)) {
       importUncertain.value = true;
       importError.value = '导入结果未确认，请刷新列表核对后再操作';
     } else {
       importError.value =
-        error.status === 409 ? '课程标识已存在，请修改后重试' : error.message || '导入失败';
+        error.status === 409 ? '图书标识已存在，请修改后重试' : error.message || '导入失败';
     }
   } finally {
     saving.value = false;
@@ -1070,7 +1086,7 @@ async function exportLecture() {
     return;
   }
   if (dirty.value) {
-    notify('请先保存所有修改，再导出讲义', 'warn');
+    notify('请先保存所有修改，再导出图书', 'warn');
     return;
   }
   const context = lecture.value;
@@ -1082,15 +1098,15 @@ async function exportLecture() {
     if (context.isLocal) {
       const stored = (await listLocalLectures()).find((item) => item.id === context.id);
       if (!stored || stored.editVersion !== context.editVersion) {
-        throw new Error('本地讲义已发生变化，请重新读取后导出');
+        throw new Error('本地图书已发生变化，请重新读取后导出');
       }
       data = localLectureToPortable(stored);
     } else {
       data = validatePortableLecture(await lectureApi.exportRevision(revisionId));
     }
-    checkExportMetadata(data.lecture.metadata);
+    checkExportMetadata(data.book.metadata);
     if (epoch !== identityEpoch || lecture.value !== context || dirty.value) {
-      throw new Error('讲义状态已变化，请重新确认后导出');
+      throw new Error('图书状态已变化，请重新确认后导出');
     }
     const url = URL.createObjectURL(
       new Blob([JSON.stringify(data, null, 2)], {
@@ -1100,7 +1116,7 @@ async function exportLecture() {
     try {
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${data.lecture.slug}.json`;
+      link.download = `${data.book.slug}.json`;
       link.click();
     } finally {
       setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -1122,7 +1138,8 @@ async function openCreate(source) {
   createSource.value = source;
   createForm.value = {
     title: '',
-    slug: ''
+    slug: '',
+    kind: 'lecture'
   };
   createOpen.value = true;
 }
@@ -1137,8 +1154,8 @@ async function createLecture() {
   }
   const title = createForm.value.title.trim();
   const slug = createForm.value.slug.trim();
-  if (!title || !slug) {
-    notify('请填写课程名称和课程标识', 'warn');
+  if (!title || !slug || !['lecture', 'workbook'].includes(createForm.value.kind)) {
+    notify('请填写图书名称、标识并选择有效类型', 'warn');
     return;
   }
   saving.value = true;
@@ -1151,6 +1168,7 @@ async function createLecture() {
       item = {
         id: crypto.randomUUID(),
         slug,
+        kind: createForm.value.kind,
         editVersion: 1,
         sourceLectureId: null,
         sourceRevisionId: null,
@@ -1159,7 +1177,6 @@ async function createLecture() {
           subtitle: '',
           descr: '',
           category_id: null,
-          typst_version: '0.15.1',
           metadata: {},
           change_note: ''
         },
@@ -1170,14 +1187,22 @@ async function createLecture() {
     } else {
       const result = await lectureApi.create({
         title,
-        slug
+        slug,
+        kind: createForm.value.kind
       });
       if (epoch !== identityEpoch) {
         notify('课程已创建，账号状态已变化，请重新加载列表', 'warn');
         return;
       }
+      if (
+        !result?.book?.id ||
+        result.book.kind !== createForm.value.kind ||
+        !result?.revision?.id
+      ) {
+        throw new Error('图书创建结果不完整，请刷新列表核对');
+      }
       item = {
-        ...result.lecture,
+        ...result.book,
         title: result.revision.title,
         canViewPrivate: true
       };
@@ -1226,7 +1251,7 @@ async function downloadLecture() {
     return;
   }
   if (dirty.value) {
-    notify('请先保存所有修改，再下载讲义', 'warn');
+    notify('请先保存所有修改，再下载图书', 'warn');
     return;
   }
   const context = lecture.value;
@@ -1235,7 +1260,7 @@ async function downloadLecture() {
   try {
     const data = await lectureApi.exportRevision(revisionId);
     if (lecture.value !== context || revision.value?.id !== revisionId || dirty.value) {
-      throw new Error('讲义状态已变化，请重新确认后下载');
+      throw new Error('图书状态已变化，请重新确认后下载');
     }
     const record = portableToLocalLecture(data);
     record.slug = downloadSlug.value.trim();
@@ -1247,7 +1272,7 @@ async function downloadLecture() {
     treeRef.value?.expand('group', 'local');
     notify('已下载到本地，可选择本地课程进行修改', 'success');
   } catch (err) {
-    notify(err.message || '下载讲义失败', 'error');
+    notify(err.message || '下载图书失败', 'error');
   } finally {
     saving.value = false;
   }
@@ -1267,13 +1292,13 @@ function validateDraft() {
     return result;
   };
   if (!value(revision.value.title)) {
-    issues.push('课程：请填写课程名称');
+    issues.push('图书：请填写图书名称');
   }
-  if (!value(revision.value.typst_version)) {
-    issues.push('课程：请填写 Typst 版本');
+  if (!['lecture', 'workbook'].includes(lecture.value?.kind)) {
+    issues.push('图书：请选择有效的图书类型');
   }
   if (lecture.value?.isLocal && !value(lecture.value.slug)) {
-    issues.push('课程：请填写课程标识');
+    issues.push('图书：请填写图书标识');
   }
   const chapterCounts = counts(chapters.value);
   chapters.value.forEach((chapter, chapterIndex) => {
@@ -1327,7 +1352,7 @@ async function save() {
   const issues = validateDraft();
   if (issues.length) {
     notify(
-      `保存会检查整份讲义，请补齐所有必填项并解决课程、章节或小节标识重复：\n${issues.join('\n')}`,
+      `保存会检查整份图书，请补齐所有必填项并解决图书、章节或小节标识重复：\n${issues.join('\n')}`,
       'warn',
       0
     );
@@ -1349,7 +1374,9 @@ async function save() {
         slug: data.slug,
         cover:
           typeof data.revision.metadata?.cover === 'string' ? data.revision.metadata.cover : '',
-        revision: data.revision,
+        revision: Object.fromEntries(
+          Object.entries(data.revision).filter(([key]) => key !== 'typst_version')
+        ),
         chapters: data.chapters
       };
       const version = await saveLocalLecture(record, lecture.value.editVersion);
@@ -1534,7 +1561,7 @@ async function updateOnlineCover(cover) {
     return;
   }
   if (dirty.value) {
-    notify('请先保存或放弃讲义修改，再修改封面', 'warn');
+    notify('请先保存或放弃图书修改，再修改封面', 'warn');
     return;
   }
   if (onlineConflict.value) {
@@ -1561,7 +1588,7 @@ async function updateOnlineCover(cover) {
       result.has_cover !== Boolean(cover)
     ) {
       onlineConflict.value = true;
-      notify('封面保存结果需要重新核对，请重新读取讲义', 'warn', 0);
+      notify('封面保存结果需要重新核对，请重新读取图书', 'warn', 0);
       return;
     }
     currentRevision.edit_version = result.edit_version;
@@ -1582,9 +1609,9 @@ async function updateOnlineCover(cover) {
     }
     notify(
       error.status === 409
-        ? '讲义已发生变化，请重新读取后再修改封面'
+        ? '图书已发生变化，请重新读取后再修改封面'
         : !error.status
-          ? '封面保存结果未能确认，请重新读取讲义'
+          ? '封面保存结果未能确认，请重新读取图书'
           : error.message || '封面保存失败，请重试',
       'error'
     );
@@ -1766,6 +1793,9 @@ async function refreshDraftOnVisible() {
     pendingSnapshotId.value = versions.find((version) => version.status === 'pending')?.id || null;
     if (!latest) {
       return;
+    }
+    if (latest.book?.kind !== lecture.value.kind || latest.book?.id !== lecture.value.id) {
+      throw new Error('图书版本类型缺失，请更新服务后重试');
     }
     if (latest.revision.edit_version === revision.value.edit_version) {
       return;
@@ -2035,7 +2065,7 @@ function openDeleteLecture() {
     return;
   }
   if (lecture.value?.id === item.id && dirty.value) {
-    notify('请先保存或放弃该讲义的未保存修改，再删除', 'warn');
+    notify('请先保存或放弃该图书的未保存修改，再删除', 'warn');
     return;
   }
   deleteLectureTarget.value = {
@@ -2061,7 +2091,7 @@ async function confirmDeleteLecture() {
     return;
   }
   if (lecture.value?.id === target.id && dirty.value) {
-    notify('当前讲义有未保存的修改，请先处理后再删除', 'warn');
+    notify('当前图书有未保存的修改，请先处理后再删除', 'warn');
     return;
   }
   const epoch = identityEpoch;
@@ -2070,7 +2100,7 @@ async function confirmDeleteLecture() {
     await lectureApi.remove(target.id);
     deleteLectureTarget.value = null;
     if (epoch !== identityEpoch) {
-      notify('删除请求已完成，账号状态已变化，请重新核对讲义列表', 'warn', 0);
+      notify('删除请求已完成，账号状态已变化，请重新核对图书列表', 'warn', 0);
       return;
     }
     listSequence++;
@@ -2093,15 +2123,15 @@ async function confirmDeleteLecture() {
       pendingSnapshotId.value = null;
       onlineConflict.value = false;
     }
-    notify('讲义已永久删除', 'success');
+    notify('图书已永久删除', 'success');
     await loadLectures();
   } catch (err) {
     if (epoch !== identityEpoch) {
-      notify('删除结果未能确认，请重新核对讲义列表', 'warn', 0);
+      notify('删除结果未能确认，请重新核对图书列表', 'warn', 0);
     } else if (err.status === 404 || err.status === 409) {
       deleteLectureTarget.value = null;
       notify(
-        err.status === 404 ? '讲义不存在，正在刷新列表' : '讲义不再处于归档状态，正在刷新列表',
+        err.status === 404 ? '图书不存在，正在刷新列表' : '图书不再处于归档状态，正在刷新列表',
         'warn'
       );
       await loadLectures();
@@ -2134,7 +2164,7 @@ async function restoreLecture() {
   try {
     const result = await lectureApi.restore(item.id);
     if (epoch !== identityEpoch) {
-      notify('恢复请求已完成，账号状态已变化，请重新核对讲义列表', 'warn', 0);
+      notify('恢复请求已完成，账号状态已变化，请重新核对图书列表', 'warn', 0);
       return;
     }
     if (
@@ -2151,16 +2181,16 @@ async function restoreLecture() {
             }
           : entry
       );
-      notify('讲义已恢复，当前未公开', 'success');
+      notify('图书已恢复，当前未公开', 'success');
     } else {
-      notify('恢复请求已完成，正在重新读取讲义状态', 'warn', 0);
+      notify('恢复请求已完成，正在重新读取图书状态', 'warn', 0);
     }
     await loadLectures();
   } catch (err) {
     notify(
       epoch === identityEpoch
         ? err.message || '恢复失败，请稍后重试'
-        : '恢复结果未能确认，请重新核对讲义列表',
+        : '恢复结果未能确认，请重新核对图书列表',
       'error'
     );
   } finally {
@@ -2182,7 +2212,7 @@ function openArchive(node) {
     return;
   }
   if (lecture.value?.key === node.id && dirty.value) {
-    notify('请先保存或放弃该讲义的未保存修改，再归档', 'warn');
+    notify('请先保存或放弃该图书的未保存修改，再归档', 'warn');
     return;
   }
   archiveTarget.value = {
@@ -2207,7 +2237,7 @@ async function confirmArchive() {
     return;
   }
   if (lecture.value?.key === `online:${target.id}` && dirty.value) {
-    notify('请先保存或放弃该讲义的未保存修改，再归档', 'warn');
+    notify('请先保存或放弃该图书的未保存修改，再归档', 'warn');
     return;
   }
   const epoch = identityEpoch;
@@ -2218,13 +2248,13 @@ async function confirmArchive() {
     });
     if (epoch !== identityEpoch) {
       archiveTarget.value = null;
-      notify('归档请求已完成，账号状态已变化，请重新核对讲义列表', 'warn', 0);
+      notify('归档请求已完成，账号状态已变化，请重新核对图书列表', 'warn', 0);
       return;
     }
     listSequence++;
     archiveTarget.value = null;
     if (result?.id !== target.id || result?.publication_status !== 'archived') {
-      notify('归档请求已成功，但返回数据不完整，正在重新读取讲义列表', 'warn', 0);
+      notify('归档请求已成功，但返回数据不完整，正在重新读取图书列表', 'warn', 0);
       await loadLectures();
       return;
     }
@@ -2247,13 +2277,13 @@ async function confirmArchive() {
         treeRef.value?.expand('version', `${lecture.value.key}:version:${revision.value.id}`);
       }
     }
-    notify('讲义已归档', 'success');
+    notify('图书已归档', 'success');
     await loadLectures();
   } catch (err) {
     if (epoch === identityEpoch) {
       notify(err.message || '归档失败，请稍后重试', 'error');
     } else {
-      notify('归档结果未能确认，账号状态已变化，请重新核对讲义列表', 'warn', 0);
+      notify('归档结果未能确认，账号状态已变化，请重新核对图书列表', 'warn', 0);
     }
   } finally {
     if (epoch !== identityEpoch) {
@@ -2432,7 +2462,7 @@ async function revalidatePermission(epoch) {
     }
     const item = items.find((entry) => entry.id === context.id);
     if (!item) {
-      throw new Error('讲义访问权限已变化');
+      throw new Error('图书访问权限已变化');
     }
     context.publicationStatus = item.publication_status;
     context.canEdit =
@@ -2444,7 +2474,7 @@ async function revalidatePermission(epoch) {
     context.permissionValid = true;
   } catch {
     if (epoch === identityEpoch && lecture.value === context) {
-      notify('无法确认讲义编辑权限，请重新读取讲义', 'error');
+      notify('无法确认图书编辑权限，请重新读取图书', 'error');
     }
   }
 }
@@ -2511,7 +2541,7 @@ onUnmounted(() => {
 
 <template>
   <div class="workbench-workspace">
-    <LectureWorkbenchTree
+    <BookWorkbenchTree
       :inert="loading || saving || createOpen || downloadOpen || importOpen || archiveBusy"
       ref="treeRef"
       :nodes="treeNodes"
@@ -2532,7 +2562,7 @@ onUnmounted(() => {
       class="workbench-main"
       :inert="archiveBusy"
     >
-      <LectureManageSummary
+      <BookManageSummary
         v-if="summaryId != null && canManageAll"
         :item="summaryItem"
         :loading="summaryLoading"
@@ -2552,7 +2582,7 @@ onUnmounted(() => {
         class="workbench-empty"
       >
         <h2>当前账号无法访问此编辑内容</h2>
-        <p>请使用原账号重新登录，或离开后选择其他讲义。</p>
+        <p>请使用原账号重新登录，或离开后选择其他图书。</p>
       </div>
       <CoursePanel
         v-else-if="revision && lecture && selected.type === 'lecture'"
@@ -2719,14 +2749,14 @@ onUnmounted(() => {
         v-else
         class="workbench-empty"
       >
-        <span class="empty-label font-mono">LECTURE WORKBENCH</span>
-        <h2>选择一份讲义</h2>
-        <p>从左侧选择本地讲义或我创作的讲义，选择课程、章节或小节。</p>
+        <span class="empty-label font-mono">BOOK WORKBENCH</span>
+        <h2>选择一份图书</h2>
+        <p>从左侧选择本地图书或我创作的图书，选择课程、章节或小节。</p>
       </div>
     </main>
     <MModal
       :open="importOpen"
-      :title="importSource === 'local' ? '导入本地讲义' : '导入在线讲义'"
+      :title="importSource === 'local' ? '导入本地图书' : '导入在线图书'"
       width="480px"
       hide-footer
       :show-close="!saving"
@@ -2734,8 +2764,8 @@ onUnmounted(() => {
     >
       <div class="lecture-import">
         <MFilePicker
-          :title="importName || '讲义 JSON 文件'"
-          :detail="importReading ? '正在读取文件…' : '选择一份完整讲义文件'"
+          :title="importName || '图书 JSON 文件'"
+          :detail="importReading ? '正在读取文件…' : '选择一份完整图书文件'"
           :action="importName ? '重新选择' : '选择文件'"
           accept=".json,application/json"
           :disabled="saving || importUncertain"
@@ -2745,8 +2775,8 @@ onUnmounted(() => {
         <MInput
           v-if="importFile"
           v-model="importSlug"
-          label="课程标识"
-          hint="导入将新建讲义，标识不能与已有讲义重复"
+          :label="importFile.book.kind === 'workbook' ? '题目册标识' : '讲义标识'"
+          hint="导入将新建图书，标识不能与已有图书重复"
           required
           :disabled="saving || importUncertain"
         />
@@ -2754,8 +2784,8 @@ onUnmounted(() => {
           v-if="importFile"
           class="lecture-import-note"
         >
-          {{ importFile.lecture.title }} ·
-          {{ importFile.chapters.length }} 个章节。讲义分类需要导入后重新选择。
+          {{ importFile.book.title }} ·
+          {{ importFile.chapters.length }} 个章节。图书分类需要导入后重新选择。
         </p>
         <p
           v-if="importError"
@@ -2779,18 +2809,18 @@ onUnmounted(() => {
         </div>
       </div>
     </MModal>
-    <DeleteLectureConfirm
+    <DeleteBookConfirm
       :open="Boolean(deleteLectureTarget)"
       :title="deleteLectureTarget?.title || ''"
       :busy="archiveBusy"
       @close="deleteLectureTarget = null"
       @confirm="confirmDeleteLecture"
     />
-    <ArchiveLectureConfirm
+    <ArchiveBookConfirm
       :open="Boolean(archiveTarget)"
       :title="archiveTarget?.title || ''"
       :busy="archiveBusy"
-      impact="归档后讲义只供查看，各版本及内容会保留，推荐状态会清除。归档期间不能提交、审核或上架；恢复后也不会自动公开。"
+      impact="归档后图书只供查看，各版本及内容会保留，推荐状态会清除。归档期间不能提交、审核或上架；恢复后也不会自动公开。"
       @close="archiveTarget = null"
       @confirm="confirmArchive"
     />
@@ -2801,7 +2831,7 @@ onUnmounted(() => {
       show-close
       @close="closeSubmit"
     >
-      <p>讲义：{{ submitTarget?.title }}</p>
+      <p>图书：{{ submitTarget?.title }}</p>
       <p>
         预计提交版本：{{
           submitTarget?.expectedVersion == null
@@ -2839,8 +2869,8 @@ onUnmounted(() => {
       @confirm="downloadLecture"
       ><MInput
         v-model="downloadSlug"
-        label="本地讲义标识"
-        hint="本地讲义标识需在本浏览器中唯一"
+        label="本地图书标识"
+        hint="本地图书标识需在本浏览器中唯一"
         required
     /></MModal>
     <MModal
@@ -2854,17 +2884,29 @@ onUnmounted(() => {
     />
     <MModal
       :open="createOpen"
-      :title="createSource === 'local' ? '新建本地课程' : '新建在线课程'"
+      :title="createSource === 'local' ? '新建本地图书' : '新建在线图书'"
       :busy="saving"
       @close="!saving && (createOpen = false)"
       @confirm="createLecture"
       ><MInput
         v-model="createForm.title"
-        label="课程名称"
-        required /><MInput
+        label="图书名称"
+        required /><MSelect
+        v-model="createForm.kind"
+        label="图书类型"
+        :options="[
+          {
+            value: 'lecture',
+            label: '讲义'
+          },
+          {
+            value: 'workbook',
+            label: '题目册'
+          }
+        ]" /><MInput
         v-model="createForm.slug"
-        label="课程标识"
-        :hint="createSource === 'local' ? '需在本浏览器的本地讲义中唯一' : '创建后不能修改'"
+        :label="createForm.kind === 'workbook' ? '题目册标识' : '讲义标识'"
+        :hint="createSource === 'local' ? '需在本浏览器的本地图书中唯一' : '创建后不能修改'"
         required
     /></MModal>
     <MModal

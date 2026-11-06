@@ -160,12 +160,14 @@ async function updateLocalLectureCoverUnlocked(id, cover) {
       } else {
         delete revision.metadata.cover;
       }
-      store.put({
-        ...request.result,
-        cover,
-        revision,
-        editVersion: request.result.editVersion + 1
-      });
+      store.put(
+        normalizeLocalRecord({
+          ...request.result,
+          cover,
+          revision,
+          editVersion: request.result.editVersion + 1
+        })
+      );
     };
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
@@ -173,12 +175,31 @@ async function updateLocalLectureCoverUnlocked(id, cover) {
   });
 }
 
+function normalizeLocalRecord(record) {
+  if (!record.revision || typeof record.revision !== 'object') {
+    return record;
+  }
+  const revision = {
+    ...record.revision
+  };
+  delete revision.typst_version;
+  const kind = record.kind ?? revision.kind ?? 'lecture';
+  delete revision.kind;
+  return {
+    ...record,
+    kind,
+    revision
+  };
+}
+
 export function createLocalLecture(record) {
-  return withStorageWrite(() => createLocalLectureUnlocked(record));
+  return withStorageWrite(() => createLocalLectureUnlocked(normalizeLocalRecord(record)));
 }
 
 export function saveLocalLecture(record, expectedVersion) {
-  return withStorageWrite(() => saveLocalLectureUnlocked(record, expectedVersion));
+  return withStorageWrite(() =>
+    saveLocalLectureUnlocked(normalizeLocalRecord(record), expectedVersion)
+  );
 }
 
 export function deleteLocalLecture(id) {

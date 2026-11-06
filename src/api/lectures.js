@@ -18,56 +18,56 @@ const mutateCover = async (id, url, options) => {
 };
 
 export const lectureApi = {
-  list: (options = {}) => request('/api/lectures', options),
+  list: (options = {}) => request('/api/books', options),
   outline: (slug, revisionId) =>
     request(
-      `/api/lectures/by-slug/${encodeURIComponent(slug)}/outline${revisionId != null && revisionId !== '' ? `?revision_id=${encodeURIComponent(revisionId)}` : ''}`,
+      `/api/books/by-slug/${encodeURIComponent(slug)}/outline${revisionId != null && revisionId !== '' ? `?revision_id=${encodeURIComponent(revisionId)}` : ''}`,
       {
         cache: 'no-store'
       }
     ),
   section: (slug, revisionId, chapterSlug, sectionSlug, editVersion) =>
     request(
-      `/api/lectures/by-slug/${encodeURIComponent(slug)}/revisions/${encodeURIComponent(revisionId)}/chapters/${encodeURIComponent(chapterSlug)}/sections/${encodeURIComponent(sectionSlug)}?edit_version=${encodeURIComponent(editVersion)}`,
+      `/api/books/by-slug/${encodeURIComponent(slug)}/revisions/${encodeURIComponent(revisionId)}/chapters/${encodeURIComponent(chapterSlug)}/sections/${encodeURIComponent(sectionSlug)}?edit_version=${encodeURIComponent(editVersion)}`,
       {
         cache: 'no-store'
       }
     ),
   printData: (slug, params) =>
-    request(`/api/lectures/by-slug/${encodeURIComponent(slug)}/print-data?${params}`, {
+    request(`/api/books/by-slug/${encodeURIComponent(slug)}/print-data?${params}`, {
       cache: 'no-store'
     }),
-  mine: () => request('/api/lectures/mine'),
+  mine: () => request('/api/books/mine'),
   manage: () =>
-    request('/api/lectures/manage', {
+    request('/api/books/manage', {
       cache: 'no-store'
     }),
   owned: () =>
-    request('/api/lectures/owned', {
+    request('/api/books/owned', {
       cache: 'no-store'
     }),
   create: (body) =>
-    mutate('/api/lectures', {
+    mutate('/api/books', {
       method: 'POST',
       body
     }),
   importLecture: (body) =>
-    mutate('/api/lectures/import', {
+    mutate('/api/books/import', {
       method: 'POST',
       body
     }),
   exportRevision: (id) =>
-    request(`/api/lecture-revisions/${id}/export`, {
+    request(`/api/book-revisions/${id}/export`, {
       cache: 'no-store'
     }),
   getCover: (id, hash) =>
     getCachedLectureCover(id, hash, () =>
-      request(`/api/lecture-revisions/${id}/cover`, {
+      request(`/api/book-revisions/${id}/cover`, {
         cache: 'no-store'
       })
     ),
   setCover: (id, editVersion, cover) =>
-    mutateCover(id, `/api/lecture-revisions/${id}/cover`, {
+    mutateCover(id, `/api/book-revisions/${id}/cover`, {
       method: 'PUT',
       body: {
         edit_version: editVersion,
@@ -77,41 +77,41 @@ export const lectureApi = {
   removeCover: (id, editVersion) =>
     mutateCover(
       id,
-      `/api/lecture-revisions/${id}/cover?edit_version=${encodeURIComponent(editVersion)}`,
+      `/api/book-revisions/${id}/cover?edit_version=${encodeURIComponent(editVersion)}`,
       {
         method: 'DELETE'
       }
     ),
-  revisions: (id) => request(`/api/lectures/${id}/revisions`),
+  revisions: (id) => request(`/api/books/${id}/revisions`),
   saveRevision: (id, body) =>
-    mutate(`/api/lecture-revisions/${id}`, {
+    mutate(`/api/book-revisions/${id}`, {
       method: 'PUT',
       body
     }),
   saveSection: (id, occurrenceId, body) =>
-    mutate(`/api/lecture-revisions/${id}/sections/${encodeURIComponent(occurrenceId)}`, {
+    mutate(`/api/book-revisions/${id}/sections/${encodeURIComponent(occurrenceId)}`, {
       method: 'PUT',
       body
     }),
   submitRevision: (id, version) =>
-    mutate(`/api/lecture-revisions/${id}/submit`, {
+    mutate(`/api/book-revisions/${id}/submit`, {
       method: 'POST',
       body: {
         edit_version: version
       }
     }),
-  collaborators: (id) => request(`/api/lectures/${id}/collaborators`),
+  collaborators: (id) => request(`/api/books/${id}/collaborators`),
   setPublication: (id, body) =>
-    mutate(`/api/lectures/${id}/publication`, {
+    mutate(`/api/books/${id}/publication`, {
       method: 'PATCH',
       body
     }),
   restore: (id) =>
-    mutate(`/api/lectures/${id}/restore`, {
+    mutate(`/api/books/${id}/restore`, {
       method: 'POST'
     }),
   remove: (id) =>
-    mutate(`/api/lectures/${id}`, {
+    mutate(`/api/books/${id}`, {
       method: 'DELETE'
     })
 };
@@ -123,7 +123,6 @@ export function lectureSaveBody(revision, chapters) {
     subtitle: revision.subtitle,
     descr: revision.descr,
     category_id: revision.category_id,
-    typst_version: revision.typst_version,
     metadata: revision.metadata,
     change_note: revision.change_note,
     chapters: chapters.map((chapter) => ({

@@ -9,9 +9,11 @@ const MyLectureView = () => import('../views/my-lecture/MyLectureView.vue');
 const LectureHomeView = () => import('../views/lecture-home/LectureHomeView.vue');
 const LectureDocView = () => import('../views/lecture-doc/LectureDocView.vue');
 const KnowledgeView = () => import('../views/knowledge/KnowledgeView.vue');
+const QuestionBankView = () => import('../views/question-bank/QuestionBankView.vue');
 const KnowledgeLibrary = () => import('../views/knowledge/KnowledgeLibrary.vue');
-const WorkbenchView = () => import('../views/lecture-workbench/LectureWorkbench.vue');
+const BookWorkbenchView = () => import('../views/book-workbench/BookWorkbench.vue');
 const KnowledgeWorkbenchView = () => import('../views/knowledge-workbench/KnowledgeWorkbench.vue');
+const QuestionWorkbenchView = () => import('../views/question-workbench/QuestionWorkbench.vue');
 const PlatformView = () => import('../views/platform/PlatformView.vue');
 
 export const routes = [
@@ -78,11 +80,20 @@ export const routes = [
     }
   },
   {
+    path: '/question-bank',
+    name: 'question-bank',
+    component: QuestionBankView,
+    meta: {
+      title: '题库',
+      tag: 'QUESTIONS'
+    }
+  },
+  {
     path: '/recom-lecture',
     name: 'recom-lecture',
     component: RecomLectureView,
     meta: {
-      title: '讲义推荐',
+      title: '图书推荐',
       tag: 'HOT'
     }
   },
@@ -114,15 +125,24 @@ export const routes = [
     }
   },
   {
-    path: '/workbench',
-    redirect: '/lecture-workbench'
+    path: '/question-workbench',
+    name: 'question-workbench',
+    component: QuestionWorkbenchView,
+    meta: {
+      title: '题库工作台',
+      tag: 'WORKBENCH'
+    }
   },
   {
-    path: '/lecture-workbench',
-    name: 'lecture-workbench',
-    component: WorkbenchView,
+    path: '/workbench',
+    redirect: '/book-workbench'
+  },
+  {
+    path: '/book-workbench',
+    name: 'book-workbench',
+    component: BookWorkbenchView,
     meta: {
-      title: '讲义工作台',
+      title: '图书工作台',
       tag: 'WORKBENCH'
     }
   },

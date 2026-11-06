@@ -15,7 +15,7 @@ export function invalidateCourseCaches() {
 }
 
 const fetchCourseList = () =>
-  cachedRequest(courseListCache, courseListRequests, 'all', () => request('/api/lectures'));
+  cachedRequest(courseListCache, courseListRequests, 'all', () => request('/api/books'));
 
 function cachedRequest(cache, pending, key, load) {
   if (cache.has(key)) {
@@ -53,15 +53,16 @@ export async function fetchCourseTree(slug, revisionId = '') {
         ? `?revision_id=${encodeURIComponent(revisionId)}`
         : '';
     const snapshot = await request(
-      `/api/lectures/by-slug/${encodeURIComponent(slug)}/outline${query}`,
+      `/api/books/by-slug/${encodeURIComponent(slug)}/outline${query}`,
       {
         cache: 'no-store'
       }
     );
-    const lecture = snapshot.lecture;
+    const lecture = snapshot.book;
     const revision = snapshot.revision;
     if (
       !lecture ||
+      !['lecture', 'workbook'].includes(lecture.kind) ||
       !revision ||
       !Number.isInteger(revision.edit_version) ||
       revision.edit_version < 1 ||
@@ -87,6 +88,7 @@ export async function fetchCourseTree(slug, revisionId = '') {
     }
     return {
       ...revision,
+      kind: lecture.kind,
       id: lecture.id,
       revision_id: revision.id,
       revision_status: revision.status,
@@ -184,7 +186,6 @@ export function lectureBundleFromTree(tree) {
       category: tree.category || '',
       status: tree.status,
       live: tree.status === 'live',
-      typstVersion: tree.typst_version,
       revisionNo: tree.revision_no,
       revisionStatus: tree.revision_status,
       updatedAt: tree.updated_at,
@@ -209,7 +210,7 @@ export async function getCourseSectionContent(courseKey, sectionId, existingTree
   }
   let source = section.source;
   if (tree.storageSource !== 'local') {
-    const path = `/api/lectures/by-slug/${encodeURIComponent(tree.slug)}/revisions/${encodeURIComponent(tree.revision_id)}/chapters/${encodeURIComponent(chapter.slug)}/sections/${encodeURIComponent(section.slug)}?edit_version=${encodeURIComponent(tree.edit_version)}`;
+    const path = `/api/books/by-slug/${encodeURIComponent(tree.slug)}/revisions/${encodeURIComponent(tree.revision_id)}/chapters/${encodeURIComponent(chapter.slug)}/sections/${encodeURIComponent(section.slug)}?edit_version=${encodeURIComponent(tree.edit_version)}`;
     const response = await request(path, {
       cache: 'no-store'
     });
@@ -250,6 +251,6 @@ export async function fetchSearchRecommendations(limit = 6) {
     .slice(0, limit)
     .map((item) => ({
       ...item,
-      type: 'lecture'
+      type: 'book'
     }));
 }

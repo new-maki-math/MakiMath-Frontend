@@ -4,7 +4,8 @@ import {
   CubeScanSolid,
   DatabaseSolid,
   FlaskSolid,
-  StarSolid
+  StarSolid,
+  TaskList
 } from '@iconoir/vue';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -48,8 +49,16 @@ export const navItems = [
     group: 'primary'
   },
   {
+    id: 'question-bank',
+    label: '题库',
+    path: '/question-bank',
+    icon: TaskList,
+    tag: 'QUESTIONS',
+    group: 'primary'
+  },
+  {
     id: 'recom-lecture',
-    label: '讲义推荐',
+    label: '图书推荐',
     path: '/recom-lecture',
     icon: StarSolid,
     tag: 'HOT',
@@ -74,9 +83,19 @@ export const navItems = [
     adminOnly: true
   },
   {
-    id: 'lecture-workbench',
-    label: '讲义工作台',
-    path: '/lecture-workbench',
+    id: 'question-workbench',
+    label: '题库工作台',
+    path: '/question-workbench',
+    icon: FlaskSolid,
+    tag: 'WORKBENCH',
+    group: 'management',
+    desktopOnly: true,
+    adminOnly: true
+  },
+  {
+    id: 'book-workbench',
+    label: '图书工作台',
+    path: '/book-workbench',
     icon: FlaskSolid,
     tag: 'WORKBENCH',
     group: 'management',
@@ -112,7 +131,7 @@ export function useLayoutState() {
   const updateBreakpoint = () => {
     if (typeof window !== 'undefined') {
       if (
-        ['lecture-workbench', 'knowledge-workbench'].includes(route.name) &&
+        ['book-workbench', 'knowledge-workbench'].includes(route.name) &&
         (workbenchPanelState.value.dirty || workbenchPanelState.value.saving)
       ) {
         return;
@@ -183,7 +202,7 @@ export function useLayoutState() {
   };
 
   const handleLogout = async () => {
-    if (['lecture-workbench', 'knowledge-workbench'].includes(route.name)) {
+    if (['book-workbench', 'knowledge-workbench'].includes(route.name)) {
       const result = await router.push('/my-lecture');
       if (result) {
         return;
@@ -280,7 +299,7 @@ to: '/my-lecture'
     }
     const origins = {
       'recom-lecture': {
-        label: '讲义推荐',
+        label: '图书推荐',
         to: '/recom-lecture'
       },
       'my-lecture': {
@@ -376,7 +395,8 @@ to: '/my-lecture'
     return (
       route.name !== 'knowledge-library' &&
       route.name !== 'knowledge-workbench' &&
-      route.name !== 'lecture-workbench' &&
+      route.name !== 'question-workbench' &&
+      route.name !== 'book-workbench' &&
       route.name !== 'platform' &&
       route.path !== '/platform'
     );
@@ -384,7 +404,7 @@ to: '/my-lecture'
 
   const isViewportLocked = computed(() => {
     return (
-      route.name === 'lecture-workbench' ||
+      route.name === 'book-workbench' ||
       route.name === 'platform' ||
       route.path === '/platform' ||
       route.name === 'my-lecture' ||

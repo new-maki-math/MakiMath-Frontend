@@ -49,15 +49,15 @@ function revisionLabel(revision) {
 
 <template>
   <WorkbenchPanel
-    kind="LECTURE"
-    :title="item?.latest_revision?.title || '讲义信息'"
+    kind="BOOK"
+    :title="item?.latest_revision?.title || '图书信息'"
     :editable="false"
   >
     <p
       v-if="loading"
       class="summary-note"
     >
-      正在加载讲义信息…
+      正在加载图书信息…
     </p>
     <p
       v-else-if="error"
@@ -80,7 +80,7 @@ function revisionLabel(revision) {
         <span>所有者</span><strong>{{ item.owner_username || '未提供' }}</strong>
       </div>
       <div>
-        <span>讲义状态</span><strong>{{ publicationStatus(item.publication_status) }}</strong>
+        <span>图书状态</span><strong>{{ publicationStatus(item.publication_status) }}</strong>
       </div>
       <div>
         <span>最新版本</span><strong>{{ revisionLabel(item.latest_revision) }}</strong>
@@ -91,7 +91,7 @@ function revisionLabel(revision) {
       <MButton
         v-if="item.latest_revision"
         @click="$emit('open')"
-        >打开讲义</MButton
+        >打开图书</MButton
       >
     </div>
   </WorkbenchPanel>

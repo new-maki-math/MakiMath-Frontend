@@ -42,6 +42,8 @@ const props = defineProps({
   }
 });
 const emit = defineEmits(['save', 'reset', 'cover-change']);
+const bookKind = computed(() => lecture.value.kind ?? 'lecture');
+const kindLabel = computed(() => (bookKind.value === 'workbook' ? '题目册' : '讲义'));
 const selectedCategory = computed({
   get: () => (revision.value.category_id == null ? '' : String(revision.value.category_id)),
   set: (value) => {
@@ -126,7 +128,7 @@ async function changeCover(event) {
     return;
   }
   if (!lecture.value.isLocal && props.dirty) {
-    notify('请先保存或放弃讲义修改，再更换封面', 'warn');
+    notify('请先保存或放弃图书修改，再更换封面', 'warn');
     return;
   }
   const targetRevision = revision.value;
@@ -174,7 +176,7 @@ function removeCover() {
   }
   if (!lecture.value.isLocal) {
     if (props.dirty) {
-      notify('请先保存或放弃讲义修改，再删除封面', 'warn');
+      notify('请先保存或放弃图书修改，再删除封面', 'warn');
       return;
     }
     emit('cover-change', '');
@@ -190,7 +192,6 @@ function removeCover() {
 
 <template>
   <WorkbenchPanel
-    kind="COURSE"
     :title="revision.title || lecture.slug"
     :dirty="dirty"
     :saving="saving"
@@ -210,7 +211,7 @@ function removeCover() {
     >
       <div class="course-layout">
         <div class="cover-field">
-          <span class="cover-label">讲义封面</span>
+          <span class="cover-label">图书封面</span>
           <div class="cover-editor">
             <div
               class="cover-preview"
@@ -218,7 +219,7 @@ function removeCover() {
               inert
             >
               <MLectureCover
-                :title="revision.title || '讲义封面'"
+                :title="revision.title || '图书封面'"
                 :image="cover"
                 :show-caption="false"
               />
@@ -248,7 +249,7 @@ function removeCover() {
               >
               <span class="cover-hint">{{
                 lecture.isLocal
-                  ? '支持 JPG、PNG、WebP，最大 5 MB，选择后请保存讲义'
+                  ? '支持 JPG、PNG、WebP，最大 5 MB，选择后请保存图书'
                   : '支持 JPG、PNG、WebP，最大 512 KB，修改后立即保存'
               }}</span>
               <span
@@ -270,7 +271,7 @@ function removeCover() {
           <div class="wb-span-2">
             <MInput
               v-model="revision.title"
-              label="课程名称"
+              label="图书名称"
               required
             />
           </div>
@@ -280,22 +281,40 @@ function removeCover() {
               label="副标题"
             />
           </div>
+          <div class="wb-span-2">
+            <MSelect
+              :model-value="bookKind"
+              label="图书类型"
+              hint="图书类型创建后不可修改"
+              disabled
+              :options="[
+                {
+                  value: 'lecture',
+                  label: '讲义'
+                },
+                {
+                  value: 'workbook',
+                  label: '题目册'
+                }
+              ]"
+            />
+          </div>
           <MInput
             v-if="lecture.isLocal"
             v-model="lecture.slug"
-            label="课程标识"
-            hint="修改后讲义地址会改变"
+            :label="`${kindLabel}标识`"
+            hint="修改后图书地址会改变"
             required
           />
           <MInput
             v-else
             :model-value="lecture.slug"
-            label="课程标识"
+            :label="`${kindLabel}标识`"
             disabled
           />
           <MSelect
             v-model="selectedCategory"
-            label="讲义分类"
+            :label="`${kindLabel}分类`"
             :options="[
               {
                 value: '',
@@ -314,11 +333,6 @@ function removeCover() {
               :rows="3"
             />
           </div>
-          <MInput
-            v-model="revision.typst_version"
-            label="Typst 版本"
-            required
-          />
           <div class="wb-span-2">
             <MTextarea
               v-model="revision.change_note"

@@ -1,5 +1,5 @@
 <script setup>
-import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { lectureApi } from '../../api/lectures.js';
@@ -65,6 +65,19 @@ watch(guideRef, async (guide) => {
   updateGuideArrow();
 });
 const onlineLectures = ref([]);
+const localLectureItems = computed(() =>
+  localLectures.value.filter(
+    (item) => (item.kind ?? item.revision?.kind ?? 'lecture') === 'lecture'
+  )
+);
+const localWorkbookItems = computed(() =>
+  localLectures.value.filter((item) => (item.kind ?? item.revision?.kind) === 'workbook')
+);
+function onlineBooks(kind) {
+  return onlineLectures.value.filter((item) => item.kind === kind);
+}
+const onlineLectureItems = computed(() => onlineBooks('lecture'));
+const onlineWorkbookItems = computed(() => onlineBooks('workbook'));
 const localLoading = ref(true);
 const onlineLoading = ref(false);
 const localError = ref('');
@@ -78,6 +91,15 @@ async function loadLocal() {
   localError.value = '';
   try {
     const items = await listLocalLectures();
+    if (
+      items.some(
+        (item) =>
+          (item.kind ?? item.revision?.kind) != null &&
+          !['lecture', 'workbook'].includes(item.kind ?? item.revision.kind)
+      )
+    ) {
+      throw new Error('图书类型不正确');
+    }
     if (sequence === localSequence) {
       localLectures.value = items;
     }
@@ -103,7 +125,10 @@ async function loadOnline() {
   onlineLoading.value = true;
   try {
     const items = await lectureApi.owned();
-    if (!Array.isArray(items)) {
+    if (
+      !Array.isArray(items) ||
+      items.some((item) => !['lecture', 'workbook'].includes(item.kind))
+    ) {
       throw new Error('我创作的讲义列表格式错误');
     }
     if (sequence !== onlineSequence) {
@@ -149,6 +174,10 @@ async function loadOnline() {
 }
 
 function openVersion(lecture, version) {
+  if (lecture.kind === 'workbook') {
+    notify('题目册阅读暂未开放', 'info');
+    return;
+  }
   if (!lecture.slug || !version.revision_id || version.invalidDraft) {
     notify('讲义或版本标识缺失，无法打开', 'warn');
     return;
@@ -164,6 +193,10 @@ function openVersion(lecture, version) {
 
 function openLecture(source, lecture) {
   if (source === 'local') {
+    if ((lecture.kind ?? lecture.revision?.kind) === 'workbook') {
+      notify('题目册阅读暂未开放', 'info');
+      return;
+    }
     try {
       validateLocalLectureSlug(lecture.slug);
     } catch (error) {
@@ -220,7 +253,7 @@ onUnmounted(() => {
       <MDataView
         :loading="localLoading"
         text="正在加载本地讲义…"
-        :animate="!!localLectures.length && !localError"
+        :animate="!!localLectureItems.length && !localError"
       >
         <p
           v-if="localError"
@@ -235,17 +268,16 @@ onUnmounted(() => {
           >
         </p>
         <MEmpty
-          v-else-if="!localLectures.length"
+          v-else-if="!localLectureItems.length"
           class="shelf-empty"
-          description="暂无本地讲义"
         >
           <div
             ref="guideRef"
             class="shelf-guide"
             :class="{
- 'is-positioned': guidePosition,
- 'is-hidden': !guideVisible
-}"
+              'is-positioned': guidePosition,
+              'is-hidden': !guideVisible
+            }"
             :style="guidePosition"
             :aria-hidden="!guideVisible"
           >
@@ -261,13 +293,13 @@ onUnmounted(() => {
               variant="ghost"
               :tabindex="guideVisible ? undefined : -1"
               @click="router.push('/recom-lecture')"
-              >去讲义推荐，添加一本讲义到本地</MButton
+              >去图书推荐，添加一本讲义到本地</MButton
             >
           </div>
         </MEmpty>
         <MHorizontalShelf v-else>
           <MLectureCover
-            v-for="lecture in localLectures"
+            v-for="lecture in localLectureItems"
             :key="lecture.id"
             :title="lecture.revision?.title || '未命名讲义'"
             :subtitle="lecture.revision?.subtitle || ''"
@@ -285,7 +317,7 @@ onUnmounted(() => {
       <MDataView
         :loading="onlineLoading"
         text="正在加载我创作的讲义…"
-        :animate="!!onlineLectures.length && !onlineError"
+        :animate="!!onlineLectureItems.length && !onlineError"
       >
         <p
           v-if="onlineError"
@@ -300,13 +332,12 @@ onUnmounted(() => {
           >
         </p>
         <MEmpty
-          v-else-if="!onlineLectures.length"
+          v-else-if="!onlineLectureItems.length"
           class="shelf-empty"
-          description="暂无我创作的讲义"
         />
         <MHorizontalShelf v-else>
           <LectureVersionStack
-            v-for="lecture in onlineLectures"
+            v-for="lecture in onlineLectureItems"
             :key="lecture.id"
             :lecture="lecture"
             @open="openVersion"
@@ -317,14 +348,61 @@ onUnmounted(() => {
     </section>
     <section class="shelf-section">
       <h2>本地题目册</h2>
-      <MEmpty class="shelf-empty" />
+      <MDataView
+        :loading="localLoading"
+        text="正在加载本地题目册…"
+      >
+        <p
+          v-if="localError"
+          class="shelf-message error"
+        >
+          {{ localError }}
+        </p>
+        <MEmpty
+          v-else-if="!localWorkbookItems.length"
+          class="shelf-empty"
+        />
+        <MHorizontalShelf v-else>
+          <MLectureCover
+            v-for="book in localWorkbookItems"
+            :key="book.id"
+            :title="book.revision?.title || '未命名题目册'"
+            :subtitle="book.revision?.subtitle || ''"
+            :image="book.cover || ''"
+            @click="openLecture('local', book)"
+          />
+        </MHorizontalShelf>
+      </MDataView>
     </section>
     <section
       v-if="authStatus === 'authenticated'"
       class="shelf-section"
     >
       <h2>我创作的题目册</h2>
-      <MEmpty class="shelf-empty" />
+      <MDataView
+        :loading="onlineLoading"
+        text="正在加载我创作的题目册…"
+      >
+        <p
+          v-if="onlineError"
+          class="shelf-message error"
+        >
+          {{ onlineError }}
+        </p>
+        <MEmpty
+          v-else-if="!onlineWorkbookItems.length"
+          class="shelf-empty"
+        />
+        <MHorizontalShelf v-else>
+          <LectureVersionStack
+            v-for="book in onlineWorkbookItems"
+            :key="book.id"
+            :lecture="book"
+            @open="openVersion"
+            @retry="loadOnline"
+          />
+        </MHorizontalShelf>
+      </MDataView>
     </section>
   </main>
 </template>

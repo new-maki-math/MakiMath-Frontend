@@ -129,8 +129,12 @@ const handleSelect = (item) => {
     }
     return;
   }
+  if (item.type === 'book' && (item.book_kind ?? item.kind) === 'workbook') {
+    notify('题目册阅读暂未开放', 'info');
+    return;
+  }
   const targetPath =
-    item.type === 'lecture' && item.slug
+    item.type === 'book' && item.slug
       ? router.resolve(
           lectureLocation({
             slug: item.slug
@@ -333,7 +337,7 @@ defineExpose({
       >
         <!-- 结果列表头部统计 -->
         <div class="dropdown-header">
-          <span>{{ query ? '匹配知识点与讲义' : '推荐讲义' }}</span>
+          <span>{{ query ? '匹配知识点与图书' : '推荐图书' }}</span>
           <span class="count-tag font-mono">{{ displayResults.length }} 节点</span>
         </div>
 
@@ -360,7 +364,13 @@ defineExpose({
                 size="md"
                 :mono="false"
               >
-                {{ item.type === 'knowledge' ? '知识点' : '讲义' }}
+                {{
+                  item.type === 'knowledge'
+                    ? '知识点'
+                    : (item.book_kind ?? item.kind) === 'workbook'
+                      ? '题目册'
+                      : '讲义'
+                }}
               </MTag>
               <MTag
                 v-for="(st, stIdx) in getSectionTags(item.tag)"
@@ -415,7 +425,7 @@ defineExpose({
           v-else
           class="empty-state"
         >
-          <span>{{ query ? `未找到与「${query}」相关的内容` : '暂无推荐讲义' }}</span>
+          <span>{{ query ? `未找到与「${query}」相关的内容` : '暂无推荐图书' }}</span>
         </div>
 
         <!-- 底部快捷键指南 -->

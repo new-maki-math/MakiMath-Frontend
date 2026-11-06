@@ -34,7 +34,7 @@ watch(
 <template>
   <MModal
     :open="open"
-    :title="`永久删除讲义 · 第 ${step} / 3 步`"
+    :title="`永久删除图书 · 第 ${step} / 3 步`"
     hide-footer
     @close="!busy && emit('close')"
   >
@@ -42,14 +42,14 @@ watch(
       v-if="step === 1"
       class="delete-copy"
     >
-      确定要永久删除这份已归档讲义吗？
+      确定要永久删除这份已归档图书吗？
     </p>
     <template v-else-if="step === 2">
       <p class="delete-copy">
-        请核对讲义名称：<strong>{{ title }}</strong>
+        请核对图书名称：<strong>{{ title }}</strong>
       </p>
       <p class="delete-copy">
-        将永久删除讲义、草稿、所有审核快照、章节、小节、审核记录和协作者关系。
+        将永久删除图书、草稿、所有审核快照、章节、小节、审核记录和协作者关系。
       </p>
     </template>
     <template v-else>

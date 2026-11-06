@@ -34,6 +34,7 @@ export async function fetchShelfLectureTree(id, source, revisionId = '') {
   });
   return {
     ...snapshot.revision,
+    kind: snapshot.kind ?? snapshot.revision.kind ?? 'lecture',
     id: snapshot.id,
     slug: snapshot.slug || '',
     cover: snapshot.cover || '',
