@@ -174,15 +174,6 @@ const handleKeyDown = (e) => {
 // 全局快捷键响应 Ctrl+K
 const handleGlobalKey = (e) => {
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-    const isStart = route.path === '/start';
-    // 仅激活当前页面可见的搜索框
-    if (props.variant === 'hero' && !isStart) {
-      return;
-    }
-    if (props.variant === 'topbar' && isStart) {
-      return;
-    }
-
     e.preventDefault();
     if (isOpen.value && document.activeElement === inputRef.value) {
       closeSearch();
@@ -194,14 +185,25 @@ const handleGlobalKey = (e) => {
   }
 };
 
+let pointerStartedOutside = false;
+const handlePointerDown = (event) => {
+  pointerStartedOutside = Boolean(containerRef.value && !containerRef.value.contains(event.target));
+};
+
 // 点击外部关闭弹层
 const handleClickOutside = (e) => {
-  if (containerRef.value && !containerRef.value.contains(e.target)) {
+  if (
+    containerRef.value &&
+    !containerRef.value.contains(e.target) &&
+    (pointerStartedOutside || e.detail === 0)
+  ) {
     closeSearch();
   }
+  pointerStartedOutside = false;
 };
 
 onMounted(async () => {
+  document.addEventListener('pointerdown', handlePointerDown, true);
   document.addEventListener('click', handleClickOutside);
   window.addEventListener('keydown', handleGlobalKey);
   startPlaceholderLoop();
@@ -221,6 +223,7 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  document.removeEventListener('pointerdown', handlePointerDown, true);
   document.removeEventListener('click', handleClickOutside);
   window.removeEventListener('keydown', handleGlobalKey);
   if (placeholderTimer) {

@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
 defineOptions({
   inheritAttrs: false
@@ -34,6 +34,8 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close']);
+const backdropRef = ref(null);
+let pointerStart = null;
 
 const shouldTeleport = computed(() => {
   return Boolean(props.teleport);
@@ -58,11 +60,43 @@ const backdropStyle = computed(() => {
   return style;
 });
 
-const handleClick = () => {
-  if (props.closeOnClick) {
+const handlePointerDown = (event) => {
+  pointerStart =
+    props.open && event.isPrimary && event.button === 0 && event.target === backdropRef.value
+      ? {
+ x: event.clientX,
+y: event.clientY
+}
+      : null;
+};
+
+const handleClick = (event) => {
+  const start = pointerStart;
+  pointerStart = null;
+  if (
+    props.open &&
+    props.closeOnClick &&
+    start &&
+    event.target === backdropRef.value &&
+    Math.hypot(event.clientX - start.x, event.clientY - start.y) < 6
+  ) {
     emit('close');
   }
 };
+
+const resetPointer = () => {
+  pointerStart = null;
+};
+
+watch(() => props.open, resetPointer);
+onMounted(() => {
+  window.addEventListener('pointerdown', handlePointerDown, true);
+  window.addEventListener('pointercancel', resetPointer, true);
+});
+onUnmounted(() => {
+  window.removeEventListener('pointerdown', handlePointerDown, true);
+  window.removeEventListener('pointercancel', resetPointer, true);
+});
 </script>
 
 <template>
@@ -71,6 +105,7 @@ const handleClick = () => {
     :to="teleportTarget"
   >
     <div
+      ref="backdropRef"
       v-bind="$attrs"
       class="m-backdrop"
       :class="[
