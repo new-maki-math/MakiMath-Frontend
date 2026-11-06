@@ -1,7 +1,7 @@
 <script setup>
 import 'typlet/fonts/typlet.css';
 
-import { computed, provide, useSlots } from 'vue';
+import { computed, inject, provide, ref, useSlots } from 'vue';
 
 import { parseDocument } from './typst/parse-document.js';
 import TypstNode from './typst/TypstNode.vue';
@@ -18,12 +18,18 @@ const props = defineProps({
     type: String,
     default: ''
   },
+  allowQuestionReferences: {
+    type: Boolean,
+    default: true
+  },
   allowKnowledgeReferences: {
     type: Boolean,
     default: true
   }
 });
 const slots = useSlots();
+const questionReferencesAllowed = inject('typstQuestionReferencesAllowed', ref(true));
+provide('typstQuestionReferencesAllowed', computed(() => props.allowQuestionReferences && questionReferencesAllowed.value));
 provide(
   'typstKnowledgeReferencesAllowed',
   computed(() => props.allowKnowledgeReferences)

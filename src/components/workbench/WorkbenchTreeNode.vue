@@ -59,8 +59,16 @@ watch(
 const indent = computed(() => `${4 + props.depth * 14}px`);
 const childIndent = computed(() => `${4 + (props.depth + 1) * 14}px`);
 const isEmpty = computed(() => props.node.children && props.node.children.length === 0);
-const canMoveUp = computed(() => props.index > 0);
-const canMoveDown = computed(() => props.index < props.siblingCount - 1);
+const canMoveUp = computed(() =>
+  props.node.actions?.moveUpDisabled === undefined
+    ? props.index > 0
+    : !props.node.actions.moveUpDisabled
+);
+const canMoveDown = computed(() =>
+  props.node.actions?.moveDownDisabled === undefined
+    ? props.index < props.siblingCount - 1
+    : !props.node.actions.moveDownDisabled
+);
 </script>
 
 <template>

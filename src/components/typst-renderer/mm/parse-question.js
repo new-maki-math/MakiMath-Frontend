@@ -39,6 +39,108 @@ export function parseMmQuestion(name, parts, positioned) {
     }
     params[key] = pair[1];
   }
+  if (name === 'mm-question' && params.slug) {
+    const allowed = [
+      'slug',
+      'number',
+      'difficulty',
+      'knowledge',
+      'focus',
+      'solution',
+      'conclusion',
+      'pitfalls',
+      'tags'
+    ];
+    if (bodies.length || Object.keys(params).some((key) => !allowed.includes(key))) {
+      return {
+        error: '题目引用不支持正文或其他参数'
+      };
+    }
+    const slug = staticString(params.slug.node);
+    const number = params.number ? staticString(params.number.node) : '';
+    if (!slug || slug.length > 100 || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || number === null) {
+      return {
+        error: '题目引用需要有效的 slug 与题号字符串'
+      };
+    }
+    const overrides = {};
+    for (const key of [
+      'difficulty',
+      'knowledge',
+      'focus',
+      'solution',
+      'conclusion',
+      'pitfalls',
+      'tags'
+    ]) {
+      if (!params[key]) {
+        continue;
+      }
+      const item = params[key];
+      const value = item.node.fullText();
+      if (value === 'false' && key !== 'tags') {
+        overrides[key] = false;
+      } else if (key === 'difficulty' && item.node.kind === K.Int && /^[1-5]$/.test(value)) {
+        overrides[key] = Number(value);
+      } else if (
+        ['focus', 'solution', 'conclusion', 'pitfalls'].includes(key) &&
+        item.node.kind === K.ContentBlock
+      ) {
+        overrides[key] = item;
+      } else if (['knowledge', 'tags'].includes(key) && item.node.kind === K.Array) {
+        const entries = positioned(item.node.children, item.start).filter(
+          ({ node }) =>
+            ![
+              K.Space,
+              K.LeftParen,
+              K.RightParen,
+              K.Comma,
+              K.LineComment,
+              K.BlockComment,
+              K.Hash
+            ].includes(node.kind)
+        );
+        if (key === 'knowledge') {
+          const slugs = entries.map(({ node }) => staticString(node));
+          if (
+            slugs.some(
+              (value) => !value || value.length > 100 || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value)
+            )
+          ) {
+            return {
+              error: '知识点覆盖需要 slug 字符串元组'
+            };
+          }
+          overrides.knowledge = slugs;
+        } else {
+          if (
+            entries.some(
+              ({ node }) =>
+                node.kind !== K.ContentBlock &&
+                !(node.kind === K.FuncCall && node.fullText().startsWith('mm-tag'))
+            )
+          ) {
+            return {
+              error: '题目标签需要内容块或 mm-tag'
+            };
+          }
+          overrides.tags = entries.map(({ node }) =>
+            node.kind === K.ContentBlock ? node.fullText().slice(1, -1) : `#${node.fullText()}`
+          );
+        }
+      } else {
+        return {
+          error: `题目引用参数 ${key} 格式不正确`
+        };
+      }
+    }
+    return {
+      kind: 'reference',
+      slug,
+      number,
+      overrides
+    };
+  }
   if (name === 'mm-question') {
     if (
       bodies.length > 1 ||

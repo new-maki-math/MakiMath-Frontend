@@ -21,6 +21,10 @@ const props = defineProps({
   knowledgeReferences: {
     type: Boolean,
     default: false
+  },
+  allowQuestionReferences: {
+    type: Boolean,
+    default: true
   }
 });
 const emit = defineEmits(['update:modelValue', 'save']);
@@ -120,6 +124,7 @@ function keepPanelPosition(event) {
         <TypstDoc
           v-if="modelValue"
           :source="modelValue"
+          :allow-question-references="allowQuestionReferences"
         />
         <p
           v-else

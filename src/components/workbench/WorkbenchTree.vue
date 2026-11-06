@@ -21,6 +21,10 @@ const props = defineProps({
     type: String,
     default: 'LECTURE WORKBENCH'
   },
+  showRefresh: {
+    type: Boolean,
+    default: true
+  },
   refreshLabel: {
     type: String,
     default: '刷新讲义'
@@ -71,7 +75,8 @@ function expand(type, id) {
 }
 
 defineExpose({
-  expand
+  expand,
+  toggle
 });
 </script>
 
@@ -94,6 +99,7 @@ defineExpose({
           />
         </button>
         <button
+          v-if="showRefresh"
           class="head-icon-btn"
           type="button"
           :title="refreshLabel"

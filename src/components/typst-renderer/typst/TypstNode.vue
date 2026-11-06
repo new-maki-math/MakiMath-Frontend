@@ -4,6 +4,7 @@ import MmKnowledgeReference from '../mm/MmKnowledgeReference.vue';
 import MmQuestion from '../mm/MmQuestion.vue';
 import MmQuestionBlank from '../mm/MmQuestionBlank.vue';
 import MmQuestionOptions from '../mm/MmQuestionOptions.vue';
+import MmQuestionReference from '../mm/MmQuestionReference.vue';
 import MmTag from '../mm/MmTag.vue';
 import MmTest from '../mm/MmTest.vue';
 
@@ -281,6 +282,12 @@ function optionLabel(index) {
   <MmKnowledgeReference
     v-else-if="node.type === 'mm-knowledge'"
     :knowledge-slug="node.knowledgeSlug"
+  />
+  <MmQuestionReference
+    v-else-if="node.type === 'mm-question-reference'"
+    :slug="node.questionSlug"
+    :number="node.number"
+    :overrides="node.overrides"
   />
   <MmQuestion
     v-else-if="node.type === 'mm-question'"

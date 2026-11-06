@@ -1,5 +1,6 @@
 import { knowledgeApi } from '../../../api/knowledge.js';
 import { lectureApi } from '../../../api/lectures.js';
+import { getReferencedQuestion } from '../../../components/typst-renderer/mm/question-reference.js';
 import { parseDocument } from '../../../components/typst-renderer/typst/parse-document.js';
 import { fetchShelfLectureTree } from '../../../utils/shelf-lecture.js';
 
@@ -12,6 +13,17 @@ function collectReferences(value, result) {
   }
   for (const child of Object.values(value)) {
     collectReferences(child, result);
+  }
+}
+function collectQuestions(value, result) {
+  if (!value || typeof value !== 'object') {
+    return;
+  }
+  if (value.type === 'mm-question-reference') {
+    result.add(value.questionSlug);
+  }
+  for (const child of Object.values(value)) {
+    collectQuestions(child, result);
   }
 }
 
@@ -48,7 +60,7 @@ export async function prepareLecturePrint(context, scope, ensureCurrent, progres
     const result = await lectureApi.printData(context.slug, params);
     ensureCurrent();
     if (
-      result?.lecture?.slug !== context.slug ||
+      result?.book?.slug !== context.slug ||
       String(result?.revision?.id) !== String(tree.revision_id) ||
       result?.revision?.edit_version !== tree.edit_version ||
       !Array.isArray(result.chapters) ||
@@ -84,6 +96,7 @@ export async function prepareLecturePrint(context, scope, ensureCurrent, progres
     throw new Error('当前范围没有可打印的小节');
   }
   const slugs = new Set();
+  const questionSlugs = new Set();
   for (const item of sections) {
     ensureCurrent();
     const parsed = parseDocument(item.source);
@@ -91,7 +104,43 @@ export async function prepareLecturePrint(context, scope, ensureCurrent, progres
       throw new Error(`${item.label}：正文解析失败`);
     }
     collectReferences(parsed.nodes, slugs);
+    collectQuestions(parsed.nodes, questionSlugs);
     await new Promise((resolve) => setTimeout(resolve, 0));
+  }
+  const questionReferences = new Map();
+  const questions = [...questionSlugs];
+  for (let index = 0; index < questions.length; index += 32) {
+    ensureCurrent();
+    const batch = questions.slice(index, index + 32);
+    progress(`正在读取题目 ${index} / ${questions.length}`);
+    const details = await Promise.all(batch.map((slug) => getReferencedQuestion(slug)));
+    ensureCurrent();
+    for (let i = 0; i < batch.length; i++) {
+      const detail = details[i];
+      if (
+        !detail ||
+        detail.question?.slug !== batch[i] ||
+        !Array.isArray(detail.sources) ||
+        !Array.isArray(detail.knowledge_points)
+      ) {
+        throw new Error(`题目 ${batch[i]} 不存在或内容不完整`);
+      }
+      for (const key of [
+        'stem_source',
+        'focus_source',
+        'solution_source',
+        'conclusion_source',
+        'pitfalls_source'
+      ]) {
+        const source = detail.question[key] || '';
+        const parsed = parseDocument(source);
+        if (parsed.diagnostics.some((diagnostic) => diagnostic.severity === 'error')) {
+          throw new Error(`题目 ${batch[i]} 的正文解析失败`);
+        }
+        collectReferences(parsed.nodes, slugs);
+      }
+      questionReferences.set(batch[i], detail);
+    }
   }
   const references = new Map();
   const pending = [...slugs];
@@ -125,8 +174,14 @@ export async function prepareLecturePrint(context, scope, ensureCurrent, progres
       returned.add(detail.slug);
       const parsed = parseDocument(detail.source);
       const nested = new Set();
+      const nestedQuestions = new Set();
       collectReferences(parsed.nodes, nested);
-      if (nested.size || parsed.diagnostics.some((diagnostic) => diagnostic.severity === 'error')) {
+      collectQuestions(parsed.nodes, nestedQuestions);
+      if (
+        nested.size ||
+        nestedQuestions.size ||
+        parsed.diagnostics.some((diagnostic) => diagnostic.severity === 'error')
+      ) {
         throw new Error(`知识点 ${detail.slug} 的正文包含无法完整打印的嵌套引用或解析错误`);
       }
       references.set(detail.slug, detail);
@@ -158,6 +213,7 @@ export async function prepareLecturePrint(context, scope, ensureCurrent, progres
     subtitle,
     chapters,
     references,
+    questionReferences,
     version: {
       id: tree.id,
       revisionId: tree.revision_id,

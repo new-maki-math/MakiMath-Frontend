@@ -154,8 +154,11 @@ export async function createPrintFrame(documentData, theme, ensureCurrent, progr
         const mount = target.createElement('div');
         container.appendChild(mount);
         group.appendChild(container);
-        const app = createApp(TypstDoc, { source: section.source });
+        const app = createApp(TypstDoc, {
+          source: section.source
+        });
         app.provide('typstPrintReferences', documentData.references);
+        app.provide('typstPrintQuestionReferences', documentData.questionReferences);
         app.mount(mount);
         apps.push(app);
         await nextTick();
@@ -187,7 +190,10 @@ export async function createPrintFrame(documentData, theme, ensureCurrent, progr
       )
     );
     ensureCurrent();
-    return { frame, dispose };
+    return {
+      frame,
+      dispose
+    };
   } catch (error) {
     dispose();
     throw error;
