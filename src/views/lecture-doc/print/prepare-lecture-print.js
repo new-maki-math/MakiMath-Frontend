@@ -27,6 +27,39 @@ function collectQuestions(value, result) {
   }
 }
 
+function parseForPrint(source, label, diagnostics) {
+  try {
+    const parsed = parseDocument(source);
+    const seen = new Set();
+    for (const item of parsed.diagnostics) {
+      if (item.severity !== 'error') {
+        continue;
+      }
+      const key = `${item.line}:${item.column}:${item.message}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        diagnostics.push({
+          label,
+          line: item.line,
+          column: item.column,
+          message: item.message
+        });
+      }
+    }
+    return parsed;
+  } catch (error) {
+    diagnostics.push({
+      label,
+      line: 1,
+      column: 1,
+      message: error.message || '正文解析失败'
+    });
+    return {
+      nodes: []
+    };
+  }
+}
+
 export async function prepareLecturePrint(context, scope, ensureCurrent, progress) {
   const tree = await fetchShelfLectureTree(context.slug, context.source, context.revisionId);
   ensureCurrent();
@@ -97,12 +130,10 @@ export async function prepareLecturePrint(context, scope, ensureCurrent, progres
   }
   const slugs = new Set();
   const questionSlugs = new Set();
+  const diagnostics = [];
   for (const item of sections) {
     ensureCurrent();
-    const parsed = parseDocument(item.source);
-    if (parsed.diagnostics.some((diagnostic) => diagnostic.severity === 'error')) {
-      throw new Error(`${item.label}：正文解析失败`);
-    }
+    const parsed = parseForPrint(item.source, item.label, diagnostics);
     collectReferences(parsed.nodes, slugs);
     collectQuestions(parsed.nodes, questionSlugs);
     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -133,10 +164,14 @@ export async function prepareLecturePrint(context, scope, ensureCurrent, progres
         'pitfalls_source'
       ]) {
         const source = detail.question[key] || '';
-        const parsed = parseDocument(source);
-        if (parsed.diagnostics.some((diagnostic) => diagnostic.severity === 'error')) {
-          throw new Error(`题目 ${batch[i]} 的正文解析失败`);
-        }
+        const label = {
+          stem_source: '题干',
+          focus_source: '考点',
+          solution_source: '解答',
+          conclusion_source: '结论',
+          pitfalls_source: '易错点'
+        }[key];
+        const parsed = parseForPrint(source, `题目 ${batch[i]} / ${label}`, diagnostics);
         collectReferences(parsed.nodes, slugs);
       }
       questionReferences.set(batch[i], detail);
@@ -172,17 +207,13 @@ export async function prepareLecturePrint(context, scope, ensureCurrent, progres
         throw new Error('知识点批量读取结果不完整');
       }
       returned.add(detail.slug);
-      const parsed = parseDocument(detail.source);
+      const parsed = parseForPrint(detail.source, `知识点 ${detail.slug}`, diagnostics);
       const nested = new Set();
       const nestedQuestions = new Set();
       collectReferences(parsed.nodes, nested);
       collectQuestions(parsed.nodes, nestedQuestions);
-      if (
-        nested.size ||
-        nestedQuestions.size ||
-        parsed.diagnostics.some((diagnostic) => diagnostic.severity === 'error')
-      ) {
-        throw new Error(`知识点 ${detail.slug} 的正文包含无法完整打印的嵌套引用或解析错误`);
+      if (nested.size || nestedQuestions.size) {
+        throw new Error(`知识点 ${detail.slug} 的正文包含无法完整打印的嵌套引用`);
       }
       references.set(detail.slug, detail);
       await new Promise((resolve) => setTimeout(resolve, 0));
@@ -214,6 +245,7 @@ export async function prepareLecturePrint(context, scope, ensureCurrent, progres
     chapters,
     references,
     questionReferences,
+    diagnostics,
     version: {
       id: tree.id,
       revisionId: tree.revision_id,

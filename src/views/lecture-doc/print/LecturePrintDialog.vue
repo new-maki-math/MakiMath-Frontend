@@ -11,13 +11,13 @@ import { prepareLecturePrint, verifyLecturePrint } from './prepare-lecture-print
 const props = defineProps({
   open: Boolean,
   context: {
- type: Object,
-required: true 
-},
+    type: Object,
+    required: true
+  },
   chapters: {
- type: Array,
-default: () => [] 
-}
+    type: Array,
+    default: () => []
+  }
 });
 const emit = defineEmits(['close']);
 const scope = ref('lecture');
@@ -34,15 +34,19 @@ const busy = ref(false);
 const message = ref('');
 const error = ref('');
 const ready = ref(false);
+const diagnostics = ref([]);
 let sequence = 0;
 let prepared = null;
 let output = null;
+let pending = null;
 
 function clear() {
   sequence++;
   output?.dispose();
   output = null;
   prepared = null;
+  pending = null;
+  diagnostics.value = [];
   ready.value = false;
   busy.value = false;
   message.value = '';
@@ -56,10 +60,10 @@ watch(
   () => props.open,
   (open) => {
     if (!open) {
-clear();
-} else {
-selectedChapter.value = chapterOptions.value[0]?.slug || '';
-}
+      clear();
+    } else {
+      selectedChapter.value = chapterOptions.value[0]?.slug || '';
+    }
   }
 );
 watch(selectedChapter, () => {
@@ -70,8 +74,8 @@ watch(
   () => props.context,
   () => {
     if (props.open) {
-close();
-}
+      close();
+    }
   }
 );
 onBeforeUnmount(clear);
@@ -86,31 +90,29 @@ async function prepare() {
   };
   const ensureCurrent = () => {
     if (current !== sequence) {
-throw new Error('打印准备已取消');
-}
+      throw new Error('打印准备已取消');
+    }
   };
   const progress = (value) => {
     if (current === sequence) {
-message.value = value;
-}
+      message.value = value;
+    }
   };
   busy.value = true;
   message.value = '正在读取讲义目录';
   try {
     const result = await prepareLecturePrint(context, scope.value, ensureCurrent, progress);
     ensureCurrent();
-    const frame = await createPrintFrame(result, theme.value, ensureCurrent, progress, {
-      hideSectionTitles: hideSectionTitles.value,
-      scope: scope.value
-    });
-    ensureCurrent();
-    output = frame;
-    prepared = {
- context,
-version: result.version 
-};
-    ready.value = true;
-    message.value = '准备完成，请在打印窗口选择另存为 PDF';
+    if (result.diagnostics.length) {
+      diagnostics.value = result.diagnostics;
+      pending = {
+        result,
+        context
+      };
+      message.value = '';
+      return;
+    }
+    await renderPrepared(result, context, ensureCurrent, progress);
   } catch (failure) {
     if (current === sequence) {
       message.value = '';
@@ -123,19 +125,76 @@ version: result.version
     }
   } finally {
     if (current === sequence) {
-busy.value = false;
-}
+      busy.value = false;
+    }
   }
 }
+async function renderPrepared(result, context, ensureCurrent, progress) {
+  const frame = await createPrintFrame(result, theme.value, ensureCurrent, progress, {
+    hideSectionTitles: hideSectionTitles.value,
+    scope: scope.value
+  });
+  try {
+    ensureCurrent();
+  } catch (failure) {
+    frame.dispose();
+    throw failure;
+  }
+  output = frame;
+  prepared = {
+    context,
+    version: result.version
+  };
+  ready.value = true;
+  pending = null;
+  diagnostics.value = [];
+  message.value = '准备完成，请在打印窗口选择另存为 PDF';
+}
+async function continueWithDiagnostics() {
+  if (!pending || busy.value) {
+    return;
+  }
+  const current = sequence;
+  const { result, context } = pending;
+  const ensureCurrent = () => {
+    if (current !== sequence) {
+      throw new Error('打印准备已取消');
+    }
+  };
+  const progress = (value) => {
+    if (current === sequence) {
+      message.value = value;
+    }
+  };
+  busy.value = true;
+  error.value = '';
+  try {
+    await verifyLecturePrint(context, result.version, ensureCurrent);
+    ensureCurrent();
+    await renderPrepared(result, context, ensureCurrent, progress);
+  } catch (failure) {
+    if (current === sequence) {
+      pending = null;
+      diagnostics.value = [];
+      message.value = '';
+      error.value = failure.message || '打印准备失败，请重试';
+    }
+  } finally {
+    if (current === sequence) {
+      busy.value = false;
+    }
+  }
+}
+
 async function print() {
   if (!output || !prepared || busy.value) {
-return;
-}
+    return;
+  }
   const current = sequence;
   const ensureCurrent = () => {
     if (current !== sequence) {
-throw new Error('打印准备已取消');
-}
+      throw new Error('打印准备已取消');
+    }
   };
   busy.value = true;
   error.value = '';
@@ -151,8 +210,8 @@ throw new Error('打印准备已取消');
     }
   } finally {
     if (current === sequence) {
-busy.value = false;
-}
+      busy.value = false;
+    }
   }
 }
 </script>
@@ -168,15 +227,24 @@ busy.value = false;
   >
     <fieldset :disabled="busy">
       <legend>打印范围</legend>
-      <MRadio v-model="scope"
-name="print-scope"
-value="section">指定小节</MRadio>
-      <MRadio v-model="scope"
-name="print-scope"
-value="chapter">指定章节</MRadio>
-      <MRadio v-model="scope"
-name="print-scope"
-value="lecture">整本讲义</MRadio>
+      <MRadio
+        v-model="scope"
+        name="print-scope"
+        value="section"
+        >指定小节</MRadio
+      >
+      <MRadio
+        v-model="scope"
+        name="print-scope"
+        value="chapter"
+        >指定章节</MRadio
+      >
+      <MRadio
+        v-model="scope"
+        name="print-scope"
+        value="lecture"
+        >整本讲义</MRadio
+      >
     </fieldset>
     <label
       v-if="scope !== 'lecture'"
@@ -214,15 +282,24 @@ value="lecture">整本讲义</MRadio>
     </label>
     <fieldset :disabled="busy">
       <legend>页面主题</legend>
-      <MRadio v-model="theme"
-name="print-theme"
-value="light">浅色</MRadio>
-      <MRadio v-model="theme"
-name="print-theme"
-value="dark">深色</MRadio>
+      <MRadio
+        v-model="theme"
+        name="print-theme"
+        value="light"
+        >浅色</MRadio
+      >
+      <MRadio
+        v-model="theme"
+        name="print-theme"
+        value="dark"
+        >深色</MRadio
+      >
     </fieldset>
-    <MCheckbox v-model="hideSectionTitles"
-:disabled="busy">不显示系统添加的小节标题</MCheckbox>
+    <MCheckbox
+      v-model="hideSectionTitles"
+      :disabled="busy"
+      >不显示系统添加的小节标题</MCheckbox
+    >
     <p
       v-if="message"
       class="print-message"
@@ -243,6 +320,24 @@ value="dark">深色</MRadio>
     >
       {{ error }}
     </p>
+    <div
+      v-if="diagnostics.length"
+      class="print-diagnostics"
+      role="alert"
+    >
+      <p>
+        发现 {{ diagnostics.length }} 处 Typst
+        解析错误。继续打印时，无法解析的内容会按阅读页的方式显示，可能影响正文和引用的完整性。
+      </p>
+      <ul>
+        <li
+          v-for="(item, index) in diagnostics"
+          :key="index"
+        >
+          {{ item.label }} · 第 {{ item.line }} 行第 {{ item.column }} 列：{{ item.message }}
+        </li>
+      </ul>
+    </div>
     <div class="print-actions">
       <MButton
         variant="ghost"
@@ -250,7 +345,13 @@ value="dark">深色</MRadio>
         >{{ busy ? '取消准备' : '取消' }}</MButton
       >
       <MButton
-        v-if="!ready"
+        v-if="diagnostics.length"
+        :disabled="busy"
+        @click="continueWithDiagnostics"
+        >继续准备打印</MButton
+      >
+      <MButton
+        v-else-if="!ready"
         :disabled="busy"
         @click="prepare"
         >{{ busy ? '准备中…' : '准备打印' }}</MButton
@@ -302,6 +403,20 @@ select {
 .print-error {
   color: var(--status-danger, #df6570);
   white-space: pre-wrap;
+}
+.print-diagnostics {
+  color: var(--status-danger, #df6570);
+  font-size: var(--font-size-smaller);
+  line-height: 1.5;
+}
+.print-diagnostics p {
+  margin: 0 0 8px;
+}
+.print-diagnostics ul {
+  max-height: min(32vh, 240px);
+  overflow-y: auto;
+  margin: 0;
+  padding-left: 20px;
 }
 .print-actions {
   display: flex;
