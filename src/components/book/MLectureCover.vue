@@ -1,8 +1,8 @@
 <script setup>
 import { computed, onUnmounted, ref, watch } from 'vue';
 
-import { lectureApi } from '../api/lectures.js';
-import { authStatus, currentUser } from '../utils/auth.js';
+import { bookApi } from '../../api/books.js';
+import { authStatus, currentUser } from '../../utils/auth.js';
 
 const props = defineProps({
   title: {
@@ -70,7 +70,7 @@ watch(
     }
     try {
       const id = props.coverRevisionId;
-      const result = await lectureApi.getCover(id, props.coverHash);
+      const result = await bookApi.getCover(id, props.coverHash);
       if (
         current === sequence &&
         String(result.revision_id) === String(id) &&

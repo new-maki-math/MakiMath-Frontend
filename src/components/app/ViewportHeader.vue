@@ -2,8 +2,9 @@
 import { computed, ref } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
 
-import { Refresh } from './icons.js';
-import MButton from './MButton.vue';
+import { Refresh } from '../icons/icons.js';
+import MButton from '../form/MButton.vue';
+import MSpinner from '../feedback/MSpinner.vue';
 
 const props = defineProps({
   title: {
@@ -112,12 +113,14 @@ const handleRefresh = () => {
             @click="handleRefresh"
           >
             <template #icon>
+              <MSpinner
+                v-if="isRefreshing"
+                :size="13"
+              />
               <Refresh
+                v-else
                 width="13"
                 height="13"
-                :class="{
-                  'spin-icon': isRefreshing
-                }"
               />
             </template>
             <span>刷新</span>
@@ -225,19 +228,6 @@ const handleRefresh = () => {
 
 .header-refresh-btn:hover {
   color: var(--text-primary);
-}
-
-.spin-icon {
-  animation: spin 600ms linear infinite;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
 }
 
 @media print {

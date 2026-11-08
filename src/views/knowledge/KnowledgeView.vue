@@ -3,7 +3,7 @@ import { onUnmounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
 import { knowledgeApi } from '../../api/knowledge.js';
-import MButton from '../../components/MButton.vue';
+import MButton from '../../components/form/MButton.vue';
 
 const route = useRoute();
 const point = ref(null);

@@ -3,23 +3,24 @@ import { computed, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import { lectureBundleFromTree } from '../../api/courses.js';
-import { lectureApi } from '../../api/lectures.js';
+import { bookApi } from '../../api/books.js';
 import { reviewApi } from '../../api/reviews.js';
-import { EditPencil, NavArrowRight, Trash } from '../../components/icons.js';
-import MButton from '../../components/MButton.vue';
-import MCollapse from '../../components/MCollapse.vue';
-import MInput from '../../components/MInput.vue';
-import MLectureCover from '../../components/MLectureCover.vue';
-import MModal from '../../components/MModal.vue';
-import { notify } from '../../components/MNotice.vue';
-import MTag from '../../components/MTag.vue';
-import MTextarea from '../../components/MTextarea.vue';
-import RoadmapGraph from '../../components/RoadmapGraph.vue';
+import { EditPencil, NavArrowRight, Trash } from '../../components/icons/icons.js';
+import MButton from '../../components/form/MButton.vue';
+import MCollapse from '../../components/overlay/MCollapse.vue';
+import MInput from '../../components/form/MInput.vue';
+import MLectureCover from '../../components/book/MLectureCover.vue';
+import MModal from '../../components/overlay/MModal.vue';
+import { notify } from '../../components/feedback/MNotice.vue';
+import MTag from '../../components/display/MTag.vue';
+import MTextarea from '../../components/form/MTextarea.vue';
+import RoadmapGraph from './RoadmapGraph.vue';
 import { authStatus, currentUser, isSuperAdmin } from '../../utils/auth.js';
 import { portableToLocalLecture } from '../../utils/lecture-portable.js';
 import { lectureLocation, lectureNavigationOrigin } from '../../utils/lecture-route.js';
 import {
   createLocalLecture,
+  deleteLocalLecture,
   updateLocalLectureCover,
   validateLocalLectureSlug
 } from '../../utils/local-lectures.js';
@@ -45,6 +46,9 @@ const isLoading = ref(true);
 const loadError = ref('');
 const coverInput = ref(null);
 const coverSaving = ref(false);
+const coverDialogOpen = ref(false);
+const deleteDialogOpen = ref(false);
+const deleteSaving = ref(false);
 const addOpen = ref(false);
 const addSlug = ref('');
 const addSaving = ref(false);
@@ -202,7 +206,7 @@ async function checkPublicVersion() {
   }
   publicChecking.value = true;
   try {
-    const items = await lectureApi.list({
+    const items = await bookApi.list({
       cache: 'no-store'
     });
     if (!Array.isArray(items)) {
@@ -250,7 +254,7 @@ async function addLecture() {
   const sourceRevisionId = loadedRevisionId.value;
   addSaving.value = true;
   try {
-    const data = await lectureApi.exportRevision(sourceRevisionId);
+    const data = await bookApi.exportRevision(sourceRevisionId);
     if (sequence !== loadId || !addOpen.value) {
       return;
     }
@@ -375,6 +379,7 @@ async function changeCover(event) {
         cover: data
       };
     }
+    coverDialogOpen.value = false;
     notify('封面已保存', 'success');
   } catch (error) {
     notify(error.message || '保存封面失败', 'error');
@@ -397,11 +402,35 @@ async function removeCover() {
         cover: ''
       };
     }
+    coverDialogOpen.value = false;
     notify('已恢复通用封面', 'success');
   } catch (error) {
     notify(error.message || '删除封面失败', 'error');
   } finally {
     coverSaving.value = false;
+  }
+}
+
+async function removeLecture() {
+  if (deleteSaving.value || shelfSource.value !== 'local' || !lecture.value?.id) {
+    return;
+  }
+  const id = String(lecture.value.id);
+  const currentLoad = loadId;
+  deleteSaving.value = true;
+  try {
+    await deleteLocalLecture(id);
+    if (currentLoad === loadId && shelfSource.value === 'local' && String(lecture.value?.id) === id) {
+      deleteDialogOpen.value = false;
+      notify('本地讲义已删除', 'success');
+      await router.push('/my-lecture');
+    }
+  } catch (error) {
+    if (currentLoad === loadId) {
+      notify(error.message || '删除本地讲义失败', 'error');
+    }
+  } finally {
+    deleteSaving.value = false;
   }
 }
 
@@ -423,6 +452,8 @@ const loadLectureData = async (slug) => {
   publicChecking.value = false;
   reviewDecision.value = '';
   addOpen.value = false;
+  coverDialogOpen.value = false;
+  deleteDialogOpen.value = false;
   chapters.value = [];
   try {
     const tree = await fetchShelfLectureTree(slug, shelfSource.value, revisionId.value);
@@ -526,79 +557,55 @@ onUnmounted(() => {
             accept="image/jpeg,image/png,image/webp"
             @change="changeCover"
           />
-          <div class="cover-actions">
-            <button
-              class="cover-action"
-              type="button"
-              title="修改封面"
-              aria-label="修改封面"
-              :disabled="coverSaving"
-              @click="coverInput?.click()"
-            >
-              <EditPencil
-                width="17"
-                height="17"
-              />
-            </button>
-            <button
-              v-if="lecture.cover"
-              class="cover-action"
-              type="button"
-              title="删除封面"
-              aria-label="删除封面"
-              :disabled="coverSaving"
-              @click="removeCover"
-            >
-              <Trash
-                width="17"
-                height="17"
-              />
-            </button>
-          </div>
         </template>
         <div class="header-copy">
-          <div class="header-tags">
-            <MTag
-              :variant="statusTag.variant"
-              size="md"
-              :dot="true"
-              >{{ statusTag.label }}</MTag
+          <div class="header-info">
+            <div class="header-tags">
+              <MTag
+                :variant="statusTag.variant"
+                size="md"
+                :dot="true"
+                >{{ statusTag.label }}</MTag
+              >
+            </div>
+
+            <h1 class="lecture-title">{{ lecture.title }}</h1>
+            <p
+              class="lecture-desc"
+              tabindex="0"
             >
+              {{ lecture.desc || '暂无课程描述信息。' }}
+            </p>
           </div>
 
-          <h1 class="lecture-title">{{ lecture.title }}</h1>
-          <p
-            class="lecture-desc"
-            tabindex="0"
-          >
-            {{ lecture.desc || '暂无课程描述信息。' }}
-          </p>
-
           <!-- 快捷操作栏 -->
-          <div class="lecture-actions">
+          <div class="lecture-actions" :class="{ 'is-local': shelfSource === 'local' }">
             <MButton
               v-if="lecture.live"
+              class="main-action"
               variant="primary"
               :mono="true"
               @click="enterDoc"
             >
-              阅读讲义 // READ LECTURE
+              阅读讲义<span class="action-translation"> // READ LECTURE</span>
             </MButton>
             <MButton
               v-else
+              class="main-action"
               variant="ghost"
               :mono="true"
               disabled
             >
-              筹划编排中 // COMING SOON
+              筹划编排中<span class="action-translation"> // COMING SOON</span>
             </MButton>
 
             <MButton
+              class="main-action"
               variant="secondary"
               :mono="true"
               @click="scrollToCatalog"
             >
-              查看大纲目录 // OUTLINE
+              查看大纲目录<span class="action-translation"> // OUTLINE</span>
             </MButton>
             <MButton
               variant="secondary"
@@ -606,6 +613,24 @@ onUnmounted(() => {
               @click="printOpen = true"
             >
               打印讲义
+            </MButton>
+            <MButton
+              v-if="shelfSource === 'local'"
+              variant="secondary"
+              :disabled="coverSaving || deleteSaving"
+              @click="coverDialogOpen = true"
+            >
+              <template #icon><EditPencil width="16" height="16" /></template>
+              编辑封面
+            </MButton>
+            <MButton
+              v-if="shelfSource === 'local'"
+              variant="secondary"
+              :disabled="coverSaving || deleteSaving"
+              @click="deleteDialogOpen = true"
+            >
+              <template #icon><Trash width="16" height="16" /></template>
+              删除讲义
             </MButton>
             <MButton
               v-if="shelfSource === 'online' && isPublicVersion"
@@ -648,7 +673,42 @@ onUnmounted(() => {
         </div>
       </header>
 
-      <LecturePrintDialog
+      <MModal
+      :open="coverDialogOpen && shelfSource === 'local'"
+      title="编辑封面"
+      hide-footer
+      show-close
+      @close="!coverSaving && (coverDialogOpen = false)"
+    >
+      <p class="cover-dialog-note">选择不超过 5 MB 的 JPG、PNG 或 WebP 图片。</p>
+      <div class="cover-dialog-actions">
+        <MButton
+          variant="primary"
+          :disabled="coverSaving"
+          @click="coverInput?.click()"
+        >{{ lecture?.cover ? '替换封面' : '选择封面' }}</MButton>
+        <MButton
+          v-if="lecture?.cover"
+          variant="ghost"
+          :disabled="coverSaving"
+          @click="removeCover"
+        >删除封面</MButton>
+      </div>
+    </MModal>
+    <MModal
+      :open="deleteDialogOpen && shelfSource === 'local'"
+      title="删除本地讲义"
+      confirm-text="删除讲义"
+      confirm-variant="danger"
+      :busy="deleteSaving"
+      @close="!deleteSaving && (deleteDialogOpen = false)"
+      @confirm="removeLecture"
+    >
+      <p class="cover-dialog-note">
+        确定删除“{{ lecture?.title }}”吗？本地讲义内容将被删除，且无法恢复。
+      </p>
+    </MModal>
+    <LecturePrintDialog
         :open="printOpen"
         :context="printContext"
         :chapters="chapters"
@@ -931,6 +991,13 @@ onUnmounted(() => {
   min-width: 0;
   gap: 16px;
 }
+.header-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  min-width: 0;
+}
 .header-cover {
   grid-column: 1;
   grid-row: 1;
@@ -946,54 +1013,20 @@ onUnmounted(() => {
   object-fit: contain;
 }
 
+.cover-dialog-note {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.cover-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
 .cover-input {
   display: none;
 }
-.cover-actions {
-  position: absolute;
-  top: 0;
-  left: 0;
-  display: flex;
-  gap: 4px;
-  opacity: 0;
-  transition: opacity 160ms ease;
-}
-.lecture-header:hover .cover-actions,
-.lecture-header:focus-within .cover-actions {
-  opacity: 1;
-}
-.cover-action {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border: 0;
-  border-radius: var(--radius-xs);
-  background: var(--bg-surface);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition:
-    color 160ms ease,
-    background-color 160ms ease;
-}
-.cover-action:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
-}
-.cover-action:focus-visible {
-  outline: 2px solid var(--accent-primary);
-  outline-offset: -2px;
-}
-.cover-action:disabled {
-  cursor: wait;
-}
-@media (hover: none) {
-  .cover-actions {
-    opacity: 1;
-  }
-}
-
 .header-tags {
   display: flex;
   align-items: center;
@@ -1005,6 +1038,7 @@ onUnmounted(() => {
   font-weight: var(--font-weight-bold);
   color: var(--text-primary);
   line-height: 1.3;
+  overflow-wrap: anywhere;
 }
 
 .lecture-desc {
@@ -1367,8 +1401,25 @@ onUnmounted(() => {
   }
 
   .lecture-header {
-    gap: 12px;
+    grid-template-columns: 110px minmax(0, 1fr);
+    align-items: start;
+    gap: 16px;
     padding-bottom: 20px;
+  }
+
+  .header-cover {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .header-copy {
+    display: contents;
+  }
+
+  .header-info {
+    grid-column: 2;
+    grid-row: 1;
+    gap: 10px;
   }
 
   .lecture-title {
@@ -1382,10 +1433,42 @@ onUnmounted(() => {
   }
 
   .lecture-actions {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     align-items: stretch;
-    gap: 10px;
+    width: 100%;
+    gap: 8px;
+    margin-top: 0;
+    padding-top: 0;
+  }
+
+  .lecture-actions > :deep(.m-button) {
+    grid-column: span 3;
+  }
+
+  .lecture-actions.is-local > :deep(.m-button:not(.main-action)) {
+    grid-column: span 2;
+  }
+
+  .lecture-actions :deep(.m-button) {
+    min-width: 0;
+    min-height: 42px;
+    height: auto;
+    padding: 10px 8px;
+    line-height: 1.4;
+  }
+
+  .review-actions {
+    grid-column: 1 / -1;
+  }
+
+  .action-translation {
+    display: none;
+  }
+
+  .review-actions > :deep(.m-button) {
+    flex: 1;
   }
 
   .grid-layout {
@@ -1434,9 +1517,11 @@ onUnmounted(() => {
 
   .chapter-title {
     font-size: 13.5px;
+    overflow-wrap: anywhere;
   }
 
   .chapter-aside {
+    flex-shrink: 0;
     gap: 8px;
     font-size: 12px;
   }
@@ -1451,8 +1536,18 @@ onUnmounted(() => {
     flex: 1;
   }
 
+  .entry-text {
+    min-width: 0;
+  }
+
   .entry-title {
     font-size: 13px;
+    overflow-wrap: anywhere;
+  }
+
+  .toggle-btn {
+    min-height: 36px;
+    padding: 0 4px;
   }
 
   /* 移动端无鼠标 hover，常驻展示进入讲义提示 */
@@ -1466,20 +1561,16 @@ onUnmounted(() => {
 
 @media (max-width: 600px) {
   .lecture-header {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(84px, 28%) minmax(0, 1fr);
+    gap: 14px;
   }
-  .header-cover {
-    grid-column: 1;
-    grid-row: 1;
-    width: min(180px, 55%);
-    justify-self: start;
+
+  .lecture-desc {
+    max-height: none;
   }
-  .header-copy {
-    grid-column: 1;
-    grid-row: 2;
-  }
-  .lecture-actions {
-    margin-top: 0;
+
+  .roadmap-container-box {
+    height: 300px;
   }
 }
 </style>

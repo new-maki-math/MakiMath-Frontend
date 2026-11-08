@@ -1,11 +1,11 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
-import { markUpdateRead, readUpdateVersions } from '../utils/update-log-read.js';
-import { Journal } from './icons.js';
-import MButton from './MButton.vue';
-import MModal from './MModal.vue';
-import TypstDoc from './typst-renderer/TypstDoc.vue';
+import { markUpdateRead, readUpdateVersions } from '../../utils/update-log-read.js';
+import { Journal, NavArrowRight } from '../icons/icons.js';
+import MButton from '../form/MButton.vue';
+import MModal from '../overlay/MModal.vue';
+import TypstDoc from '../typst-renderer/TypstDoc.vue';
 
 const open = ref(false);
 const version = ref('');
@@ -19,6 +19,20 @@ const base = `${import.meta.env.BASE_URL}updates/`;
 let sequence = 0;
 let disposed = false;
 const hasUnread = computed(() => Boolean(version.value && !readVersions.value.has(version.value)));
+const releases = computed(() => {
+  const headings = [...source.value.matchAll(/^= ([^\r\n]+)\r?$/gm)];
+  if (!headings.length || source.value.slice(0, headings[0].index).trim()) {
+    return [];
+  }
+  return headings.map((heading, index) => {
+    const end = headings[index + 1]?.index ?? source.value.length;
+    return {
+      title: heading[1].trim(),
+      source: source.value.slice(heading.index, end).trim(),
+      body: source.value.slice(heading.index + heading[0].length, end).trim()
+    };
+  });
+});
 
 async function loadLog() {
   const current = ++sequence;
@@ -167,9 +181,35 @@ onBeforeUnmount(() => {
         class="update-scroll"
       >
         <TypstDoc
-          :source="source"
+          :source="releases[0]?.source || source"
           :allow-knowledge-references="false"
         />
+        <div
+          v-if="releases.length > 1"
+          class="update-history"
+        >
+          <div class="update-history-label">历史版本</div>
+          <details
+            v-for="release in releases.slice(1)"
+            :key="release.title"
+            class="update-release"
+          >
+            <summary>
+              <span>{{ release.title }}</span>
+              <NavArrowRight
+                class="update-release-arrow"
+                width="16"
+                height="16"
+              />
+            </summary>
+            <div class="update-release-content">
+              <TypstDoc
+                :source="release.body"
+                :allow-knowledge-references="false"
+              />
+            </div>
+          </details>
+        </div>
       </div>
       <p
         v-if="storageError"
@@ -243,6 +283,54 @@ onBeforeUnmount(() => {
   min-width: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
+}
+.update-history {
+  margin-top: 20px;
+  border-top: 1px solid var(--border-subtle);
+}
+.update-history-label {
+  padding: 16px 0 8px;
+  color: var(--text-muted);
+  font-size: var(--font-size-smaller);
+}
+.update-release {
+  border-bottom: 1px solid var(--border-subtle);
+}
+.update-release summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 42px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  list-style: none;
+}
+.update-release summary::-webkit-details-marker {
+  display: none;
+}
+.update-release summary:hover {
+  color: var(--text-primary);
+}
+.update-release summary:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: -2px;
+}
+.update-release-arrow {
+  flex: none;
+  color: var(--text-muted);
+  transition: transform 160ms ease;
+}
+.update-release[open] .update-release-arrow {
+  transform: rotate(90deg);
+}
+.update-release-content {
+  padding: 0 0 14px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .update-release-arrow {
+    transition: none;
+  }
 }
 .update-actions {
   display: flex;

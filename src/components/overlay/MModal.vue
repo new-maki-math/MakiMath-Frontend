@@ -1,9 +1,9 @@
 <script setup>
 import { nextTick, onUnmounted, ref, watch } from 'vue';
 
-import { Xmark } from './icons.js';
+import { Xmark } from '../icons/icons.js';
 import MBackdrop from './MBackdrop.vue';
-import MButton from './MButton.vue';
+import MButton from '../form/MButton.vue';
 
 const props = defineProps({
   open: {

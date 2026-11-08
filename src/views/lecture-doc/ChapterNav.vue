@@ -1,8 +1,8 @@
 <script setup>
 import { ref, watch } from 'vue';
 
-import { NavArrowLeft, NavArrowRight } from '../../components/icons.js';
-import MCollapse from '../../components/MCollapse.vue';
+import { NavArrowLeft, NavArrowRight } from '../../components/icons/icons.js';
+import MCollapse from '../../components/overlay/MCollapse.vue';
 
 const props = defineProps({
   chapters: {

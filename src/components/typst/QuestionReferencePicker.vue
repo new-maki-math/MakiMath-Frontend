@@ -2,8 +2,8 @@
 import { onBeforeUnmount, ref, watch } from 'vue';
 
 import { questionApi } from '../../api/questions.js';
-import MInput from '../MInput.vue';
-import MModal from '../MModal.vue';
+import MInput from '../form/MInput.vue';
+import MModal from '../overlay/MModal.vue';
 
 const props = defineProps({ open: Boolean });
 const emit = defineEmits(['close', 'select']);

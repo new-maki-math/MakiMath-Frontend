@@ -3,13 +3,11 @@ import * as d3 from 'd3';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
-import { fetchCourseTree } from '../api/courses.js';
-import { lectureLocation, lectureNavigationOrigin } from '../utils/lecture-route.js';
-import { Expand, HandCard, Lock, Pause, Play, Search, Xmark, ZoomIn, ZoomOut } from './icons.js';
-import { buildLectureGraph } from './roadmap/lecture-graph.js';
-import { createRenderScheduler } from './roadmap/render-scheduler.js';
-import { RoadmapWebGLRenderer } from './roadmap/roadmap-webgl-renderer.js';
-import { createSmoothZoom } from './roadmap/smooth-zoom.js';
+import { fetchCourseTree } from '../../api/courses.js';
+import { lectureLocation, lectureNavigationOrigin } from '../../utils/lecture-route.js';
+import MSpinner from '../../components/feedback/MSpinner.vue';
+import { Expand, HandCard, Lock, Pause, Play, Search, Xmark, ZoomIn, ZoomOut } from '../../components/icons/icons.js';
+import { buildLectureGraph, createRenderScheduler, createSmoothZoom, RoadmapCanvas2DRenderer } from './roadmap.js';
 
 const props = defineProps({
   // 复用页面已加载的目录树
@@ -75,7 +73,7 @@ const targetTransform = {
   x: 0,
   y: 0
 };
-let webglRenderer = null;
+let canvasRenderer = null;
 let resizeObserver = null;
 let draggedNode = null;
 let mouseDownPos = {
@@ -99,7 +97,7 @@ const activeGraph = computed(() => {
   };
 });
 
-// 计算高亮集（用于 WebGL 着色器聚焦）
+// 计算节点高亮集
 const highlightState = computed(() => {
   const target = hoveredNode.value;
   if (!target) {
@@ -165,11 +163,11 @@ async function loadTreeData() {
   }
 }
 
-// 调整 WebGL 视口尺寸
+// 调整画布尺寸
 function resizeCanvas() {
   const container = containerRef.value;
   const canvas = canvasRef.value;
-  if (!container || !canvas || !webglRenderer) {
+  if (!container || !canvas || !canvasRenderer) {
     return;
   }
 
@@ -181,7 +179,7 @@ function resizeCanvas() {
   canvas.style.width = `${rect.width}px`;
   canvas.style.height = `${rect.height}px`;
 
-  webglRenderer.resize(rect.width, rect.height, dpr);
+  canvasRenderer.resize(rect.width, rect.height, dpr);
 
   if (simulation) {
     simulation.force('center', d3.forceCenter(rect.width / 2, rect.height / 2));
@@ -205,10 +203,6 @@ function updateSimulation() {
   if (simulation) {
     simulation.stop();
     simulation = null;
-  }
-
-  if (webglRenderer) {
-    webglRenderer.buildTextAtlas(nodes);
   }
 
   if (nodes.length === 0) {
@@ -278,10 +272,10 @@ function updateSimulation() {
 }
 
 const { requestRender, cancelRender } = createRenderScheduler(() => {
-  if (!webglRenderer) {
+  if (!canvasRenderer) {
     return false;
   }
-  return webglRenderer.render({
+  return canvasRenderer.render({
     nodes: activeGraph.value.nodes,
     links: currentSimLinks,
     hl: highlightState.value,
@@ -542,10 +536,10 @@ onMounted(() => {
   const canvas = canvasRef.value;
   if (canvas) {
     try {
-      webglRenderer = new RoadmapWebGLRenderer(canvas);
+      canvasRenderer = new RoadmapCanvas2DRenderer(canvas);
     } catch (err) {
-      console.error('[RoadmapGraph] WebGL 初始化失败:', err);
-      errorMsg.value = '浏览器不支持 WebGL 硬件加速渲染';
+      console.error('[RoadmapGraph] Canvas 2D 初始化失败:', err);
+      errorMsg.value = '浏览器不支持 Canvas 2D 渲染';
     }
 
     targetTransform.x = currentTransform.x;
@@ -643,9 +637,9 @@ onBeforeUnmount(() => {
   }
   window.removeEventListener('mousemove', onWindowMouseMove);
   window.removeEventListener('mouseup', onWindowMouseUp);
-  if (webglRenderer) {
-    webglRenderer.destroy();
-    webglRenderer = null;
+  if (canvasRenderer) {
+    canvasRenderer.destroy();
+    canvasRenderer = null;
   }
 });
 
@@ -771,7 +765,7 @@ watch(() => [props.tree, props.lectureId, props.lectureSlug, props.revisionId], 
       </div>
     </div>
 
-    <!-- WebGL 画布 -->
+    <!-- Canvas 2D 画布 -->
     <canvas
       ref="canvasRef"
       class="graph-canvas"
@@ -799,7 +793,7 @@ watch(() => [props.tree, props.lectureId, props.lectureSlug, props.revisionId], 
       v-if="isLoading"
       class="graph-overlay"
     >
-      <div class="spinner"></div>
+      <MSpinner :size="22" />
       <span>正在构建路线图...</span>
     </div>
 
@@ -972,21 +966,6 @@ watch(() => [props.tree, props.lectureId, props.lectureSlug, props.revisionId], 
   font-size: 12px;
   gap: 10px;
   z-index: 8;
-}
-
-.spinner {
-  width: 22px;
-  height: 22px;
-  border: 2px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
-  border-top-color: var(--accent-primary, #f59e0b);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
 }
 
 .error-state {

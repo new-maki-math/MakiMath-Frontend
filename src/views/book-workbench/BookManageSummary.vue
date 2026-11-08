@@ -1,5 +1,5 @@
 <script setup>
-import MButton from '../../components/MButton.vue';
+import MButton from '../../components/form/MButton.vue';
 import WorkbenchPanel from '../../components/workbench/WorkbenchPanel.vue';
 
 defineProps({

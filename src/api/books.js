@@ -17,7 +17,7 @@ const mutateCover = async (id, url, options) => {
   }
 };
 
-export const lectureApi = {
+export const bookApi = {
   list: (options = {}) => request('/api/books', options),
   outline: (slug, revisionId) =>
     request(
@@ -51,7 +51,7 @@ export const lectureApi = {
       method: 'POST',
       body
     }),
-  importLecture: (body) =>
+  importBook: (body) =>
     mutate('/api/books/import', {
       method: 'POST',
       body
@@ -116,7 +116,7 @@ export const lectureApi = {
     })
 };
 
-export function lectureSaveBody(revision, chapters) {
+export function bookSaveBody(revision, chapters) {
   return {
     edit_version: revision.edit_version,
     title: revision.title,

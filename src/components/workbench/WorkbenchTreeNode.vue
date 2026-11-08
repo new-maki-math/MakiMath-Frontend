@@ -12,8 +12,8 @@ import {
   Page,
   Plus,
   Trash
-} from '../icons.js';
-import MCollapse from '../MCollapse.vue';
+} from '../icons/icons.js';
+import MCollapse from '../overlay/MCollapse.vue';
 
 defineOptions({
   name: 'WorkbenchTreeNode'

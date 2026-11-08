@@ -2,12 +2,12 @@
 import { computed, ref, watch } from 'vue';
 
 import { resourceApi } from '../../api/resources.js';
-import MButton from '../../components/MButton.vue';
-import MFilePicker from '../../components/MFilePicker.vue';
-import MInput from '../../components/MInput.vue';
-import MModal from '../../components/MModal.vue';
-import { notify } from '../../components/MNotice.vue';
-import MTextarea from '../../components/MTextarea.vue';
+import MButton from '../../components/form/MButton.vue';
+import MFilePicker from '../../components/form/MFilePicker.vue';
+import MInput from '../../components/form/MInput.vue';
+import MModal from '../../components/overlay/MModal.vue';
+import { notify } from '../../components/feedback/MNotice.vue';
+import MTextarea from '../../components/form/MTextarea.vue';
 import { authStatus, currentUser, isSuperAdmin } from '../../utils/auth.js';
 import ResourceDestinationPicker from './ResourceDestinationPicker.vue';
 

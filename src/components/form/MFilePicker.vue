@@ -1,5 +1,5 @@
 <script setup>
-import { Upload } from './icons.js';
+import { Upload } from '../icons/icons.js';
 
 defineProps({
   title: {

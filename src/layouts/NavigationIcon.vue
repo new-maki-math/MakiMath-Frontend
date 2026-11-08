@@ -9,7 +9,7 @@ import {
   QuestionWorkbench,
   Recommendation,
   Shelf
-} from '../components/icons.js';
+} from '../components/icons/icons.js';
 
 defineProps({
   name: {

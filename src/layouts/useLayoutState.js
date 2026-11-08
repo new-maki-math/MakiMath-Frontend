@@ -2,7 +2,7 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import { invalidateCourseCaches, toChapters } from '../api/courses.js';
-import { notify } from '../components/MNotice.vue';
+import { notify } from '../components/feedback/MNotice.vue';
 import { workbenchPanelState } from '../composables/useWorkbenchGuard.js';
 import {
   authStatus,

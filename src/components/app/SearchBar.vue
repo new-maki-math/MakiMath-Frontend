@@ -2,17 +2,17 @@
 import { inject, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
-import { fetchSearchRecommendations } from '../api/courses.js';
+import { fetchSearchRecommendations } from '../../api/courses.js';
 import {
   getBrightTagVariant,
   getSectionTags,
   useLectureSearch
-} from '../composables/useLectureSearch.js';
-import { lectureLocation } from '../utils/lecture-route.js';
-import { ArrowRight, Search, Xmark } from './icons.js';
-import MBackdrop from './MBackdrop.vue';
-import { notify } from './MNotice.vue';
-import MTag from './MTag.vue';
+} from '../../composables/useLectureSearch.js';
+import { lectureLocation } from '../../utils/lecture-route.js';
+import { ArrowRight, Search, Xmark } from '../icons/icons.js';
+import MBackdrop from '../overlay/MBackdrop.vue';
+import { notify } from '../feedback/MNotice.vue';
+import MTag from '../display/MTag.vue';
 
 const props = defineProps({
   // 区分首页搜索框与顶栏搜索框

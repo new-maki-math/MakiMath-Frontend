@@ -1,7 +1,8 @@
 <script setup>
 import { ref } from 'vue';
 
-import { Plus, Refresh } from '../icons.js';
+import { Plus, Refresh } from '../icons/icons.js';
+import MSpinner from '../feedback/MSpinner.vue';
 import WorkbenchTreeNode from './WorkbenchTreeNode.vue';
 
 const props = defineProps({
@@ -106,12 +107,14 @@ defineExpose({
           :aria-label="refreshLabel"
           @click="emit('refresh')"
         >
+          <MSpinner
+            v-if="loading"
+            :size="16"
+          />
           <Refresh
+            v-else
             width="16"
             height="16"
-            :class="{
-              'spin-icon': loading
-            }"
           />
         </button>
       </div>
@@ -206,19 +209,6 @@ defineExpose({
 .head-icon-btn:hover {
   background-color: var(--bg-hover);
   color: var(--text-primary);
-}
-
-.spin-icon {
-  animation: spin 700ms linear infinite;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
 }
 
 .tree-toolbar {

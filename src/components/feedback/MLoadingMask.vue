@@ -1,7 +1,8 @@
 <script setup>
 import { computed } from 'vue';
 
-import MBackdrop from './MBackdrop.vue';
+import MBackdrop from '../overlay/MBackdrop.vue';
+import MSpinner from './MSpinner.vue';
 
 const props = defineProps({
   visible: {
@@ -43,7 +44,7 @@ const progressPercent = computed(() => {
     class="loading-backdrop"
   >
     <div class="loading-content">
-      <div class="loading-spinner"></div>
+      <MSpinner :size="28" />
 
       <div
         v-if="text"
@@ -88,15 +89,6 @@ const progressPercent = computed(() => {
   min-width: 160px;
 }
 
-.loading-spinner {
-  width: 28px;
-  height: 28px;
-  border: 2.5px solid var(--border-hover);
-  border-top-color: var(--accent-primary, #38bdf8);
-  border-radius: 50%;
-  animation: m-spin 0.75s linear infinite;
-}
-
 .loading-text {
   font-size: 13px;
   color: var(--text-primary, #e0e0e0);
@@ -133,12 +125,4 @@ const progressPercent = computed(() => {
   text-align: right;
 }
 
-@keyframes m-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
 </style>

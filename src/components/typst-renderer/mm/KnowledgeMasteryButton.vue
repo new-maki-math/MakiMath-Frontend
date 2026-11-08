@@ -6,7 +6,7 @@ import {
   subscribeMasteryChanges,
   toggleMastered
 } from '../../../utils/knowledge-mastery.js';
-import { notify } from '../../MNotice.vue';
+import { notify } from '../../feedback/MNotice.vue';
 
 const props = defineProps({
   knowledgeSlug: {

@@ -1,5 +1,5 @@
 import { knowledgeApi } from '../../../api/knowledge.js';
-import { lectureApi } from '../../../api/lectures.js';
+import { bookApi } from '../../../api/books.js';
 import { getReferencedQuestion } from '../../../components/typst-renderer/mm/question-reference.js';
 import { parseDocument } from '../../../components/typst-renderer/typst/parse-document.js';
 import { fetchShelfLectureTree } from '../../../utils/shelf-lecture.js';
@@ -90,7 +90,7 @@ export async function prepareLecturePrint(context, scope, ensureCurrent, progres
       params.set('section_slug', context.sectionSlug);
     }
     progress('正在读取打印内容');
-    const result = await lectureApi.printData(context.slug, params);
+    const result = await bookApi.printData(context.slug, params);
     ensureCurrent();
     if (
       result?.book?.slug !== context.slug ||

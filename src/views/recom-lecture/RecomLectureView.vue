@@ -2,13 +2,13 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
-import { lectureApi } from '../../api/lectures.js';
-import MButton from '../../components/MButton.vue';
-import MDataView from '../../components/MDataView.vue';
-import MEmpty from '../../components/MEmpty.vue';
-import MLectureCover from '../../components/MLectureCover.vue';
-import { notify } from '../../components/MNotice.vue';
-import MTabs from '../../components/MTabs.vue';
+import { bookApi } from '../../api/books.js';
+import MButton from '../../components/form/MButton.vue';
+import MDataView from '../../components/feedback/MDataView.vue';
+import MEmpty from '../../components/feedback/MEmpty.vue';
+import MLectureCover from '../../components/book/MLectureCover.vue';
+import { notify } from '../../components/feedback/MNotice.vue';
+import MTabs from '../../components/display/MTabs.vue';
 import { lectureLocation } from '../../utils/lecture-route.js';
 
 const router = useRouter();
@@ -38,7 +38,7 @@ async function load() {
   loading.value = true;
   error.value = '';
   try {
-    const items = await lectureApi.list();
+    const items = await bookApi.list();
     if (
       !Array.isArray(items) ||
       items.some((item) => !['lecture', 'workbook'].includes(item.kind))

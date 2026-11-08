@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 
-import MButton from '../MButton.vue';
+import MButton from '../form/MButton.vue';
 
 const props = defineProps({
   kind: {

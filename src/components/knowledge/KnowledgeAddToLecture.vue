@@ -1,12 +1,12 @@
 <script setup>
 import { computed, nextTick, ref, watch } from 'vue';
 
-import { lectureApi } from '../../api/lectures.js';
+import { bookApi } from '../../api/books.js';
 import { authStatus, currentUser } from '../../utils/auth.js';
 import { listLocalLectures, saveLocalLecture } from '../../utils/local-lectures.js';
-import MModal from '../MModal.vue';
-import { notify } from '../MNotice.vue';
-import MSelect from '../MSelect.vue';
+import MModal from '../overlay/MModal.vue';
+import { notify } from '../feedback/MNotice.vue';
+import MSelect from '../form/MSelect.vue';
 
 const props = defineProps({
   open: Boolean,
@@ -156,7 +156,7 @@ async function loadLectures() {
       return;
     }
     const user = currentUser.value;
-    const online = await lectureApi.mine();
+    const online = await bookApi.mine();
     if (!Array.isArray(online)) {
       throw new Error('在线讲义列表格式不正确');
     }
@@ -166,7 +166,7 @@ async function loadLectures() {
         .map(async (item) => {
           const isOwner = String(item.owner_id) === String(user?.id);
           if (!isOwner && user?.role !== 'super_admin') {
-            const collaborators = await lectureApi.collaborators(item.id);
+            const collaborators = await bookApi.collaborators(item.id);
             if (
               !collaborators.some(
                 (entry) => String(entry.user_id) === String(user?.id) && entry.permission === 'edit'
@@ -175,7 +175,7 @@ async function loadLectures() {
               return null;
             }
           }
-          const versions = await lectureApi.revisions(item.id);
+          const versions = await bookApi.revisions(item.id);
           const draft = versions.find(
             (entry) => entry.status === 'draft' && entry.source_draft_id == null
           );
@@ -261,7 +261,7 @@ watch(lectureKey, async (key) => {
   }
   loadingLecture.value = true;
   try {
-    const data = await lectureApi.outline(item.slug, item.revisionId);
+    const data = await bookApi.outline(item.slug, item.revisionId);
     if (current !== lectureSequence) {
       return;
     }
@@ -332,7 +332,7 @@ async function addReference() {
       await saveLocalLecture(record, snapshot.editVersion);
     } else {
       const revision = snapshot.revision;
-      const data = await lectureApi.section(
+      const data = await bookApi.section(
         item.slug,
         revision.id,
         currentChapter.slug,
@@ -360,7 +360,7 @@ async function addReference() {
       if (source.length > 200000) {
         throw new Error('小节内容超过长度限制');
       }
-      await lectureApi.saveSection(revision.id, currentSection.occurrence_id, {
+      await bookApi.saveSection(revision.id, currentSection.occurrence_id, {
         edit_version: revision.edit_version,
         slug: currentSection.slug,
         tag: currentSection.tag || '',

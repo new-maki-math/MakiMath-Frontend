@@ -2,7 +2,8 @@
 // 全局通用数据分页组件
 import { computed } from 'vue';
 
-import { NavArrowLeft, NavArrowRight } from './icons.js';
+import MButton from '../form/MButton.vue';
+import { NavArrowLeft, NavArrowRight } from '../icons/icons.js';
 
 const props = defineProps({
   page: {
@@ -22,6 +23,10 @@ const props = defineProps({
     default: () => [10, 20, 50, 100]
   },
   disabled: {
+    type: Boolean,
+    default: false
+  },
+  compact: {
     type: Boolean,
     default: false
   }
@@ -94,6 +99,25 @@ const handlePageSizeChange = (e) => {
 
 <template>
   <div
+    v-if="compact"
+    class="m-pagination-compact"
+  >
+    <MButton
+      size="sm"
+      variant="ghost"
+      :disabled="disabled || page <= 1"
+      @click="goToPage(page - 1)"
+    >上一页</MButton>
+    <span>{{ page }} / {{ totalPages }}</span>
+    <MButton
+      size="sm"
+      variant="ghost"
+      :disabled="disabled || page >= totalPages"
+      @click="goToPage(page + 1)"
+    >下一页</MButton>
+  </div>
+  <div
+    v-else
     class="m-pagination font-mono"
     :class="{
       'is-disabled': disabled
@@ -176,6 +200,19 @@ const handlePageSizeChange = (e) => {
 </template>
 
 <style scoped>
+.m-pagination-compact {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: var(--font-size-smaller);
+}
+@media (max-width: 700px) {
+  .m-pagination-compact :deep(.m-button) {
+    min-height: 40px;
+  }
+}
+
 /* 分页栏整体布局 */
 .m-pagination {
   display: flex;

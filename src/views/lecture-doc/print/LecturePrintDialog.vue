@@ -1,10 +1,11 @@
 <script setup>
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 
-import MButton from '../../../components/MButton.vue';
-import MCheckbox from '../../../components/MCheckbox.vue';
-import MModal from '../../../components/MModal.vue';
-import MRadio from '../../../components/MRadio.vue';
+import MButton from '../../../components/form/MButton.vue';
+import MCheckbox from '../../../components/form/MCheckbox.vue';
+import MModal from '../../../components/overlay/MModal.vue';
+import MRadio from '../../../components/form/MRadio.vue';
+import MSelect from '../../../components/form/MSelect.vue';
 import { createPrintFrame } from './create-print-frame.js';
 import { prepareLecturePrint, verifyLecturePrint } from './prepare-lecture-print.js';
 
@@ -29,6 +30,18 @@ const chapterOptions = computed(() => props.chapters.filter((chapter) => chapter
 const sectionOptions = computed(
   () =>
     chapterOptions.value.find((chapter) => chapter.slug === selectedChapter.value)?.sections || []
+);
+const chapterSelectOptions = computed(() =>
+  chapterOptions.value.map((chapter) => ({
+    value: chapter.slug,
+    label: chapter.title
+  }))
+);
+const sectionSelectOptions = computed(() =>
+  sectionOptions.value.map((section) => ({
+    value: section.slug,
+    label: section.title
+  }))
 );
 const busy = ref(false);
 const message = ref('');
@@ -246,40 +259,22 @@ async function print() {
         >整本讲义</MRadio
       >
     </fieldset>
-    <label
+    <MSelect
       v-if="scope !== 'lecture'"
+      v-model="selectedChapter"
       class="print-select"
-      >章节
-      <select
-        v-model="selectedChapter"
-        :disabled="busy"
-      >
-        <option
-          v-for="chapter in chapterOptions"
-          :key="chapter.slug"
-          :value="chapter.slug"
-        >
-          {{ chapter.title }}
-        </option>
-      </select>
-    </label>
-    <label
+      label="章节"
+      :options="chapterSelectOptions"
+      :disabled="busy"
+    />
+    <MSelect
       v-if="scope === 'section'"
+      v-model="selectedSection"
       class="print-select"
-      >小节
-      <select
-        v-model="selectedSection"
-        :disabled="busy"
-      >
-        <option
-          v-for="section in sectionOptions"
-          :key="section.slug"
-          :value="section.slug"
-        >
-          {{ section.title }}
-        </option>
-      </select>
-    </label>
+      label="小节"
+      :options="sectionSelectOptions"
+      :disabled="busy"
+    />
     <fieldset :disabled="busy">
       <legend>页面主题</legend>
       <MRadio

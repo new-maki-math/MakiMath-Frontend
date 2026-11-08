@@ -2,11 +2,11 @@
 import { onMounted, ref } from 'vue';
 
 import { request } from '../../api/client.js';
-import { Refresh } from '../../components/icons.js';
-import MButton from '../../components/MButton.vue';
-import { notify } from '../../components/MNotice.vue';
-import MTable from '../../components/MTable.vue';
-import MTag from '../../components/MTag.vue';
+import { Refresh } from '../../components/icons/icons.js';
+import MButton from '../../components/form/MButton.vue';
+import { notify } from '../../components/feedback/MNotice.vue';
+import MTable from '../../components/display/MTable.vue';
+import MTag from '../../components/display/MTag.vue';
 import { currentUser } from '../../utils/auth.js';
 import { formatDate } from './utils.js';
 

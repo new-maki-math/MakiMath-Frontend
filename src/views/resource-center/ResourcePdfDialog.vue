@@ -2,10 +2,11 @@
 import { ref, watch } from 'vue';
 
 import { resourceApi } from '../../api/resources.js';
-import { ArrowRight } from '../../components/icons.js';
-import MButton from '../../components/MButton.vue';
-import MFileTypeIcon from '../../components/MFileTypeIcon.vue';
-import MModal from '../../components/MModal.vue';
+import { ArrowRight } from '../../components/icons/icons.js';
+import MButton from '../../components/form/MButton.vue';
+import MFileTypeIcon from '../../components/display/MFileTypeIcon.vue';
+import MModal from '../../components/overlay/MModal.vue';
+import MSpinner from '../../components/feedback/MSpinner.vue';
 import { authStatus, currentUser } from '../../utils/auth.js';
 import { formatFileSize } from '../../utils/file-size.js';
 
@@ -208,7 +209,7 @@ watch(
   <MModal
     :open="!!resource"
     :title="resource?.name || 'PDF'"
-    width="960px"
+    :width="tooLarge ? '440px' : '960px'"
     hide-footer
     show-close
     @close="emit('close')"
@@ -218,13 +219,12 @@ watch(
       class="pdf-loading"
       role="status"
     >
-      <span
+      <MSpinner
         class="pdf-loading-icon"
-        aria-hidden="true"
+        :size="64"
       >
-        <span class="pdf-loading-spinner"></span>
         <MFileTypeIcon type="pdf" />
-      </span>
+      </MSpinner>
       <span class="pdf-loading-title">正在加载预览</span>
       <span class="pdf-loading-caption">正在准备 PDF，请稍候</span>
     </div>
@@ -295,7 +295,7 @@ watch(
           </p>
         </div>
       </div>
-      <div class="pdf-actions">
+      <div class="pdf-actions pdf-large-actions">
         <MButton
           variant="primary"
           :disabled="downloading"
@@ -355,25 +355,11 @@ watch(
   text-align: center;
 }
 .pdf-loading-icon {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 64px;
-  height: 64px;
   margin-bottom: 8px;
 }
-.pdf-loading-icon > svg {
+.pdf-loading-icon :deep(svg) {
   width: 30px;
   height: 30px;
-}
-.pdf-loading-spinner {
-  position: absolute;
-  inset: 0;
-  border: 2px solid var(--border-subtle);
-  border-top-color: var(--accent-primary);
-  border-radius: 50%;
-  animation: pdf-loading-spin 900ms linear infinite;
 }
 .pdf-loading-title {
   color: var(--text-primary);
@@ -385,17 +371,22 @@ watch(
 }
 .pdf-large {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 14px;
-  padding: 12px 0 20px;
+  gap: 12px;
+  padding: 24px 12px 20px;
+  text-align: center;
 }
 .pdf-large-icon {
-  width: 36px;
-  height: 36px;
+  width: 48px;
+  height: 48px;
   flex: none;
 }
 .pdf-large-copy {
   min-width: 0;
+}
+.pdf-actions.pdf-large-actions {
+  justify-content: center;
 }
 .pdf-large-title,
 .pdf-large-detail {
@@ -410,11 +401,6 @@ watch(
   margin-top: 4px;
   color: var(--text-secondary);
   font-size: var(--font-size-smaller);
-}
-@keyframes pdf-loading-spin {
-  to {
-    transform: rotate(360deg);
-  }
 }
 .pdf-actions {
   display: flex;
@@ -470,9 +456,6 @@ watch(
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .pdf-loading-spinner {
-    animation: none;
-  }
   .download-state-circle,
   .download-state-check {
     animation: none;

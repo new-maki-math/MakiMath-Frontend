@@ -3,9 +3,9 @@ import { ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { reviewApi } from '../../api/reviews.js';
-import MButton from '../../components/MButton.vue';
-import { notify } from '../../components/MNotice.vue';
-import MTable from '../../components/MTable.vue';
+import MButton from '../../components/form/MButton.vue';
+import { notify } from '../../components/feedback/MNotice.vue';
+import MTable from '../../components/display/MTable.vue';
 import { lectureLocation } from '../../utils/lecture-route.js';
 
 const router = useRouter();

@@ -1,8 +1,8 @@
 <script setup>
 import { onUnmounted, ref, watch } from 'vue';
 
-import { NavArrowRight, Plus, Upload } from '../../components/icons.js';
-import MCollapse from '../../components/MCollapse.vue';
+import { NavArrowRight, Plus, Upload } from '../../components/icons/icons.js';
+import MCollapse from '../../components/overlay/MCollapse.vue';
 import WorkbenchTreeNode from '../../components/workbench/WorkbenchTreeNode.vue';
 
 const props = defineProps({

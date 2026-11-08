@@ -2,14 +2,14 @@
 import { provide, ref } from 'vue';
 
 import KnowledgeSearchOverlay from '../components/knowledge/KnowledgeSearchOverlay.vue';
-import MAuthForm from '../components/MAuthForm.vue';
-import MButton from '../components/MButton.vue';
-import MHelpModal from '../components/MHelpModal.vue';
-import MInput from '../components/MInput.vue';
-import MModal from '../components/MModal.vue';
-import MNotice, { notify } from '../components/MNotice.vue';
-import MUserModal from '../components/MUserModal.vue';
-import ProgressBar from '../components/ProgressBar.vue';
+import MAuthForm from '../components/account/MAuthForm.vue';
+import MButton from '../components/form/MButton.vue';
+import MHelpModal from '../components/app/MHelpModal.vue';
+import MInput from '../components/form/MInput.vue';
+import MModal from '../components/overlay/MModal.vue';
+import MNotice, { notify } from '../components/feedback/MNotice.vue';
+import MUserModal from '../components/account/MUserModal.vue';
+import ProgressBar from '../components/feedback/ProgressBar.vue';
 import { authenticate, authStatus } from '../utils/auth.js';
 import LayoutDesktop from './LayoutDesktop.vue';
 import LayoutMobile from './LayoutMobile.vue';

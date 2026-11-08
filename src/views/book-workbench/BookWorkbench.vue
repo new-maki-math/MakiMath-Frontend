@@ -3,14 +3,14 @@ import '../../components/workbench/workbench.css';
 
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
-import { lectureApi, lectureSaveBody } from '../../api/lectures.js';
+import { bookApi, bookSaveBody } from '../../api/books.js';
 import { managementApi } from '../../api/management.js';
-import MButton from '../../components/MButton.vue';
-import MFilePicker from '../../components/MFilePicker.vue';
-import MInput from '../../components/MInput.vue';
-import MModal from '../../components/MModal.vue';
-import { notify } from '../../components/MNotice.vue';
-import MSelect from '../../components/MSelect.vue';
+import MButton from '../../components/form/MButton.vue';
+import MFilePicker from '../../components/form/MFilePicker.vue';
+import MInput from '../../components/form/MInput.vue';
+import MModal from '../../components/overlay/MModal.vue';
+import { notify } from '../../components/feedback/MNotice.vue';
+import MSelect from '../../components/form/MSelect.vue';
 import { useWorkbenchGuard } from '../../composables/useWorkbenchGuard.js';
 import { authStatus, currentUser, initAuth } from '../../utils/auth.js';
 import {
@@ -471,14 +471,14 @@ async function loadLectures() {
     }
     return items;
   });
-  const onlinePromise = (canBrowseOnline.value ? lectureApi.list() : Promise.resolve([])).then(
+  const onlinePromise = (canBrowseOnline.value ? bookApi.list() : Promise.resolve([])).then(
     (items) => {
       publicItems = items;
       updateOnline();
       return items;
     }
   );
-  const minePromise = (canBrowseOnline.value ? lectureApi.mine() : Promise.resolve([])).then(
+  const minePromise = (canBrowseOnline.value ? bookApi.mine() : Promise.resolve([])).then(
     (items) => {
       privateItems = items;
       updateOnline();
@@ -577,7 +577,7 @@ async function loadManagedLectures(sequence) {
   managedLoading.value = true;
   managedError.value = '';
   try {
-    const result = await lectureApi.manage();
+    const result = await bookApi.manage();
     if (!Array.isArray(result)) {
       throw new Error('全部图书列表格式不正确');
     }
@@ -615,7 +615,7 @@ async function openManageSummary(item, skipConfirm = false) {
   chapters.value = [];
   baseline.value = '';
   try {
-    const result = await lectureApi.manage();
+    const result = await bookApi.manage();
     if (!Array.isArray(result)) {
       throw new Error('全部图书列表格式不正确');
     }
@@ -664,7 +664,7 @@ async function getCourseVersions(item) {
     return versionRequests.get(key);
   }
   const epoch = treeEpoch;
-  const promise = lectureApi
+  const promise = bookApi
     .revisions(item.id)
     .then((versions) => {
       if (!Array.isArray(versions)) {
@@ -774,8 +774,8 @@ async function selectLecture(item, source, force = false, discardConfirmed = fal
       }
     } else if (item.canViewPrivate && authStatus.value === 'authenticated') {
       const [versions, collaborators] = await Promise.all([
-        force ? lectureApi.revisions(item.id) : getCourseVersions(item),
-        lectureApi.collaborators(item.id)
+        force ? bookApi.revisions(item.id) : getCourseVersions(item),
+        bookApi.collaborators(item.id)
       ]);
       if (!versions.length) {
         throw new Error('该在线课程暂无版本');
@@ -792,9 +792,9 @@ async function selectLecture(item, source, force = false, discardConfirmed = fal
           (entry) => entry.user_id === currentUser.value?.id && entry.permission === 'edit'
         );
       if (!canEditLecture && item.isPublic) {
-        data = await lectureApi.outline(item.slug);
+        data = await bookApi.outline(item.slug);
       } else {
-        data = await lectureApi.outline(
+        data = await bookApi.outline(
           item.slug,
           (canEditLecture
             ? versions.find((version) => version.status === 'draft') || versions[0]
@@ -803,7 +803,7 @@ async function selectLecture(item, source, force = false, discardConfirmed = fal
         );
       }
     } else {
-      data = await lectureApi.outline(item.slug);
+      data = await bookApi.outline(item.slug);
     }
     if (sequence !== loadSequence) {
       return false;
@@ -881,8 +881,8 @@ async function selectRevision(node) {
   loadingKey.value = node.courseKey;
   try {
     const [data, collaborators] = await Promise.all([
-      lectureApi.outline(node.item.slug, node.revisionId),
-      lectureApi.collaborators(node.item.id)
+      bookApi.outline(node.item.slug, node.revisionId),
+      bookApi.collaborators(node.item.id)
     ]);
     if (sequence !== loadSequence) {
       return false;
@@ -1045,7 +1045,7 @@ async function submitLectureImport() {
       notify('本地图书已导入', 'success');
       await loadLectures();
     } else {
-      const result = await lectureApi.importLecture(data);
+      const result = await bookApi.importBook(data);
       if (epoch !== identityEpoch) {
         notify('导入请求已完成，账号已变化，请核对图书列表', 'warn', 0);
         return;
@@ -1102,7 +1102,7 @@ async function exportLecture() {
       }
       data = localLectureToPortable(stored);
     } else {
-      data = validatePortableLecture(await lectureApi.exportRevision(revisionId));
+      data = validatePortableLecture(await bookApi.exportRevision(revisionId));
     }
     checkExportMetadata(data.book.metadata);
     if (epoch !== identityEpoch || lecture.value !== context || dirty.value) {
@@ -1185,7 +1185,7 @@ async function createLecture() {
       await createLocalLecture(item);
       localLectures.value = [...localLectures.value, item];
     } else {
-      const result = await lectureApi.create({
+      const result = await bookApi.create({
         title,
         slug,
         kind: createForm.value.kind
@@ -1258,7 +1258,7 @@ async function downloadLecture() {
   const revisionId = revision.value.id;
   saving.value = true;
   try {
-    const data = await lectureApi.exportRevision(revisionId);
+    const data = await bookApi.exportRevision(revisionId);
     if (lecture.value !== context || revision.value?.id !== revisionId || dirty.value) {
       throw new Error('图书状态已变化，请重新确认后下载');
     }
@@ -1394,7 +1394,7 @@ async function save() {
       if (onlineConflict.value) {
         throw new Error('请先备份并重新读取在线版本');
       }
-      const payload = lectureSaveBody(data.revision, data.chapters);
+      const payload = bookSaveBody(data.revision, data.chapters);
       const saved = JSON.parse(baseline.value);
       const savedSections = new Map(
         saved.chapters
@@ -1409,7 +1409,7 @@ async function save() {
           }
         }
       }
-      const result = await lectureApi.saveRevision(data.revision.id, payload);
+      const result = await bookApi.saveRevision(data.revision.id, payload);
       if (epoch !== identityEpoch) {
         onlineConflict.value = true;
         notify('账号状态已变化，当前修改已保留，请重新核对保存结果', 'warn', 0);
@@ -1516,7 +1516,7 @@ async function saveCurrentSection() {
   saving.value = true;
   draftRefreshSequence++;
   try {
-    const result = await lectureApi.saveSection(revision.value.id, sent.occurrence_id, {
+    const result = await bookApi.saveSection(revision.value.id, sent.occurrence_id, {
       edit_version: revision.value.edit_version,
       slug: sent.slug,
       tag: sent.tag || '',
@@ -1576,8 +1576,8 @@ async function updateOnlineCover(cover) {
   draftRefreshSequence++;
   try {
     const result = cover
-      ? await lectureApi.setCover(currentRevision.id, version, cover)
-      : await lectureApi.removeCover(currentRevision.id, version);
+      ? await bookApi.setCover(currentRevision.id, version, cover)
+      : await bookApi.removeCover(currentRevision.id, version);
     if (
       epoch !== identityEpoch ||
       lecture.value !== context ||
@@ -1717,7 +1717,7 @@ async function submitDraft() {
   const epoch = identityEpoch;
   saving.value = true;
   try {
-    const result = await lectureApi.submitRevision(revision.value.id, revision.value.edit_version);
+    const result = await bookApi.submitRevision(revision.value.id, revision.value.edit_version);
     if (epoch !== identityEpoch) {
       onlineConflict.value = true;
       notify('账号状态已变化，请重新核对提交结果', 'warn', 0);
@@ -1741,7 +1741,7 @@ async function submitDraft() {
     baseline.value = snapshot();
     closeSubmit();
     try {
-      const updated = await lectureApi.revisions(lecture.value.id);
+      const updated = await bookApi.revisions(lecture.value.id);
       lectureVersions.value = new Map(lectureVersions.value).set(lecture.value.key, updated);
       const versionLabel = Number.isSafeInteger(submittedRevision.revision_no)
         ? ` V${submittedRevision.revision_no}`
@@ -1777,9 +1777,9 @@ async function refreshDraftOnVisible() {
   try {
     const [latest, versions] = await Promise.all([
       canEditOnline.value && revision.value?.status === 'draft'
-        ? lectureApi.outline(lecture.value.slug, id)
+        ? bookApi.outline(lecture.value.slug, id)
         : Promise.resolve(null),
-      lectureApi.revisions(lecture.value.id)
+      bookApi.revisions(lecture.value.id)
     ]);
     if (
       sequence !== draftRefreshSequence ||
@@ -1953,7 +1953,7 @@ async function selectTreeNode(node) {
         }
         loading.value = true;
         try {
-          const result = await lectureApi.section(
+          const result = await bookApi.section(
             lecture.value.slug,
             revision.value.id,
             chapter.slug,
@@ -2031,7 +2031,7 @@ function expandTreeNode(node) {
           lectureVersions.value = new Map(lectureVersions.value).set(node.id, versions);
         }
       } else {
-        const data = await lectureApi.outline(
+        const data = await bookApi.outline(
           node.item.slug,
           node.type === 'version' ? node.revisionId : undefined
         );
@@ -2097,7 +2097,7 @@ async function confirmDeleteLecture() {
   const epoch = identityEpoch;
   archiveBusy.value = true;
   try {
-    await lectureApi.remove(target.id);
+    await bookApi.remove(target.id);
     deleteLectureTarget.value = null;
     if (epoch !== identityEpoch) {
       notify('删除请求已完成，账号状态已变化，请重新核对图书列表', 'warn', 0);
@@ -2162,7 +2162,7 @@ async function restoreLecture() {
   const epoch = identityEpoch;
   archiveBusy.value = true;
   try {
-    const result = await lectureApi.restore(item.id);
+    const result = await bookApi.restore(item.id);
     if (epoch !== identityEpoch) {
       notify('恢复请求已完成，账号状态已变化，请重新核对图书列表', 'warn', 0);
       return;
@@ -2243,7 +2243,7 @@ async function confirmArchive() {
   const epoch = identityEpoch;
   archiveBusy.value = true;
   try {
-    const result = await lectureApi.setPublication(target.id, {
+    const result = await bookApi.setPublication(target.id, {
       publication_status: 'archived'
     });
     if (epoch !== identityEpoch) {
@@ -2454,8 +2454,8 @@ async function revalidatePermission(epoch) {
   }
   try {
     const [items, collaborators] = await Promise.all([
-      lectureApi.mine(),
-      lectureApi.collaborators(context.id)
+      bookApi.mine(),
+      bookApi.collaborators(context.id)
     ]);
     if (epoch !== identityEpoch || lecture.value !== context || !ownsContext.value) {
       return;

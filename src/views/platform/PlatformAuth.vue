@@ -2,9 +2,9 @@
 // 平台管理超级管理员登录组件
 import { ref } from 'vue';
 
-import MButton from '../../components/MButton.vue';
-import MInput from '../../components/MInput.vue';
-import { notify } from '../../components/MNotice.vue';
+import MButton from '../../components/form/MButton.vue';
+import MInput from '../../components/form/MInput.vue';
+import { notify } from '../../components/feedback/MNotice.vue';
 import { authenticate } from '../../utils/auth.js';
 
 // 声明登录成功事件

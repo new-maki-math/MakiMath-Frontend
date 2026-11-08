@@ -1,6 +1,6 @@
 <script setup>
-import MInput from '../../components/MInput.vue';
-import MTextarea from '../../components/MTextarea.vue';
+import MInput from '../../components/form/MInput.vue';
+import MTextarea from '../../components/form/MTextarea.vue';
 import TypstEditorPreview from '../../components/typst/TypstEditorPreview.vue';
 import WorkbenchPanel from '../../components/workbench/WorkbenchPanel.vue';
 

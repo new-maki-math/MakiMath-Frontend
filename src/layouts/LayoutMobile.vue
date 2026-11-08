@@ -12,13 +12,13 @@ import {
   Terminal,
   UserCircle,
   Xmark
-} from '../components/icons.js';
-import MButton from '../components/MButton.vue';
-import MDrawer from '../components/MDrawer.vue';
-import MTag from '../components/MTag.vue';
-import MUpdateLog from '../components/MUpdateLog.vue';
-import SearchBar from '../components/SearchBar.vue';
-import ViewportHeader from '../components/ViewportHeader.vue';
+} from '../components/icons/icons.js';
+import MButton from '../components/form/MButton.vue';
+import MDrawer from '../components/overlay/MDrawer.vue';
+import MTag from '../components/display/MTag.vue';
+import MUpdateLog from '../components/app/MUpdateLog.vue';
+import SearchBar from '../components/app/SearchBar.vue';
+import ViewportHeader from '../components/app/ViewportHeader.vue';
 import NavigationIcon from './NavigationIcon.vue';
 import { useLayoutState } from './useLayoutState.js';
 

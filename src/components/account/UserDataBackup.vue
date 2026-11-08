@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 
-import { workbenchPanelState } from '../composables/useWorkbenchGuard.js';
+import { workbenchPanelState } from '../../composables/useWorkbenchGuard.js';
 import {
   clearRecoveryBackup,
   deleteSelectedDatabases,
@@ -10,14 +10,14 @@ import {
   inspectUserBackup,
   listClearableDatabases,
   restoreUserData
-} from '../utils/user-data-backup.js';
-import { Download, Trash, Upload } from './icons.js';
-import MButton from './MButton.vue';
-import MCheckbox from './MCheckbox.vue';
-import MFilePicker from './MFilePicker.vue';
-import MModal from './MModal.vue';
-import { notify } from './MNotice.vue';
-import MRadio from './MRadio.vue';
+} from '../../utils/user-data-backup.js';
+import { Download, Trash, Upload } from '../icons/icons.js';
+import MButton from '../form/MButton.vue';
+import MCheckbox from '../form/MCheckbox.vue';
+import MFilePicker from '../form/MFilePicker.vue';
+import MModal from '../overlay/MModal.vue';
+import { notify } from '../feedback/MNotice.vue';
+import MRadio from '../form/MRadio.vue';
 
 const open = ref(false);
 const busy = ref(false);

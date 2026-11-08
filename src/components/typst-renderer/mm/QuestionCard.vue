@@ -1,7 +1,7 @@
 <script setup>
 import { computed, inject, provide, ref } from 'vue';
 
-import { NavArrowRight } from '../../icons.js';
+import { NavArrowRight } from '../../icons/icons.js';
 import TypstNode from '../typst/TypstNode.vue';
 import TypstDoc from '../TypstDoc.vue';
 import MmQuestion from './MmQuestion.vue';

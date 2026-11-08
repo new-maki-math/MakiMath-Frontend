@@ -11,12 +11,13 @@ import {
   NavArrowRight,
   Trash,
   Upload
-} from '../../components/icons.js';
-import MButton from '../../components/MButton.vue';
-import MDataView from '../../components/MDataView.vue';
-import MEmpty from '../../components/MEmpty.vue';
-import MFileTypeIcon from '../../components/MFileTypeIcon.vue';
-import MSortIcon from '../../components/MSortIcon.vue';
+} from '../../components/icons/icons.js';
+import MButton from '../../components/form/MButton.vue';
+import MDataView from '../../components/feedback/MDataView.vue';
+import MEmpty from '../../components/feedback/MEmpty.vue';
+import MFileTypeIcon from '../../components/display/MFileTypeIcon.vue';
+import MPagination from '../../components/display/MPagination.vue';
+import MSortIcon from '../../components/display/MSortIcon.vue';
 import { authStatus, currentUser } from '../../utils/auth.js';
 import { formatFileSize } from '../../utils/file-size.js';
 import ResourceManageDialog from './ResourceManageDialog.vue';
@@ -355,26 +356,16 @@ onUnmounted(() => {
             </div>
           </div>
           <MEmpty v-if="!data.items.length" />
-          <div
+          <MPagination
             v-if="total > pageSize"
             class="pagination"
-          >
-            <MButton
-              variant="ghost"
-              size="sm"
-              :disabled="offset === 0"
-              @click="offset = Math.max(0, offset - pageSize)"
-              >上一页</MButton
-            >
-            <span>{{ Math.floor(offset / pageSize) + 1 }} / {{ Math.ceil(total / pageSize) }}</span>
-            <MButton
-              variant="ghost"
-              size="sm"
-              :disabled="offset + pageSize >= total"
-              @click="offset += pageSize"
-              >下一页</MButton
-            >
-          </div>
+            compact
+            :page="Math.floor(offset / pageSize) + 1"
+            :page-size="pageSize"
+            :total="total"
+            :disabled="loading"
+            @update:page="offset = ($event - 1) * pageSize"
+          />
         </template>
       </MDataView>
     </section>

@@ -1,7 +1,7 @@
 <script setup>
 import { ref, watch } from 'vue';
 
-import MModal from '../../components/MModal.vue';
+import MModal from '../../components/overlay/MModal.vue';
 
 const props = defineProps({
   open: {

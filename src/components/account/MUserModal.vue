@@ -2,15 +2,15 @@
 // 用户中心模态窗口组件
 import { computed, ref, watch } from 'vue';
 
-import { request } from '../api/client.js';
-import { invalidateSession, setAuth } from '../utils/auth.js';
-import { getAuthToken } from '../utils/auth-storage.js';
-import { Lock, User, UserCircle, Xmark } from './icons.js';
-import MBackdrop from './MBackdrop.vue';
-import MButton from './MButton.vue';
-import MInput from './MInput.vue';
-import { notify } from './MNotice.vue';
-import MTag from './MTag.vue';
+import { request } from '../../api/client.js';
+import { invalidateSession, setAuth } from '../../utils/auth.js';
+import { getAuthToken } from '../../utils/auth-storage.js';
+import { Lock, User, UserCircle, Xmark } from '../icons/icons.js';
+import MBackdrop from '../overlay/MBackdrop.vue';
+import MButton from '../form/MButton.vue';
+import MInput from '../form/MInput.vue';
+import { notify } from '../feedback/MNotice.vue';
+import MTag from '../display/MTag.vue';
 
 // 声明组件属性与事件
 const props = defineProps({

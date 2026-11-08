@@ -29,7 +29,7 @@ notify.clear = () => {
 </script>
 
 <script setup>
-import { CheckCircleSolid, InfoCircleSolid, WarningCircleSolid, Xmark } from './icons.js';
+import { CheckCircleSolid, InfoCircleSolid, WarningCircleSolid, Xmark } from '../icons/icons.js';
 
 const currentNotice = globalNotice;
 const handleClose = notify.clear;

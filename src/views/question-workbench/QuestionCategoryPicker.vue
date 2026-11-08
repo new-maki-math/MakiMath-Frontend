@@ -2,11 +2,11 @@
 import { onBeforeUnmount, ref, watch } from 'vue';
 
 import { questionApi } from '../../api/questions.js';
-import { ArrowLeft, NavArrowRight } from '../../components/icons.js';
-import MButton from '../../components/MButton.vue';
-import MDataView from '../../components/MDataView.vue';
-import MEmpty from '../../components/MEmpty.vue';
-import MFileTypeIcon from '../../components/MFileTypeIcon.vue';
+import { ArrowLeft, NavArrowRight } from '../../components/icons/icons.js';
+import MButton from '../../components/form/MButton.vue';
+import MDataView from '../../components/feedback/MDataView.vue';
+import MEmpty from '../../components/feedback/MEmpty.vue';
+import MFileTypeIcon from '../../components/display/MFileTypeIcon.vue';
 
 const props = defineProps({
   open: Boolean,

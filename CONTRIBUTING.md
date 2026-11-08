@@ -22,12 +22,19 @@ CI 对推送和 Pull Request 执行相同检查。
 | `src/router`                    | 路由声明、懒加载和导航前的认证初始化                 |
 | `src/layouts`                   | 桌面与移动布局、导航、主题和全局弹窗                 |
 | `src/views/<业务>`              | 页面状态、业务流程和页面专用组件                     |
-| `src/components`                | 基础控件和跨页面复用的组件                           |
+| `src/components/form`           | 按钮、输入框、选择控件和表单样式                     |
+| `src/components/feedback`       | 加载、空状态、通知和进度反馈                         |
+| `src/components/overlay`        | 遮罩、折叠面板、抽屉和弹窗                           |
+| `src/components/display`        | 标签、表格、分页及其他通用展示组件                   |
+| `src/components/account`        | 登录、用户信息和本地数据管理                         |
+| `src/components/app`            | 搜索、帮助、更新日志和视口导航                       |
+| `src/components/book`           | 图书封面等跨页面共享组件                             |
+| `src/components/icons`          | 共享的自绘图标                                       |
 | `src/components/workbench`      | 工作台通用树、节点、面板和布局样式                   |
 | `src/components/typst`          | Monaco 编辑器、预览联动和知识引用插入                |
 | `src/components/typst-renderer` | Typst 解析、教学宏和文档渲染                         |
 | `src/components/knowledge`      | 知识搜索、知识详情浮层和展开动画                     |
-| `src/components/roadmap`        | 讲义图谱建模、缩放、调度和 WebGL 绘制                |
+| `src/views/lecture-home`         | 讲义详情及路线图的建模、交互和 Canvas 2D 绘制                |
 | `src/composables`               | 跨模块复用的 Vue 状态和生命周期逻辑                  |
 | `src/api`                       | 请求、接口参数、响应适配和内容缓存失效               |
 | `src/utils`                     | 数据转换、浏览器存储、认证单例和无组件生命周期的工具 |

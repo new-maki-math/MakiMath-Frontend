@@ -2,7 +2,7 @@
 import { select, zoom, zoomIdentity } from 'd3';
 import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 
-import MButton from '../../components/MButton.vue';
+import MButton from '../../components/form/MButton.vue';
 import {
   clearCanvasTextCache,
   drawKnowledgeCanvas,

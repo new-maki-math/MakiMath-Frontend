@@ -1,4 +1,6 @@
 <script setup>
+import MSpinner from './MSpinner.vue';
+
 defineProps({
   loading: {
     type: Boolean,
@@ -29,10 +31,7 @@ defineProps({
       class="data-loading"
       role="status"
     >
-      <span
-        class="data-spinner"
-        aria-hidden="true"
-      ></span>
+      <MSpinner :size="16" />
       <span>{{ text }}</span>
     </div>
     <Transition
@@ -70,14 +69,6 @@ defineProps({
   color: var(--text-secondary);
   font-size: var(--font-size-smaller);
 }
-.data-spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid var(--border-hover);
-  border-top-color: var(--accent-primary);
-  border-radius: 50%;
-  animation: data-spin 0.75s linear infinite;
-}
 .data-enter-enter-active:not(.no-motion) {
   transition:
     opacity 220ms ease-out,
@@ -90,15 +81,7 @@ defineProps({
 .data-enter-leave-active {
   display: none;
 }
-@keyframes data-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
 @media (prefers-reduced-motion: reduce) {
-  .data-spinner {
-    animation: none;
-  }
   .data-enter-enter-active {
     transition: none !important;
   }

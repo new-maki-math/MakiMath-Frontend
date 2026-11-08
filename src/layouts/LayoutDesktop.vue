@@ -11,12 +11,12 @@ import {
   SunLight,
   Terminal,
   UserCircle
-} from '../components/icons.js';
-import MCollapse from '../components/MCollapse.vue';
-import MUpdateLog from '../components/MUpdateLog.vue';
-import SearchBar from '../components/SearchBar.vue';
-import UserDataBackup from '../components/UserDataBackup.vue';
-import ViewportHeader from '../components/ViewportHeader.vue';
+} from '../components/icons/icons.js';
+import MCollapse from '../components/overlay/MCollapse.vue';
+import MUpdateLog from '../components/app/MUpdateLog.vue';
+import SearchBar from '../components/app/SearchBar.vue';
+import UserDataBackup from '../components/account/UserDataBackup.vue';
+import ViewportHeader from '../components/app/ViewportHeader.vue';
 import NavigationIcon from './NavigationIcon.vue';
 import { useLayoutState } from './useLayoutState.js';
 

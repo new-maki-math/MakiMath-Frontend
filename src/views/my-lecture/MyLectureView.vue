@@ -2,13 +2,13 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
-import { lectureApi } from '../../api/lectures.js';
-import MButton from '../../components/MButton.vue';
-import MDataView from '../../components/MDataView.vue';
-import MEmpty from '../../components/MEmpty.vue';
-import MHorizontalShelf from '../../components/MHorizontalShelf.vue';
-import MLectureCover from '../../components/MLectureCover.vue';
-import { notify } from '../../components/MNotice.vue';
+import { bookApi } from '../../api/books.js';
+import MButton from '../../components/form/MButton.vue';
+import MDataView from '../../components/feedback/MDataView.vue';
+import MEmpty from '../../components/feedback/MEmpty.vue';
+import MHorizontalShelf from '../../components/display/MHorizontalShelf.vue';
+import MLectureCover from '../../components/book/MLectureCover.vue';
+import { notify } from '../../components/feedback/MNotice.vue';
 import { authStatus, currentUser, initAuth } from '../../utils/auth.js';
 import { lectureLocation } from '../../utils/lecture-route.js';
 import { listLocalLectures, validateLocalLectureSlug } from '../../utils/local-lectures.js';
@@ -124,7 +124,7 @@ async function loadOnline() {
   }
   onlineLoading.value = true;
   try {
-    const items = await lectureApi.owned();
+    const items = await bookApi.owned();
     if (
       !Array.isArray(items) ||
       items.some((item) => !['lecture', 'workbook'].includes(item.kind))

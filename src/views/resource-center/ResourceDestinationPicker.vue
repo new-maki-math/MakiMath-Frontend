@@ -2,10 +2,11 @@
 import { onUnmounted, ref, watch } from 'vue';
 
 import { resourceApi } from '../../api/resources.js';
-import { ArrowLeft, NavArrowRight } from '../../components/icons.js';
-import MButton from '../../components/MButton.vue';
-import MDataView from '../../components/MDataView.vue';
-import MFileTypeIcon from '../../components/MFileTypeIcon.vue';
+import { ArrowLeft, NavArrowRight } from '../../components/icons/icons.js';
+import MButton from '../../components/form/MButton.vue';
+import MDataView from '../../components/feedback/MDataView.vue';
+import MFileTypeIcon from '../../components/display/MFileTypeIcon.vue';
+import MPagination from '../../components/display/MPagination.vue';
 
 const props = defineProps({
   open: Boolean,
@@ -245,32 +246,16 @@ onUnmounted(() => {
           </template>
         </MDataView>
       </div>
-      <div
+      <MPagination
         v-if="!error && total > 50"
         class="destination-pages"
-      >
-        <MButton
-          size="sm"
-          variant="ghost"
-          :disabled="busy || disabled || offset === 0"
-          :class="{
-            'loading-action': busy && !disabled && offset > 0
-          }"
-          @click="offset = Math.max(0, offset - 50)"
-          >上一页</MButton
-        >
-        <span>{{ Math.floor(offset / 50) + 1 }} / {{ Math.ceil(total / 50) }}</span>
-        <MButton
-          size="sm"
-          variant="ghost"
-          :disabled="busy || disabled || offset + 50 >= total"
-          :class="{
-            'loading-action': busy && !disabled && offset + 50 < total
-          }"
-          @click="offset += 50"
-          >下一页</MButton
-        >
-      </div>
+        compact
+        :page="Math.floor(offset / 50) + 1"
+        :page-size="50"
+        :total="total"
+        :disabled="busy || disabled"
+        @update:page="offset = ($event - 1) * 50"
+      />
     </div>
   </div>
 </template>

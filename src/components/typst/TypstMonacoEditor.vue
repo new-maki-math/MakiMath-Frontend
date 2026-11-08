@@ -1,8 +1,8 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
-import MButton from '../MButton.vue';
-import MLoadingMask from '../MLoadingMask.vue';
+import MButton from '../form/MButton.vue';
+import MLoadingMask from '../feedback/MLoadingMask.vue';
 
 const props = defineProps({
   modelValue: {

@@ -2,8 +2,8 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 
 import { useLectureSearch } from '../../composables/useLectureSearch.js';
-import MInput from '../MInput.vue';
-import MModal from '../MModal.vue';
+import MInput from '../form/MInput.vue';
+import MModal from '../overlay/MModal.vue';
 
 const props = defineProps({
   open: {

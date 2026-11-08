@@ -3,9 +3,9 @@ import { computed, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import { getCourseSectionContent, toChapters } from '../../api/courses.js';
-import { List } from '../../components/icons.js';
-import MButton from '../../components/MButton.vue';
-import MDrawer from '../../components/MDrawer.vue';
+import { List } from '../../components/icons/icons.js';
+import MButton from '../../components/form/MButton.vue';
+import MDrawer from '../../components/overlay/MDrawer.vue';
 import TypstDoc from '../../components/typst-renderer/TypstDoc.vue';
 import { authStatus, currentUser } from '../../utils/auth.js';
 import { lectureLocation, lectureNavigationOrigin } from '../../utils/lecture-route.js';

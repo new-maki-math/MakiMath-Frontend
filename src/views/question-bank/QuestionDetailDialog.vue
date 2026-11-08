@@ -2,8 +2,8 @@
 import { onBeforeUnmount, ref, watch } from 'vue';
 
 import { questionApi } from '../../api/questions.js';
-import MButton from '../../components/MButton.vue';
-import MModal from '../../components/MModal.vue';
+import MButton from '../../components/form/MButton.vue';
+import MModal from '../../components/overlay/MModal.vue';
 import QuestionCard from '../../components/typst-renderer/mm/QuestionCard.vue';
 import { authStatus, currentUser } from '../../utils/auth.js';
 

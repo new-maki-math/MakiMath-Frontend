@@ -1,12 +1,13 @@
 <script setup>
 import { ref } from 'vue';
 
-import { ArrowLeft, NavArrowRight, Page } from '../../components/icons.js';
-import MButton from '../../components/MButton.vue';
-import MDataView from '../../components/MDataView.vue';
-import MEmpty from '../../components/MEmpty.vue';
-import MFileTypeIcon from '../../components/MFileTypeIcon.vue';
-import MInput from '../../components/MInput.vue';
+import { ArrowLeft, NavArrowRight, Page } from '../../components/icons/icons.js';
+import MButton from '../../components/form/MButton.vue';
+import MDataView from '../../components/feedback/MDataView.vue';
+import MEmpty from '../../components/feedback/MEmpty.vue';
+import MFileTypeIcon from '../../components/display/MFileTypeIcon.vue';
+import MPagination from '../../components/display/MPagination.vue';
+import MInput from '../../components/form/MInput.vue';
 import QuestionDetailDialog from './QuestionDetailDialog.vue';
 import { useQuestionBrowser } from './useQuestionBrowser.js';
 
@@ -131,28 +132,16 @@ function goUp() {
           </button>
         </div>
         <MEmpty v-if="!data.children.length && !data.items.length" />
-        <div
+        <MPagination
           v-if="data.pagination.total > 50"
           class="pagination"
-        >
-          <MButton
-            size="sm"
-            variant="ghost"
-            :disabled="offset === 0"
-            @click="offset = Math.max(0, offset - 50)"
-            >上一页</MButton
-          >
-          <span
-            >{{ Math.floor(offset / 50) + 1 }} / {{ Math.ceil(data.pagination.total / 50) }}</span
-          >
-          <MButton
-            size="sm"
-            variant="ghost"
-            :disabled="offset + 50 >= data.pagination.total"
-            @click="offset += 50"
-            >下一页</MButton
-          >
-        </div>
+          compact
+          :page="Math.floor(offset / 50) + 1"
+          :page-size="50"
+          :total="data.pagination.total"
+          :disabled="loading"
+          @update:page="offset = ($event - 1) * 50"
+        />
       </template>
     </MDataView>
     <QuestionDetailDialog

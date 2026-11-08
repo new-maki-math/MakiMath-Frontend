@@ -1,13 +1,13 @@
 <script setup>
 import { computed, onUnmounted, ref, watch } from 'vue';
 
-import { lectureApi } from '../../api/lectures.js';
-import MButton from '../../components/MButton.vue';
-import MInput from '../../components/MInput.vue';
-import MLectureCover from '../../components/MLectureCover.vue';
-import { notify } from '../../components/MNotice.vue';
-import MSelect from '../../components/MSelect.vue';
-import MTextarea from '../../components/MTextarea.vue';
+import { bookApi } from '../../api/books.js';
+import MButton from '../../components/form/MButton.vue';
+import MInput from '../../components/form/MInput.vue';
+import MLectureCover from '../../components/book/MLectureCover.vue';
+import { notify } from '../../components/feedback/MNotice.vue';
+import MSelect from '../../components/form/MSelect.vue';
+import MTextarea from '../../components/form/MTextarea.vue';
 import WorkbenchPanel from '../../components/workbench/WorkbenchPanel.vue';
 
 const revision = defineModel('revision', {
@@ -78,7 +78,7 @@ async function loadCover() {
   }
   coverLoading.value = true;
   try {
-    const result = await lectureApi.getCover(revision.value.id, revision.value.cover_hash);
+    const result = await bookApi.getCover(revision.value.id, revision.value.cover_hash);
     if (current !== coverSequence) {
       return;
     }
