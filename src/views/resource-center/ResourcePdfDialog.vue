@@ -4,8 +4,10 @@ import { ref, watch } from 'vue';
 import { resourceApi } from '../../api/resources.js';
 import { ArrowRight } from '../../components/icons.js';
 import MButton from '../../components/MButton.vue';
+import MFileTypeIcon from '../../components/MFileTypeIcon.vue';
 import MModal from '../../components/MModal.vue';
 import { authStatus, currentUser } from '../../utils/auth.js';
+import { formatFileSize } from '../../utils/file-size.js';
 
 const props = defineProps({
   resource: {
@@ -101,6 +103,15 @@ watch(
     if (!id) {
       return;
     }
+    const initialSize = props.resource?.size_bytes;
+    if (
+      props.resource?.kind === 'pdf' &&
+      Number.isSafeInteger(initialSize) &&
+      initialSize > previewLimit
+    ) {
+      tooLarge.value = true;
+      return;
+    }
     async function fetchContent() {
       if (!active || loading.value || downloading.value) {
         return;
@@ -126,11 +137,20 @@ watch(
         }
         emit('downloaded');
         emit('quota-change');
+        const contentLength = response.headers.get('content-length');
+        if (contentLength && /^\d+$/.test(contentLength) && Number(contentLength) > previewLimit) {
+          tooLarge.value = true;
+          controller.abort();
+          return;
+        }
         const blob = await response.blob();
         if (!active) {
           return;
         }
-        tooLarge.value = blob.size > previewLimit;
+        if (blob.size > previewLimit) {
+          tooLarge.value = true;
+          return;
+        }
         url = URL.createObjectURL(blob);
         objectUrl.value = url;
       } catch (failure) {
@@ -198,7 +218,15 @@ watch(
       class="pdf-loading"
       role="status"
     >
-      {{ downloading ? '正在下载 PDF…' : '正在加载预览…' }}
+      <span
+        class="pdf-loading-icon"
+        aria-hidden="true"
+      >
+        <span class="pdf-loading-spinner"></span>
+        <MFileTypeIcon type="pdf" />
+      </span>
+      <span class="pdf-loading-title">正在加载预览</span>
+      <span class="pdf-loading-caption">正在准备 PDF，请稍候</span>
     </div>
     <div
       v-else-if="error"
@@ -255,7 +283,18 @@ watch(
       </div>
     </div>
     <template v-else-if="tooLarge && !loading">
-      <p class="pdf-message">文件过大，无法预览，请下载后查看</p>
+      <div class="pdf-large">
+        <MFileTypeIcon
+          class="pdf-large-icon"
+          type="pdf"
+        />
+        <div class="pdf-large-copy">
+          <p class="pdf-large-title">文件过大，无法预览</p>
+          <p class="pdf-large-detail">
+            {{ formatFileSize(resource?.size_bytes) }} · 预览上限 5 MiB，请下载后查看
+          </p>
+        </div>
+      </div>
       <div class="pdf-actions">
         <MButton
           variant="primary"
@@ -308,8 +347,74 @@ watch(
 .pdf-loading {
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 220px;
   gap: 8px;
+  padding: 24px;
+  text-align: center;
+}
+.pdf-loading-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 8px;
+}
+.pdf-loading-icon > svg {
+  width: 30px;
+  height: 30px;
+}
+.pdf-loading-spinner {
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--border-subtle);
+  border-top-color: var(--accent-primary);
+  border-radius: 50%;
+  animation: pdf-loading-spin 900ms linear infinite;
+}
+.pdf-loading-title {
+  color: var(--text-primary);
+  font-weight: var(--font-weight-medium);
+}
+.pdf-loading-caption {
+  color: var(--text-muted);
+  font-size: var(--font-size-smaller);
+}
+.pdf-large {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 0 20px;
+}
+.pdf-large-icon {
+  width: 36px;
+  height: 36px;
+  flex: none;
+}
+.pdf-large-copy {
+  min-width: 0;
+}
+.pdf-large-title,
+.pdf-large-detail {
+  margin: 0;
+  line-height: 1.5;
+}
+.pdf-large-title {
+  color: var(--text-primary);
+  font-weight: var(--font-weight-medium);
+}
+.pdf-large-detail {
+  margin-top: 4px;
   color: var(--text-secondary);
+  font-size: var(--font-size-smaller);
+}
+@keyframes pdf-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 .pdf-actions {
   display: flex;
@@ -365,6 +470,9 @@ watch(
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  .pdf-loading-spinner {
+    animation: none;
+  }
   .download-state-circle,
   .download-state-check {
     animation: none;
@@ -413,52 +521,10 @@ watch(
   .pdf-actions {
     justify-content: space-between;
   }
-  .download-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 28px 16px 12px;
-  text-align: center;
-}
-.download-state-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  background: var(--tag-blue-bg);
-  color: var(--tag-blue);
-}
-.download-state h3 {
-  margin: 16px 0 0;
-  color: var(--text-primary);
-  font-size: var(--font-size-larger);
-  font-weight: var(--font-weight-semibold);
-}
-.download-state-name {
-  max-width: 100%;
-  margin: 8px 0 0;
-  color: var(--text-secondary);
-  font-size: var(--font-size-smaller);
-  overflow-wrap: anywhere;
-}
-.download-state-help {
-  margin: 8px 0 0;
-  color: var(--text-muted);
-  font-size: var(--font-size-smaller);
-  line-height: 1.6;
-}
-.download-state-actions {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 24px;
-}
-.pdf-open {
-    display: inline-flex;
-    align-items: center;
+  .pdf-loading {
+    min-height: 180px;
+  }
+  .pdf-open {
     min-height: 44px;
   }
   .pdf-actions :deep(.m-button),
