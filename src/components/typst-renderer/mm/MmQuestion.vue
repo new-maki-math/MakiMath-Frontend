@@ -48,8 +48,28 @@ defineProps({
       <span
         v-if="difficulty"
         class="mm-question-difficulty"
-        >难度 {{ difficulty }} / 5</span
+        role="img"
+        :aria-label="`难度 ${difficulty}，满分 5 星`"
       >
+        <span
+          class="difficulty-stars"
+          aria-hidden="true"
+        >
+          <svg
+            v-for="star in 5"
+            :key="star"
+            class="difficulty-star"
+            :class="{
+              'is-filled': star <= difficulty
+            }"
+            viewBox="0 0 24 24"
+            width="15"
+            height="15"
+          >
+            <path d="M12 2.7 15 8.8l6.7 1-4.85 4.72L18 21.2 12 18l-6 3.2 1.15-6.68L2.3 9.8l6.7-1z" />
+          </svg>
+        </span>
+      </span>
     </div>
     <div class="mm-question-body">
       <span
@@ -99,8 +119,37 @@ defineProps({
 .mm-question-difficulty {
   font-size: 0.85em;
 }
+.mm-question-difficulty {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+.difficulty-stars {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.difficulty-star {
+  flex: none;
+  fill: none;
+  stroke: var(--tag-amber);
+  stroke-width: 1.7;
+  stroke-linejoin: round;
+}
+.difficulty-star.is-filled {
+  fill: var(--tag-amber);
+}
+@media print {
+  .difficulty-star {
+    stroke: #92610b;
+  }
+  .difficulty-star.is-filled {
+    fill: #92610b;
+  }
+}
 .mm-question-body {
   min-width: 0;
-  margin-top: 18px;
+  margin-top: 12px;
 }
 </style>

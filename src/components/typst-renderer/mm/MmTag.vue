@@ -38,14 +38,19 @@ const colors = computed(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.08em 0.4em;
+  padding: 0.2em 0.4em;
   border: 1px solid var(--mm-tag-dark-border);
   border-radius: var(--radius-xs);
   background: var(--mm-tag-dark-background);
   color: var(--mm-tag-dark-text);
   font-size: 0.88em;
-  line-height: 1.3;
+  line-height: 1.2;
   vertical-align: middle;
+}
+.mm-tag > span {
+  display: inline-block;
+  line-height: 1.2;
+  transform: translateY(0.03em);
 }
 :global([data-theme='light'] .mm-tag),
 :global(.theme-light .mm-tag) {

@@ -1,10 +1,11 @@
 <script setup>
 import { computed, inject, provide, ref } from 'vue';
 
-import MTag from '../../MTag.vue';
+import { NavArrowRight } from '../../icons.js';
 import TypstNode from '../typst/TypstNode.vue';
 import TypstDoc from '../TypstDoc.vue';
 import MmQuestion from './MmQuestion.vue';
+import MmTag from './MmTag.vue';
 
 const props = defineProps({
   detail: {
@@ -87,21 +88,23 @@ const sections = computed(() =>
       v-if="sources.length || knowledge.length || overrides.tags?.length"
       class="question-tags"
     >
-      <MTag
+      <MmTag
         v-for="source in sources"
         :key="source.entry_id"
-        variant="blue"
-        size="sm"
+        :color="{
+          preset: 'blue'
+        }"
       >
         {{ source.path.map((entry) => entry.name).join(' / ')
         }}{{ source.source_number ? ` · ${source.source_number}` : '' }}
-      </MTag>
-      <MTag
+      </MmTag>
+      <MmTag
         v-for="point in knowledge"
         :key="point.slug"
-        variant="teal"
-        size="sm"
-        >{{ point.title || `${point.slug}（不可用）` }}</MTag
+        :color="{
+          preset: 'cyan'
+        }"
+        >{{ point.title || `${point.slug}（不可用）` }}</MmTag
       >
       <TypstDoc
         v-for="(tag, index) in overrides.tags || []"
@@ -114,13 +117,29 @@ const sections = computed(() =>
       :source="question.stem_source || ''"
       :allow-question-references="false"
     />
-    <details
-      v-for="section in sections"
-      :key="section.key"
-      class="question-section"
-      :open="Boolean(printReferences)"
+    <div
+      v-if="sections.length"
+      class="question-sections"
     >
-      <summary>{{ section.label }}</summary>
+      <details
+        v-for="section in sections"
+        :key="section.key"
+        class="question-section"
+        :class="`section-${section.key}`"
+        :open="Boolean(printReferences)"
+      >
+      <summary>
+        <span
+          class="section-marker"
+          aria-hidden="true"
+        ></span>
+        <span class="section-label">{{ section.label }}</span>
+        <NavArrowRight
+          class="section-chevron"
+          width="15"
+          height="15"
+        />
+      </summary>
       <div class="section-content">
         <template v-if="Array.isArray(section.override)">
           <TypstNode
@@ -135,7 +154,8 @@ const sections = computed(() =>
           :allow-question-references="false"
         />
       </div>
-    </details>
+      </details>
+    </div>
   </MmQuestion>
 </template>
 
@@ -145,17 +165,102 @@ const sections = computed(() =>
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
+}
+.question-sections {
+  display: flex;
+  flex-direction: column;
+  margin-top: 14px;
+  border-top: 1px solid var(--border-subtle);
 }
 .question-section {
-  margin-top: 12px;
-  color: var(--text-secondary);
-}
-.question-section summary {
-  cursor: pointer;
+  --section-color: var(--tag-blue);
+  min-width: 0;
+  border-bottom: 1px solid var(--border-subtle);
   color: var(--text-primary);
 }
+.section-focus {
+  --section-color: var(--tag-purple);
+}
+.section-conclusion {
+  --section-color: var(--tag-green);
+}
+.section-pitfalls {
+  --section-color: var(--tag-orange);
+}
+.question-section summary {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 36px;
+  padding: 6px 4px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  list-style: none;
+}
+.question-section summary::-webkit-details-marker {
+  display: none;
+}
+.question-section summary:hover {
+  background: var(--bg-hover);
+}
+.question-section summary:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: -2px;
+}
+.section-marker {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--section-color);
+}
+.section-label {
+  flex: 1;
+  font-size: 0.9em;
+  font-weight: var(--font-weight-medium);
+}
+.question-section[open] .section-label {
+  color: var(--text-primary);
+  font-weight: var(--font-weight-semibold);
+}
+.section-chevron {
+  flex: none;
+  color: var(--text-muted);
+  transition: transform 160ms ease;
+}
+.question-section[open] .section-chevron {
+  transform: rotate(90deg);
+}
 .section-content {
-  margin-top: 8px;
+  min-width: 0;
+  padding: 4px 8px 14px 19px;
+  color: var(--text-primary);
+}
+@media print {
+  .question-sections {
+    border-top: 0;
+  }
+  .question-section {
+    border: 0;
+    background: transparent;
+    break-inside: avoid;
+  }
+  .question-section summary {
+    min-height: 0;
+    padding: 8px 0 4px;
+  }
+  .section-marker,
+  .section-chevron {
+    display: none;
+  }
+  .section-content {
+    padding: 0 0 8px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .section-chevron {
+    transition: none;
+  }
 }
 </style>
