@@ -164,6 +164,13 @@ export const resourceApi = {
       ...options,
       cache: 'no-store'
     }),
+  downloadTicket: (id, options = {}) =>
+    request(`${resourceUrl(id)}/download-ticket`, {
+      ...options,
+      method: 'POST'
+    }),
+  downloadUrl: (id, ticket) =>
+    `${API_BASE}${resourceUrl(id)}/download?${new URLSearchParams({ ticket })}`,
   createFolder: (body) =>
     request('/api/resources/folders', {
       method: 'POST',

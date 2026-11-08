@@ -1,13 +1,24 @@
 <script setup>
-import { ArrowLeft, ArrowRight, Copy, EditPencil, FolderPlus, Trash, Upload } from '@iconoir/vue';
 import { computed, inject, onUnmounted, ref, watch } from 'vue';
 
 import { resourceApi } from '../../api/resources.js';
+import {
+  ArrowLeft,
+  ArrowRight,
+  Copy,
+  EditPencil,
+  FolderPlus,
+  NavArrowRight,
+  Trash,
+  Upload
+} from '../../components/icons.js';
 import MButton from '../../components/MButton.vue';
 import MDataView from '../../components/MDataView.vue';
 import MEmpty from '../../components/MEmpty.vue';
 import MFileTypeIcon from '../../components/MFileTypeIcon.vue';
+import MSortIcon from '../../components/MSortIcon.vue';
 import { authStatus, currentUser } from '../../utils/auth.js';
+import { formatFileSize } from '../../utils/file-size.js';
 import ResourceManageDialog from './ResourceManageDialog.vue';
 import ResourcePdfDialog from './ResourcePdfDialog.vue';
 import ResourceUploadDialog from './ResourceUploadDialog.vue';
@@ -234,14 +245,12 @@ onUnmounted(() => {
                 @click="changeSort('name')"
               >
                 名称
-                <span
-                  v-if="sort === 'name'"
-                  aria-hidden="true"
-                  >{{ order === 'asc' ? '↑' : '↓' }}</span
-                ><span class="sr-only">{{
+                <MSortIcon :direction="sort === 'name' ? order : ''" />
+                <span class="sr-only">{{
                   sort === 'name' ? (order === 'asc' ? '升序' : '降序') : ''
                 }}</span>
               </button>
+              <span>大小</span>
               <span>下载量</span>
               <button
                 type="button"
@@ -249,11 +258,8 @@ onUnmounted(() => {
                 @click="changeSort('updated_at')"
               >
                 修改时间
-                <span
-                  v-if="sort === 'updated_at'"
-                  aria-hidden="true"
-                  >{{ order === 'asc' ? '↑' : '↓' }}</span
-                ><span class="sr-only">{{
+                <MSortIcon :direction="sort === 'updated_at' ? order : ''" />
+                <span class="sr-only">{{
                   sort === 'updated_at' ? (order === 'asc' ? '升序' : '降序') : ''
                 }}</span>
               </button>
@@ -271,15 +277,36 @@ onUnmounted(() => {
                 <span class="item-icon">
                   <MFileTypeIcon :type="item.is_system ? 'archive' : item.kind" />
                 </span>
-                <span class="item-copy"
-                  ><span class="item-title">{{ item.name }}</span
-                  ><span
+                <span class="item-copy">
+                  <span class="item-title">{{ item.name }}</span>
+                  <span
                     v-if="item.description"
                     class="item-description"
-                    >{{ item.description }}</span
-                  ></span
-                >
+                  >{{ item.description }}</span>
+                  <span class="mobile-meta">
+                    <template v-if="item.kind === 'pdf'">
+                      <span>{{ formatFileSize(item.size_bytes) }}</span>
+                      <span>
+                        {{
+                          Number.isSafeInteger(item.download_count) && item.download_count >= 0
+                            ? item.download_count.toLocaleString()
+                            : '—'
+                        }} 次下载
+                      </span>
+                    </template>
+                    <time :datetime="item.updated_at">{{ formatDate(item.updated_at) }}</time>
+                  </span>
+                </span>
+                <NavArrowRight
+                  class="item-arrow"
+                  width="16"
+                  height="16"
+                  aria-hidden="true"
+                />
               </button>
+              <span class="item-size">{{
+                item.kind === 'pdf' ? formatFileSize(item.size_bytes) : '—'
+              }}</span>
               <span class="item-downloads">{{
                 item.kind === 'pdf' &&
                 Number.isSafeInteger(item.download_count) &&
@@ -327,9 +354,7 @@ onUnmounted(() => {
               </div>
             </div>
           </div>
-          <MEmpty
-            v-if="!data.items.length"
-          />
+          <MEmpty v-if="!data.items.length" />
           <div
             v-if="total > pageSize"
             class="pagination"
@@ -417,13 +442,13 @@ onUnmounted(() => {
 .list-heading,
 .resource-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 80px 150px;
+  grid-template-columns: minmax(0, 1fr) 90px 80px 150px;
   gap: 20px;
   align-items: center;
 }
 .has-actions .list-heading,
 .has-actions .resource-row {
-  grid-template-columns: minmax(0, 1fr) 80px 150px 168px;
+  grid-template-columns: minmax(0, 1fr) 90px 80px 150px 168px;
 }
 .list-heading {
   padding: 10px 16px;
@@ -431,7 +456,10 @@ onUnmounted(() => {
   font-size: var(--font-size-smaller);
 }
 .sort-button {
+  display: inline-flex;
+  align-items: center;
   justify-content: flex-start;
+  gap: 4px;
   color: var(--text-muted);
   font-size: inherit;
 }
@@ -495,11 +523,16 @@ onUnmounted(() => {
   overflow-wrap: anywhere;
 }
 .item-description,
+.item-size,
 .item-downloads,
 .item-date {
   color: var(--text-muted);
   font-size: var(--font-size-smaller);
   line-height: 1.4;
+}
+.mobile-meta,
+.item-arrow {
+  display: none;
 }
 .row-actions {
   display: flex;
@@ -523,21 +556,105 @@ onUnmounted(() => {
 }
 @media (max-width: 700px) {
   .resource-center {
-    padding: 14px 16px 24px;
+    padding: 16px 16px 32px;
+  }
+  .section-heading {
+    gap: 6px 8px;
+    margin-bottom: 14px;
+  }
+  .section-title {
+    flex: 1;
+    min-width: 0;
+  }
+  .section-title h2 {
+    overflow-wrap: anywhere;
+  }
+  .heading-actions {
+    width: 100%;
+    margin-left: 0;
+    gap: 4px;
+  }
+  .heading-actions .quota {
+    flex: 1;
+    text-align: left;
+    line-height: 1.5;
+  }
+  .section-heading :deep(.is-icon-only) {
+    width: 40px;
+    height: 40px;
   }
   .list-heading,
+  .has-actions .list-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 2px 0;
+  }
+  .list-heading > span {
+    display: none;
+  }
+  .sort-button {
+    min-height: 40px;
+    padding: 0 8px;
+  }
   .resource-row,
-  .has-actions .list-heading,
   .has-actions .resource-row {
-    grid-template-columns: minmax(0, 1fr) 55px 130px;
-    gap: 8px;
-    padding-left: 8px;
-    padding-right: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    min-height: 0;
+    padding: 12px 4px;
+  }
+  .item-main {
+    min-height: 48px;
+    gap: 12px;
+  }
+  .item-copy {
+    flex: 1;
+    gap: 4px;
+  }
+  .item-arrow {
+    display: block;
+    flex: none;
+    color: var(--text-muted);
+  }
+  .item-description {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+  .item-size,
+  .item-downloads,
+  .item-date {
+    display: none;
+  }
+  .mobile-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 10px;
+    color: var(--text-muted);
+    font-size: var(--font-size-smaller);
+    line-height: 1.5;
   }
   .row-actions {
-    grid-column: 1 / -1;
     justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-left: 34px;
     visibility: visible;
+  }
+  .row-actions :deep(.is-icon-only) {
+    width: 40px;
+    height: 40px;
+  }
+  .pagination {
+    justify-content: center;
+  }
+  .pagination :deep(.m-button) {
+    min-height: 40px;
   }
 }
 </style>

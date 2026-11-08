@@ -1,13 +1,15 @@
 <script setup>
-import { Xmark } from '@iconoir/vue';
 import { computed, onUnmounted, ref, watch } from 'vue';
 
 import { resourceApi } from '../../api/resources.js';
+import { Xmark } from '../../components/icons.js';
 import MButton from '../../components/MButton.vue';
 import MFilePicker from '../../components/MFilePicker.vue';
 import MFileTypeIcon from '../../components/MFileTypeIcon.vue';
 import MModal from '../../components/MModal.vue';
+import MProgress from '../../components/MProgress.vue';
 import { authStatus, currentUser, isSuperAdmin } from '../../utils/auth.js';
+import { formatFileSize } from '../../utils/file-size.js';
 
 const props = defineProps({
   open: Boolean,
@@ -25,12 +27,6 @@ const pendingCount = computed(
 let nextId = 0;
 let controller;
 let runSequence = 0;
-
-function formatSize(size) {
-  return size >= 1024 * 1024
-    ? `${(size / 1024 / 1024).toFixed(1)} MiB`
-    : `${Math.max(1, Math.ceil(size / 1024))} KiB`;
-}
 
 function selectFiles(event) {
   const files = Array.from(event.target.files || []);
@@ -185,7 +181,7 @@ onUnmounted(() => {
                 :title="entry.file.name"
                 >{{ entry.file.name }}</span
               >
-              <span class="upload-size">{{ formatSize(entry.file.size) }}</span>
+              <span class="upload-size">{{ formatFileSize(entry.file.size) }}</span>
             </div>
             <span
               class="upload-status"
@@ -229,12 +225,11 @@ onUnmounted(() => {
               </MButton>
             </div>
           </div>
-          <progress
+          <MProgress
             v-if="entry.status === 'uploading' || entry.status === 'success'"
             class="upload-progress"
             :value="entry.progress"
-            max="100"
-            :aria-label="`${entry.file.name} 上传进度`"
+            :label="`${entry.file.name} 上传进度`"
           />
           <p
             v-if="entry.message"
@@ -329,11 +324,7 @@ onUnmounted(() => {
   color: var(--tag-red);
 }
 .upload-progress {
-  display: block;
-  width: 100%;
-  height: 4px;
   margin-top: 8px;
-  accent-color: var(--accent-primary);
 }
 .upload-error {
   margin: 8px 0 0;
@@ -349,5 +340,27 @@ onUnmounted(() => {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+@media (max-width: 700px) {
+  .upload-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .upload-file {
+    flex-basis: calc(100% - 36px);
+  }
+  .upload-status {
+    margin-left: 34px;
+  }
+  .upload-item-actions {
+    margin-left: auto;
+  }
+  .upload-item-actions :deep(.m-button),
+  .upload-footer :deep(.m-button) {
+    min-height: 40px;
+  }
+  .upload-item-actions :deep(.is-icon-only) {
+    min-width: 40px;
+  }
 }
 </style>

@@ -17,7 +17,6 @@
     "check": "pnpm lint && pnpm format:check && pnpm test && pnpm build"
   },
   "dependencies": {
-    "@iconoir/vue": "^7.12.1",
     "d3": "^7.9.0",
     "monaco-editor": "^0.57.0",
     "typlet": "^0.1.1",

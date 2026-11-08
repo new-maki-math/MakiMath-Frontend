@@ -1,8 +1,8 @@
 <script setup>
-import { ArrowLeft, NavArrowRight } from '@iconoir/vue';
 import { onUnmounted, ref, watch } from 'vue';
 
 import { resourceApi } from '../../api/resources.js';
+import { ArrowLeft, NavArrowRight } from '../../components/icons.js';
 import MButton from '../../components/MButton.vue';
 import MDataView from '../../components/MDataView.vue';
 import MFileTypeIcon from '../../components/MFileTypeIcon.vue';
@@ -402,5 +402,24 @@ onUnmounted(() => {
   border-top: 1px solid var(--border-subtle);
   color: var(--text-muted);
   font-size: var(--font-size-smaller);
+}
+@media (max-width: 700px) {
+  .destination-heading {
+    padding: 4px 8px;
+  }
+  .destination-heading :deep(.is-icon-only) {
+    width: 40px;
+    height: 40px;
+    flex: none;
+  }
+  .destination-path button {
+    min-height: 40px;
+  }
+  .destination-folder {
+    min-height: 48px;
+  }
+  .destination-pages :deep(.m-button) {
+    min-height: 40px;
+  }
 }
 </style>
