@@ -58,7 +58,10 @@ defineEmits(['click']);
     >
       <slot name="icon" />
     </span>
-    <span class="btn-content">
+    <span
+      v-if="!iconOnly || $slots.default || !$slots.icon"
+      class="btn-content"
+    >
       <slot />
     </span>
   </button>
@@ -120,6 +123,18 @@ defineEmits(['click']);
 
 .m-button.is-icon-only {
   padding: 0;
+}
+.m-button.is-icon-only .btn-content {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.m-button.is-icon-only.variant-ghost {
+  border: 0;
+}
+.m-button.is-icon-only.variant-ghost:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: -2px;
 }
 .m-button.is-icon-only.size-sm {
   width: 28px;

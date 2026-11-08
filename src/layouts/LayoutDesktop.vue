@@ -1,4 +1,7 @@
 <script setup>
+import { inject, ref } from 'vue';
+import { RouterView } from 'vue-router';
+
 import {
   HalfMoon,
   HelpCircle,
@@ -8,15 +11,13 @@ import {
   SunLight,
   Terminal,
   UserCircle
-} from '@iconoir/vue';
-import { inject, ref } from 'vue';
-import { RouterView } from 'vue-router';
-
+} from '../components/icons.js';
 import MCollapse from '../components/MCollapse.vue';
 import MUpdateLog from '../components/MUpdateLog.vue';
 import SearchBar from '../components/SearchBar.vue';
 import UserDataBackup from '../components/UserDataBackup.vue';
 import ViewportHeader from '../components/ViewportHeader.vue';
+import NavigationIcon from './NavigationIcon.vue';
 import { useLayoutState } from './useLayoutState.js';
 
 // 复用根布局的共享状态
@@ -205,8 +206,8 @@ const handleNavClick = (item) => {
             @click="handleNavClick(item)"
           >
             <div class="nav-icon-wrap">
-              <component
-                :is="item.icon"
+              <NavigationIcon
+                :name="item.id"
                 width="18"
                 height="18"
                 class="nav-icon"
@@ -233,8 +234,8 @@ const handleNavClick = (item) => {
             @click="handleNavClick(item)"
           >
             <div class="nav-icon-wrap">
-              <component
-                :is="item.icon"
+              <NavigationIcon
+                :name="item.id"
                 width="18"
                 height="18"
                 class="nav-icon"
@@ -462,14 +463,13 @@ const handleNavClick = (item) => {
   height: 28px;
   border-radius: var(--radius-xs);
   background: transparent;
-  border: 1px solid transparent;
+  border: 0;
   color: var(--text-muted);
   cursor: pointer;
   flex-shrink: 0;
   transition:
     background-color 120ms ease,
-    color 120ms ease,
-    border-color 120ms ease;
+    color 120ms ease;
 }
 
 .sidebar-header.is-collapsed .sidebar-collapse-btn {
@@ -479,7 +479,11 @@ const handleNavClick = (item) => {
 .sidebar-collapse-btn:hover {
   background-color: var(--bg-hover);
   color: var(--text-primary);
-  border-color: var(--border-subtle);
+}
+
+.sidebar-collapse-btn:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: -2px;
 }
 
 .sidebar-nav {

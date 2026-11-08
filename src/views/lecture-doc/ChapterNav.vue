@@ -1,7 +1,7 @@
 <script setup>
-import { NavArrowLeft, NavArrowRight } from '@iconoir/vue';
 import { ref, watch } from 'vue';
 
+import { NavArrowLeft, NavArrowRight } from '../../components/icons.js';
 import MCollapse from '../../components/MCollapse.vue';
 
 const props = defineProps({

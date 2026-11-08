@@ -1,8 +1,8 @@
 <script setup>
-import { Journal } from '@iconoir/vue';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
 import { markUpdateRead, readUpdateVersions } from '../utils/update-log-read.js';
+import { Journal } from './icons.js';
 import MButton from './MButton.vue';
 import MModal from './MModal.vue';
 import TypstDoc from './typst-renderer/TypstDoc.vue';

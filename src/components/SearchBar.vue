@@ -1,5 +1,4 @@
 <script setup>
-import { ArrowRight, Search, Xmark } from '@iconoir/vue';
 import { inject, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -10,6 +9,7 @@ import {
   useLectureSearch
 } from '../composables/useLectureSearch.js';
 import { lectureLocation } from '../utils/lecture-route.js';
+import { ArrowRight, Search, Xmark } from './icons.js';
 import MBackdrop from './MBackdrop.vue';
 import { notify } from './MNotice.vue';
 import MTag from './MTag.vue';

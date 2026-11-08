@@ -1,9 +1,9 @@
 <script setup>
 // 平台运维与管理控制台总视图
-import { BookmarkSolid, Group, Key, Page } from '@iconoir/vue';
 import { onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
+import { BookmarkSolid, Group, Key, Page } from '../../components/icons.js';
 import MButton from '../../components/MButton.vue';
 import { authStatus, initAuth, isSuperAdmin } from '../../utils/auth.js';
 import AuditPanel from './AuditPanel.vue';

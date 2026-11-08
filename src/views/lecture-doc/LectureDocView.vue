@@ -1,9 +1,9 @@
 <script setup>
-import { List } from '@iconoir/vue';
 import { computed, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import { getCourseSectionContent, toChapters } from '../../api/courses.js';
+import { List } from '../../components/icons.js';
 import MButton from '../../components/MButton.vue';
 import MDrawer from '../../components/MDrawer.vue';
 import TypstDoc from '../../components/typst-renderer/TypstDoc.vue';

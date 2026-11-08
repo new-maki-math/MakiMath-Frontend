@@ -1,8 +1,8 @@
 <script setup>
-import { ArrowLeft, NavArrowRight, Page } from '@iconoir/vue';
 import { onBeforeUnmount, ref, watch } from 'vue';
 
 import { questionApi } from '../../api/questions.js';
+import { ArrowLeft, NavArrowRight, Page } from '../../components/icons.js';
 import MButton from '../../components/MButton.vue';
 import MDataView from '../../components/MDataView.vue';
 import MEmpty from '../../components/MEmpty.vue';

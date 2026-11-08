@@ -1,7 +1,7 @@
 <script setup>
-import { Xmark } from '@iconoir/vue';
 import { nextTick, onUnmounted, ref, watch } from 'vue';
 
+import { Xmark } from './icons.js';
 import MBackdrop from './MBackdrop.vue';
 import MButton from './MButton.vue';
 

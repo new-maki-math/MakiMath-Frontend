@@ -1,7 +1,7 @@
 <script setup>
-import { NavArrowLeft, NavArrowRight } from '@iconoir/vue';
 import { computed, onBeforeUnmount, watch } from 'vue';
 
+import { NavArrowLeft, NavArrowRight } from './icons.js';
 import MBackdrop from './MBackdrop.vue';
 
 const props = defineProps({

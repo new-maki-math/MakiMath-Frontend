@@ -1,7 +1,7 @@
 <script setup>
-import { NavArrowRight, Plus, Upload } from '@iconoir/vue';
 import { onUnmounted, ref, watch } from 'vue';
 
+import { NavArrowRight, Plus, Upload } from '../../components/icons.js';
 import MCollapse from '../../components/MCollapse.vue';
 import WorkbenchTreeNode from '../../components/workbench/WorkbenchTreeNode.vue';
 

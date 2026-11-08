@@ -1,7 +1,7 @@
 <script setup>
-import { ArrowLeft, NavArrowRight, Page } from '@iconoir/vue';
 import { ref } from 'vue';
 
+import { ArrowLeft, NavArrowRight, Page } from '../../components/icons.js';
 import MButton from '../../components/MButton.vue';
 import MDataView from '../../components/MDataView.vue';
 import MEmpty from '../../components/MEmpty.vue';

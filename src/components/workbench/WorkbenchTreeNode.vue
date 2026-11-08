@@ -1,4 +1,6 @@
 <script setup>
+import { computed, ref, watch } from 'vue';
+
 import {
   Archive,
   Book,
@@ -10,9 +12,7 @@ import {
   Page,
   Plus,
   Trash
-} from '@iconoir/vue';
-import { computed, ref, watch } from 'vue';
-
+} from '../icons.js';
 import MCollapse from '../MCollapse.vue';
 
 defineOptions({

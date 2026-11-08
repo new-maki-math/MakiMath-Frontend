@@ -1,8 +1,8 @@
 <script setup>
-import { Refresh } from '@iconoir/vue';
 import { onMounted, ref } from 'vue';
 
 import { request } from '../../api/client.js';
+import { Refresh } from '../../components/icons.js';
 import MButton from '../../components/MButton.vue';
 import { notify } from '../../components/MNotice.vue';
 import MTable from '../../components/MTable.vue';

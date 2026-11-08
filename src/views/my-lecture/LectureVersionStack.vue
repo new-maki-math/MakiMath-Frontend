@@ -1,7 +1,7 @@
 <script setup>
-import { NavArrowRight, Xmark } from '@iconoir/vue';
 import { computed, ref, watch } from 'vue';
 
+import { NavArrowRight, Xmark } from '../../components/icons.js';
 import MLectureCover from '../../components/MLectureCover.vue';
 
 const props = defineProps({

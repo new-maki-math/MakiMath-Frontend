@@ -1,8 +1,8 @@
 <script setup>
-import { Refresh } from '@iconoir/vue';
 import { computed, ref } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
 
+import { Refresh } from './icons.js';
 import MButton from './MButton.vue';
 
 const props = defineProps({

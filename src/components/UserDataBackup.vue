@@ -1,5 +1,4 @@
 <script setup>
-import { Download, Trash, Upload } from '@iconoir/vue';
 import { computed, onMounted, ref } from 'vue';
 
 import { workbenchPanelState } from '../composables/useWorkbenchGuard.js';
@@ -12,6 +11,7 @@ import {
   listClearableDatabases,
   restoreUserData
 } from '../utils/user-data-backup.js';
+import { Download, Trash, Upload } from './icons.js';
 import MButton from './MButton.vue';
 import MCheckbox from './MCheckbox.vue';
 import MFilePicker from './MFilePicker.vue';

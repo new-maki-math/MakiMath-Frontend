@@ -1,4 +1,7 @@
 <script setup>
+import { inject, ref, watch } from 'vue';
+import { RouterView } from 'vue-router';
+
 import {
   HalfMoon,
   HelpCircle,
@@ -9,16 +12,14 @@ import {
   Terminal,
   UserCircle,
   Xmark
-} from '@iconoir/vue';
-import { inject, ref, watch } from 'vue';
-import { RouterView } from 'vue-router';
-
+} from '../components/icons.js';
 import MButton from '../components/MButton.vue';
 import MDrawer from '../components/MDrawer.vue';
 import MTag from '../components/MTag.vue';
 import MUpdateLog from '../components/MUpdateLog.vue';
 import SearchBar from '../components/SearchBar.vue';
 import ViewportHeader from '../components/ViewportHeader.vue';
+import NavigationIcon from './NavigationIcon.vue';
 import { useLayoutState } from './useLayoutState.js';
 
 // 注入共享布局状态
@@ -221,8 +222,8 @@ watch(
             }"
             @click="handleNavClick(item.path)"
           >
-            <component
-              :is="item.icon"
+            <NavigationIcon
+              :name="item.id"
               width="18"
               height="18"
               class="item-icon"
@@ -239,8 +240,8 @@ watch(
             }"
             @click="handleNavClick(item.path)"
           >
-            <component
-              :is="item.icon"
+            <NavigationIcon
+              :name="item.id"
               width="18"
               height="18"
               class="item-icon"
@@ -259,8 +260,8 @@ watch(
             }"
             @click="handleNavClick(item.path)"
           >
-            <component
-              :is="item.icon"
+            <NavigationIcon
+              :name="item.id"
               width="18"
               height="18"
               class="item-icon"

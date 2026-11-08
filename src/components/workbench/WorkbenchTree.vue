@@ -1,7 +1,7 @@
 <script setup>
-import { Plus, Refresh } from '@iconoir/vue';
 import { ref } from 'vue';
 
+import { Plus, Refresh } from '../icons.js';
 import WorkbenchTreeNode from './WorkbenchTreeNode.vue';
 
 const props = defineProps({

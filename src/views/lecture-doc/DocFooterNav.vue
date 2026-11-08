@@ -1,6 +1,5 @@
 <script setup>
-import { NavArrowLeft, NavArrowRight } from '@iconoir/vue';
-
+import { NavArrowLeft, NavArrowRight } from '../../components/icons.js';
 import MTag from '../../components/MTag.vue';
 
 defineProps({

@@ -1,7 +1,7 @@
 <script setup>
-import { Archive, Folder, Page } from '@iconoir/vue';
 import { computed, ref } from 'vue';
 
+import { Archive, Folder, Page } from '../../components/icons.js';
 import MButton from '../../components/MButton.vue';
 
 const sections = [

@@ -1,9 +1,9 @@
 <script setup>
 // 邀请码管理面板组件
-import { Copy, Plus, Refresh } from '@iconoir/vue';
 import { onMounted, ref } from 'vue';
 
 import { request } from '../../api/client.js';
+import { Copy, Plus, Refresh } from '../../components/icons.js';
 import MButton from '../../components/MButton.vue';
 import MInput from '../../components/MInput.vue';
 import MModal from '../../components/MModal.vue';

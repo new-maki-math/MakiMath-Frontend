@@ -1,11 +1,11 @@
 <script setup>
 // 用户中心模态窗口组件
-import { Lock, User, UserCircle, Xmark } from '@iconoir/vue';
 import { computed, ref, watch } from 'vue';
 
 import { request } from '../api/client.js';
 import { invalidateSession, setAuth } from '../utils/auth.js';
 import { getAuthToken } from '../utils/auth-storage.js';
+import { Lock, User, UserCircle, Xmark } from './icons.js';
 import MBackdrop from './MBackdrop.vue';
 import MButton from './MButton.vue';
 import MInput from './MInput.vue';

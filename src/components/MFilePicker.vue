@@ -1,5 +1,5 @@
 <script setup>
-import { Upload } from '@iconoir/vue';
+import { Upload } from './icons.js';
 
 defineProps({
   title: {

@@ -1,12 +1,3 @@
-import {
-  BookmarkSolid,
-  BookSolid,
-  CubeScanSolid,
-  DatabaseSolid,
-  FlaskSolid,
-  StarSolid,
-  TaskList
-} from '@iconoir/vue';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -36,7 +27,6 @@ export const navItems = [
     id: 'my-lecture',
     label: '我的书架',
     path: '/my-lecture',
-    icon: BookmarkSolid,
     tag: 'LOCAL',
     group: 'primary'
   },
@@ -44,7 +34,6 @@ export const navItems = [
     id: 'knowledge',
     label: '知识库',
     path: '/knowledge',
-    icon: DatabaseSolid,
     tag: 'KNOWLEDGE',
     group: 'primary'
   },
@@ -52,7 +41,6 @@ export const navItems = [
     id: 'question-bank',
     label: '题库',
     path: '/question-bank',
-    icon: TaskList,
     tag: 'QUESTIONS',
     group: 'primary'
   },
@@ -60,7 +48,6 @@ export const navItems = [
     id: 'recom-lecture',
     label: '图书推荐',
     path: '/recom-lecture',
-    icon: StarSolid,
     tag: 'HOT',
     group: 'reader'
   },
@@ -68,7 +55,6 @@ export const navItems = [
     id: 'resource-center',
     label: '资源中心',
     path: '/resource-center',
-    icon: BookSolid,
     tag: 'RESOURCES',
     group: 'reader'
   },
@@ -76,7 +62,6 @@ export const navItems = [
     id: 'knowledge-workbench',
     label: '知识点工作台',
     path: '/knowledge-workbench',
-    icon: FlaskSolid,
     tag: 'WORKBENCH',
     group: 'management',
     desktopOnly: true,
@@ -86,7 +71,6 @@ export const navItems = [
     id: 'question-workbench',
     label: '题库工作台',
     path: '/question-workbench',
-    icon: FlaskSolid,
     tag: 'WORKBENCH',
     group: 'management',
     desktopOnly: true,
@@ -96,7 +80,6 @@ export const navItems = [
     id: 'book-workbench',
     label: '图书工作台',
     path: '/book-workbench',
-    icon: FlaskSolid,
     tag: 'WORKBENCH',
     group: 'management',
     desktopOnly: true
@@ -105,7 +88,6 @@ export const navItems = [
     id: 'platform',
     label: '平台管理',
     path: '/platform',
-    icon: CubeScanSolid,
     tag: 'PLATFORM',
     group: 'management',
     desktopOnly: true,
@@ -291,9 +273,9 @@ export function useLayoutState() {
     if (route.name === 'resource-center') {
       return [
         {
- label: 'APP',
-to: '/my-lecture'
-},
+          label: 'APP',
+          to: '/my-lecture'
+        },
         ...resourceBreadcrumbs.value
       ];
     }

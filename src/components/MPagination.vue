@@ -1,7 +1,8 @@
 <script setup>
 // 全局通用数据分页组件
-import { NavArrowLeft, NavArrowRight } from '@iconoir/vue';
 import { computed } from 'vue';
+
+import { NavArrowLeft, NavArrowRight } from './icons.js';
 
 const props = defineProps({
   page: {

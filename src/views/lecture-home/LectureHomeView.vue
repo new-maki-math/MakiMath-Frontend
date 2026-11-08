@@ -1,11 +1,11 @@
 <script setup>
-import { EditPencil, NavArrowRight, Trash } from '@iconoir/vue';
 import { computed, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import { lectureBundleFromTree } from '../../api/courses.js';
 import { lectureApi } from '../../api/lectures.js';
 import { reviewApi } from '../../api/reviews.js';
+import { EditPencil, NavArrowRight, Trash } from '../../components/icons.js';
 import MButton from '../../components/MButton.vue';
 import MCollapse from '../../components/MCollapse.vue';
 import MInput from '../../components/MInput.vue';

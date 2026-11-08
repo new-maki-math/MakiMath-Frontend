@@ -1,9 +1,9 @@
 <script setup>
 // 全站审计日志面板组件
-import { Refresh } from '@iconoir/vue';
 import { onMounted, ref } from 'vue';
 
 import { request } from '../../api/client.js';
+import { Refresh } from '../../components/icons.js';
 import MButton from '../../components/MButton.vue';
 import { notify } from '../../components/MNotice.vue';
 import MPagination from '../../components/MPagination.vue';
