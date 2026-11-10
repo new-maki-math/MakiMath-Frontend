@@ -58,6 +58,11 @@ export const questionApi = {
       ...options,
       cache: 'no-store'
     }),
+  entryNeighbors: (id, options = {}) =>
+    request(`${entries}/${encodeURIComponent(id)}/neighbors`, {
+      ...options,
+      cache: 'no-store'
+    }),
   orphaned: (params, options = {}) =>
     request(
       `${base}?${query({

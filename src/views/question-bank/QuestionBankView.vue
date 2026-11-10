@@ -13,6 +13,18 @@ import { useQuestionBrowser } from './useQuestionBrowser.js';
 
 const { categoryId, query, offset, data, loading, error, load, navigate } = useQuestionBrowser();
 const selectedId = ref(null);
+const selectedEntryId = ref(null);
+const selectedTitle = ref('');
+function selectQuestion(item) {
+  selectedId.value = item.question_id;
+  selectedEntryId.value = item.id;
+  selectedTitle.value = item.source_number || item.slug || '';
+}
+function closeQuestion() {
+  selectedId.value = null;
+  selectedEntryId.value = null;
+  selectedTitle.value = '';
+}
 function goUp() {
   navigate(data.value?.breadcrumbs?.at(-2)?.id ?? null);
 }
@@ -118,7 +130,7 @@ function goUp() {
             :key="`entry:${item.id}`"
             class="row"
             type="button"
-            @click="selectedId = item.question_id"
+            @click="selectQuestion(item)"
           >
             <Page
               class="item-icon question-icon"
@@ -146,7 +158,10 @@ function goUp() {
     </MDataView>
     <QuestionDetailDialog
       :question-id="selectedId"
-      @close="selectedId = null"
+      :entry-id="selectedEntryId"
+      :question-title="selectedTitle"
+      @navigate="selectQuestion"
+      @close="closeQuestion"
     />
   </main>
 </template>

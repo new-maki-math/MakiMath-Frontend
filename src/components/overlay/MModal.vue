@@ -46,6 +46,10 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
+  hideScrollbar: {
+    type: Boolean,
+    default: false
+  },
   showClose: {
     type: Boolean,
     default: false
@@ -169,6 +173,7 @@ onUnmounted(() => {
         <div
           ref="body"
           class="modal-body"
+          :class="{ 'hide-scrollbar': hideScrollbar }"
         >
           <div
             ref="content"
@@ -183,24 +188,26 @@ onUnmounted(() => {
           ref="foot"
           class="modal-foot"
         >
-          <MButton
-            variant="ghost"
-            size="sm"
-            :mono="true"
-            :disabled="busy"
-            @click="emit('close')"
-          >
-            {{ cancelText }}
-          </MButton>
-          <MButton
-            :variant="confirmVariant"
-            size="sm"
-            :mono="true"
-            :disabled="busy"
-            @click="emit('confirm')"
-          >
-            {{ busy ? '处理中...' : confirmText }}
-          </MButton>
+          <slot name="footer">
+            <MButton
+              variant="ghost"
+              size="sm"
+              :mono="true"
+              :disabled="busy"
+              @click="emit('close')"
+            >
+              {{ cancelText }}
+            </MButton>
+            <MButton
+              :variant="confirmVariant"
+              size="sm"
+              :mono="true"
+              :disabled="busy"
+              @click="emit('confirm')"
+            >
+              {{ busy ? '处理中...' : confirmText }}
+            </MButton>
+          </slot>
         </footer>
       </section>
     </transition>
@@ -269,6 +276,14 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+.modal-body.hide-scrollbar {
+  scrollbar-width: none;
+}
+
+.modal-body.hide-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 .is-fixed-height .modal-body {
