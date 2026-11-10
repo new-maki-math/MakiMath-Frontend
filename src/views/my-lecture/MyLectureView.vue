@@ -3,6 +3,7 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { bookApi } from '../../api/books.js';
+import ShelfCompanion from '../../components/app/ShelfCompanion.vue';
 import MLectureCover from '../../components/book/MLectureCover.vue';
 import MHorizontalShelf from '../../components/display/MHorizontalShelf.vue';
 import MDataView from '../../components/feedback/MDataView.vue';
@@ -78,6 +79,17 @@ function onlineBooks(kind) {
 }
 const onlineLectureItems = computed(() => onlineBooks('lecture'));
 const onlineWorkbookItems = computed(() => onlineBooks('workbook'));
+const shelfBookHeight = ref(0);
+const shelfHeightLeader = computed(() => {
+  if (localLectureItems.value.length) return 'local-lecture';
+  if (onlineLectureItems.value.length) return 'online-lecture';
+  if (localWorkbookItems.value.length) return 'local-workbook';
+  if (onlineWorkbookItems.value.length) return 'online-workbook';
+  return '';
+});
+function updateShelfBookHeight(shelf, height) {
+  if (shelf === shelfHeightLeader.value) shelfBookHeight.value = height;
+}
 const localLoading = ref(true);
 const onlineLoading = ref(false);
 const localError = ref('');
@@ -242,8 +254,12 @@ onUnmounted(() => {
 
 <template>
   <main class="my-lecture">
-    <section class="shelf-section">
-      <h1>本地讲义</h1>
+    <div class="shelf-content">
+    <section class="shelf-section has-companion">
+      <div class="shelf-heading">
+        <h1>本地讲义</h1>
+        <span v-if="!localLoading && !localError" class="shelf-count">{{ localLectureItems.length }} 本</span>
+      </div>
       <MDataView
         :loading="localLoading"
         text="正在加载本地讲义…"
@@ -291,7 +307,7 @@ onUnmounted(() => {
             >
           </div>
         </MEmpty>
-        <MHorizontalShelf v-else>
+        <MHorizontalShelf v-else :book-height="shelfHeightLeader === 'local-lecture' ? 0 : shelfBookHeight" @book-height-change="updateShelfBookHeight('local-lecture', $event)">
           <MLectureCover
             v-for="lecture in localLectureItems"
             :key="lecture.id"
@@ -302,12 +318,17 @@ onUnmounted(() => {
           />
         </MHorizontalShelf>
       </MDataView>
+      <ShelfCompanion class="shelf-widget calendar-widget" mode="calendar" />
+      <ShelfCompanion class="saying-note" mode="saying" />
     </section>
     <section
       v-if="authStatus === 'authenticated'"
       class="shelf-section"
     >
-      <h2>我创作的讲义</h2>
+      <div class="shelf-heading">
+        <h2>我创作的讲义</h2>
+        <span v-if="!onlineLoading && !onlineError" class="shelf-count">{{ onlineLectureItems.length }} 本</span>
+      </div>
       <MDataView
         :loading="onlineLoading"
         text="正在加载我创作的讲义…"
@@ -329,7 +350,7 @@ onUnmounted(() => {
           v-else-if="!onlineLectureItems.length"
           class="shelf-empty"
         />
-        <MHorizontalShelf v-else>
+        <MHorizontalShelf v-else :book-height="shelfHeightLeader === 'online-lecture' ? 0 : shelfBookHeight" @book-height-change="updateShelfBookHeight('online-lecture', $event)">
           <LectureVersionStack
             v-for="lecture in onlineLectureItems"
             :key="lecture.id"
@@ -341,7 +362,10 @@ onUnmounted(() => {
       </MDataView>
     </section>
     <section class="shelf-section">
-      <h2>本地题目册</h2>
+      <div class="shelf-heading">
+        <h2>本地题目册</h2>
+        <span v-if="!localLoading && !localError" class="shelf-count">{{ localWorkbookItems.length }} 本</span>
+      </div>
       <MDataView
         :loading="localLoading"
         text="正在加载本地题目册…"
@@ -356,7 +380,7 @@ onUnmounted(() => {
           v-else-if="!localWorkbookItems.length"
           class="shelf-empty"
         />
-        <MHorizontalShelf v-else>
+        <MHorizontalShelf v-else :book-height="shelfHeightLeader === 'local-workbook' ? 0 : shelfBookHeight" @book-height-change="updateShelfBookHeight('local-workbook', $event)">
           <MLectureCover
             v-for="book in localWorkbookItems"
             :key="book.id"
@@ -372,7 +396,10 @@ onUnmounted(() => {
       v-if="authStatus === 'authenticated'"
       class="shelf-section"
     >
-      <h2>我创作的题目册</h2>
+      <div class="shelf-heading">
+        <h2>我创作的题目册</h2>
+        <span v-if="!onlineLoading && !onlineError" class="shelf-count">{{ onlineWorkbookItems.length }} 本</span>
+      </div>
       <MDataView
         :loading="onlineLoading"
         text="正在加载我创作的题目册…"
@@ -387,7 +414,7 @@ onUnmounted(() => {
           v-else-if="!onlineWorkbookItems.length"
           class="shelf-empty"
         />
-        <MHorizontalShelf v-else>
+        <MHorizontalShelf v-else :book-height="shelfHeightLeader === 'online-workbook' ? 0 : shelfBookHeight" @book-height-change="updateShelfBookHeight('online-workbook', $event)">
           <LectureVersionStack
             v-for="book in onlineWorkbookItems"
             :key="book.id"
@@ -398,6 +425,7 @@ onUnmounted(() => {
         </MHorizontalShelf>
       </MDataView>
     </section>
+    </div>
   </main>
 </template>
 
@@ -406,14 +434,20 @@ onUnmounted(() => {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: clamp(20px, 3vh, 36px);
   box-sizing: border-box;
   min-width: 0;
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
-  padding: 20px clamp(20px, 3vw, 40px) clamp(20px, 3vw, 40px);
+  padding: clamp(24px, 3vw, 40px);
+  padding-top: 24px;
   color: var(--text-primary);
+}
+.shelf-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
 }
 .shelf-section {
   display: flex;
@@ -422,12 +456,154 @@ onUnmounted(() => {
   min-width: 0;
   min-height: 220px;
 }
-.shelf-section :deep(.horizontal-shelf) {
-  flex: 0 0 255px;
+.shelf-section::after {
+  content: '';
+  display: block;
+  flex: none;
+  height: 10px;
+  margin-inline: -12px;
+  border-top: 2px solid color-mix(in srgb, var(--bg-elevated) 55%, var(--shelf-face));
+  border-bottom: 1px solid var(--shelf-edge);
+  border-radius: 0 0 var(--radius) var(--radius);
+  background: var(--shelf-face);
+  box-shadow:
+    inset 0 -2px 0 color-mix(in srgb, var(--shelf-edge) 45%, transparent),
+    0 4px 8px var(--shadow-color-subtle);
 }
-.shelf-section + .shelf-section {
-  padding-top: clamp(20px, 3vh, 36px);
-  border-top: 1px solid var(--border-subtle);
+.shelf-section.has-companion {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
+  grid-template-rows: auto 1fr auto;
+  column-gap: clamp(24px, 3vw, 40px);
+}
+.has-companion .shelf-heading {
+  grid-column: 1;
+}
+.has-companion :deep(.m-data-view) {
+  grid-column: 1;
+  align-self: end;
+  min-width: 0;
+}
+.has-companion .shelf-widget {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  align-self: start;
+  padding: 0 0 18px;
+}
+.has-companion .calendar-widget {
+  align-self: end;
+  padding-bottom: 0;
+}
+.saying-note {
+  position: absolute;
+  z-index: 1;
+  top: calc(100% + 20px);
+  right: min(170px, 50%);
+  width: max-content;
+  max-width: min(340px, 100%);
+  padding: 0;
+  transform: translateX(50%);
+}
+.saying-note::before,
+.saying-note::after {
+  content: '';
+  position: absolute;
+  top: -24px;
+  width: 1px;
+  height: 24px;
+  background: var(--shelf-edge);
+}
+.saying-note::before { left: 24%; }
+.saying-note::after { right: 24%; }
+.saying-note :deep(.saying) {
+  min-height: 0;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  overflow: visible;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--calendar-paper) 65%, var(--calendar-band));
+  box-shadow:
+    1px 0 3px var(--shadow-color-subtle),
+    0 3px 8px var(--shadow-color-subtle);
+}
+.saying-note :deep(.saying)::before,
+.saying-note :deep(.saying)::after {
+  content: '';
+  position: absolute;
+  top: -3px;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--shelf-edge);
+}
+.saying-note :deep(.saying)::before { left: calc(24% - 3px); }
+.saying-note :deep(.saying)::after { right: calc(24% - 3px); }
+.saying-note :deep(.saying p) {
+  margin: 0;
+  font-size: var(--font-size);
+}
+.saying-note :deep(.saying-mark) {
+  display: none;
+}
+.has-companion::after {
+  grid-column: 1 / -1;
+}
+@media (max-width: 1100px) {
+  .shelf-section.has-companion {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+  }
+  .has-companion .shelf-widget {
+    grid-column: 1;
+    grid-row: auto;
+    width: min(100%, 340px);
+    padding: 16px 0;
+  }
+  .saying-note {
+    right: auto;
+    left: min(170px, 50%);
+    transform: translateX(-50%);
+  }
+}
+@media (max-width: 767px) {
+  .has-companion .calendar-widget,
+  .saying-note {
+    display: none;
+  }
+}
+.shelf-section :deep(.shelf-frame) {
+  flex: 0 0 275px;
+}
+.shelf-section :deep(.m-data-view) {
+  min-height: 275px;
+}
+.shelf-section :deep(.horizontal-shelf) {
+  padding-bottom: 0;
+}
+.shelf-section :deep(.horizontal-shelf .lecture-cover),
+.shelf-section :deep(.horizontal-shelf .version-stack) {
+  max-height: 275px;
+}
+.shelf-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.shelf-heading::before {
+  content: '';
+  align-self: stretch;
+  width: 3px;
+  border-radius: var(--radius-full);
+  background: var(--accent-primary);
+}
+.shelf-count {
+  color: var(--text-muted);
+  font-size: var(--font-size-smallest);
+  font-weight: var(--font-weight-regular);
+  white-space: nowrap;
 }
 .shelf-empty {
   flex: 1;
@@ -461,9 +637,10 @@ onUnmounted(() => {
 h1,
 h2 {
   flex: none;
-  margin: 0 0 16px;
+  margin: 0;
   font-size: var(--font-size-larger);
   font-weight: var(--font-weight-semibold);
+  line-height: 1.4;
 }
 .shelf-message {
   margin: 0;
@@ -475,7 +652,21 @@ h2 {
 }
 @media (max-width: 480px) {
   .my-lecture {
-    padding: 14px 16px 20px;
+    gap: 28px;
+    padding: 20px 20px 28px;
+  }
+  .shelf-content {
+    gap: 20px;
+  }
+  .shelf-section :deep(.shelf-frame) {
+    flex-basis: 255px;
+  }
+  .shelf-section :deep(.m-data-view) {
+    min-height: 255px;
+  }
+  .shelf-section :deep(.horizontal-shelf .lecture-cover),
+  .shelf-section :deep(.horizontal-shelf .version-stack) {
+    max-height: 255px;
   }
   .shelf-guide-arrow {
     display: none;

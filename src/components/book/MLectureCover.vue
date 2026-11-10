@@ -100,103 +100,105 @@ onUnmounted(() => {
     :aria-label="title"
     :title="title"
   >
-    <svg
-      class="cover-art"
-      viewBox="0 0 210 297"
-      aria-hidden="true"
-    >
-      <rect
-        width="210"
-        height="297"
-        class="cover-background"
-      />
-      <rect
-        width="7"
-        height="297"
-        class="cover-spine"
-      />
-      <path
-        d="M25 29h160 M25 263h160"
-        class="cover-rule"
-      />
-      <text
-        x="25"
-        y="23"
-        class="cover-brand"
+    <span class="cover-frame">
+      <svg
+        class="cover-art"
+        viewBox="0 0 210 297"
+        aria-hidden="true"
       >
-        MAKI / MATH
-      </text>
-      <text
-        x="185"
-        y="23"
-        text-anchor="end"
-        class="cover-index"
-      >
-        LECTURE NOTES
-      </text>
-      <g class="cover-grid">
-        <path d="M38 65v152 M65 65v152 M92 65v152 M119 65v152 M146 65v152 M173 65v152" />
-        <path d="M38 65h135 M38 92h135 M38 119h135 M38 146h135 M38 173h135 M38 200h135" />
-      </g>
-      <path
-        d="M43 192 L69 171 L96 178 L122 129 L148 139 L173 91"
-        class="cover-graph"
+        <rect
+          width="210"
+          height="297"
+          class="cover-background"
+        />
+        <rect
+          width="7"
+          height="297"
+          class="cover-spine"
+        />
+        <path
+          d="M25 29h160 M25 263h160"
+          class="cover-rule"
+        />
+        <text
+          x="25"
+          y="23"
+          class="cover-brand"
+        >
+          MAKI / MATH
+        </text>
+        <text
+          x="185"
+          y="23"
+          text-anchor="end"
+          class="cover-index"
+        >
+          LECTURE NOTES
+        </text>
+        <g class="cover-grid">
+          <path d="M38 65v152 M65 65v152 M92 65v152 M119 65v152 M146 65v152 M173 65v152" />
+          <path d="M38 65h135 M38 92h135 M38 119h135 M38 146h135 M38 173h135 M38 200h135" />
+        </g>
+        <path
+          d="M43 192 L69 171 L96 178 L122 129 L148 139 L173 91"
+          class="cover-graph"
+        />
+        <circle
+          cx="69"
+          cy="171"
+          r="3"
+          class="cover-dot"
+        />
+        <circle
+          cx="122"
+          cy="129"
+          r="3"
+          class="cover-dot"
+        />
+        <circle
+          cx="173"
+          cy="91"
+          r="3"
+          class="cover-dot"
+        />
+        <text
+          x="25"
+          y="277"
+          class="cover-footer"
+        >
+          KNOWLEDGE / PRACTICE
+        </text>
+        <text
+          x="185"
+          y="277"
+          text-anchor="end"
+          class="cover-footer"
+        >
+          ∑
+        </text>
+      </svg>
+      <img
+        v-if="coverSource"
+        :key="coverSource"
+        class="cover-image"
+        :class="{
+          'is-loaded': loadedCover === coverSource
+        }"
+        :src="coverSource"
+        alt=""
+        @load="showCover"
       />
-      <circle
-        cx="69"
-        cy="171"
-        r="3"
-        class="cover-dot"
-      />
-      <circle
-        cx="122"
-        cy="129"
-        r="3"
-        class="cover-dot"
-      />
-      <circle
-        cx="173"
-        cy="91"
-        r="3"
-        class="cover-dot"
-      />
-      <text
-        x="25"
-        y="277"
-        class="cover-footer"
-      >
-        KNOWLEDGE / PRACTICE
-      </text>
-      <text
-        x="185"
-        y="277"
-        text-anchor="end"
-        class="cover-footer"
-      >
-        ∑
-      </text>
-    </svg>
-    <img
-      v-if="coverSource"
-      :key="coverSource"
-      class="cover-image"
-      :class="{
-        'is-loaded': loadedCover === coverSource
-      }"
-      :src="coverSource"
-      alt=""
-      @load="showCover"
-    />
-    <span
-      v-if="showCaption"
-      class="cover-caption"
-    >
-      <span class="cover-title">{{ title }}</span>
       <span
-        v-if="subtitle"
-        class="cover-subtitle-wrap"
-        ><span class="cover-subtitle">{{ subtitle }}</span></span
+        v-if="showCaption"
+        class="cover-caption"
       >
+        <span class="cover-title">{{ title }}</span>
+        <span
+          v-if="subtitle"
+          class="cover-subtitle-wrap"
+          ><span class="cover-subtitle">{{ subtitle }}</span></span
+        >
+      </span>
     </span>
   </button>
 </template>
@@ -208,22 +210,39 @@ onUnmounted(() => {
   width: 100%;
   aspect-ratio: 210 / 297;
   padding: 0;
-  overflow: hidden;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-xs);
-  background: var(--bg-surface);
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  box-shadow: 0 2px 8px var(--shadow-color-subtle);
   color: var(--text-primary);
   text-align: left;
   cursor: pointer;
-  transition: border-color 180ms ease;
+  transition: outline-color 180ms ease;
 }
-.lecture-cover:hover,
-.lecture-cover:focus-visible {
-  border-color: var(--accent-primary);
+.lecture-cover:hover {
+  outline: 1px solid var(--accent-primary);
+  outline-offset: 0;
 }
 .lecture-cover:focus-visible {
   outline: 2px solid var(--accent-primary);
   outline-offset: 2px;
+}
+.cover-frame {
+  position: absolute;
+  inset: 0;
+  display: block;
+  background: var(--bg-surface);
+  clip-path: inset(0 round var(--radius));
+  isolation: isolate;
+}
+.cover-frame::after {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: var(--radius);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--border-subtle) 55%, transparent);
+  pointer-events: none;
+  content: '';
 }
 .cover-image {
   position: absolute;
@@ -245,7 +264,7 @@ onUnmounted(() => {
   pointer-events: none;
 }
 .cover-background {
-  fill: var(--bg-surface);
+  fill: var(--cover-art-background);
 }
 .cover-spine {
   fill: var(--accent-primary);

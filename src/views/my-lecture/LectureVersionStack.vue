@@ -160,7 +160,7 @@ function versionStatus(version) {
   bottom: 4px;
   width: 100%;
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
   background: var(--bg-elevated);
 }
 .version-stack.has-versions::before {
@@ -185,7 +185,7 @@ function versionStatus(version) {
   padding: 13px 10px;
   box-sizing: border-box;
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
   background: var(--bg-surface);
   background: color-mix(in srgb, var(--bg-surface) 88%, transparent);
   -webkit-backdrop-filter: blur(12px);
@@ -212,7 +212,7 @@ function versionStatus(version) {
   height: 25px;
   padding: 0;
   border: 0;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
@@ -226,7 +226,7 @@ function versionStatus(version) {
   min-width: 0;
   padding: 10px 8px;
   border: 0;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
   background: transparent;
   color: var(--text-primary);
   font-size: var(--font-size-smaller);
