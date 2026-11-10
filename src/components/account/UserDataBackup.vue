@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue';
 
 import { workbenchPanelState } from '../../composables/useWorkbenchGuard.js';
+import { FILE_CACHE_DATABASE } from '../../utils/file-cache.js';
 import {
   clearRecoveryBackup,
   deleteSelectedDatabases,
@@ -36,11 +37,17 @@ const cleanupError = ref('');
 const cleanupProgress = ref('');
 const cleanupIncomplete = ref(false);
 const visibleDatabases = computed(() =>
-  cleanupDatabases.value.filter((item) => cleanupMode.value === 'all' || item.legacy)
+  cleanupDatabases.value.filter(
+    (item) =>
+      cleanupMode.value === 'all' ||
+      (cleanupMode.value === 'legacy' && item.legacy) ||
+      (cleanupMode.value === 'cache' && item.cache)
+  )
 );
 let sequence = 0;
 
 const labels = {
+  [FILE_CACHE_DATABASE]: '资源文件缓存',
   MakiMath_LocalLectures: '本地讲义',
   MakiMath_KnowledgeMastery: '知识点掌握记录',
   MakiMath_UpdateLog: '更新日志已读记录',
@@ -430,6 +437,14 @@ onMounted(updateRecovery);
           <MRadio
             :model-value="cleanupMode"
             name="cleanup-mode"
+            value="cache"
+            :disabled="busy"
+            @update:model-value="changeCleanupMode"
+            >缓存数据库</MRadio
+          >
+          <MRadio
+            :model-value="cleanupMode"
+            name="cleanup-mode"
             value="all"
             :disabled="busy"
             @update:model-value="changeCleanupMode"
@@ -437,6 +452,12 @@ onMounted(updateRecovery);
           >
         </div>
         <p class="backup-text">当前没有可确认安全删除的遗弃字段，未识别的字段不会被自动清理。</p>
+        <p
+          v-if="cleanupMode === 'cache'"
+          class="backup-text"
+        >
+          缓存用于加快资源加载，不包含在用户数据备份中；删除后需要时会重新下载。
+        </p>
         <div
           v-if="visibleDatabases.length"
           class="cleanup-modes"

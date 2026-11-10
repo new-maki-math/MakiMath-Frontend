@@ -2,8 +2,17 @@ const FORMAT = 'maki-math-indexeddb-backup';
 const FORMAT_VERSION = 1;
 const LOCK_NAME = 'maki-user-data';
 const RECOVERY_FILE = 'maki-math-recovery.json';
-const DISPOSABLE_DATABASES = new Set(['MakiMath_FileCache', 'maki-lecture-covers']);
+const DISPOSABLE_DATABASES = new Set([FILE_CACHE_DATABASE, 'maki-lecture-covers']);
 const SCHEMAS = {
+  MakiMath_Schedule: {
+    version: 1,
+    stores: {
+      events: {
+        keyPath: 'id',
+        indexes: []
+      }
+    }
+  },
   MakiMath_LocalLectures: {
     version: 1,
     stores: {
@@ -796,7 +805,8 @@ export async function listClearableDatabases() {
     name: item.name,
     version: item.version,
     known: Object.hasOwn(SCHEMAS, item.name) || DISPOSABLE_DATABASES.has(item.name),
-    legacy: Boolean(SCHEMAS[item.name]?.legacy)
+    legacy: Boolean(SCHEMAS[item.name]?.legacy),
+    cache: DISPOSABLE_DATABASES.has(item.name) || item.name === 'maki-knowledge-glyphs'
   }));
 }
 
@@ -848,3 +858,4 @@ export async function deleteSelectedDatabases(selected, progress, onIncomplete) 
     }
   );
 }
+import { FILE_CACHE_DATABASE } from './file-cache.js';
