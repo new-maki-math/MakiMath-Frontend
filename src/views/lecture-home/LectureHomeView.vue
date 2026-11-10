@@ -77,34 +77,6 @@ const reviewStatusLabel = computed(
       rejected: '已驳回'
     })[revisionStatus.value] || '未提供'
 );
-const statusTag = computed(() =>
-  shelfSource.value === 'local'
-    ? {
-        label: 'LOCAL',
-        variant: 'cyan'
-      }
-    : {
-        draft: {
-          label: 'DRAFT',
-          variant: 'amber'
-        },
-        pending: {
-          label: 'IN REVIEW',
-          variant: 'blue'
-        },
-        approved: {
-          label: 'APPROVED',
-          variant: 'green'
-        },
-        rejected: {
-          label: 'REJECTED',
-          variant: 'red'
-        }
-      }[revisionStatus.value] || {
-        label: 'UNKNOWN',
-        variant: 'gray'
-      }
-);
 const updatedAt = computed(() => {
   if (!lecture.value?.updatedAt) {
     return '';
@@ -457,9 +429,6 @@ const loadLectureData = async (slug) => {
   chapters.value = [];
   try {
     const tree = await fetchShelfLectureTree(slug, shelfSource.value, revisionId.value);
-    if (tree.kind === 'workbook') {
-      throw new Error('题目册阅读暂未开放');
-    }
     const bundle = lectureBundleFromTree(tree);
     if (id !== loadId) {
       return;
@@ -560,22 +529,16 @@ onUnmounted(() => {
         </template>
         <div class="header-copy">
           <div class="header-info">
-            <div class="header-tags">
-              <MTag
-                :variant="statusTag.variant"
-                size="md"
-                :dot="true"
-                >{{ statusTag.label }}</MTag
-              >
-            </div>
-
             <h1 class="lecture-title">{{ lecture.title }}</h1>
-            <p
-              class="lecture-desc"
-              tabindex="0"
-            >
-              {{ lecture.desc || '暂无课程描述信息。' }}
-            </p>
+            <div class="lecture-description">
+              <p
+                id="lecture-description"
+                class="lecture-desc"
+                tabindex="0"
+              >
+                {{ lecture.desc || '暂无课程描述信息。' }}
+              </p>
+            </div>
           </div>
 
           <!-- 快捷操作栏 -->
@@ -1027,12 +990,6 @@ onUnmounted(() => {
 .cover-input {
   display: none;
 }
-.header-tags {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .lecture-title {
   font-size: var(--font-size-largest);
   font-weight: var(--font-weight-bold);
@@ -1041,13 +998,16 @@ onUnmounted(() => {
   overflow-wrap: anywhere;
 }
 
+.lecture-description {
+  min-width: 0;
+  max-width: 840px;
+}
+
 .lecture-desc {
   font-size: var(--font-size);
   color: var(--text-secondary);
   line-height: 1.6;
   max-width: 840px;
-  max-height: 120px;
-  overflow-y: auto;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
@@ -1401,15 +1361,18 @@ onUnmounted(() => {
   }
 
   .lecture-header {
-    grid-template-columns: 110px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto;
     align-items: start;
-    gap: 16px;
+    row-gap: 10px;
     padding-bottom: 20px;
   }
 
   .header-cover {
     grid-column: 1;
     grid-row: 1;
+    width: min(150px, 45%);
+    justify-self: center;
   }
 
   .header-copy {
@@ -1417,24 +1380,34 @@ onUnmounted(() => {
   }
 
   .header-info {
-    grid-column: 2;
-    grid-row: 1;
-    gap: 10px;
+    display: contents;
   }
 
   .lecture-title {
-    font-size: clamp(20px, 5.5vw, 24px);
+    grid-column: 1;
+    grid-row: 2;
+    align-self: start;
+    margin: 0;
+    text-align: center;
+    font-size: clamp(18px, 5vw, 22px);
     line-height: 1.35;
+  }
+
+  .lecture-description {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    padding-top: 2px;
   }
 
   .lecture-desc {
     font-size: 13.5px;
-    line-height: 1.6;
+    line-height: 1.65;
   }
 
   .lecture-actions {
     display: grid;
     grid-column: 1 / -1;
+    grid-row: 4;
     grid-template-columns: repeat(6, minmax(0, 1fr));
     align-items: stretch;
     width: 100%;
@@ -1560,15 +1533,6 @@ onUnmounted(() => {
 }
 
 @media (max-width: 600px) {
-  .lecture-header {
-    grid-template-columns: minmax(84px, 28%) minmax(0, 1fr);
-    gap: 14px;
-  }
-
-  .lecture-desc {
-    max-height: none;
-  }
-
   .roadmap-container-box {
     height: 300px;
   }
