@@ -10,6 +10,10 @@ defineProps({
     type: String,
     default: '加载中…'
   },
+  spinnerSize: {
+    type: Number,
+    default: 16
+  },
   contentKey: {
     type: [String, Number],
     default: 'content'
@@ -31,7 +35,7 @@ defineProps({
       class="data-loading"
       role="status"
     >
-      <MSpinner :size="16" />
+      <MSpinner :size="spinnerSize" />
       <span>{{ text }}</span>
     </div>
     <Transition

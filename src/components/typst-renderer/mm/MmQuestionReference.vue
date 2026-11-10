@@ -21,6 +21,7 @@ const props = defineProps({
 });
 const allowed = inject('typstQuestionReferencesAllowed', ref(true));
 const printReferences = inject('typstPrintQuestionReferences', null);
+const readingReferences = inject('typstReadingReferences', null);
 const detail = ref(null);
 const loading = ref(false);
 const error = ref('');
@@ -37,7 +38,9 @@ async function load() {
   try {
     const result = printReferences
       ? printReferences.get(props.slug)
-      : await getReferencedQuestion(props.slug);
+      : readingReferences?.value?.questions.has(props.slug)
+        ? readingReferences.value.questions.get(props.slug)
+        : await getReferencedQuestion(props.slug);
     if (current !== sequence) {
       return;
     }

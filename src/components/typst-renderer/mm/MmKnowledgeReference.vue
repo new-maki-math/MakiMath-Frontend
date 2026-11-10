@@ -13,6 +13,7 @@ const props = defineProps({
 });
 const allowed = inject('typstKnowledgeReferencesAllowed', ref(true));
 const printReferences = inject('typstPrintReferences', null);
+const readingReferences = inject('typstReadingReferences', null);
 const detail = ref(null);
 const loading = ref(false);
 const error = ref('');
@@ -27,9 +28,19 @@ async function load() {
   }
   loading.value = true;
   try {
-    const value = printReferences
-      ? printReferences.get(props.knowledgeSlug)
-      : await getReferencedKnowledge(props.knowledgeSlug);
+    let value;
+    if (printReferences) {
+      value = printReferences.get(props.knowledgeSlug);
+    } else if (readingReferences?.value?.knowledge.has(props.knowledgeSlug)) {
+      value = readingReferences.value.knowledge.get(props.knowledgeSlug);
+      if (!value) {
+        const failure = new Error('知识点不存在');
+        failure.status = 404;
+        throw failure;
+      }
+    } else {
+      value = await getReferencedKnowledge(props.knowledgeSlug);
+    }
     if (current !== sequence) {
       return;
     }

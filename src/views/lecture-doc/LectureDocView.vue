@@ -1,10 +1,11 @@
 <script setup>
-import { computed, onUnmounted, ref, watch } from 'vue';
+import { computed, onUnmounted, provide, ref, shallowRef, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import { getCourseSectionContent, toChapters } from '../../api/courses.js';
 import { List } from '../../components/icons/icons.js';
 import MButton from '../../components/form/MButton.vue';
+import MDataView from '../../components/feedback/MDataView.vue';
 import MDrawer from '../../components/overlay/MDrawer.vue';
 import TypstDoc from '../../components/typst-renderer/TypstDoc.vue';
 import { authStatus, currentUser } from '../../utils/auth.js';
@@ -13,6 +14,7 @@ import { fetchShelfLectureTree } from '../../utils/shelf-lecture.js';
 import ChapterNav from './ChapterNav.vue';
 import DocFooterNav from './DocFooterNav.vue';
 import OutlineNav from './OutlineNav.vue';
+import { prepareReadingReferences } from './prepare-reading-references.js';
 import SectionAnimation from './SectionAnimation.vue';
 import { useReadingOutline } from './useReadingOutline.js';
 
@@ -25,6 +27,8 @@ const sectionSlug = computed(() => String(route.params.sectionSlug || ''));
 const revisionId = computed(() => route.query.revision_id ?? '');
 const chapters = ref([]);
 const content = ref(null);
+const readingReferences = shallowRef(null);
+provide('typstReadingReferences', readingReferences);
 const loading = ref(true);
 const error = ref('');
 const retryKey = ref(0);
@@ -93,14 +97,15 @@ watch(
     source,
     revisionId,
     retryKey,
-    () => (source.value === 'online' ? authStatus.value : null),
-    () => (source.value === 'online' ? currentUser.value?.id : null)
+    authStatus,
+    () => currentUser.value?.id
   ],
   async ([lectureSlug, selectedChapter, selectedSection]) => {
     const current = ++sequence;
     loading.value = true;
     error.value = '';
     content.value = null;
+    readingReferences.value = null;
     chapters.value = [];
     try {
       const tree = await fetchShelfLectureTree(lectureSlug, source.value, revisionId.value);
@@ -118,7 +123,12 @@ watch(
       chapters.value = items;
       if (section) {
         const loaded = await getCourseSectionContent(lectureSlug, section.id, tree);
+        if (current !== sequence) return;
+        const references = await prepareReadingReferences(loaded.source || '', () => {
+          if (current !== sequence) throw new Error('阅读内容已切换');
+        });
         if (current === sequence) {
+          readingReferences.value = references;
           content.value = loaded;
         }
       }
@@ -188,13 +198,14 @@ onUnmounted(() => {
           @select="selectOutline"
         />
       </div>
-      <div class="reading-content-wrap">
-        <p
+      <div class="reading-content-wrap" :class="{ 'is-loading': loading }">
+        <MDataView
           v-if="loading"
-          class="reading-note"
-        >
-          正在加载讲义…
-        </p>
+          class="reading-loading"
+          :loading="true"
+          :spinner-size="32"
+          text="正在加载内容和引用…"
+        />
         <div
           v-else-if="error"
           class="reading-note"
@@ -305,6 +316,17 @@ onUnmounted(() => {
   max-width: 920px;
   margin: 0 auto;
   padding: 32px clamp(20px, 5vw, 48px) 64px;
+}
+.reading-content-wrap.is-loading {
+  display: flex;
+  min-height: 100%;
+}
+.reading-loading :deep(.data-loading) {
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  gap: 16px;
+  font-size: var(--font-size);
 }
 .doc-header {
   margin-bottom: 24px;
