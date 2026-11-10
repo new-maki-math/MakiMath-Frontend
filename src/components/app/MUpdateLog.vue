@@ -1,3 +1,7 @@
+<script>
+let autoPromptChecked = false;
+</script>
+
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
@@ -35,7 +39,7 @@ const releases = computed(() => {
   });
 });
 
-async function loadLog() {
+async function loadLog({ autoOpen = false } = {}) {
   const current = ++sequence;
   loading.value = true;
   error.value = '';
@@ -62,16 +66,18 @@ async function loadLog() {
     } else {
       storageError.value = '无法读取本地已读状态';
     }
+    if (autoOpen && !autoPromptChecked) {
+      autoPromptChecked = true;
+      if (!versions || !versions.has(data.version)) {
+        open.value = true;
+      }
+    }
     if (!open.value) {
       return;
     }
     const cacheKey = `public:changelog:${window.location.origin}:${base}:${data.version}`;
-    const cached = await getCachedFile(cacheKey);
-    if (current !== sequence || disposed || !open.value) {
-      return;
-    }
-    let text = cached?.value;
-    if (typeof text !== 'string') {
+    let text;
+    try {
       const body = await fetch(`${base}changelog.typ`, {
         cache: 'no-store'
       });
@@ -88,6 +94,10 @@ async function loadLog() {
           value: text
         });
       }
+    } catch (failure) {
+      const cached = await getCachedFile(cacheKey);
+      if (typeof cached?.value !== 'string') throw failure;
+      text = cached.value;
     }
     if (current === sequence && !disposed && open.value) {
       source.value = text;
@@ -140,7 +150,7 @@ function close() {
   sequence++;
   loading.value = false;
 }
-onMounted(loadLog);
+onMounted(() => loadLog({ autoOpen: true }));
 onBeforeUnmount(() => {
   disposed = true;
   sequence++;
@@ -262,7 +272,7 @@ onBeforeUnmount(() => {
   width: 28px;
   height: 28px;
   border: 0;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
   background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
@@ -287,7 +297,7 @@ onBeforeUnmount(() => {
   right: 2px;
   width: 6px;
   height: 6px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   background: var(--accent-primary);
 }
 .update-content {
@@ -297,10 +307,7 @@ onBeforeUnmount(() => {
   min-width: 0;
 }
 .update-scroll {
-  max-height: min(60vh, 560px);
   min-width: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
 }
 .update-history {
   margin-top: 20px;
