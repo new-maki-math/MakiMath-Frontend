@@ -56,6 +56,6 @@ const paths = Object.freeze({
   flex: none;
   width: 1.25em;
   height: 1.25em;
-  transform: translateY(0.06em);
+  transform: translateY(-0.08em);
 }
 </style>

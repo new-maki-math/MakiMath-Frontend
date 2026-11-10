@@ -230,9 +230,6 @@ function optionLabel(index) {
   <div
     v-else-if="node.type === 'table'"
     class="typst-table-wrap"
-    :class="{
-      'has-bottom-line': node.hasBottomLine
-    }"
     tabindex="0"
     role="region"
     aria-label="可横向滚动的表格"
@@ -264,9 +261,6 @@ function optionLabel(index) {
             :key="cell.empty ? `empty:${col}` : `${cell.start}:${cell.end}`"
             :colspan="cell.colspan"
             :rowspan="cell.rowspan"
-            :class="{
-              'has-bottom-line': cell.bottomLine
-            }"
             :style="cell.style"
           >
             <TypstNode
@@ -424,20 +418,6 @@ function optionLabel(index) {
   outline: 1px solid var(--accent-primary);
   outline-offset: 2px;
 }
-.typst-table-wrap.has-bottom-line {
-  padding-bottom: 8px;
-}
-.typst-table .has-bottom-line {
-  position: relative;
-}
-.typst-table .has-bottom-line::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -7px;
-  border-bottom: var(--typst-bottom-line);
-}
 .typst-table {
   width: max-content;
   max-width: none;
@@ -483,7 +463,7 @@ function optionLabel(index) {
   overflow-x: auto;
   padding: 12px;
   background: var(--bg-elevated);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
   white-space: pre;
 }
 .typst-inline-code {
@@ -491,7 +471,7 @@ function optionLabel(index) {
   overflow-wrap: anywhere;
   padding: 1px 4px;
   background: var(--bg-elevated);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
 }
 .typst-math {
   font-size: 1.3em;

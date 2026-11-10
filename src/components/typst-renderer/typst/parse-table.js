@@ -576,18 +576,10 @@ export function parseTable(parts, positioned, convertChildren) {
             error: '暂不支持横线穿过跨列单元格'
           };
         }
-        if (y === rows.length) {
-          cell.bottomLine = stroke;
-          cell.lineStyle = {
-            ...cell.lineStyle,
-            borderBottom: 'none'
-          };
-        } else {
-          cell.lineStyle = {
-            ...cell.lineStyle,
-            [side]: stroke
-          };
-        }
+        cell.lineStyle = {
+          ...cell.lineStyle,
+          [side]: stroke
+        };
       }
     }
   }
@@ -630,12 +622,10 @@ export function parseTable(parts, positioned, convertChildren) {
       }
     }
   }
-  const hasBottomLine = rows.some((row) => row.some((cell) => cell.bottomLine));
   return {
     widths,
     fractional,
     mixedColumns,
-    hasBottomLine,
     rows: rows.map((row) =>
       row.map((cell) => {
         const columnStyle = Object.values(columnStyles).reduce(
@@ -648,9 +638,6 @@ export function parseTable(parts, positioned, convertChildren) {
           ...cell.style,
           ...cell.lineStyle
         };
-        if (cell.bottomLine) {
-          style['--typst-bottom-line'] = cell.bottomLine;
-        }
         return cell.empty
           ? {
               ...cell,
@@ -662,7 +649,6 @@ export function parseTable(parts, positioned, convertChildren) {
               header: cell.header,
               colspan: cell.colspan,
               rowspan: cell.rowspan,
-              bottomLine: Boolean(cell.bottomLine),
               style,
               children: convertChildren(cell.body.node, cell.body.start)
             };
