@@ -73,6 +73,8 @@ const paths = {
     'M4 3h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1m10 0h6a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1m0 7h6a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-6a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1M4 13h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1m10 4h6a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-6a1 1 0 0 1-1-1v-2a1 1 0 0 1 1-1',
   QuestionBank:
     'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2m1.25 4a.75.75 0 0 0 0 1.5h1.5a.75.75 0 0 0 0-1.5zm4 0a.75.75 0 0 0 0 1.5h7.5a.75.75 0 0 0 0-1.5zm-4 4.25a.75.75 0 0 0 0 1.5h1.5a.75.75 0 0 0 0-1.5zm4 0a.75.75 0 0 0 0 1.5h7.5a.75.75 0 0 0 0-1.5zm-4 4.25a.75.75 0 0 0 0 1.5h1.5a.75.75 0 0 0 0-1.5zm4 0a.75.75 0 0 0 0 1.5h5.5a.75.75 0 0 0 0-1.5z',
+  MistakeBook:
+    'M6 2.75h11.5A2.5 2.5 0 0 1 20 5.25v13.5a2.5 2.5 0 0 1-2.5 2.5H6A3 3 0 0 1 3 18.25V5.75a3 3 0 0 1 3-3m.25 2a.75.75 0 0 0-.75.75v11.75a.75.75 0 0 0 1.5 0V5.5a.75.75 0 0 0-.75-.75m3.6 3.5 2.1 2.1-2.1 2.1 1.4 1.4 2.1-2.1 2.1 2.1 1.4-1.4-2.1-2.1 2.1-2.1-1.4-1.4-2.1 2.1-2.1-2.1zm.4 7.75a.75.75 0 0 0 0 1.5h6.5a.75.75 0 0 0 0-1.5z',
   Recommendation:
     'M12 2.5a1 1 0 0 1 .9.56l2.42 4.9 5.4.79a1 1 0 0 1 .55 1.7l-3.9 3.81.92 5.38a1 1 0 0 1-1.45 1.05L12 18.15l-4.84 2.54a1 1 0 0 1-1.45-1.05l.93-5.38-3.91-3.81a1 1 0 0 1 .55-1.7l5.4-.79 2.42-4.9a1 1 0 0 1 .9-.56',
   KnowledgeWorkbench:
@@ -159,6 +161,7 @@ export const ZoomOut = createIcon('ZoomOut');
 export const Shelf = createIcon('Shelf');
 export const Knowledge = createIcon('Knowledge');
 export const QuestionBank = createIcon('QuestionBank');
+export const MistakeBook = createIcon('MistakeBook');
 export const Recommendation = createIcon('Recommendation');
 export const KnowledgeWorkbench = createIcon('KnowledgeWorkbench');
 export const QuestionWorkbench = createIcon('QuestionWorkbench');

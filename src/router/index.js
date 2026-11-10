@@ -10,6 +10,9 @@ const LectureHomeView = () => import('../views/lecture-home/LectureHomeView.vue'
 const LectureDocView = () => import('../views/lecture-doc/LectureDocView.vue');
 const KnowledgeView = () => import('../views/knowledge/KnowledgeView.vue');
 const QuestionBankView = () => import('../views/question-bank/QuestionBankView.vue');
+const QuestionBankDemoView = () => import('../views/my-question-bank/QuestionBankDemoView.vue');
+const WorkbookHomeView = () => import('../views/my-question-bank/WorkbookHomeView.vue');
+const MistakeBookView = () => import('../views/mistake-book/MistakeBookView.vue');
 const KnowledgeLibrary = () => import('../views/knowledge/KnowledgeLibrary.vue');
 const BookWorkbenchView = () => import('../views/book-workbench/BookWorkbench.vue');
 const KnowledgeWorkbenchView = () => import('../views/knowledge-workbench/KnowledgeWorkbench.vue');
@@ -24,6 +27,18 @@ export const routes = [
   {
     path: '/how-to-use',
     redirect: '/my-lecture'
+  },
+  {
+    path: '/workbook/online/:lectureSlug',
+    name: 'workbook-home',
+    component: WorkbookHomeView,
+    meta: { title: '题目册详情', tag: 'WORKBOOK' }
+  },
+  {
+    path: '/workbook/local/:lectureSlug',
+    name: 'local-workbook-home',
+    component: WorkbookHomeView,
+    meta: { title: '题目册详情', tag: 'WORKBOOK' }
   },
   {
     path: '/lecture/online/:lectureSlug',
@@ -89,6 +104,24 @@ export const routes = [
     }
   },
   {
+    path: '/question-bank/demo',
+    name: 'question-bank-demo',
+    component: QuestionBankDemoView,
+    meta: {
+      title: '题库详情',
+      tag: 'QUESTIONS'
+    }
+  },
+  {
+    path: '/mistake-book',
+    name: 'mistake-book',
+    component: MistakeBookView,
+    meta: {
+      title: '错题本',
+      tag: 'MISTAKES'
+    }
+  },
+  {
     path: '/recom-lecture',
     name: 'recom-lecture',
     component: RecomLectureView,
@@ -120,7 +153,7 @@ export const routes = [
     name: 'knowledge-workbench',
     component: KnowledgeWorkbenchView,
     meta: {
-      title: '知识点工作台',
+      title: '知识库工作台',
       tag: 'WORKBENCH'
     }
   },

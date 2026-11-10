@@ -911,7 +911,7 @@ onUnmounted(() => {
         class="workbench-empty"
       >
         <span class="empty-label font-mono">KNOWLEDGE WORKBENCH</span>
-        <h2>{{ authorized ? '选择一个知识点' : '知识点工作台' }}</h2>
+        <h2>{{ authorized ? '选择一个知识点' : '知识库工作台' }}</h2>
         <p>{{ authorized ? '从左侧选择分类或知识点。' : '请使用超级管理员账号登录。' }}</p>
       </div>
     </main>

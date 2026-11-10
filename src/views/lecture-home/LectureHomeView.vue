@@ -34,6 +34,7 @@ const lectureId = computed(() => route.params.lectureSlug);
 const shelfSource = computed(() => (route.name === 'local-lecture-home' ? 'local' : 'online'));
 const revisionId = computed(() => route.query.revision_id ?? '');
 const lecture = ref(null);
+const isWorkbook = computed(() => lecture.value?.kind === 'workbook');
 const chapters = ref([]);
 const printOpen = ref(false);
 const printContext = computed(() => ({
@@ -429,6 +430,16 @@ const loadLectureData = async (slug) => {
   chapters.value = [];
   try {
     const tree = await fetchShelfLectureTree(slug, shelfSource.value, revisionId.value);
+    if (id === loadId && tree.kind === 'workbook') {
+      await router.replace(lectureLocation({
+        slug,
+        source: shelfSource.value,
+        kind: 'workbook',
+        revisionId: revisionId.value,
+        origin: lectureNavigationOrigin()
+      }));
+      return;
+    }
     const bundle = lectureBundleFromTree(tree);
     if (id !== loadId) {
       return;
@@ -550,7 +561,7 @@ onUnmounted(() => {
               :mono="true"
               @click="enterDoc"
             >
-              阅读讲义<span class="action-translation"> // READ LECTURE</span>
+              {{ isWorkbook ? '阅读题目册' : '阅读讲义' }}<span class="action-translation"> // {{ isWorkbook ? 'READ WORKBOOK' : 'READ LECTURE' }}</span>
             </MButton>
             <MButton
               v-else
@@ -575,7 +586,7 @@ onUnmounted(() => {
               :disabled="!totalSectionsCount"
               @click="printOpen = true"
             >
-              打印讲义
+              {{ isWorkbook ? '打印题目册' : '打印讲义' }}
             </MButton>
             <MButton
               v-if="shelfSource === 'local'"
@@ -593,7 +604,7 @@ onUnmounted(() => {
               @click="deleteDialogOpen = true"
             >
               <template #icon><Trash width="16" height="16" /></template>
-              删除讲义
+              {{ isWorkbook ? '删除题目册' : '删除讲义' }}
             </MButton>
             <MButton
               v-if="shelfSource === 'online' && isPublicVersion"
@@ -660,15 +671,15 @@ onUnmounted(() => {
     </MModal>
     <MModal
       :open="deleteDialogOpen && shelfSource === 'local'"
-      title="删除本地讲义"
-      confirm-text="删除讲义"
+      :title="isWorkbook ? '删除本地题目册' : '删除本地讲义'"
+      :confirm-text="isWorkbook ? '删除题目册' : '删除讲义'"
       confirm-variant="danger"
       :busy="deleteSaving"
       @close="!deleteSaving && (deleteDialogOpen = false)"
       @confirm="removeLecture"
     >
       <p class="cover-dialog-note">
-        确定删除“{{ lecture?.title }}”吗？本地讲义内容将被删除，且无法恢复。
+        确定删除“{{ lecture?.title }}”吗？本地{{ isWorkbook ? '题目册' : '讲义' }}内容将被删除，且无法恢复。
       </p>
     </MModal>
     <LecturePrintDialog
@@ -683,7 +694,7 @@ onUnmounted(() => {
           <!-- 课程概览 -->
           <div class="spec-card">
             <div class="card-header">
-              <span class="card-title font-mono">OVERVIEW // 讲义概要</span>
+              <span class="card-title font-mono">OVERVIEW // {{ isWorkbook ? '题目册概要' : '讲义概要' }}</span>
             </div>
             <div class="spec-body">
               <div class="spec-item">
@@ -693,7 +704,7 @@ onUnmounted(() => {
                 >
               </div>
               <div class="spec-item">
-                <span class="spec-label">讲义版本</span>
+                <span class="spec-label">{{ isWorkbook ? '题目册版本' : '讲义版本' }}</span>
                 <span class="spec-value">{{
                   shelfSource === 'local'
                     ? '本地版本'
@@ -725,10 +736,10 @@ onUnmounted(() => {
             </div>
             <div class="spec-body">
               <p class="guide-text">
-                本讲义按章节和小节组织内容。 你可以从目录中选择小节开始阅读。
+                {{ isWorkbook ? '本题目册按章节和小节组织题目。你可以从目录中选择小节开始阅读。' : '本讲义按章节和小节组织内容。你可以从目录中选择小节开始阅读。' }}
               </p>
               <div class="guide-note font-mono">
-                TIP: 点击下方目录中的任一讲次即可直接进入全屏讲义阅读。
+                TIP: {{ isWorkbook ? '点击下方目录中的小节即可查看题目。' : '点击下方目录中的任一讲次即可直接进入全屏讲义阅读。' }}
               </div>
             </div>
           </div>
@@ -736,7 +747,7 @@ onUnmounted(() => {
       </section>
 
       <!-- 知识路线图 -->
-      <section class="roadmap-section">
+      <section v-if="!isWorkbook" class="roadmap-section">
         <div class="roadmap-header">
           <div class="section-title-wrap">
             <span class="section-kicker font-mono">RELATIONSHIP GRAPH</span>
@@ -765,12 +776,12 @@ onUnmounted(() => {
       >
         <div class="curriculum-header">
           <div class="section-title-wrap">
-            <span class="section-kicker font-mono">SYLLABUS & LECTURES</span>
-            <h2 class="section-heading">讲义大纲与章节目录</h2>
+            <span class="section-kicker font-mono">{{ isWorkbook ? 'CONTENTS & QUESTIONS' : 'SYLLABUS & LECTURES' }}</span>
+            <h2 class="section-heading">{{ isWorkbook ? '题目册目录' : '讲义大纲与章节目录' }}</h2>
           </div>
           <div class="curriculum-actions font-mono">
             <span class="curriculum-stats">
-              {{ chapters.length }} 编 · {{ totalSectionsCount }} 讲
+              {{ chapters.length }} {{ isWorkbook ? '章' : '编' }} · {{ totalSectionsCount }} {{ isWorkbook ? '节' : '讲' }}
             </span>
             <div class="toggle-group">
               <button
@@ -822,7 +833,7 @@ onUnmounted(() => {
               </div>
 
               <div class="chapter-aside">
-                <span class="section-count font-mono">{{ chap.sections?.length || 0 }} 讲</span>
+                <span class="section-count font-mono">{{ chap.sections?.length || 0 }} {{ isWorkbook ? '节' : '讲' }}</span>
                 <span
                   class="arrow-icon"
                   :class="{
@@ -857,7 +868,7 @@ onUnmounted(() => {
                   </div>
 
                   <div class="entry-action font-mono">
-                    <span class="read-link">进入讲义 →</span>
+                    <span class="read-link">{{ isWorkbook ? '查看题目' : '进入讲义' }} →</span>
                   </div>
                 </div>
               </div>

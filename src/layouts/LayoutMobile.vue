@@ -213,67 +213,20 @@ watch(
       <div class="drawer-nav-container">
         <!-- 基础导航分组 -->
         <nav class="drawer-nav-list">
-          <button
-            v-for="item in navigationGroups[0]"
-            :key="item.id"
-            class="drawer-nav-item"
-            :class="{
-              active: isItemActive(item)
-            }"
-            @click="handleNavClick(item.path)"
-          >
-            <NavigationIcon
-              :name="item.id"
-              width="18"
-              height="18"
-              class="item-icon"
-            />
-            <span class="item-text">{{ item.label }}</span>
-          </button>
-
-          <button
-            v-for="item in navigationGroups[1]"
-            :key="item.id"
-            class="drawer-nav-item"
-            :class="{
-              active: isItemActive(item)
-            }"
-            @click="handleNavClick(item.path)"
-          >
-            <NavigationIcon
-              :name="item.id"
-              width="18"
-              height="18"
-              class="item-icon"
-            />
-            <span class="item-text">{{ item.label }}</span>
-          </button>
-
-          <div class="drawer-divider"></div>
-
-          <button
-            v-for="item in navigationGroups[2]"
-            :key="item.id"
-            class="drawer-nav-item"
-            :class="{
-              active: isItemActive(item)
-            }"
-            @click="handleNavClick(item.path)"
-          >
-            <NavigationIcon
-              :name="item.id"
-              width="18"
-              height="18"
-              class="item-icon"
-            />
-            <span class="item-text">{{ item.label }}</span>
-            <MTag
-              v-if="item.desktopOnly"
-              variant="muted"
-              size="sm"
-              >电脑端</MTag
+          <template v-for="(group, index) in navigationGroups" :key="index">
+            <div v-if="index" class="drawer-divider" aria-hidden="true"></div>
+            <button
+              v-for="item in group"
+              :key="item.id"
+              class="drawer-nav-item"
+              :class="{ active: isItemActive(item) }"
+              @click="handleNavClick(item.path)"
             >
-          </button>
+              <NavigationIcon :name="item.id" width="18" height="18" class="item-icon" />
+              <span class="item-text">{{ item.label }}</span>
+              <MTag v-if="item.desktopOnly" variant="muted" size="sm">电脑端</MTag>
+            </button>
+          </template>
         </nav>
 
         <!-- 抽屉底部用户账户栏 -->

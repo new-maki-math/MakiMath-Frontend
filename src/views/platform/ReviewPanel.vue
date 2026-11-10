@@ -34,10 +34,6 @@ async function load() {
 }
 
 function openReview(item) {
-  if (item.book_kind === 'workbook') {
-    notify('题目册审核页面暂未开放', 'info');
-    return;
-  }
   if (!item.book_slug || !item.id) {
     notify('讲义或审核版本标识缺失，请刷新审核列表', 'error');
     return;
@@ -45,6 +41,7 @@ function openReview(item) {
   router.push(
     lectureLocation({
       slug: item.book_slug,
+      kind: item.book_kind,
       revisionId: String(item.id),
       origin: 'platform-reviews'
     })

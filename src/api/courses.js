@@ -151,6 +151,7 @@ export function lectureBundleFromTree(tree) {
     lecture: {
       id: String(tree.id),
       slug: tree.slug,
+      kind: tree.kind,
       dbId: tree.id,
       title: tree.title,
       subtitle: tree.subtitle || '',

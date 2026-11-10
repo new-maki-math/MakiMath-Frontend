@@ -181,6 +181,7 @@ function openVersion(lecture, version) {
   router.push(
     lectureLocation({
       slug: lecture.slug,
+      kind: lecture.kind,
       revisionId: version.is_public ? undefined : String(version.revision_id),
       origin: 'my-lecture'
     })
@@ -203,6 +204,7 @@ function openLecture(source, lecture) {
       lectureLocation({
         source: 'local',
         slug: lecture.slug,
+        kind: lecture.kind ?? lecture.revision?.kind,
         origin: 'my-lecture'
       })
     );

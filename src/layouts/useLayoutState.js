@@ -35,14 +35,22 @@ export const navItems = [
     label: '知识库',
     path: '/knowledge',
     tag: 'KNOWLEDGE',
-    group: 'primary'
+    group: 'library'
   },
   {
     id: 'question-bank',
     label: '题库',
     path: '/question-bank',
     tag: 'QUESTIONS',
-    group: 'primary'
+    group: 'library'
+  },
+  {
+    id: 'mistake-book',
+    label: '错题本',
+    path: '/mistake-book',
+    tag: 'MISTAKES',
+    group: 'primary',
+    sidebarHidden: true
   },
   {
     id: 'recom-lecture',
@@ -60,7 +68,7 @@ export const navItems = [
   },
   {
     id: 'knowledge-workbench',
-    label: '知识点工作台',
+    label: '知识库工作台',
     path: '/knowledge-workbench',
     tag: 'WORKBENCH',
     group: 'management',
@@ -89,7 +97,7 @@ export const navItems = [
     label: '平台管理',
     path: '/platform',
     tag: 'PLATFORM',
-    group: 'management',
+    group: 'platform',
     desktopOnly: true,
     adminOnly: true
   }
@@ -102,10 +110,10 @@ export function useLayoutState() {
   let removeAfterHook;
   const progressBarRef = ref(null);
   const navigationGroups = computed(() => {
-    const visible = navItems.filter((item) => !item.adminOnly || isSuperAdmin.value);
-    return ['primary', 'reader', 'management'].map((group) =>
-      visible.filter((item) => item.group === group)
-    );
+    const visible = navItems.filter((item) => !item.sidebarHidden && (!item.adminOnly || isSuperAdmin.value));
+    return ['primary', 'reader', 'library', 'management', 'platform']
+      .map((group) => visible.filter((item) => item.group === group))
+      .filter((group) => group.length);
   });
 
   // 监听移动端断点
@@ -241,7 +249,7 @@ export function useLayoutState() {
       layoutChapters.value = [];
       if (
         !lectureId ||
-        !['lecture-doc', 'lecture-home', 'local-lecture-doc', 'local-lecture-home'].includes(name)
+        !['lecture-doc', 'lecture-home', 'local-lecture-doc', 'local-lecture-home', 'workbook-home', 'local-workbook-home'].includes(name)
       ) {
         return;
       }
@@ -251,7 +259,8 @@ export function useLayoutState() {
         if (active) {
           layoutLecture.value = {
             id: tree.id,
-            title: tree.title
+            title: tree.title,
+            kind: tree.kind
           };
           layoutChapters.value = toChapters(tree);
         }
@@ -312,16 +321,17 @@ export function useLayoutState() {
     prefix.push(
       isReading
         ? {
-            label: '课程讲义详情',
+            label: layoutLecture.value?.kind === 'workbook' ? '题目册详情' : '课程讲义详情',
             to: lectureLocation({
               slug: route.params.lectureSlug,
+              kind: layoutLecture.value?.kind,
               source: route.name === 'local-lecture-doc' ? 'local' : 'online',
               revisionId: route.query.revision_id,
               origin: lectureOrigin.value
             })
           }
         : {
-            label: '课程讲义详情'
+            label: route.name === 'workbook-home' || route.name === 'local-workbook-home' ? '题目册详情' : '课程讲义详情'
           }
     );
     if (route.name === 'lecture-doc' || route.name === 'local-lecture-doc') {
@@ -359,7 +369,7 @@ export function useLayoutState() {
       }
       return crumbs;
     }
-    if (route.name === 'lecture-home' || route.name === 'local-lecture-home') {
+    if (['lecture-home', 'local-lecture-home', 'workbook-home', 'local-workbook-home'].includes(route.name)) {
       return prefix;
     }
     return [

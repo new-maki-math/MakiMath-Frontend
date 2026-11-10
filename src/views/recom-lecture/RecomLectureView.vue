@@ -68,6 +68,7 @@ function openLecture(lecture) {
   router.push(
     lectureLocation({
       slug: lecture.slug,
+      kind: lecture.kind,
       origin: 'recom-lecture'
     })
   );

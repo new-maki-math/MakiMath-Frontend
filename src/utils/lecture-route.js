@@ -6,6 +6,7 @@ export function lectureNavigationOrigin() {
 export function lectureLocation({
   slug,
   source = 'online',
+  kind = 'lecture',
   chapterSlug,
   sectionSlug,
   revisionId,
@@ -24,10 +25,10 @@ export function lectureLocation({
     name: local
       ? section
         ? 'local-lecture-doc'
-        : 'local-lecture-home'
+        : kind === 'workbook' ? 'local-workbook-home' : 'local-lecture-home'
       : section
         ? 'lecture-doc'
-        : 'lecture-home',
+        : kind === 'workbook' ? 'workbook-home' : 'lecture-home',
     params: section
       ? {
           lectureSlug: slug,

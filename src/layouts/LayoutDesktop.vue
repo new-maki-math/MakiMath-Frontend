@@ -195,60 +195,25 @@ const handleNavClick = (item) => {
         </div>
 
         <nav class="sidebar-nav">
-          <button
-            v-for="item in navigationGroups[0]"
-            :key="item.id"
-            class="nav-button"
-            :class="{
-              active: isItemActive(item)
-            }"
-            :title="isSidebarCollapsed ? item.label : undefined"
-            @click="handleNavClick(item)"
-          >
-            <div class="nav-icon-wrap">
-              <NavigationIcon
-                :name="item.id"
-                width="18"
-                height="18"
-                class="nav-icon"
-              />
-            </div>
-            <MCollapse
-              horizontal
-              :open="!isSidebarCollapsed"
-              class="nav-label-collapse"
+          <template v-for="(group, index) in navigationGroups" :key="index">
+            <div v-if="index" class="sidebar-divider" aria-hidden="true"></div>
+            <button
+              v-for="item in group"
+              :key="item.id"
+              :data-navigation-id="item.id"
+              class="nav-button"
+              :class="{ active: isItemActive(item) }"
+              :title="isSidebarCollapsed ? item.label : undefined"
+              @click="handleNavClick(item)"
             >
-              <span class="nav-label">{{ item.label }}</span>
-            </MCollapse>
-          </button>
-
-          <button
-            v-for="item in navigationGroups[1].concat(navigationGroups[2])"
-            :key="item.id"
-            :data-navigation-id="item.id"
-            class="nav-button"
-            :class="{
-              active: isItemActive(item)
-            }"
-            :title="isSidebarCollapsed ? item.label : undefined"
-            @click="handleNavClick(item)"
-          >
-            <div class="nav-icon-wrap">
-              <NavigationIcon
-                :name="item.id"
-                width="18"
-                height="18"
-                class="nav-icon"
-              />
-            </div>
-            <MCollapse
-              horizontal
-              :open="!isSidebarCollapsed"
-              class="nav-label-collapse"
-            >
-              <span class="nav-label">{{ item.label }}</span>
-            </MCollapse>
-          </button>
+              <div class="nav-icon-wrap">
+                <NavigationIcon :name="item.id" width="18" height="18" class="nav-icon" />
+              </div>
+              <MCollapse horizontal :open="!isSidebarCollapsed" class="nav-label-collapse">
+                <span class="nav-label">{{ item.label }}</span>
+              </MCollapse>
+            </button>
+          </template>
         </nav>
 
         <div class="sidebar-footer">
@@ -494,6 +459,20 @@ const handleNavClick = (item) => {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
+}
+
+.sidebar-divider {
+  flex: none;
+  align-self: stretch;
+  height: 1px;
+  margin: 6px 8px;
+  background: var(--border-subtle);
+}
+
+.maki-sidebar.is-collapsed .sidebar-divider {
+  width: 24px;
+  align-self: center;
+  margin: 6px 0;
 }
 
 .maki-sidebar.is-collapsed .sidebar-nav {
