@@ -9,9 +9,18 @@ defineProps({
 
 <template>
   <div class="m-empty">
-    <span class="m-empty-face" aria-hidden="true">( ·_· )</span>
+    <span
+      class="m-empty-face"
+      aria-hidden="true"
+      >( ·_· )</span
+    >
     <p>空空如也</p>
-    <p v-if="description" class="m-empty-description">{{ description }}</p>
+    <p
+      v-if="description"
+      class="m-empty-description"
+    >
+      {{ description }}
+    </p>
     <slot />
   </div>
 </template>

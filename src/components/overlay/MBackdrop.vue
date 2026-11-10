@@ -64,9 +64,9 @@ const handlePointerDown = (event) => {
   pointerStart =
     props.open && event.isPrimary && event.button === 0 && event.target === backdropRef.value
       ? {
- x: event.clientX,
-y: event.clientY
-}
+          x: event.clientX,
+          y: event.clientY
+        }
       : null;
 };
 

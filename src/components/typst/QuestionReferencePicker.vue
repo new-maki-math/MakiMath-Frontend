@@ -5,7 +5,9 @@ import { questionApi } from '../../api/questions.js';
 import MInput from '../form/MInput.vue';
 import MModal from '../overlay/MModal.vue';
 
-const props = defineProps({ open: Boolean });
+const props = defineProps({
+  open: Boolean
+});
 const emit = defineEmits(['close', 'select']);
 const query = ref('');
 const input = ref(null);
@@ -31,17 +33,31 @@ async function search() {
   loading.value = true;
   try {
     const result = await questionApi.entries(
-      { q: text, limit: 100, offset: 0 },
-      { signal: controller.signal }
+      {
+        q: text,
+        limit: 100,
+        offset: 0
+      },
+      {
+        signal: controller.signal
+      }
     );
-    if (current !== sequence) return;
-    if (!Array.isArray(result?.items)) throw new Error('搜索结果格式错误');
+    if (current !== sequence) {
+      return;
+    }
+    if (!Array.isArray(result?.items)) {
+      throw new Error('搜索结果格式错误');
+    }
     results.value = [...new Map(result.items.map((item) => [item.slug, item])).values()];
     active.value = 0;
   } catch (failure) {
-    if (current === sequence && failure.name !== 'AbortError') error.value = '题目搜索失败';
+    if (current === sequence && failure.name !== 'AbortError') {
+      error.value = '题目搜索失败';
+    }
   } finally {
-    if (current === sequence) loading.value = false;
+    if (current === sequence) {
+      loading.value = false;
+    }
   }
 }
 watch(
@@ -53,9 +69,13 @@ watch(
     results.value = [];
     error.value = '';
     loading.value = Boolean(query.value.trim());
-    if (loading.value) timer = setTimeout(search, 200);
+    if (loading.value) {
+      timer = setTimeout(search, 200);
+    }
   },
-  { flush: 'sync' }
+  {
+    flush: 'sync'
+  }
 );
 watch(
   () => props.open,
@@ -67,7 +87,9 @@ watch(
     sequence++;
     controller?.abort();
     cancelAnimationFrame(frame);
-    if (open) frame = requestAnimationFrame(() => input.value?.focus());
+    if (open) {
+      frame = requestAnimationFrame(() => input.value?.focus());
+    }
   }
 );
 onBeforeUnmount(() => {
@@ -82,13 +104,16 @@ function keydown(event) {
     emit('close');
   } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
     event.preventDefault();
-    if (results.value.length)
+    if (results.value.length) {
       active.value =
         (active.value + (event.key === 'ArrowDown' ? 1 : -1) + results.value.length) %
         results.value.length;
+    }
   } else if (event.key === 'Enter') {
     event.preventDefault();
-    if (results.value[active.value]) emit('select', results.value[active.value].slug);
+    if (results.value[active.value]) {
+      emit('select', results.value[active.value].slug);
+    }
   }
 }
 </script>
@@ -154,7 +179,9 @@ function keydown(event) {
           role="option"
           :aria-selected="index === active"
           class="result"
-          :class="{ active: index === active }"
+          :class="{
+            active: index === active
+          }"
           @mouseenter="active = index"
           @click="emit('select', item.slug)"
         >

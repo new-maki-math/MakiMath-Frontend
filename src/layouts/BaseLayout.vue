@@ -1,15 +1,15 @@
 <script setup>
 import { provide, ref } from 'vue';
 
-import KnowledgeSearchOverlay from '../components/knowledge/KnowledgeSearchOverlay.vue';
 import MAuthForm from '../components/account/MAuthForm.vue';
-import MButton from '../components/form/MButton.vue';
-import MHelpModal from '../components/app/MHelpModal.vue';
-import MInput from '../components/form/MInput.vue';
-import MModal from '../components/overlay/MModal.vue';
-import MNotice, { notify } from '../components/feedback/MNotice.vue';
 import MUserModal from '../components/account/MUserModal.vue';
+import MHelpModal from '../components/app/MHelpModal.vue';
+import MNotice, { notify } from '../components/feedback/MNotice.vue';
 import ProgressBar from '../components/feedback/ProgressBar.vue';
+import MButton from '../components/form/MButton.vue';
+import MInput from '../components/form/MInput.vue';
+import KnowledgeSearchOverlay from '../components/knowledge/KnowledgeSearchOverlay.vue';
+import MModal from '../components/overlay/MModal.vue';
 import { authenticate, authStatus } from '../utils/auth.js';
 import LayoutDesktop from './LayoutDesktop.vue';
 import LayoutMobile from './LayoutMobile.vue';

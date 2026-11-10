@@ -1,9 +1,9 @@
 <script setup>
 import { ref, shallowRef } from 'vue';
 
-import KnowledgeReferencePicker from '../knowledge/KnowledgeReferencePicker.vue';
-import MButton from '../form/MButton.vue';
 import { notify } from '../feedback/MNotice.vue';
+import MButton from '../form/MButton.vue';
+import KnowledgeReferencePicker from '../knowledge/KnowledgeReferencePicker.vue';
 import TypstDoc from '../typst-renderer/TypstDoc.vue';
 import { findKnowledgeInsertion } from './knowledge-reference-editor.js';
 import TypstMonacoEditor from './TypstMonacoEditor.vue';

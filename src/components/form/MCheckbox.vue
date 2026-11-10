@@ -3,17 +3,17 @@ import { computed } from 'vue';
 
 const props = defineProps({
   modelValue: {
- type: [Boolean, Array],
-default: false 
-},
+    type: [Boolean, Array],
+    default: false
+  },
   value: {
- type: [String, Number, Boolean, Object],
-default: undefined 
-},
+    type: [String, Number, Boolean, Object],
+    default: undefined
+  },
   disabled: {
- type: Boolean,
-default: false 
-}
+    type: Boolean,
+    default: false
+  }
 });
 const emit = defineEmits(['update:modelValue']);
 const checked = computed({
@@ -23,14 +23,18 @@ const checked = computed({
 </script>
 
 <template>
-  <label class="m-choice"
-:class="{
- 'is-disabled': disabled 
-}">
-    <input v-model="checked"
-type="checkbox"
-:value="value"
-:disabled="disabled" />
+  <label
+    class="m-choice"
+    :class="{
+      'is-disabled': disabled
+    }"
+  >
+    <input
+      v-model="checked"
+      type="checkbox"
+      :value="value"
+      :disabled="disabled"
+    />
     <span><slot /></span>
   </label>
 </template>

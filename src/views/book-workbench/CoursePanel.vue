@@ -2,11 +2,11 @@
 import { computed, onUnmounted, ref, watch } from 'vue';
 
 import { bookApi } from '../../api/books.js';
+import MLectureCover from '../../components/book/MLectureCover.vue';
+import { notify } from '../../components/feedback/MNotice.vue';
 import MButton from '../../components/form/MButton.vue';
 import MFilePicker from '../../components/form/MFilePicker.vue';
 import MInput from '../../components/form/MInput.vue';
-import MLectureCover from '../../components/book/MLectureCover.vue';
-import { notify } from '../../components/feedback/MNotice.vue';
 import MSelect from '../../components/form/MSelect.vue';
 import MTextarea from '../../components/form/MTextarea.vue';
 import WorkbenchPanel from '../../components/workbench/WorkbenchPanel.vue';
@@ -58,18 +58,27 @@ const animationBaseError = ref('');
 function setAnimationBase(patch) {
   revision.value.metadata = {
     ...(revision.value.metadata || {}),
-    animation_base: { ...animationBase.value, ...patch }
+    animation_base: {
+      ...animationBase.value,
+      ...patch
+    }
   };
 }
 async function importAnimationBase(event) {
   const files = event.target.files;
-  if (!files?.length) return;
+  if (!files?.length) {
+    return;
+  }
   const target = revision.value;
   animationBaseBusy.value = true;
   animationBaseError.value = '';
   try {
     const content = await readAnimationFiles(files);
-    if (active && target === revision.value) setAnimationBase({ files: content });
+    if (active && target === revision.value) {
+      setAnimationBase({
+        files: content
+      });
+    }
   } catch (error) {
     animationBaseError.value = error.message || '无法读取动画基础包';
   } finally {
@@ -370,9 +379,14 @@ function removeCover() {
         </div>
       </div>
     </div>
-    <div class="wb-block animation-base" :inert="!editable">
+    <div
+      class="wb-block animation-base"
+      :inert="!editable"
+    >
       <div class="wb-block-head"><span class="wb-block-title">图书动画基础资源</span></div>
-      <p class="animation-base-hint">在这里配置所有小节共用的脚本、字体和图片；播放器和数学公式依赖由平台提供。</p>
+      <p class="animation-base-hint">
+        在这里配置所有小节共用的脚本、字体和图片；播放器和数学公式依赖由平台提供。
+      </p>
       <MFilePicker
         :title="animationBaseBusy ? '正在读取动画基础包…' : '动画基础包'"
         detail="共用脚本、字体与图片，最大 22 MB"
@@ -381,21 +395,62 @@ function removeCover() {
         :disabled="!editable || animationBaseBusy"
         @change="importAnimationBase"
       />
-      <p v-if="animationBaseError" class="animation-base-error">{{ animationBaseError }}</p>
-      <details v-if="animationBase.files" class="animation-base-files">
+      <p
+        v-if="animationBaseError"
+        class="animation-base-error"
+      >
+        {{ animationBaseError }}
+      </p>
+      <details
+        v-if="animationBase.files"
+        class="animation-base-files"
+      >
         <summary>已导入 {{ Object.keys(animationBase.files).length }} 个基础文件</summary>
-        <ul><li v-for="path in Object.keys(animationBase.files).sort()" :key="path">{{ path }}</li></ul>
+        <ul>
+          <li
+            v-for="path in Object.keys(animationBase.files).sort()"
+            :key="path"
+          >
+            {{ path }}
+          </li>
+        </ul>
       </details>
-      <MButton v-if="animationBase.files" size="sm" variant="ghost" @click="setAnimationBase({ files: null })">移除动画基础资源</MButton>
+      <MButton
+        v-if="animationBase.files"
+        size="sm"
+        variant="ghost"
+        @click="
+          setAnimationBase({
+            files: null
+          })
+        "
+        >移除动画基础资源</MButton
+      >
     </div>
   </WorkbenchPanel>
 </template>
 
 <style scoped>
-.animation-base-hint { color: var(--text-muted); font-size: var(--font-size-smaller); line-height: 1.5; }
-.animation-base-error { color: var(--tag-red); font-size: var(--font-size-smaller); }
-.animation-base-files { margin: 8px 0; color: var(--text-secondary); font-size: var(--font-size-smaller); }
-.animation-base-files ul { max-height: 180px; overflow: auto; padding-left: 20px; overflow-wrap: anywhere; }
+.animation-base-hint {
+  color: var(--text-muted);
+  font-size: var(--font-size-smaller);
+  line-height: 1.5;
+}
+.animation-base-error {
+  color: var(--tag-red);
+  font-size: var(--font-size-smaller);
+}
+.animation-base-files {
+  margin: 8px 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-smaller);
+}
+.animation-base-files ul {
+  max-height: 180px;
+  overflow: auto;
+  padding-left: 20px;
+  overflow-wrap: anywhere;
+}
 .course-panel-content {
   container-type: inline-size;
 }

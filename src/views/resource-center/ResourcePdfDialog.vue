@@ -2,14 +2,19 @@
 import { ref, watch } from 'vue';
 
 import { resourceApi } from '../../api/resources.js';
-import { ArrowRight } from '../../components/icons/icons.js';
-import MButton from '../../components/form/MButton.vue';
 import MFileTypeIcon from '../../components/display/MFileTypeIcon.vue';
-import MModal from '../../components/overlay/MModal.vue';
 import MSpinner from '../../components/feedback/MSpinner.vue';
+import MButton from '../../components/form/MButton.vue';
+import { ArrowRight } from '../../components/icons/icons.js';
+import MModal from '../../components/overlay/MModal.vue';
 import { authStatus, currentUser } from '../../utils/auth.js';
+import {
+  fileCacheScope,
+  getCachedFile,
+  hashCacheValue,
+  putCachedFile
+} from '../../utils/file-cache.js';
 import { formatFileSize } from '../../utils/file-size.js';
-import { fileCacheScope, getCachedFile, hashCacheValue, putCachedFile } from '../../utils/file-cache.js';
 
 const props = defineProps({
   resource: {
@@ -126,8 +131,14 @@ watch(
         const hash = resource.content_hash;
         const cacheKey = /^[a-f0-9]{64}$/.test(hash || '') ? `${scope}:pdf:${id}:${hash}` : '';
         const cached = cacheKey ? await getCachedFile(cacheKey) : null;
-        if (!active || scope !== fileCacheScope()) return;
-        if (cached?.value instanceof Blob && cached.value.type === 'application/pdf' && cached.value.size === resource.size_bytes) {
+        if (!active || scope !== fileCacheScope()) {
+          return;
+        }
+        if (
+          cached?.value instanceof Blob &&
+          cached.value.type === 'application/pdf' &&
+          cached.value.size === resource.size_bytes
+        ) {
           url = URL.createObjectURL(cached.value);
           objectUrl.value = url;
           return;
@@ -166,10 +177,17 @@ watch(
         if (cacheKey && blob.size === resource.size_bytes) {
           const actualHash = await hashCacheValue(blob).catch(() => '');
           if (active && scope === fileCacheScope() && actualHash === hash) {
-            await putCachedFile({ key: cacheKey, name: resource.name || `${id}.pdf`, hash, value: blob });
+            await putCachedFile({
+              key: cacheKey,
+              name: resource.name || `${id}.pdf`,
+              hash,
+              value: blob
+            });
           }
         }
-        if (!active || scope !== fileCacheScope()) return;
+        if (!active || scope !== fileCacheScope()) {
+          return;
+        }
         url = URL.createObjectURL(blob);
         objectUrl.value = url;
       } catch (failure) {
@@ -290,13 +308,15 @@ watch(
           v-if="objectUrl && !tooLarge"
           variant="ghost"
           @click="downloadResult = false"
-        >返回预览</MButton>
+          >返回预览</MButton
+        >
         <MButton
           v-else
           variant="ghost"
           :disabled="downloading"
           @click="download"
-        >再次下载</MButton>
+          >再次下载</MButton
+        >
         <MButton @click="emit('close')">关闭</MButton>
       </div>
     </div>
@@ -342,7 +362,11 @@ watch(
             height="15"
           />
         </a>
-        <MButton :disabled="downloading" @click="download">下载 PDF</MButton>
+        <MButton
+          :disabled="downloading"
+          @click="download"
+          >下载 PDF</MButton
+        >
       </div>
     </template>
   </MModal>

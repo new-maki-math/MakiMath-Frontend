@@ -130,5 +130,9 @@ export function createCoverIllustration(target) {
     path.setAttribute('opacity', index === 0 ? '0.8' : '0.48');
     svg.appendChild(path);
   });
-  return { svg, label: design.label, note: design.note };
+  return {
+    svg,
+    label: design.label,
+    note: design.note
+  };
 }

@@ -1,9 +1,9 @@
 <script setup>
 import { nextTick, onUnmounted, ref, watch } from 'vue';
 
+import MButton from '../form/MButton.vue';
 import { Xmark } from '../icons/icons.js';
 import MBackdrop from './MBackdrop.vue';
-import MButton from '../form/MButton.vue';
 
 const props = defineProps({
   open: {
@@ -173,7 +173,9 @@ onUnmounted(() => {
         <div
           ref="body"
           class="modal-body"
-          :class="{ 'hide-scrollbar': hideScrollbar }"
+          :class="{
+            'hide-scrollbar': hideScrollbar
+          }"
         >
           <div
             ref="content"

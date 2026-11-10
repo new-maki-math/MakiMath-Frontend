@@ -3,9 +3,9 @@ import { computed, onUnmounted, provide, ref, shallowRef, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import { getCourseSectionContent, toChapters } from '../../api/courses.js';
-import { List } from '../../components/icons/icons.js';
-import MButton from '../../components/form/MButton.vue';
 import MDataView from '../../components/feedback/MDataView.vue';
+import MButton from '../../components/form/MButton.vue';
+import { List } from '../../components/icons/icons.js';
 import MDrawer from '../../components/overlay/MDrawer.vue';
 import TypstDoc from '../../components/typst-renderer/TypstDoc.vue';
 import { authStatus, currentUser } from '../../utils/auth.js';
@@ -123,9 +123,13 @@ watch(
       chapters.value = items;
       if (section) {
         const loaded = await getCourseSectionContent(lectureSlug, section.id, tree);
-        if (current !== sequence) return;
+        if (current !== sequence) {
+          return;
+        }
         const references = await prepareReadingReferences(loaded.source || '', () => {
-          if (current !== sequence) throw new Error('阅读内容已切换');
+          if (current !== sequence) {
+            throw new Error('阅读内容已切换');
+          }
         });
         if (current === sequence) {
           readingReferences.value = references;
@@ -198,7 +202,12 @@ onUnmounted(() => {
           @select="selectOutline"
         />
       </div>
-      <div class="reading-content-wrap" :class="{ 'is-loading': loading }">
+      <div
+        class="reading-content-wrap"
+        :class="{
+          'is-loading': loading
+        }"
+      >
         <MDataView
           v-if="loading"
           class="reading-loading"

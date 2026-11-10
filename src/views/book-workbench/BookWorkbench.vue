@@ -5,12 +5,12 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
 import { bookApi, bookSaveBody } from '../../api/books.js';
 import { managementApi } from '../../api/management.js';
+import { notify } from '../../components/feedback/MNotice.vue';
 import MButton from '../../components/form/MButton.vue';
 import MFilePicker from '../../components/form/MFilePicker.vue';
 import MInput from '../../components/form/MInput.vue';
-import MModal from '../../components/overlay/MModal.vue';
-import { notify } from '../../components/feedback/MNotice.vue';
 import MSelect from '../../components/form/MSelect.vue';
+import MModal from '../../components/overlay/MModal.vue';
 import { useWorkbenchGuard } from '../../composables/useWorkbenchGuard.js';
 import { authStatus, currentUser, initAuth } from '../../utils/auth.js';
 import {

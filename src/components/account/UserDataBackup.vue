@@ -11,13 +11,13 @@ import {
   listClearableDatabases,
   restoreUserData
 } from '../../utils/user-data-backup.js';
-import { Download, Trash, Upload } from '../icons/icons.js';
+import { notify } from '../feedback/MNotice.vue';
 import MButton from '../form/MButton.vue';
 import MCheckbox from '../form/MCheckbox.vue';
 import MFilePicker from '../form/MFilePicker.vue';
-import MModal from '../overlay/MModal.vue';
-import { notify } from '../feedback/MNotice.vue';
 import MRadio from '../form/MRadio.vue';
+import { Download, Trash, Upload } from '../icons/icons.js';
+import MModal from '../overlay/MModal.vue';
 
 const open = ref(false);
 const busy = ref(false);
@@ -238,8 +238,8 @@ async function confirmCleanup() {
     await deleteSelectedDatabases(
       selected,
       (message) => {
- cleanupProgress.value = message; 
-},
+        cleanupProgress.value = message;
+      },
       (message) => {
         cleanupProgress.value = '';
         cleanupError.value = message;
@@ -374,9 +374,12 @@ onMounted(updateRecovery);
         {{ error }}
       </p>
       <div class="backup-footer">
-        <MButton v-if="recoveryIncomplete"
-variant="primary"
-@click="reloadPage">刷新页面</MButton>
+        <MButton
+          v-if="recoveryIncomplete"
+          variant="primary"
+          @click="reloadPage"
+          >刷新页面</MButton
+        >
         <MButton
           v-else
           variant="ghost"
@@ -416,39 +419,56 @@ variant="primary"
           请选择要永久删除的数据库。不会自动保留副本，建议先导出；请关闭其他本站标签页。
         </p>
         <div class="cleanup-modes">
-          <MRadio :model-value="cleanupMode"
-name="cleanup-mode"
-value="legacy"
-:disabled="busy"
-@update:model-value="changeCleanupMode">已停用的数据库</MRadio>
-          <MRadio :model-value="cleanupMode"
-name="cleanup-mode"
-value="all"
-:disabled="busy"
-@update:model-value="changeCleanupMode">全部数据库</MRadio>
+          <MRadio
+            :model-value="cleanupMode"
+            name="cleanup-mode"
+            value="legacy"
+            :disabled="busy"
+            @update:model-value="changeCleanupMode"
+            >已停用的数据库</MRadio
+          >
+          <MRadio
+            :model-value="cleanupMode"
+            name="cleanup-mode"
+            value="all"
+            :disabled="busy"
+            @update:model-value="changeCleanupMode"
+            >全部数据库</MRadio
+          >
         </div>
         <p class="backup-text">当前没有可确认安全删除的遗弃字段，未识别的字段不会被自动清理。</p>
-        <div v-if="visibleDatabases.length"
-class="cleanup-modes">
-          <MButton size="sm"
-variant="ghost"
-@click="selectVisibleDatabases">全选当前范围</MButton>
-          <MButton size="sm"
-variant="ghost"
-@click="selectedDatabases = []">清空选择</MButton>
+        <div
+          v-if="visibleDatabases.length"
+          class="cleanup-modes"
+        >
+          <MButton
+            size="sm"
+            variant="ghost"
+            @click="selectVisibleDatabases"
+            >全选当前范围</MButton
+          >
+          <MButton
+            size="sm"
+            variant="ghost"
+            @click="selectedDatabases = []"
+            >清空选择</MButton
+          >
         </div>
         <div
           v-if="visibleDatabases.length"
           class="cleanup-list"
         >
-          <MCheckbox v-for="database in visibleDatabases"
-:key="database.name"
-v-model="selectedDatabases"
-:value="database.name"
-:disabled="busy"
-class="cleanup-item">
+          <MCheckbox
+            v-for="database in visibleDatabases"
+            :key="database.name"
+            v-model="selectedDatabases"
+            :value="database.name"
+            :disabled="busy"
+            class="cleanup-item"
+          >
             {{ labels[database.name] || '未识别数据库' }} · {{ database.name }}
-            <span v-if="database.legacy">（已停用）</span><span v-else-if="!database.known">（用途未知）</span>
+            <span v-if="database.legacy">（已停用）</span
+            ><span v-else-if="!database.known">（用途未知）</span>
           </MCheckbox>
         </div>
         <p
@@ -497,9 +517,12 @@ class="cleanup-item">
         {{ cleanupError }}
       </p>
       <div class="backup-footer">
-        <MButton v-if="cleanupIncomplete"
-variant="primary"
-@click="reloadPage">刷新页面</MButton>
+        <MButton
+          v-if="cleanupIncomplete"
+          variant="primary"
+          @click="reloadPage"
+          >刷新页面</MButton
+        >
         <MButton
           v-else
           variant="ghost"

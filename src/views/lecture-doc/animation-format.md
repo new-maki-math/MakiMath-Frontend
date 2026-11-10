@@ -33,7 +33,13 @@ stage.textContent = '动画内容';
 
 MakiAnimation.register({
   pages: [
-    { title: '第一页面', steps: [{ start: 0, end: 1 }, { start: 1, end: 2 }] }
+    {
+      title: '第一页面',
+      steps: [
+        { start: 0, end: 1 },
+        { start: 1, end: 2 }
+      ]
+    }
   ],
   render(time, stage, api) {
     stage.style.opacity = String(Math.min(1, time));

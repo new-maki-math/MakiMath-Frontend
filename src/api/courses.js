@@ -1,4 +1,9 @@
-import { fileCacheScope, getCachedFile, hashCacheValue, putCachedFile } from '../utils/file-cache.js';
+import {
+  fileCacheScope,
+  getCachedFile,
+  hashCacheValue,
+  putCachedFile
+} from '../utils/file-cache.js';
 import { request } from './client.js';
 
 // 只对进行中的目录与动画请求去重。
@@ -22,8 +27,12 @@ export async function fetchCourseTree(slug, revisionId = '') {
   }
   const key = `${slug}:${revisionId || ''}`;
   const loadTree = async () => {
-    const params = new URLSearchParams({ include_animation: '0' });
-    if (revisionId !== '' && revisionId != null) params.set('revision_id', revisionId);
+    const params = new URLSearchParams({
+      include_animation: '0'
+    });
+    if (revisionId !== '' && revisionId != null) {
+      params.set('revision_id', revisionId);
+    }
     const query = `?${params}`;
     const snapshot = await request(
       `/api/books/by-slug/${encodeURIComponent(slug)}/outline${query}`,
@@ -176,25 +185,47 @@ async function fetchAnimationBase(tree) {
   const version = requestGeneration;
   const key = `${scope}:animation-base:${tree.id}:${tree.revision_id}:${tree.edit_version}`;
   const valid = () => version === requestGeneration && scope === fileCacheScope();
-  if (animationBaseRequests.has(key)) return animationBaseRequests.get(key);
+  if (animationBaseRequests.has(key)) {
+    return animationBaseRequests.get(key);
+  }
   const pending = (async () => {
     const stored = await getCachedFile(key);
-    if (!valid()) throw new Error('登录状态或图书版本已变化，请重新加载');
-    if (stored) return stored.value;
+    if (!valid()) {
+      throw new Error('登录状态或图书版本已变化，请重新加载');
+    }
+    if (stored) {
+      return stored.value;
+    }
     const path = `/api/books/by-slug/${encodeURIComponent(tree.slug)}/revisions/${encodeURIComponent(tree.revision_id)}/animation-base?edit_version=${encodeURIComponent(tree.edit_version)}`;
-    const response = await request(path, { cache: 'no-store' });
-    if (!valid()) throw new Error('登录状态或图书版本已变化，请重新加载');
-    if (String(response.revision_id) !== String(tree.revision_id) || response.edit_version !== tree.edit_version) {
+    const response = await request(path, {
+      cache: 'no-store'
+    });
+    if (!valid()) {
+      throw new Error('登录状态或图书版本已变化，请重新加载');
+    }
+    if (
+      String(response.revision_id) !== String(tree.revision_id) ||
+      response.edit_version !== tree.edit_version
+    ) {
       throw new Error('动画基础包与图书版本不匹配');
     }
     const value = response.animation_base || null;
     if (value) {
       const hash = await hashCacheValue(value).catch(() => '');
-      if (valid() && hash) await putCachedFile({ key, name: `${tree.slug}-动画基础包.json`, hash, value });
+      if (valid() && hash) {
+        await putCachedFile({
+          key,
+          name: `${tree.slug}-动画基础包.json`,
+          hash,
+          value
+        });
+      }
     }
     return value;
   })().finally(() => {
-    if (animationBaseRequests.get(key) === pending) animationBaseRequests.delete(key);
+    if (animationBaseRequests.get(key) === pending) {
+      animationBaseRequests.delete(key);
+    }
   });
   animationBaseRequests.set(key, pending);
   return pending;
@@ -220,9 +251,17 @@ export async function getCourseSectionContent(courseKey, sectionId, existingTree
     const version = requestGeneration;
     const cacheKey = `${scope}:section:${tree.id}:${tree.revision_id}:${tree.edit_version}:${section.id}`;
     const cached = await getCachedFile(cacheKey);
-    if (scope !== fileCacheScope() || version !== requestGeneration) throw new Error('登录状态或图书版本已变化，请重新加载');
-    const response = cached?.value || await request(path, { cache: 'no-store' });
-    if (scope !== fileCacheScope() || version !== requestGeneration) throw new Error('登录状态或图书版本已变化，请重新加载');
+    if (scope !== fileCacheScope() || version !== requestGeneration) {
+      throw new Error('登录状态或图书版本已变化，请重新加载');
+    }
+    const response =
+      cached?.value ||
+      (await request(path, {
+        cache: 'no-store'
+      }));
+    if (scope !== fileCacheScope() || version !== requestGeneration) {
+      throw new Error('登录状态或图书版本已变化，请重新加载');
+    }
     if (
       String(response.revision_id) !== String(tree.revision_id) ||
       String(response.occurrence_id) !== String(section.id) ||
@@ -234,16 +273,21 @@ export async function getCourseSectionContent(courseKey, sectionId, existingTree
     if (!cached) {
       const hash = await hashCacheValue(response).catch(() => '');
       if (hash && scope === fileCacheScope() && version === requestGeneration) {
-        await putCachedFile({ key: cacheKey, name: `${tree.slug}-${section.slug}.json`, hash, value: response });
+        await putCachedFile({
+          key: cacheKey,
+          name: `${tree.slug}-${section.slug}.json`,
+          hash,
+          value: response
+        });
       }
     }
     source = response.source;
     animationSource = response.animation_source || '';
   }
-  const animationBase = tree.storageSource === 'local' ? tree.metadata?.animation_base || null : null;
-  const loadAnimationBase = animationSource && tree.storageSource !== 'local'
-    ? () => fetchAnimationBase(tree)
-    : null;
+  const animationBase =
+    tree.storageSource === 'local' ? tree.metadata?.animation_base || null : null;
+  const loadAnimationBase =
+    animationSource && tree.storageSource !== 'local' ? () => fetchAnimationBase(tree) : null;
   return {
     id: section.id,
     title: section.title,

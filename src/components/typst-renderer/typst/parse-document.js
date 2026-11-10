@@ -566,14 +566,22 @@ export function parseDocument(source) {
             if (question.error) {
               output.push(unsupported(range, question.error));
             } else if (question.kind === 'reference') {
-              const overrides = { ...question.overrides };
+              const overrides = {
+                ...question.overrides
+              };
               for (const key of ['focus', 'solution', 'conclusion', 'pitfalls']) {
                 const item = overrides[key];
                 if (item && typeof item === 'object') {
                   overrides[key] = convertChildren(item.node, item.start);
                 }
               }
-              output.push({ type: 'mm-question-reference', questionSlug: question.slug, number: question.number, overrides, ...range });
+              output.push({
+                type: 'mm-question-reference',
+                questionSlug: question.slug,
+                number: question.number,
+                overrides,
+                ...range
+              });
             } else if (question.kind === 'blank') {
               output.push({
                 type: 'mm-question-blank',

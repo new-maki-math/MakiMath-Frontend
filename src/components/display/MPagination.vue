@@ -107,14 +107,16 @@ const handlePageSizeChange = (e) => {
       variant="ghost"
       :disabled="disabled || page <= 1"
       @click="goToPage(page - 1)"
-    >上一页</MButton>
+      >上一页</MButton
+    >
     <span>{{ page }} / {{ totalPages }}</span>
     <MButton
       size="sm"
       variant="ghost"
       :disabled="disabled || page >= totalPages"
       @click="goToPage(page + 1)"
-    >下一页</MButton>
+      >下一页</MButton
+    >
   </div>
   <div
     v-else

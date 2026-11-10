@@ -7,3 +7,5 @@ public/
 *-lock.*
 deploy.config.json
 LICENSE
+
+src/components/animation/runtime/katex/

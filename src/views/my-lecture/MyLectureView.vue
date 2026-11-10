@@ -3,12 +3,12 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { bookApi } from '../../api/books.js';
-import MButton from '../../components/form/MButton.vue';
+import MLectureCover from '../../components/book/MLectureCover.vue';
+import MHorizontalShelf from '../../components/display/MHorizontalShelf.vue';
 import MDataView from '../../components/feedback/MDataView.vue';
 import MEmpty from '../../components/feedback/MEmpty.vue';
-import MHorizontalShelf from '../../components/display/MHorizontalShelf.vue';
-import MLectureCover from '../../components/book/MLectureCover.vue';
 import { notify } from '../../components/feedback/MNotice.vue';
+import MButton from '../../components/form/MButton.vue';
 import { authStatus, currentUser, initAuth } from '../../utils/auth.js';
 import { lectureLocation } from '../../utils/lecture-route.js';
 import { listLocalLectures, validateLocalLectureSlug } from '../../utils/local-lectures.js';

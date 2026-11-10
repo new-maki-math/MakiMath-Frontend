@@ -124,5 +124,4 @@ const progressPercent = computed(() => {
   min-width: 30px;
   text-align: right;
 }
-
 </style>

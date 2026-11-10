@@ -313,7 +313,9 @@ async function listDatabases() {
   if (!indexedDB.databases) {
     throw new Error('当前浏览器无法检查全部本地数据库，请使用支持该功能的浏览器');
   }
-  const databases = (await indexedDB.databases()).filter((item) => !DISPOSABLE_DATABASES.has(item.name));
+  const databases = (await indexedDB.databases()).filter(
+    (item) => !DISPOSABLE_DATABASES.has(item.name)
+  );
   const unknown = databases.filter((item) => !Object.hasOwn(SCHEMAS, item.name));
   if (unknown.length) {
     throw new Error(

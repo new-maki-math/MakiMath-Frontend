@@ -32,13 +32,19 @@ export const routes = [
     path: '/workbook/online/:lectureSlug',
     name: 'workbook-home',
     component: WorkbookHomeView,
-    meta: { title: '题目册详情', tag: 'WORKBOOK' }
+    meta: {
+      title: '题目册详情',
+      tag: 'WORKBOOK'
+    }
   },
   {
     path: '/workbook/local/:lectureSlug',
     name: 'local-workbook-home',
     component: WorkbookHomeView,
-    meta: { title: '题目册详情', tag: 'WORKBOOK' }
+    meta: {
+      title: '题目册详情',
+      tag: 'WORKBOOK'
+    }
   },
   {
     path: '/lecture/online/:lectureSlug',

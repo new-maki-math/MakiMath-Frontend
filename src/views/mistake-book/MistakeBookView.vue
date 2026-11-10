@@ -25,6 +25,8 @@ h1 {
   font-size: var(--font-size-smaller);
 }
 @media (max-width: 600px) {
-  .mistake-book { padding: 20px 16px; }
+  .mistake-book {
+    padding: 20px 16px;
+  }
 }
 </style>

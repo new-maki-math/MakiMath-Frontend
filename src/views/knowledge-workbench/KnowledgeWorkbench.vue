@@ -5,13 +5,13 @@ import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue';
 
 import { knowledgeApi } from '../../api/knowledge.js';
 import { managementApi } from '../../api/management.js';
+import { notify } from '../../components/feedback/MNotice.vue';
 import MButton from '../../components/form/MButton.vue';
 import MFilePicker from '../../components/form/MFilePicker.vue';
 import MInput from '../../components/form/MInput.vue';
-import MModal from '../../components/overlay/MModal.vue';
-import { notify } from '../../components/feedback/MNotice.vue';
 import MSelect from '../../components/form/MSelect.vue';
 import MTextarea from '../../components/form/MTextarea.vue';
+import MModal from '../../components/overlay/MModal.vue';
 import TypstEditorPreview from '../../components/typst/TypstEditorPreview.vue';
 import WorkbenchPanel from '../../components/workbench/WorkbenchPanel.vue';
 import WorkbenchTree from '../../components/workbench/WorkbenchTree.vue';

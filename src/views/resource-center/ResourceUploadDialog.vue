@@ -2,12 +2,12 @@
 import { computed, onUnmounted, ref, watch } from 'vue';
 
 import { resourceApi } from '../../api/resources.js';
-import { Xmark } from '../../components/icons/icons.js';
+import MFileTypeIcon from '../../components/display/MFileTypeIcon.vue';
+import MProgress from '../../components/feedback/MProgress.vue';
 import MButton from '../../components/form/MButton.vue';
 import MFilePicker from '../../components/form/MFilePicker.vue';
-import MFileTypeIcon from '../../components/display/MFileTypeIcon.vue';
+import { Xmark } from '../../components/icons/icons.js';
 import MModal from '../../components/overlay/MModal.vue';
-import MProgress from '../../components/feedback/MProgress.vue';
 import { authStatus, currentUser, isSuperAdmin } from '../../utils/auth.js';
 import { formatFileSize } from '../../utils/file-size.js';
 

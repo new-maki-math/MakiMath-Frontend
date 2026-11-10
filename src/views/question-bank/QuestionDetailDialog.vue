@@ -48,14 +48,17 @@ async function loadNeighbors() {
   }
   neighborsLoading.value = true;
   try {
-    const result = await questionApi.entryNeighbors(id, { signal: neighborsController.signal });
+    const result = await questionApi.entryNeighbors(id, {
+      signal: neighborsController.signal
+    });
     if (current !== neighborsSequence) {
       return;
     }
     if (
       !result ||
       !['previous', 'next'].every(
-        (key) => result[key] === null || (result[key]?.id != null && result[key]?.question_id != null)
+        (key) =>
+          result[key] === null || (result[key]?.id != null && result[key]?.question_id != null)
       )
     ) {
       throw new Error('相邻题目数据不完整');
@@ -115,9 +118,13 @@ watch(
   async () => {
     loadNeighbors();
     await nextTick();
-    navigation.value?.closest('.modal-panel')?.querySelector('.modal-body')?.scrollTo({ top: 0 });
+    navigation.value?.closest('.modal-panel')?.querySelector('.modal-body')?.scrollTo({
+      top: 0
+    });
   },
-  { immediate: true }
+  {
+    immediate: true
+  }
 );
 onBeforeUnmount(() => {
   sequence++;
@@ -172,7 +179,11 @@ onBeforeUnmount(() => {
           :disabled="neighborsLoading || !neighbors?.previous"
           @click="emit('navigate', neighbors.previous)"
         >
-          <NavArrowLeft width="16" height="16" aria-hidden="true" />
+          <NavArrowLeft
+            width="16"
+            height="16"
+            aria-hidden="true"
+          />
           上一题
         </MButton>
         <button
@@ -190,7 +201,11 @@ onBeforeUnmount(() => {
           @click="emit('navigate', neighbors.next)"
         >
           下一题
-          <NavArrowRight width="16" height="16" aria-hidden="true" />
+          <NavArrowRight
+            width="16"
+            height="16"
+            aria-hidden="true"
+          />
         </MButton>
       </div>
     </template>

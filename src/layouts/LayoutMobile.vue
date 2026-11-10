@@ -2,6 +2,11 @@
 import { inject, ref, watch } from 'vue';
 import { RouterView } from 'vue-router';
 
+import MUpdateLog from '../components/app/MUpdateLog.vue';
+import SearchBar from '../components/app/SearchBar.vue';
+import ViewportHeader from '../components/app/ViewportHeader.vue';
+import MTag from '../components/display/MTag.vue';
+import MButton from '../components/form/MButton.vue';
 import {
   HalfMoon,
   HelpCircle,
@@ -13,12 +18,7 @@ import {
   UserCircle,
   Xmark
 } from '../components/icons/icons.js';
-import MButton from '../components/form/MButton.vue';
 import MDrawer from '../components/overlay/MDrawer.vue';
-import MTag from '../components/display/MTag.vue';
-import MUpdateLog from '../components/app/MUpdateLog.vue';
-import SearchBar from '../components/app/SearchBar.vue';
-import ViewportHeader from '../components/app/ViewportHeader.vue';
 import NavigationIcon from './NavigationIcon.vue';
 import { useLayoutState } from './useLayoutState.js';
 
@@ -213,18 +213,37 @@ watch(
       <div class="drawer-nav-container">
         <!-- 基础导航分组 -->
         <nav class="drawer-nav-list">
-          <template v-for="(group, index) in navigationGroups" :key="index">
-            <div v-if="index" class="drawer-divider" aria-hidden="true"></div>
+          <template
+            v-for="(group, index) in navigationGroups"
+            :key="index"
+          >
+            <div
+              v-if="index"
+              class="drawer-divider"
+              aria-hidden="true"
+            ></div>
             <button
               v-for="item in group"
               :key="item.id"
               class="drawer-nav-item"
-              :class="{ active: isItemActive(item) }"
+              :class="{
+                active: isItemActive(item)
+              }"
               @click="handleNavClick(item.path)"
             >
-              <NavigationIcon :name="item.id" width="18" height="18" class="item-icon" />
+              <NavigationIcon
+                :name="item.id"
+                width="18"
+                height="18"
+                class="item-icon"
+              />
               <span class="item-text">{{ item.label }}</span>
-              <MTag v-if="item.desktopOnly" variant="muted" size="sm">电脑端</MTag>
+              <MTag
+                v-if="item.desktopOnly"
+                variant="muted"
+                size="sm"
+                >电脑端</MTag
+              >
             </button>
           </template>
         </nav>

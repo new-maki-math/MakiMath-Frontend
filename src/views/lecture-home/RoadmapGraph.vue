@@ -4,10 +4,25 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { fetchCourseTree } from '../../api/courses.js';
-import { lectureLocation, lectureNavigationOrigin } from '../../utils/lecture-route.js';
 import MSpinner from '../../components/feedback/MSpinner.vue';
-import { Expand, HandCard, Lock, Pause, Play, Search, Xmark, ZoomIn, ZoomOut } from '../../components/icons/icons.js';
-import { buildLectureGraph, createRenderScheduler, createSmoothZoom, RoadmapCanvas2DRenderer } from './roadmap.js';
+import {
+  Expand,
+  HandCard,
+  Lock,
+  Pause,
+  Play,
+  Search,
+  Xmark,
+  ZoomIn,
+  ZoomOut
+} from '../../components/icons/icons.js';
+import { lectureLocation, lectureNavigationOrigin } from '../../utils/lecture-route.js';
+import {
+  buildLectureGraph,
+  createRenderScheduler,
+  createSmoothZoom,
+  RoadmapCanvas2DRenderer
+} from './roadmap.js';
 
 const props = defineProps({
   // 复用页面已加载的目录树

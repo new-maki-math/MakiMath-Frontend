@@ -1,7 +1,7 @@
 <script setup>
+import MTag from '../display/MTag.vue';
 import MButton from '../form/MButton.vue';
 import MModal from '../overlay/MModal.vue';
-import MTag from '../display/MTag.vue';
 
 defineProps({
   open: {

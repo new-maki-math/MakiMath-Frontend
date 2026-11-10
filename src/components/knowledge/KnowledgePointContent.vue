@@ -1,8 +1,8 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 
-import MButton from '../form/MButton.vue';
 import { notify } from '../feedback/MNotice.vue';
+import MButton from '../form/MButton.vue';
 import TypstDoc from '../typst-renderer/TypstDoc.vue';
 import KnowledgeAddToLecture from './KnowledgeAddToLecture.vue';
 

@@ -38,7 +38,14 @@ const commentStyle = {
 
 export default [
   {
-    ignores: ['dist/**', 'node_modules/**', 'docs/**', 'doc/**', 'src/vendor/**']
+    ignores: [
+      'dist/**',
+      'node_modules/**',
+      'docs/**',
+      'doc/**',
+      'src/vendor/**',
+      'src/components/animation/runtime/katex/**'
+    ]
   },
   js.configs.recommended,
   ...vue.configs['flat/essential'],
@@ -94,6 +101,15 @@ export default [
     files: ['scripts/**/*.js', 'tests/**/*.js', '*.config.js'],
     languageOptions: {
       globals: globals.node
+    }
+  },
+  {
+    files: ['examples/animation/**/*.js'],
+    languageOptions: {
+      globals: {
+        MakiAnimation: 'readonly',
+        katex: 'readonly'
+      }
     }
   },
   {

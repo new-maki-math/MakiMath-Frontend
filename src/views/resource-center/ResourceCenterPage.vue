@@ -2,6 +2,12 @@
 import { computed, inject, onUnmounted, ref, watch } from 'vue';
 
 import { resourceApi } from '../../api/resources.js';
+import MFileTypeIcon from '../../components/display/MFileTypeIcon.vue';
+import MPagination from '../../components/display/MPagination.vue';
+import MSortIcon from '../../components/display/MSortIcon.vue';
+import MDataView from '../../components/feedback/MDataView.vue';
+import MEmpty from '../../components/feedback/MEmpty.vue';
+import MButton from '../../components/form/MButton.vue';
 import {
   ArrowLeft,
   ArrowRight,
@@ -12,12 +18,6 @@ import {
   Trash,
   Upload
 } from '../../components/icons/icons.js';
-import MButton from '../../components/form/MButton.vue';
-import MDataView from '../../components/feedback/MDataView.vue';
-import MEmpty from '../../components/feedback/MEmpty.vue';
-import MFileTypeIcon from '../../components/display/MFileTypeIcon.vue';
-import MPagination from '../../components/display/MPagination.vue';
-import MSortIcon from '../../components/display/MSortIcon.vue';
 import { authStatus, currentUser } from '../../utils/auth.js';
 import { formatFileSize } from '../../utils/file-size.js';
 import ResourceManageDialog from './ResourceManageDialog.vue';
@@ -283,7 +283,8 @@ onUnmounted(() => {
                   <span
                     v-if="item.description"
                     class="item-description"
-                  >{{ item.description }}</span>
+                    >{{ item.description }}</span
+                  >
                   <span class="mobile-meta">
                     <template v-if="item.kind === 'pdf'">
                       <span>{{ formatFileSize(item.size_bytes) }}</span>
@@ -292,7 +293,8 @@ onUnmounted(() => {
                           Number.isSafeInteger(item.download_count) && item.download_count >= 0
                             ? item.download_count.toLocaleString()
                             : '—'
-                        }} 次下载
+                        }}
+                        次下载
                       </span>
                     </template>
                     <time :datetime="item.updated_at">{{ formatDate(item.updated_at) }}</time>

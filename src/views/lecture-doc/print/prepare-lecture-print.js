@@ -1,5 +1,5 @@
-import { knowledgeApi } from '../../../api/knowledge.js';
 import { bookApi } from '../../../api/books.js';
+import { knowledgeApi } from '../../../api/knowledge.js';
 import { getReferencedQuestion } from '../../../components/typst-renderer/mm/question-reference.js';
 import { parseDocument } from '../../../components/typst-renderer/typst/parse-document.js';
 import { fetchShelfLectureTree } from '../../../utils/shelf-lecture.js';

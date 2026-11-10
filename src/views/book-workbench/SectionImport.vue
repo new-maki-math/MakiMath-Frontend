@@ -1,10 +1,10 @@
 <script setup>
 import { onUnmounted, ref, watch } from 'vue';
 
+import { notify } from '../../components/feedback/MNotice.vue';
 import MFilePicker from '../../components/form/MFilePicker.vue';
 import MInput from '../../components/form/MInput.vue';
 import MModal from '../../components/overlay/MModal.vue';
-import { notify } from '../../components/feedback/MNotice.vue';
 
 const chapter = defineModel('chapter', {
   type: Object,

@@ -1,8 +1,8 @@
 <script setup>
 import { computed, ref } from 'vue';
 
-import { Archive, Folder, Page } from '../../components/icons/icons.js';
 import MButton from '../../components/form/MButton.vue';
+import { Archive, Folder, Page } from '../../components/icons/icons.js';
 
 const sections = [
   {

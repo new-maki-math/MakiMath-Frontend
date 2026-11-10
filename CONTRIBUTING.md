@@ -34,7 +34,7 @@ CI 对推送和 Pull Request 执行相同检查。
 | `src/components/typst`          | Monaco 编辑器、预览联动和知识引用插入                |
 | `src/components/typst-renderer` | Typst 解析、教学宏和文档渲染                         |
 | `src/components/knowledge`      | 知识搜索、知识详情浮层和展开动画                     |
-| `src/views/lecture-home`         | 讲义详情及路线图的建模、交互和 Canvas 2D 绘制                |
+| `src/views/lecture-home`        | 讲义详情及路线图的建模、交互和 Canvas 2D 绘制        |
 | `src/composables`               | 跨模块复用的 Vue 状态和生命周期逻辑                  |
 | `src/api`                       | 请求、接口参数、响应适配和内容缓存失效               |
 | `src/utils`                     | 数据转换、浏览器存储、认证单例和无组件生命周期的工具 |
@@ -54,7 +54,7 @@ CI 对推送和 Pull Request 执行相同检查。
 | 创意工坊与书架 | `RecomLectureView`、`MyLectureView` → 讲义接口或本地 IndexedDB           |
 | 讲义详情与阅读 | `LectureHomeView`、`LectureDocView` → 目录适配、版本校验、Typst 渲染     |
 | 知识库         | `KnowledgeLibrary`、`KnowledgeView` → 知识接口、画布、详情浮层、掌握记录 |
-| 图书编辑       | `BookWorkbench` → 页面专用编辑面板、讲义接口、本地存储、版本冲突处理  |
+| 图书编辑       | `BookWorkbench` → 页面专用编辑面板、讲义接口、本地存储、版本冲突处理     |
 | 知识点编辑     | `KnowledgeWorkbench` → 通用工作台组件、知识接口和分类管理                |
 | 平台管理       | `PlatformView` → 管理认证、用户、邀请码、审计和审核面板                  |
 

@@ -2,9 +2,9 @@
 import { computed, ref } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
 
-import { Refresh } from '../icons/icons.js';
-import MButton from '../form/MButton.vue';
 import MSpinner from '../feedback/MSpinner.vue';
+import MButton from '../form/MButton.vue';
+import { Refresh } from '../icons/icons.js';
 
 const props = defineProps({
   title: {
@@ -81,12 +81,15 @@ const handleRefresh = () => {
             >{{ seg.label }}</RouterLink
           >
           <button
-            v-else-if="typeof seg === 'object' && seg.action && idx < resolvedBreadcrumbs.length - 1"
+            v-else-if="
+              typeof seg === 'object' && seg.action && idx < resolvedBreadcrumbs.length - 1
+            "
             type="button"
             class="crumb-link"
             @click="seg.action"
-            >{{ seg.label }}</button
           >
+            {{ seg.label }}
+          </button>
           <span
             v-else
             :class="{

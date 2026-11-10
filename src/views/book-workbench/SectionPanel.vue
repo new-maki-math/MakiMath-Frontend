@@ -6,7 +6,11 @@ import MInput from '../../components/form/MInput.vue';
 import MTextarea from '../../components/form/MTextarea.vue';
 import TypstEditorPreview from '../../components/typst/TypstEditorPreview.vue';
 import WorkbenchPanel from '../../components/workbench/WorkbenchPanel.vue';
-import { createAnimationPackage, parseAnimationAssets, validateAnimationAssets } from '../../utils/animation-package.js';
+import {
+  createAnimationPackage,
+  parseAnimationAssets,
+  validateAnimationAssets
+} from '../../utils/animation-package.js';
 
 const section = defineModel('section', {
   type: Object,
@@ -55,7 +59,9 @@ async function chooseAnimation(event) {
   const selectedSection = section.value;
   const selectedBase = props.animationBase;
   const files = event.target.files;
-  if (!files?.length) return;
+  if (!files?.length) {
+    return;
+  }
   animationLoading.value = true;
   animationError.value = '';
   try {
@@ -72,7 +78,6 @@ async function chooseAnimation(event) {
     event.target.value = '';
   }
 }
-
 </script>
 
 <template>
@@ -120,7 +125,10 @@ async function chooseAnimation(event) {
         </div>
       </div>
     </div>
-    <div class="wb-block" :inert="!editable">
+    <div
+      class="wb-block"
+      :inert="!editable"
+    >
       <div class="wb-block-head"><span class="wb-block-title">分步动画</span></div>
       <MFilePicker
         :title="animationLoading ? '正在检查动画文件…' : '小节动画资源'"
@@ -130,15 +138,36 @@ async function chooseAnimation(event) {
         :disabled="animationLoading || !editable"
         @change="chooseAnimation"
       />
-      <p v-if="animationError" class="animation-error">{{ animationError }}</p>
+      <p
+        v-if="animationError"
+        class="animation-error"
+      >
+        {{ animationError }}
+      </p>
       <template v-if="animationPackage">
         <details class="animation-files">
           <summary>已导入 {{ Object.keys(animationPackage.files).length }} 个文件</summary>
-          <ul><li v-for="path in Object.keys(animationPackage.files).sort()" :key="path">{{ path }}</li></ul>
+          <ul>
+            <li
+              v-for="path in Object.keys(animationPackage.files).sort()"
+              :key="path"
+            >
+              {{ path }}
+            </li>
+          </ul>
         </details>
-        <button class="animation-remove" type="button" @click="section.animation_source = ''">移除动画</button>
+        <button
+          class="animation-remove"
+          type="button"
+          @click="section.animation_source = ''"
+        >
+          移除动画
+        </button>
       </template>
-      <p v-else-if="section.animation_source" class="animation-error">
+      <p
+        v-else-if="section.animation_source"
+        class="animation-error"
+      >
         当前动画不是资源包，请选择动画文件夹替换。
       </p>
     </div>
@@ -156,8 +185,26 @@ async function chooseAnimation(event) {
 </template>
 
 <style scoped>
-.animation-error { color: var(--tag-red); font-size: var(--font-size-smaller); }
-.animation-files { margin: 8px 0; font-size: var(--font-size-smaller); color: var(--text-secondary); }
-.animation-files ul { max-height: 180px; overflow: auto; padding-left: 20px; overflow-wrap: anywhere; }
-.animation-remove { margin-top: 10px; border: 0; background: transparent; color: var(--text-secondary); cursor: pointer; }
+.animation-error {
+  color: var(--tag-red);
+  font-size: var(--font-size-smaller);
+}
+.animation-files {
+  margin: 8px 0;
+  font-size: var(--font-size-smaller);
+  color: var(--text-secondary);
+}
+.animation-files ul {
+  max-height: 180px;
+  overflow: auto;
+  padding-left: 20px;
+  overflow-wrap: anywhere;
+}
+.animation-remove {
+  margin-top: 10px;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
 </style>

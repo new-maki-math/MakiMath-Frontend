@@ -29,7 +29,10 @@ const props = defineProps({
 });
 const slots = useSlots();
 const questionReferencesAllowed = inject('typstQuestionReferencesAllowed', ref(true));
-provide('typstQuestionReferencesAllowed', computed(() => props.allowQuestionReferences && questionReferencesAllowed.value));
+provide(
+  'typstQuestionReferencesAllowed',
+  computed(() => props.allowQuestionReferences && questionReferencesAllowed.value)
+);
 provide(
   'typstKnowledgeReferencesAllowed',
   computed(() => props.allowKnowledgeReferences)

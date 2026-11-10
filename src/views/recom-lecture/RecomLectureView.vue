@@ -3,12 +3,12 @@ import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { bookApi } from '../../api/books.js';
-import MButton from '../../components/form/MButton.vue';
+import MLectureCover from '../../components/book/MLectureCover.vue';
+import MTabs from '../../components/display/MTabs.vue';
 import MDataView from '../../components/feedback/MDataView.vue';
 import MEmpty from '../../components/feedback/MEmpty.vue';
-import MLectureCover from '../../components/book/MLectureCover.vue';
 import { notify } from '../../components/feedback/MNotice.vue';
-import MTabs from '../../components/display/MTabs.vue';
+import MButton from '../../components/form/MButton.vue';
 import { lectureLocation } from '../../utils/lecture-route.js';
 
 const router = useRouter();

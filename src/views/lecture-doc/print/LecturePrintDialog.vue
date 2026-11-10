@@ -3,9 +3,9 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue';
 
 import MButton from '../../../components/form/MButton.vue';
 import MCheckbox from '../../../components/form/MCheckbox.vue';
-import MModal from '../../../components/overlay/MModal.vue';
 import MRadio from '../../../components/form/MRadio.vue';
 import MSelect from '../../../components/form/MSelect.vue';
+import MModal from '../../../components/overlay/MModal.vue';
 import { createPrintFrame } from './create-print-frame.js';
 import { prepareLecturePrint, verifyLecturePrint } from './prepare-lecture-print.js';
 

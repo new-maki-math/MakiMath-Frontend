@@ -4,9 +4,9 @@ import { computed, nextTick, ref, watch } from 'vue';
 import { bookApi } from '../../api/books.js';
 import { authStatus, currentUser } from '../../utils/auth.js';
 import { listLocalLectures, saveLocalLecture } from '../../utils/local-lectures.js';
-import MModal from '../overlay/MModal.vue';
 import { notify } from '../feedback/MNotice.vue';
 import MSelect from '../form/MSelect.vue';
+import MModal from '../overlay/MModal.vue';
 
 const props = defineProps({
   open: Boolean,

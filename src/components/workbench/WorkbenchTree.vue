@@ -1,8 +1,8 @@
 <script setup>
 import { ref } from 'vue';
 
-import { Plus, Refresh } from '../icons/icons.js';
 import MSpinner from '../feedback/MSpinner.vue';
+import { Plus, Refresh } from '../icons/icons.js';
 import WorkbenchTreeNode from './WorkbenchTreeNode.vue';
 
 const props = defineProps({

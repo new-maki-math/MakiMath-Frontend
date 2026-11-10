@@ -2,6 +2,10 @@
 import { inject, ref } from 'vue';
 import { RouterView } from 'vue-router';
 
+import UserDataBackup from '../components/account/UserDataBackup.vue';
+import MUpdateLog from '../components/app/MUpdateLog.vue';
+import SearchBar from '../components/app/SearchBar.vue';
+import ViewportHeader from '../components/app/ViewportHeader.vue';
 import {
   HalfMoon,
   HelpCircle,
@@ -13,10 +17,6 @@ import {
   UserCircle
 } from '../components/icons/icons.js';
 import MCollapse from '../components/overlay/MCollapse.vue';
-import MUpdateLog from '../components/app/MUpdateLog.vue';
-import SearchBar from '../components/app/SearchBar.vue';
-import UserDataBackup from '../components/account/UserDataBackup.vue';
-import ViewportHeader from '../components/app/ViewportHeader.vue';
 import NavigationIcon from './NavigationIcon.vue';
 import { useLayoutState } from './useLayoutState.js';
 
@@ -195,21 +195,39 @@ const handleNavClick = (item) => {
         </div>
 
         <nav class="sidebar-nav">
-          <template v-for="(group, index) in navigationGroups" :key="index">
-            <div v-if="index" class="sidebar-divider" aria-hidden="true"></div>
+          <template
+            v-for="(group, index) in navigationGroups"
+            :key="index"
+          >
+            <div
+              v-if="index"
+              class="sidebar-divider"
+              aria-hidden="true"
+            ></div>
             <button
               v-for="item in group"
               :key="item.id"
               :data-navigation-id="item.id"
               class="nav-button"
-              :class="{ active: isItemActive(item) }"
+              :class="{
+                active: isItemActive(item)
+              }"
               :title="isSidebarCollapsed ? item.label : undefined"
               @click="handleNavClick(item)"
             >
               <div class="nav-icon-wrap">
-                <NavigationIcon :name="item.id" width="18" height="18" class="nav-icon" />
+                <NavigationIcon
+                  :name="item.id"
+                  width="18"
+                  height="18"
+                  class="nav-icon"
+                />
               </div>
-              <MCollapse horizontal :open="!isSidebarCollapsed" class="nav-label-collapse">
+              <MCollapse
+                horizontal
+                :open="!isSidebarCollapsed"
+                class="nav-label-collapse"
+              >
                 <span class="nav-label">{{ item.label }}</span>
               </MCollapse>
             </button>

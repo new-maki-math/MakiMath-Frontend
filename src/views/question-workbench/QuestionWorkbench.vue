@@ -4,14 +4,14 @@ import '../../components/workbench/workbench.css';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 
 import { questionApi } from '../../api/questions.js';
-import KnowledgeReferencePicker from '../../components/knowledge/KnowledgeReferencePicker.vue';
-import MButton from '../../components/form/MButton.vue';
 import MEmpty from '../../components/feedback/MEmpty.vue';
+import { notify } from '../../components/feedback/MNotice.vue';
+import MButton from '../../components/form/MButton.vue';
 import MFilePicker from '../../components/form/MFilePicker.vue';
 import MInput from '../../components/form/MInput.vue';
-import MModal from '../../components/overlay/MModal.vue';
-import { notify } from '../../components/feedback/MNotice.vue';
 import MSelect from '../../components/form/MSelect.vue';
+import KnowledgeReferencePicker from '../../components/knowledge/KnowledgeReferencePicker.vue';
+import MModal from '../../components/overlay/MModal.vue';
 import TypstEditorPreview from '../../components/typst/TypstEditorPreview.vue';
 import WorkbenchPanel from '../../components/workbench/WorkbenchPanel.vue';
 import WorkbenchTree from '../../components/workbench/WorkbenchTree.vue';

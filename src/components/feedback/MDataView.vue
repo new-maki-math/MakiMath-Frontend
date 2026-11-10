@@ -47,8 +47,8 @@ defineProps({
         :key="contentKey"
         class="data-content"
         :class="{
- 'no-motion': !animate 
-}"
+          'no-motion': !animate
+        }"
       >
         <slot />
       </div>

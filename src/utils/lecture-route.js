@@ -25,10 +25,14 @@ export function lectureLocation({
     name: local
       ? section
         ? 'local-lecture-doc'
-        : kind === 'workbook' ? 'local-workbook-home' : 'local-lecture-home'
+        : kind === 'workbook'
+          ? 'local-workbook-home'
+          : 'local-lecture-home'
       : section
         ? 'lecture-doc'
-        : kind === 'workbook' ? 'workbook-home' : 'lecture-home',
+        : kind === 'workbook'
+          ? 'workbook-home'
+          : 'lecture-home',
     params: section
       ? {
           lectureSlug: slug,

@@ -1,6 +1,6 @@
 <script setup>
-import { NavArrowLeft, NavArrowRight } from '../../components/icons/icons.js';
 import MTag from '../../components/display/MTag.vue';
+import { NavArrowLeft, NavArrowRight } from '../../components/icons/icons.js';
 
 defineProps({
   prevSection: {

@@ -185,7 +185,8 @@ export function createSmoothZoom({ canvas, getTransform, setTransform, target, r
 
 // 讲义路线图的 Canvas 2D 绘制层，布局和交互由 RoadmapGraph 管理。
 const FADE_SPEED = 0.22;
-const FONT_FAMILY = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif';
+const FONT_FAMILY =
+  '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif';
 
 function fade(item, key, target) {
   if (item[key] == null) {
@@ -238,7 +239,8 @@ export class RoadmapCanvas2DRenderer {
     const right = (width - x) / k + pad;
     const top = -y / k - pad;
     const bottom = (height - y) / k + pad;
-    const visible = (node) => node.x >= left && node.x <= right && node.y >= top && node.y <= bottom;
+    const visible = (node) =>
+      node.x >= left && node.x <= right && node.y >= top && node.y <= bottom;
 
     for (const link of links) {
       const source = link.source;
@@ -265,14 +267,21 @@ export class RoadmapCanvas2DRenderer {
       if (node.x == null || node.y == null) {
         continue;
       }
-      const match = query && [node.title, node.tag, node.id].some((value) =>
-        String(value || '').toLowerCase().includes(query)
-      );
+      const match =
+        query &&
+        [node.title, node.tag, node.id].some((value) =>
+          String(value || '')
+            .toLowerCase()
+            .includes(query)
+        );
       const isTarget = hl && node.id === hl.targetId;
       const connected = isTarget || (hl && (hl.inSet.has(node.id) || hl.outSet.has(node.id)));
       const alpha = hl || query ? ((query ? match : connected) ? 1 : 0.12) : 1;
       needsMoreFrames = fade(node, 'currentAlpha', alpha) || needsMoreFrames;
-      const showLabel = isTarget || match || (k >= 0.5 && (k >= 1.6 || (k >= 1 && node.level <= 2) || (k < 1 && node.level === 1)));
+      const showLabel =
+        isTarget ||
+        match ||
+        (k >= 0.5 && (k >= 1.6 || (k >= 1 && node.level <= 2) || (k < 1 && node.level === 1)));
       needsMoreFrames = fade(node, 'currentLabelAlpha', showLabel ? 1 : 0) || needsMoreFrames;
       if (!visible(node)) {
         continue;
@@ -302,7 +311,11 @@ export class RoadmapCanvas2DRenderer {
       ctx.globalAlpha = node.currentLabelAlpha * node.currentAlpha;
       ctx.fillStyle = node.level === 1 ? text : mutedText;
       ctx.font = `${node.level === 1 ? '600 12' : node.level === 3 ? '400 7.5' : '500 8.5'}px ${FONT_FAMILY}`;
-      ctx.fillText(label, node.x, node.y + (node.radius || 12) + (node.level === 1 ? 6 : node.level === 2 ? 4 : 3));
+      ctx.fillText(
+        label,
+        node.x,
+        node.y + (node.radius || 12) + (node.level === 1 ? 6 : node.level === 2 ? 4 : 3)
+      );
     }
     ctx.globalAlpha = 1;
     return needsMoreFrames;

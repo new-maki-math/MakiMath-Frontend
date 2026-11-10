@@ -128,32 +128,32 @@ const sections = computed(() =>
         :class="`section-${section.key}`"
         :open="Boolean(printReferences)"
       >
-      <summary>
-        <span
-          class="section-marker"
-          aria-hidden="true"
-        ></span>
-        <span class="section-label">{{ section.label }}</span>
-        <NavArrowRight
-          class="section-chevron"
-          width="15"
-          height="15"
-        />
-      </summary>
-      <div class="section-content">
-        <template v-if="Array.isArray(section.override)">
-          <TypstNode
-            v-for="(node, index) in section.override"
-            :key="index"
-            :node="node"
+        <summary>
+          <span
+            class="section-marker"
+            aria-hidden="true"
+          ></span>
+          <span class="section-label">{{ section.label }}</span>
+          <NavArrowRight
+            class="section-chevron"
+            width="15"
+            height="15"
           />
-        </template>
-        <TypstDoc
-          v-else
-          :source="section.source"
-          :allow-question-references="false"
-        />
-      </div>
+        </summary>
+        <div class="section-content">
+          <template v-if="Array.isArray(section.override)">
+            <TypstNode
+              v-for="(node, index) in section.override"
+              :key="index"
+              :node="node"
+            />
+          </template>
+          <TypstDoc
+            v-else
+            :source="section.source"
+            :allow-question-references="false"
+          />
+        </div>
       </details>
     </div>
   </MmQuestion>

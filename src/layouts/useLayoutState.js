@@ -110,7 +110,9 @@ export function useLayoutState() {
   let removeAfterHook;
   const progressBarRef = ref(null);
   const navigationGroups = computed(() => {
-    const visible = navItems.filter((item) => !item.sidebarHidden && (!item.adminOnly || isSuperAdmin.value));
+    const visible = navItems.filter(
+      (item) => !item.sidebarHidden && (!item.adminOnly || isSuperAdmin.value)
+    );
     return ['primary', 'reader', 'library', 'management', 'platform']
       .map((group) => visible.filter((item) => item.group === group))
       .filter((group) => group.length);
@@ -249,7 +251,14 @@ export function useLayoutState() {
       layoutChapters.value = [];
       if (
         !lectureId ||
-        !['lecture-doc', 'lecture-home', 'local-lecture-doc', 'local-lecture-home', 'workbook-home', 'local-workbook-home'].includes(name)
+        ![
+          'lecture-doc',
+          'lecture-home',
+          'local-lecture-doc',
+          'local-lecture-home',
+          'workbook-home',
+          'local-workbook-home'
+        ].includes(name)
       ) {
         return;
       }
@@ -331,7 +340,10 @@ export function useLayoutState() {
             })
           }
         : {
-            label: route.name === 'workbook-home' || route.name === 'local-workbook-home' ? '题目册详情' : '课程讲义详情'
+            label:
+              route.name === 'workbook-home' || route.name === 'local-workbook-home'
+                ? '题目册详情'
+                : '课程讲义详情'
           }
     );
     if (route.name === 'lecture-doc' || route.name === 'local-lecture-doc') {
@@ -369,7 +381,11 @@ export function useLayoutState() {
       }
       return crumbs;
     }
-    if (['lecture-home', 'local-lecture-home', 'workbook-home', 'local-workbook-home'].includes(route.name)) {
+    if (
+      ['lecture-home', 'local-lecture-home', 'workbook-home', 'local-workbook-home'].includes(
+        route.name
+      )
+    ) {
       return prefix;
     }
     return [

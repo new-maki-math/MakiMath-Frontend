@@ -3,13 +3,13 @@
 import { onMounted, ref } from 'vue';
 
 import { request } from '../../api/client.js';
-import { Copy, Plus, Refresh } from '../../components/icons/icons.js';
-import MButton from '../../components/form/MButton.vue';
-import MInput from '../../components/form/MInput.vue';
-import MModal from '../../components/overlay/MModal.vue';
-import { notify } from '../../components/feedback/MNotice.vue';
 import MTable from '../../components/display/MTable.vue';
 import MTag from '../../components/display/MTag.vue';
+import { notify } from '../../components/feedback/MNotice.vue';
+import MButton from '../../components/form/MButton.vue';
+import MInput from '../../components/form/MInput.vue';
+import { Copy, Plus, Refresh } from '../../components/icons/icons.js';
+import MModal from '../../components/overlay/MModal.vue';
 import { formatDate } from './utils.js';
 
 const invitations = ref([]);

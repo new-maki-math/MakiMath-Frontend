@@ -9,10 +9,10 @@ import {
   useLectureSearch
 } from '../../composables/useLectureSearch.js';
 import { lectureLocation } from '../../utils/lecture-route.js';
+import MTag from '../display/MTag.vue';
+import { notify } from '../feedback/MNotice.vue';
 import { ArrowRight, Search, Xmark } from '../icons/icons.js';
 import MBackdrop from '../overlay/MBackdrop.vue';
-import { notify } from '../feedback/MNotice.vue';
-import MTag from '../display/MTag.vue';
 
 const props = defineProps({
   // 区分首页搜索框与顶栏搜索框

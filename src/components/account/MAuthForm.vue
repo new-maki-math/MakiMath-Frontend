@@ -4,10 +4,10 @@ import { ref } from 'vue';
 
 import { request } from '../../api/client.js';
 import { authenticate } from '../../utils/auth.js';
+import MTabs from '../display/MTabs.vue';
+import { notify } from '../feedback/MNotice.vue';
 import MButton from '../form/MButton.vue';
 import MInput from '../form/MInput.vue';
-import { notify } from '../feedback/MNotice.vue';
-import MTabs from '../display/MTabs.vue';
 
 // 声明认证成功回调事件
 const emit = defineEmits(['success']);

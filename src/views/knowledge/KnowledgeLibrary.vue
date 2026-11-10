@@ -6,13 +6,13 @@ import { useRoute } from 'vue-router';
 import { knowledgeApi } from '../../api/knowledge.js';
 import { managementApi } from '../../api/management.js';
 import { commandServiceKey } from '../../commands/index.js';
+import MLoadingMask from '../../components/feedback/MLoadingMask.vue';
+import MButton from '../../components/form/MButton.vue';
+import MInput from '../../components/form/MInput.vue';
+import MSelect from '../../components/form/MSelect.vue';
 import KnowledgePointContent from '../../components/knowledge/KnowledgePointContent.vue';
 import KnowledgePointOverlay from '../../components/knowledge/KnowledgePointOverlay.vue';
-import MButton from '../../components/form/MButton.vue';
 import MCollapse from '../../components/overlay/MCollapse.vue';
-import MInput from '../../components/form/MInput.vue';
-import MLoadingMask from '../../components/feedback/MLoadingMask.vue';
-import MSelect from '../../components/form/MSelect.vue';
 import {
   getMasteredIds,
   setMastered,
