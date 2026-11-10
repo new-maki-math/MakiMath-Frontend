@@ -1,7 +1,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
-import { invalidateCourseCaches, toChapters } from '../api/courses.js';
+import { invalidateCourseRequests, toChapters } from '../api/courses.js';
 import { notify } from '../components/feedback/MNotice.vue';
 import { workbenchPanelState } from '../composables/useWorkbenchGuard.js';
 import {
@@ -407,7 +407,7 @@ export function useLayoutState() {
   // 刷新讲义内容
   const docRefreshKey = ref(0);
   const handleRefreshDoc = () => {
-    invalidateCourseCaches();
+    invalidateCourseRequests();
     startProgress();
     docRefreshKey.value++;
   };

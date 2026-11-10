@@ -2,9 +2,9 @@
 import { computed, ref } from 'vue';
 
 import { request, setUnauthorizedHandler } from '../api/client.js';
-import { invalidateCourseCaches } from '../api/courses.js';
+import { invalidateCourseRequests } from '../api/courses.js';
 import { getAuthToken, setAuthToken } from './auth-storage.js';
-import { clearLectureCoverCache } from './lecture-cover-cache.js';
+import { invalidateFileCacheContext } from './file-cache.js';
 
 // 当前登录用户对象响应式
 export const currentUser = ref(null);
@@ -42,8 +42,8 @@ export function setAuth(token, user) {
     currentUser.value?.id !== user?.id ||
     currentUser.value?.role !== user?.role
   ) {
-    invalidateCourseCaches();
-    clearLectureCoverCache();
+    invalidateCourseRequests();
+    invalidateFileCacheContext();
   }
 
   setAuthToken(token);
@@ -119,8 +119,8 @@ const expireSession = () => {
   }
   authVersion++;
   setAuthToken(null);
-  invalidateCourseCaches();
-  clearLectureCoverCache();
+  invalidateCourseRequests();
+  invalidateFileCacheContext();
   authStatus.value = 'expired';
 };
 

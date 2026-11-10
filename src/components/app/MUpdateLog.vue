@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
+import { getCachedFile, hashCacheValue, putCachedFile } from '../../utils/file-cache.js';
 import { markUpdateRead, readUpdateVersions } from '../../utils/update-log-read.js';
 import { Journal, NavArrowRight } from '../icons/icons.js';
 import MButton from '../form/MButton.vue';
@@ -64,16 +65,20 @@ async function loadLog() {
     if (!open.value) {
       return;
     }
-    const body = await fetch(`${base}changelog.typ`, {
-      cache: 'no-store'
-    });
-    if (!body.ok) {
-      throw new Error('更新日志正文加载失败');
+    const cacheKey = `public:changelog:${window.location.origin}:${base}:${data.version}`;
+    const cached = await getCachedFile(cacheKey);
+    if (current !== sequence || disposed || !open.value) return;
+    let text = cached?.value;
+    if (typeof text !== 'string') {
+      const body = await fetch(`${base}changelog.typ`, { cache: 'no-store' });
+      if (!body.ok) throw new Error('更新日志正文加载失败');
+      text = await body.text();
+      const hash = await hashCacheValue(text).catch(() => '');
+      if (hash && current === sequence && !disposed && open.value) {
+        await putCachedFile({ key: cacheKey, name: 'changelog.typ', hash, value: text });
+      }
     }
-    const text = await body.text();
-    if (current === sequence && !disposed && open.value) {
-      source.value = text;
-    }
+    if (current === sequence && !disposed && open.value) source.value = text;
   } catch (failure) {
     if (current === sequence && !disposed) {
       error.value = failure.message || '更新日志加载失败';

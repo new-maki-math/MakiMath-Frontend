@@ -1,9 +1,9 @@
 import { request } from './client.js';
-import { invalidateCourseCaches } from './courses.js';
+import { invalidateCourseRequests } from './courses.js';
 
 const mutate = async (url, options) => {
   const result = await request(url, options);
-  invalidateCourseCaches();
+  invalidateCourseRequests();
   return result;
 };
 

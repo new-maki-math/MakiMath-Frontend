@@ -1,5 +1,5 @@
 import { request } from './client.js';
-import { invalidateCourseCaches } from './courses.js';
+import { invalidateCourseRequests } from './courses.js';
 
 export const reviewApi = {
   pending: (kind) => request(`/api/reviews/${kind}/pending`),
@@ -11,7 +11,7 @@ export const reviewApi = {
         comment
       }
     });
-    invalidateCourseCaches();
+    invalidateCourseRequests();
     return result;
   }
 };

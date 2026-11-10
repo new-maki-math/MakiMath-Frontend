@@ -2,6 +2,7 @@ const FORMAT = 'maki-math-indexeddb-backup';
 const FORMAT_VERSION = 1;
 const LOCK_NAME = 'maki-user-data';
 const RECOVERY_FILE = 'maki-math-recovery.json';
+const DISPOSABLE_DATABASES = new Set(['MakiMath_FileCache', 'maki-lecture-covers']);
 const SCHEMAS = {
   MakiMath_LocalLectures: {
     version: 1,
@@ -312,7 +313,7 @@ async function listDatabases() {
   if (!indexedDB.databases) {
     throw new Error('当前浏览器无法检查全部本地数据库，请使用支持该功能的浏览器');
   }
-  const databases = await indexedDB.databases();
+  const databases = (await indexedDB.databases()).filter((item) => !DISPOSABLE_DATABASES.has(item.name));
   const unknown = databases.filter((item) => !Object.hasOwn(SCHEMAS, item.name));
   if (unknown.length) {
     throw new Error(
@@ -792,7 +793,7 @@ export async function listClearableDatabases() {
   return databases.map((item) => ({
     name: item.name,
     version: item.version,
-    known: Object.hasOwn(SCHEMAS, item.name),
+    known: Object.hasOwn(SCHEMAS, item.name) || DISPOSABLE_DATABASES.has(item.name),
     legacy: Boolean(SCHEMAS[item.name]?.legacy)
   }));
 }

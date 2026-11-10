@@ -1,10 +1,47 @@
-import { getCachedLectureCover, invalidateLectureCover } from '../utils/lecture-cover-cache.js';
+import { fileCacheScope, getCachedFile, getFileCacheContextGeneration, putCachedFile } from '../utils/file-cache.js';
 import { request } from './client.js';
-import { invalidateCourseCaches } from './courses.js';
+import { invalidateCourseRequests } from './courses.js';
+
+const coverRequests = new Map();
+const coverVersions = new Map();
+const coverHashPattern = /^[a-f0-9]{64}$/;
+
+function invalidateLectureCover(id) {
+  const key = String(id);
+  coverVersions.set(key, (coverVersions.get(key) || 0) + 1);
+}
+
+function getCachedLectureCover(id, hash, load) {
+  const revisionId = String(id);
+  const scope = fileCacheScope();
+  const generation = getFileCacheContextGeneration();
+  const version = coverVersions.get(revisionId) || 0;
+  const key = typeof hash === 'string' && coverHashPattern.test(hash) ? `${scope}:cover:${hash}` : '';
+  const requestKey = `${scope}:${generation}:${revisionId}:${version}:${hash || ''}`;
+  const valid = () => scope === fileCacheScope() && generation === getFileCacheContextGeneration() && version === (coverVersions.get(revisionId) || 0);
+  if (coverRequests.has(requestKey)) return coverRequests.get(requestKey);
+  const pending = (async () => {
+    const stored = key ? await getCachedFile(key) : null;
+    if (!valid()) throw new Error('封面状态已变化，请重新读取');
+    if (typeof stored?.value === 'string') return { revision_id: id, cover: stored.value, cover_hash: hash };
+    const result = await load();
+    if (!valid()) throw new Error('封面状态已变化，请重新读取');
+    if (String(result?.revision_id) !== revisionId || typeof result.cover !== 'string') throw new Error('封面数据不完整');
+    if (coverHashPattern.test(result.cover_hash || '')) {
+      await putCachedFile({ key: `${scope}:cover:${result.cover_hash}`, name: `封面-${revisionId}`, hash: result.cover_hash, value: result.cover });
+      if (!valid()) throw new Error('封面状态已变化，请重新读取');
+    }
+    return result;
+  })().finally(() => {
+    if (coverRequests.get(requestKey) === pending) coverRequests.delete(requestKey);
+  });
+  coverRequests.set(requestKey, pending);
+  return pending;
+}
 
 const mutate = async (url, options) => {
   const result = await request(url, options);
-  invalidateCourseCaches();
+  invalidateCourseRequests();
   return result;
 };
 
@@ -137,7 +174,8 @@ export function bookSaveBody(revision, chapters) {
         tag: section.tag,
         title: section.title,
         summary: section.summary,
-        source: section.source
+        source: section.source,
+        animation_source: section.animation_source
       }))
     }))
   };

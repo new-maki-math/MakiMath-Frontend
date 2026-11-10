@@ -9,6 +9,7 @@ import MModal from '../../components/overlay/MModal.vue';
 import MSpinner from '../../components/feedback/MSpinner.vue';
 import { authStatus, currentUser } from '../../utils/auth.js';
 import { formatFileSize } from '../../utils/file-size.js';
+import { fileCacheScope, getCachedFile, hashCacheValue, putCachedFile } from '../../utils/file-cache.js';
 
 const props = defineProps({
   resource: {
@@ -113,7 +114,7 @@ watch(
       tooLarge.value = true;
       return;
     }
-    async function fetchContent() {
+    async function fetchContent(resource) {
       if (!active || loading.value || downloading.value) {
         return;
       }
@@ -121,6 +122,16 @@ watch(
       error.value = '';
       quota.value = null;
       try {
+        const scope = fileCacheScope();
+        const hash = resource.content_hash;
+        const cacheKey = /^[a-f0-9]{64}$/.test(hash || '') ? `${scope}:pdf:${id}:${hash}` : '';
+        const cached = cacheKey ? await getCachedFile(cacheKey) : null;
+        if (!active || scope !== fileCacheScope()) return;
+        if (cached?.value instanceof Blob && cached.value.type === 'application/pdf' && cached.value.size === resource.size_bytes) {
+          url = URL.createObjectURL(cached.value);
+          objectUrl.value = url;
+          return;
+        }
         const response = await resourceApi.content(
           id,
           {
@@ -152,6 +163,13 @@ watch(
           tooLarge.value = true;
           return;
         }
+        if (cacheKey && blob.size === resource.size_bytes) {
+          const actualHash = await hashCacheValue(blob).catch(() => '');
+          if (active && scope === fileCacheScope() && actualHash === hash) {
+            await putCachedFile({ key: cacheKey, name: resource.name || `${id}.pdf`, hash, value: blob });
+          }
+        }
+        if (!active || scope !== fileCacheScope()) return;
         url = URL.createObjectURL(blob);
         objectUrl.value = url;
       } catch (failure) {
@@ -189,7 +207,7 @@ watch(
       tooLarge.value = resource.size_bytes > previewLimit;
       loading.value = false;
       if (!tooLarge.value) {
-        await fetchContent();
+        await fetchContent(resource);
       }
     } catch (failure) {
       if (!active || failure.name === 'AbortError') {
