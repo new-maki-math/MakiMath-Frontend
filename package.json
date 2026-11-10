@@ -17,6 +17,8 @@
     "check": "pnpm lint && pnpm format:check && pnpm test && pnpm build"
   },
   "dependencies": {
+    "acorn": "^8.19.0",
+    "css-tree": "^3.2.1",
     "d3": "^7.9.0",
     "monaco-editor": "^0.57.0",
     "typlet": "^0.1.1",

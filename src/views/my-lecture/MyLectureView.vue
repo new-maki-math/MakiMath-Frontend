@@ -174,10 +174,6 @@ async function loadOnline() {
 }
 
 function openVersion(lecture, version) {
-  if (lecture.kind === 'workbook') {
-    notify('题目册阅读暂未开放', 'info');
-    return;
-  }
   if (!lecture.slug || !version.revision_id || version.invalidDraft) {
     notify('讲义或版本标识缺失，无法打开', 'warn');
     return;
@@ -193,10 +189,6 @@ function openVersion(lecture, version) {
 
 function openLecture(source, lecture) {
   if (source === 'local') {
-    if ((lecture.kind ?? lecture.revision?.kind) === 'workbook') {
-      notify('题目册阅读暂未开放', 'info');
-      return;
-    }
     try {
       validateLocalLectureSlug(lecture.slug);
     } catch (error) {

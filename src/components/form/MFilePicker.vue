@@ -22,6 +22,10 @@ defineProps({
     type: Boolean,
     default: false
   },
+  directory: {
+    type: Boolean,
+    default: false
+  },
   disabled: {
     type: Boolean,
     default: false
@@ -59,7 +63,8 @@ defineEmits(['choose', 'change']);
     <input
       type="file"
       :accept="accept"
-      :multiple="multiple"
+      :multiple="multiple || directory"
+      :webkitdirectory="directory ? '' : null"
       :disabled="disabled"
       @click="$emit('choose', $event)"
       @change="$emit('change', $event)"

@@ -61,10 +61,6 @@ async function load() {
 }
 
 function openLecture(lecture) {
-  if (lecture.kind === 'workbook') {
-    notify('题目册阅读暂未开放', 'info');
-    return;
-  }
   if (!lecture.slug) {
     notify('讲义标识缺失，请刷新列表', 'warn');
     return;

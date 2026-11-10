@@ -13,6 +13,7 @@ import { fetchShelfLectureTree } from '../../utils/shelf-lecture.js';
 import ChapterNav from './ChapterNav.vue';
 import DocFooterNav from './DocFooterNav.vue';
 import OutlineNav from './OutlineNav.vue';
+import SectionAnimation from './SectionAnimation.vue';
 import { useReadingOutline } from './useReadingOutline.js';
 
 const route = useRoute();
@@ -105,9 +106,6 @@ watch(
       const tree = await fetchShelfLectureTree(lectureSlug, source.value, revisionId.value);
       if (current !== sequence) {
         return;
-      }
-      if (tree.kind === 'workbook') {
-        throw new Error('题目册阅读暂未开放');
       }
       const items = toChapters(tree);
       const chapter = items.find((item) => item.slug === selectedChapter);
@@ -213,6 +211,13 @@ onUnmounted(() => {
             <h1>{{ content.title }}</h1>
             <p v-if="content.lead">{{ content.lead }}</p>
           </header>
+          <SectionAnimation
+            v-if="content.animationSource"
+            :key="outlineIdentity"
+            :source="content.animationSource"
+            :base="content.animationBase"
+            :load-base="content.loadAnimationBase"
+          />
           <div
             v-if="content.source"
             ref="outlineContent"

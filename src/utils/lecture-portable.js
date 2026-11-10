@@ -88,7 +88,7 @@ export function validatePortableLecture(data) {
     }
     const sectionSlugs = new Set();
     for (const section of chapter.sections) {
-      object(section, ['slug', 'tag', 'title', 'summary', 'source'], '小节');
+      object(section, ['slug', 'tag', 'title', 'summary', 'source'], '小节', ['animation_source']);
       string(section.slug, '小节标识', 100, true);
       if (sectionSlugs.has(section.slug)) {
         throw new Error('小节标识重复');
@@ -98,6 +98,9 @@ export function validatePortableLecture(data) {
         string(section[key], `小节${key}`, 5000);
       }
       string(section.source, '小节源码', 200000);
+      if (section.animation_source !== undefined) {
+        string(section.animation_source, '小节动画代码', 32 * 1024 * 1024);
+      }
       if (++count > 2000) {
         throw new Error('小节数量超过上限');
       }
@@ -153,7 +156,8 @@ export function localLectureToPortable(record) {
           tag: section.tag || '',
           title: section.title || '',
           summary: section.summary || '',
-          source: section.source
+          source: section.source,
+          animation_source: section.animation_source || ''
         };
       })
     }))

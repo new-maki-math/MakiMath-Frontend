@@ -1407,6 +1407,9 @@ async function save() {
           if (previous && section.source === previous.source) {
             delete section.source;
           }
+          if (previous && section.animation_source === previous.animation_source) {
+            delete section.animation_source;
+          }
         }
       }
       const result = await bookApi.saveRevision(data.revision.id, payload);
@@ -1454,10 +1457,19 @@ async function save() {
             .filter((section) => typeof section.source === 'string')
             .map((section) => [section.occurrence_id, section.source])
         );
+        const animations = new Map(
+          data.chapters
+            .flatMap((chapter) => chapter.sections)
+            .filter((section) => typeof section.animation_source === 'string')
+            .map((section) => [section.occurrence_id, section.animation_source])
+        );
         for (const chapter of result.chapters) {
           for (const section of chapter.sections) {
             if (sources.has(section.occurrence_id)) {
               section.source = sources.get(section.occurrence_id);
+            }
+            if (animations.has(section.occurrence_id)) {
+              section.animation_source = animations.get(section.occurrence_id);
             }
           }
         }
@@ -1522,7 +1534,8 @@ async function saveCurrentSection() {
       tag: sent.tag || '',
       title: sent.title,
       summary: sent.summary || '',
-      source: sent.source
+      source: sent.source,
+      animation_source: sent.animation_source || ''
     });
     if (
       epoch !== identityEpoch ||
@@ -1862,7 +1875,8 @@ function addSection(chapter) {
     title: '',
     tag: '',
     summary: '',
-    source: ''
+    source: '',
+    animation_source: ''
   };
   chapter.sections.push(item);
   selected.value = {
@@ -1968,7 +1982,9 @@ async function selectTreeNode(node) {
             throw new Error('小节内容与目录不一致');
           }
           section.source = result.source;
+          section.animation_source = result.animation_source || '';
           original.source = result.source;
+          original.animation_source = result.animation_source || '';
           baseline.value = JSON.stringify(saved);
         } catch (err) {
           if (err.status === 409) {
@@ -2704,6 +2720,7 @@ onUnmounted(() => {
       <SectionPanel
         v-else-if="revision && lecture && selected.type === 'section' && selectedSection"
         v-model:section="selectedSection"
+        :animation-base="revision.metadata?.animation_base || null"
         :dirty="dirty"
         :saving="saving || loading || createOpen"
         :editable="canEdit"
