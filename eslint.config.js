@@ -104,15 +104,6 @@ export default [
     }
   },
   {
-    files: ['examples/animation/**/*.js'],
-    languageOptions: {
-      globals: {
-        MakiAnimation: 'readonly',
-        katex: 'readonly'
-      }
-    }
-  },
-  {
     files: ['src/views/knowledge/knowledge-canvas2d-worker.js'],
     languageOptions: {
       globals: globals.worker

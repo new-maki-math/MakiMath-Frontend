@@ -49,7 +49,7 @@ MakiAnimation.register({
 
 `pages` 描述页面和步骤的时间区间；`render` 根据时间绘制完整画面。播放器在上一步和下一步之间调用 `render`，后退时会直接回到目标步骤的结束时刻。因此绘制应只由时间和资源决定，不依赖之前的播放顺序。页面之间的第一步会从该步的 `start` 播放到 `end`。
 
-`MakiAnimation.asset('images/example.png')` 返回包内资源地址，可用于图片、音频或字体等；路径从合并后的资源根目录起算。公式可直接使用平台提供的 `katex.renderToString(...)`。完整示例位于前端的 `examples/animation/basic`，在小节面板直接选择该文件夹即可。
+`MakiAnimation.asset('images/example.png')` 返回包内资源地址，可用于图片、音频或字体等；路径从合并后的资源根目录起算。公式可直接使用平台提供的 `katex.renderToString(...)`。
 
 动画在独立沙箱中运行，不可访问父页面；动态模块、脚本网络请求及外部图片不受支持。用户的绘制脚本应使用 `MakiAnimation.asset` 访问包内资源，不应依赖外部服务器或自行操作父页面。
 
