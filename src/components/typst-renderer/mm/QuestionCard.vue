@@ -212,7 +212,7 @@ const sections = computed(() =>
   width: 6px;
   height: 6px;
   flex: none;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   background: var(--section-color);
 }
 .section-label {

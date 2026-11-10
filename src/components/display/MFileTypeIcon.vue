@@ -10,43 +10,43 @@ const props = defineProps({
 
 const types = {
   pdf: {
-    color: '#D85C64',
+    color: 'var(--file-pdf)',
     label: 'PDF'
   },
   doc: {
-    color: '#5388D8',
+    color: 'var(--file-document)',
     label: 'DOC'
   },
   docx: {
-    color: '#5388D8',
+    color: 'var(--file-document)',
     label: 'DOC'
   },
   xls: {
-    color: '#43A779',
+    color: 'var(--file-spreadsheet)',
     label: 'XLS'
   },
   xlsx: {
-    color: '#43A779',
+    color: 'var(--file-spreadsheet)',
     label: 'XLS'
   },
   ppt: {
-    color: '#D98954',
+    color: 'var(--file-presentation)',
     label: 'PPT'
   },
   pptx: {
-    color: '#D98954',
+    color: 'var(--file-presentation)',
     label: 'PPT'
   },
   image: {
-    color: '#A77BCC',
+    color: 'var(--file-image)',
     label: 'IMG'
   },
   zip: {
-    color: '#B6924F',
+    color: 'var(--file-zip)',
     label: 'ZIP'
   },
   file: {
-    color: '#8793A2',
+    color: 'var(--file-generic)',
     label: ''
   }
 };
@@ -63,16 +63,16 @@ const file = computed(() => types[props.type.toLowerCase()] || types.file);
     <template v-if="type === 'folder' || type === 'archive'">
       <path
         d="M3 7.5A2.5 2.5 0 0 1 5.5 5h7l2.5 3h11.5A2.5 2.5 0 0 1 29 10.5V25a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7.5Z"
-        :fill="type === 'archive' ? '#8090A0' : '#DDAE55'"
+        :fill="type === 'archive' ? 'var(--file-archive-back)' : 'var(--file-folder-back)'"
       />
       <path
         d="M3 13h26v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V13Z"
-        :fill="type === 'archive' ? '#A0ADBA' : '#EBC67A'"
+        :fill="type === 'archive' ? 'var(--file-archive-front)' : 'var(--file-folder-front)'"
       />
       <path
         v-if="type === 'archive'"
         d="M12 18h8"
-        stroke="#536474"
+        stroke="var(--file-archive-mark)"
         stroke-width="2"
         stroke-linecap="round"
       />
@@ -84,13 +84,13 @@ const file = computed(() => types[props.type.toLowerCase()] || types.file);
       />
       <path
         d="M18 2.5v5a2 2 0 0 0 2 2h5L18 2.5Z"
-        fill="#fff"
+        fill="var(--color-on-solid)"
         fill-opacity=".38"
       />
       <path
         v-if="!file.label"
         d="M9 16h12M9 20h12M9 24h8"
-        stroke="#fff"
+        stroke="var(--color-on-solid)"
         stroke-opacity=".82"
         stroke-width="1.5"
         stroke-linecap="round"
@@ -100,7 +100,7 @@ const file = computed(() => types[props.type.toLowerCase()] || types.file);
         x="15"
         y="23"
         text-anchor="middle"
-        fill="#fff"
+        fill="var(--color-on-solid)"
         font-family="Arial, sans-serif"
         font-size="7.5"
         font-weight="700"

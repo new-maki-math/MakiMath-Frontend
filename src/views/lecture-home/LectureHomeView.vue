@@ -1099,7 +1099,7 @@ onUnmounted(() => {
 .spec-card {
   background-color: var(--bg-surface);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   padding: 20px;
   display: flex;
   flex-direction: column;
@@ -1160,7 +1160,7 @@ onUnmounted(() => {
   color: var(--text-muted);
   background-color: var(--bg-elevated);
   padding: 10px 12px;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
   border: 1px solid var(--border-subtle);
 }
 
@@ -1188,7 +1188,7 @@ onUnmounted(() => {
   width: 100%;
   height: 520px;
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   overflow: hidden;
   isolation: isolate;
   z-index: 1;
@@ -1275,7 +1275,7 @@ onUnmounted(() => {
 .chapter-panel {
   background-color: var(--bg-surface);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   overflow: hidden;
   transition: border-color 120ms ease;
 }
@@ -1404,7 +1404,7 @@ onUnmounted(() => {
   padding: 32px;
   background-color: var(--bg-surface);
   border: 1px dashed var(--border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   color: var(--text-muted);
   font-size: var(--font-size-smaller);
   text-align: center;

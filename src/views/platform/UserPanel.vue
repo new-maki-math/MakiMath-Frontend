@@ -166,18 +166,18 @@ onMounted(loadUsers);
 .status-pill {
   display: inline-block;
   padding: 2px 8px;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
   font-size: 11px;
 }
 
 .status-active {
-  background-color: rgba(152, 195, 121, 0.15);
-  color: #98c379;
+  background-color: var(--tag-green-bg);
+  color: var(--tag-green);
 }
 
 .status-disabled {
-  background-color: rgba(224, 108, 117, 0.15);
-  color: #e06c75;
+  background-color: var(--tag-red-bg);
+  color: var(--tag-red);
 }
 
 .table-actions {
@@ -211,7 +211,7 @@ onMounted(loadUsers);
 .role-opt {
   flex: 1;
   padding: 8px 12px;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
   border: 1px solid var(--border-subtle);
   background-color: var(--bg-surface);
   color: var(--text-secondary);

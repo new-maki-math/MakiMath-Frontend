@@ -456,9 +456,9 @@ defineExpose({
   height: 52px;
   background-color: var(--bg-surface);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm, 6px);
+  border-radius: var(--radius);
   padding: 0 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 20px var(--shadow-color-soft);
   transition:
     border-color 200ms ease,
     background-color 200ms ease,
@@ -476,11 +476,11 @@ defineExpose({
   border-color: var(--accent-primary);
   box-shadow:
     0 0 0 1px var(--accent-primary),
-    0 8px 30px rgba(0, 0, 0, 0.25);
+    0 8px 30px var(--shadow-color-medium);
 }
 
 .search-bar-unified.is-hero .native-search-input {
-  font-size: var(--font-size, 14px);
+  font-size: var(--font-size);
 }
 
 /* Topbar 模式（顶栏紧凑搜索框） */
@@ -490,11 +490,10 @@ defineExpose({
 
 .search-bar-unified.is-topbar .search-input-inner {
   height: 34px;
-  background-color: var(--bg-surface, #1e1e1e);
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
-  border-radius: var(--radius-xs, 4px);
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
   padding: 0 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   transition:
     border-color 160ms ease,
     background-color 160ms ease;
@@ -502,14 +501,13 @@ defineExpose({
 }
 
 .search-bar-unified.is-topbar:hover .search-input-inner {
-  background-color: var(--bg-elevated, #252525);
-  border-color: var(--border-hover, rgba(255, 255, 255, 0.2));
+  background-color: var(--bg-elevated);
+  border-color: var(--border-hover);
 }
 
 .search-bar-unified.is-topbar.is-focused .search-input-inner {
-  background-color: var(--bg-elevated, #252525);
-  border-color: var(--accent-primary, #f59e0b);
-  box-shadow: 0 0 0 1px var(--accent-primary, #f59e0b);
+  background-color: var(--bg-elevated);
+  border-color: var(--accent-primary);
 }
 
 .search-bar-unified.is-topbar .native-search-input {
@@ -526,7 +524,7 @@ defineExpose({
 
 .search-icon {
   flex-shrink: 0;
-  color: var(--accent-primary, #f59e0b);
+  color: var(--accent-primary);
 }
 
 .input-wrapper {
@@ -565,7 +563,7 @@ defineExpose({
 }
 
 .placeholder-text {
-  font-size: var(--font-size-smaller, 13px);
+  font-size: var(--font-size-smaller);
   color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
@@ -600,7 +598,7 @@ defineExpose({
   align-items: center;
   justify-content: center;
   padding: 4px;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
 }
 
 .search-clear-btn:hover {
@@ -616,7 +614,7 @@ defineExpose({
 .kbd-badge {
   font-size: 10.5px;
   padding: 2px 6px;
-  border-radius: var(--radius-xs, 3px);
+  border-radius: var(--radius);
   background-color: var(--bg-app);
   border: 1px solid var(--border-subtle);
   color: var(--text-secondary);
@@ -630,8 +628,8 @@ defineExpose({
   right: 0;
   background-color: var(--bg-surface);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
+  border-radius: var(--radius);
+  box-shadow: 0 14px 40px var(--shadow-color-strong);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -641,7 +639,7 @@ defineExpose({
 
 .is-topbar .search-dropdown-card {
   max-height: 380px;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 16px 48px var(--shadow-color-deep);
 }
 
 .dropdown-header {
@@ -758,7 +756,7 @@ defineExpose({
   background-color: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   padding: 1px 4px;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
   font-size: 10px;
   color: var(--text-primary);
 }
@@ -793,7 +791,7 @@ defineExpose({
 
   .search-dropdown-card {
     max-height: min(320px, 52vh);
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+    box-shadow: 0 12px 32px var(--shadow-color-heavy);
   }
 
   .dropdown-list {

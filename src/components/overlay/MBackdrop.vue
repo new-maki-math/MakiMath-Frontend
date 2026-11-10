@@ -125,7 +125,7 @@ onUnmounted(() => {
 <style scoped>
 /* 遮罩层基础样式 */
 .m-backdrop {
-  background-color: rgba(0, 0, 0, 0.4);
+  background-color: var(--overlay-backdrop);
   opacity: 0;
   pointer-events: none;
   transition:

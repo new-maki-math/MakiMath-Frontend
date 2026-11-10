@@ -526,7 +526,7 @@ export function parseDocument(source) {
           if (name === 'highlight' && argsOnly.length >= 1 && argsOnly.length <= 2) {
             const body = argsOnly.at(-1);
             const parameter = argsOnly.length === 2 ? argsOnly[0].node : null;
-            let color = '#fffd11a1';
+            let color = 'var(--typst-highlight-default)';
             if (parameter?.kind === K.Named) {
               const values = parameter.children.filter(
                 (child) => ![K.Space, K.Colon, K.LineComment, K.BlockComment].includes(child.kind)

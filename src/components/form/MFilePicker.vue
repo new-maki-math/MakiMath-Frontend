@@ -81,7 +81,7 @@ defineEmits(['choose', 'change']);
   min-width: 0;
   padding: 14px 16px;
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   background: var(--bg-surface);
   cursor: pointer;
 }

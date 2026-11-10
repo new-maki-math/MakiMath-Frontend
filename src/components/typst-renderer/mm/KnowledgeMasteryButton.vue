@@ -115,7 +115,7 @@ onBeforeUnmount(() => {
   height: 40px;
   padding: 0;
   border: 0;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;

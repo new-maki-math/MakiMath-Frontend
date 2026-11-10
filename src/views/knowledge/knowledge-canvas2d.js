@@ -234,7 +234,7 @@ export function readCanvasPalette(element) {
     before: color('color-mix(in srgb, var(--tag-orange) 45%, var(--bg-hover))'),
     after: color('color-mix(in srgb, var(--tag-green) 45%, var(--bg-hover))'),
     text: color('var(--text-primary)'),
-    masteredText: color('var(--tree-selected-fg)'),
+    masteredText: color('var(--color-on-solid)'),
     font: getComputedStyle(element).fontFamily
   };
   probe.remove();

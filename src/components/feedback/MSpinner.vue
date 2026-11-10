@@ -42,7 +42,7 @@ defineProps({
   box-sizing: border-box;
   border: 2px solid var(--border-hover);
   border-top-color: var(--accent-primary);
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   animation: m-spinner-spin 750ms linear infinite;
 }
 .m-spinner-content {

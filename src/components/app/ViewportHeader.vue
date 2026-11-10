@@ -109,24 +109,25 @@ const handleRefresh = () => {
       >
         <slot name="actions">
           <MButton
-            variant="secondary"
-            size="sm"
+            variant="ghost"
+            size="md"
+            icon-only
             class="header-refresh-btn"
             title="刷新内容区域"
+            aria-label="刷新内容区域"
             @click="handleRefresh"
           >
             <template #icon>
               <MSpinner
                 v-if="isRefreshing"
-                :size="13"
+                :size="18"
               />
               <Refresh
                 v-else
-                width="13"
-                height="13"
+                width="18"
+                height="18"
               />
             </template>
-            <span>刷新</span>
           </MButton>
         </slot>
       </div>
@@ -224,8 +225,6 @@ const handleRefresh = () => {
 }
 
 .header-refresh-btn {
-  gap: 6px;
-  font-size: var(--font-size-smallest);
   color: var(--text-secondary);
 }
 

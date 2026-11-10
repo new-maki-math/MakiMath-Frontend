@@ -93,7 +93,7 @@ defineEmits(['update:modelValue', 'enter']);
   /* 输入框基础样式 */
   background-color: var(--bg-surface);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   color: var(--text-primary);
   font-size: var(--font-size);
   user-select: text;

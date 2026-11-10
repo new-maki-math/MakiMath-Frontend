@@ -128,22 +128,10 @@ const level = (count) => (count === 0 ? 0 : count < 3 ? 1 : count < 6 ? 2 : coun
 
 <style scoped>
 .heatmap {
-  --heat-0: #161b22;
-  --heat-1: #0e4429;
-  --heat-2: #006d32;
-  --heat-3: #26a641;
-  --heat-4: #39d353;
   padding: 24px;
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-}
-:global([data-theme='light']) .heatmap {
-  --heat-0: #ebedf0;
-  --heat-1: #9be9a8;
-  --heat-2: #40c463;
-  --heat-3: #30a14e;
-  --heat-4: #216e39;
+  border-radius: var(--radius);
 }
 .heatmap-top,
 .heatmap-bottom {
@@ -170,7 +158,7 @@ const level = (count) => (count === 0 ? 0 : count < 3 ? 1 : count < 6 ? 2 : coun
   color: var(--text-muted);
   font-size: var(--font-size-smallest);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
   padding: 4px 8px;
   white-space: nowrap;
 }
@@ -220,7 +208,7 @@ const level = (count) => (count === 0 ? 0 : count < 3 ? 1 : count < 6 ? 2 : coun
 .cell,
 .legend-cell {
   display: block;
-  border-radius: 3px;
+  border-radius: var(--radius);
 }
 .cell {
   width: 100%;
@@ -275,7 +263,7 @@ const level = (count) => (count === 0 ? 0 : count < 3 ? 1 : count < 6 ? 2 : coun
     gap: 2px;
   }
   .cell {
-    border-radius: 2px;
+    border-radius: var(--radius);
   }
   .heatmap-bottom {
     align-items: flex-start;

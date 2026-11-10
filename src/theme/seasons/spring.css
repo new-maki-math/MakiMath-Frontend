@@ -1,0 +1,111 @@
+:root[data-season='spring'] {
+  --bg-topbar: #dcebe0;
+  --bg-sidebar: #e8f2e7;
+  --bg-app: #f2f8f0;
+  --bg-surface: #eaf3e8;
+  --bg-elevated: #fcfefb;
+  --bg-hover: #dcebdc;
+  --text-primary: #26382b;
+  --text-secondary: #53675a;
+  --text-muted: #788a7c;
+  --accent-primary: #3d7451;
+  --accent-hover: #326044;
+  --accent-active: #284d37;
+  --accent-muted: rgba(61, 116, 81, 0.12);
+  --tree-selected-bg: #346e4d;
+  --tree-selected-hover-bg: #43825f;
+  --border-subtle: #cadfcb;
+  --border-hover: #99b89e;
+  --border-medium: #99b89e;
+  --border-focus: rgba(61, 116, 81, 0.65);
+  --selection-text: #26382b;
+  --selection-bg: #d2ead5;
+  --btn-secondary-hover-bg: #dcebdc;
+  --btn-ghost-hover-border: #cadfcb;
+  --roadmap-overlay: rgba(234, 243, 232, 0.94);
+
+  /* 季节色彩 */
+  --tag-blue: #426f9c;
+  --tag-cyan: #257481;
+  --tag-green: #3d784e;
+  --tag-purple: #77569a;
+  --tag-red: #ae405a;
+  --tag-orange: #a35b32;
+  --tag-amber: #91621e;
+  --tag-teal: #2f7870;
+  --tag-lime: #697a38;
+  --tag-gray: #746b76;
+
+  /* 季节色随基础颜色变化 */
+  --tag-blue-bg: color-mix(in srgb, var(--tag-blue) 12%, transparent);
+  --tag-cyan-bg: color-mix(in srgb, var(--tag-cyan) 12%, transparent);
+  --tag-green-bg: color-mix(in srgb, var(--tag-green) 12%, transparent);
+  --tag-purple-bg: color-mix(in srgb, var(--tag-purple) 12%, transparent);
+  --tag-red-bg: color-mix(in srgb, var(--tag-red) 12%, transparent);
+  --tag-orange-bg: color-mix(in srgb, var(--tag-orange) 12%, transparent);
+  --tag-amber-bg: color-mix(in srgb, var(--tag-amber) 12%, transparent);
+  --tag-teal-bg: color-mix(in srgb, var(--tag-teal) 12%, transparent);
+  --tag-lime-bg: color-mix(in srgb, var(--tag-lime) 12%, transparent);
+  --tag-gray-bg: color-mix(in srgb, var(--tag-gray) 12%, transparent);
+  --maki-blue-lit: var(--tag-blue);
+  --maki-red-lit: var(--tag-red);
+  --maki-green-lit: var(--tag-green);
+
+  /* 状态与提示 */
+  --status-success: var(--tag-green);
+  --status-error: var(--tag-red);
+  --status-warning: var(--tag-orange);
+  --notice-error-text: var(--tag-red);
+  --notice-error-bg: color-mix(in srgb, var(--tag-red) 12%, var(--bg-elevated));
+  --notice-error-border: color-mix(in srgb, var(--tag-red) 38%, var(--border-subtle));
+  --notice-warning-text: var(--tag-orange);
+  --notice-warning-border: color-mix(in srgb, var(--tag-orange) 38%, var(--border-subtle));
+  --notice-info-border: color-mix(in srgb, var(--tag-blue) 38%, var(--border-subtle));
+  --tree-error-text: var(--tag-red);
+  --reader-guide-border: var(--border-subtle);
+  --scrollbar-light-thumb-hover: var(--border-hover);
+
+  /* 教学标签 */
+  --mm-tag-blue-text: var(--tag-blue);
+  --mm-tag-blue-background: color-mix(in srgb, var(--tag-blue) 11%, var(--bg-surface));
+  --mm-tag-blue-border: color-mix(in srgb, var(--tag-blue) 36%, var(--bg-surface));
+  --mm-tag-cyan-text: var(--tag-cyan);
+  --mm-tag-cyan-background: color-mix(in srgb, var(--tag-cyan) 11%, var(--bg-surface));
+  --mm-tag-cyan-border: color-mix(in srgb, var(--tag-cyan) 36%, var(--bg-surface));
+  --mm-tag-green-text: var(--tag-green);
+  --mm-tag-green-background: color-mix(in srgb, var(--tag-green) 11%, var(--bg-surface));
+  --mm-tag-green-border: color-mix(in srgb, var(--tag-green) 36%, var(--bg-surface));
+  --mm-tag-orange-text: var(--tag-orange);
+  --mm-tag-orange-background: color-mix(in srgb, var(--tag-orange) 11%, var(--bg-surface));
+  --mm-tag-orange-border: color-mix(in srgb, var(--tag-orange) 36%, var(--bg-surface));
+  --mm-tag-rose-text: var(--tag-red);
+  --mm-tag-rose-background: color-mix(in srgb, var(--tag-red) 11%, var(--bg-surface));
+  --mm-tag-rose-border: color-mix(in srgb, var(--tag-red) 36%, var(--bg-surface));
+  --mm-tag-purple-text: var(--tag-purple);
+  --mm-tag-purple-background: color-mix(in srgb, var(--tag-purple) 11%, var(--bg-surface));
+  --mm-tag-purple-border: color-mix(in srgb, var(--tag-purple) 36%, var(--bg-surface));
+
+  /* 图形与文件 */
+  --roadmap-course: var(--tag-amber);
+  --roadmap-chapter-1: var(--tag-blue);
+  --roadmap-chapter-2: var(--tag-green);
+  --roadmap-chapter-3: var(--tag-purple);
+  --roadmap-chapter-4: var(--tag-red);
+  --roadmap-chapter-5: var(--tag-cyan);
+  --roadmap-chapter-6: var(--tag-orange);
+  --roadmap-chapter-7: var(--tag-teal);
+  --roadmap-chapter-8: var(--tag-lime);
+  --file-pdf: color-mix(in srgb, var(--tag-red) 75%, #392b32);
+  --file-document: color-mix(in srgb, var(--tag-blue) 75%, #392b32);
+  --file-spreadsheet: color-mix(in srgb, var(--tag-green) 75%, #392b32);
+  --file-presentation: color-mix(in srgb, var(--tag-orange) 75%, #392b32);
+  --file-image: color-mix(in srgb, var(--tag-purple) 75%, #392b32);
+  --file-zip: color-mix(in srgb, var(--tag-amber) 75%, #392b32);
+  --file-generic: color-mix(in srgb, var(--tag-gray) 75%, #392b32);
+  --file-folder-back: color-mix(in srgb, var(--tag-amber) 58%, var(--bg-elevated));
+  --file-folder-front: color-mix(in srgb, var(--tag-amber) 38%, var(--bg-elevated));
+  --file-archive-back: color-mix(in srgb, var(--tag-gray) 65%, var(--bg-elevated));
+  --file-archive-front: color-mix(in srgb, var(--tag-gray) 45%, var(--bg-elevated));
+  --file-archive-mark: var(--text-primary);
+  --cover-art-background: color-mix(in srgb, var(--bg-surface) 94%, #a5cda3);
+}

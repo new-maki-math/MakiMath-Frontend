@@ -2,18 +2,17 @@
 import { inject, ref, watch } from 'vue';
 import { RouterView } from 'vue-router';
 
+import MThemeSwitcher from '../components/app/MThemeSwitcher.vue';
 import MUpdateLog from '../components/app/MUpdateLog.vue';
 import SearchBar from '../components/app/SearchBar.vue';
 import ViewportHeader from '../components/app/ViewportHeader.vue';
 import MTag from '../components/display/MTag.vue';
 import MButton from '../components/form/MButton.vue';
 import {
-  HalfMoon,
   HelpCircle,
   LogOut,
   Menu,
   Search,
-  SunLight,
   Terminal,
   UserCircle,
   Xmark
@@ -27,8 +26,8 @@ const state = inject('layoutState', null) || useLayoutState();
 
 const {
   route,
-  isDark,
-  toggleTheme,
+  currentTheme,
+  setTheme,
   isLoggedIn,
   userDisplayName,
   isUserModalOpen,
@@ -181,23 +180,10 @@ watch(
             height="20"
           />
         </button>
-        <button
-          type="button"
-          class="mobile-icon-btn"
-          :title="isDark ? '切换至浅色模式' : '切换至深色模式'"
-          aria-label="切换浅色/深色模式"
-          @click="toggleTheme"
-        >
-          <SunLight
-            v-if="isDark"
-            width="20"
-            height="20"
-          /><HalfMoon
-            v-else
-            width="20"
-            height="20"
-          />
-        </button>
+        <MThemeSwitcher
+          :model-value="currentTheme"
+          @update:model-value="setTheme"
+        />
         <MUpdateLog />
       </div>
     </header>
@@ -407,7 +393,7 @@ watch(
   justify-content: center;
   width: 40px;
   height: 40px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   color: var(--text-secondary);
   background: transparent;
   border: none;
@@ -434,7 +420,7 @@ watch(
   gap: 6px;
   cursor: pointer;
   padding: 4px 6px;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
   user-select: none;
 }
 
@@ -485,7 +471,7 @@ watch(
   width: 100%;
   height: 42px;
   padding: 0 14px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   color: var(--text-secondary);
   background: transparent;
   border: none;
@@ -568,7 +554,7 @@ watch(
   padding: 12px 14px;
   background-color: var(--bg-app);
   border-bottom: 1px solid var(--border-subtle);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 20px var(--overlay-backdrop);
 }
 
 .search-box-wrap {
@@ -582,7 +568,7 @@ watch(
   justify-content: center;
   width: 40px;
   height: 40px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   color: var(--text-muted);
   background: transparent;
   border: none;
@@ -599,7 +585,7 @@ watch(
   position: absolute;
   inset: 0;
   z-index: 1;
-  background: rgba(0, 0, 0, 0.65);
+  background: var(--search-overlay);
   -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
 }
@@ -623,6 +609,7 @@ watch(
   display: flex;
   flex-direction: column;
   width: 100%;
+  overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   min-width: 0;

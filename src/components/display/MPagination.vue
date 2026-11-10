@@ -3,6 +3,7 @@
 import { computed } from 'vue';
 
 import MButton from '../form/MButton.vue';
+import MSelect from '../form/MSelect.vue';
 import { NavArrowLeft, NavArrowRight } from '../icons/icons.js';
 
 const props = defineProps({
@@ -83,11 +84,18 @@ const goToPage = (p) => {
 };
 
 // 切换每页展示数量
-const handlePageSizeChange = (e) => {
+const pageSizeChoices = computed(() =>
+  props.pageSizeOptions.map((value) => ({
+    value,
+    label: `${value} 条/页`
+  }))
+);
+
+const handlePageSizeChange = (value) => {
   if (props.disabled) {
     return;
   }
-  const newSize = Number(e.target.value) || 20;
+  const newSize = Number(value) || 20;
   emit('update:pageSize', newSize);
   emit('update:page', 1);
   emit('change', {
@@ -182,20 +190,15 @@ const handlePageSizeChange = (e) => {
       </button>
 
       <div class="page-size-wrap">
-        <select
+        <MSelect
           class="page-size-select font-mono"
-          :value="pageSize"
+          :model-value="pageSize"
+          :options="pageSizeChoices"
+          size="sm"
+          aria-label="每页条数"
           :disabled="disabled"
-          @change="handlePageSizeChange"
-        >
-          <option
-            v-for="opt in pageSizeOptions"
-            :key="opt"
-            :value="opt"
-          >
-            {{ opt }} 条/页
-          </option>
-        </select>
+          @update:model-value="handlePageSizeChange"
+        />
       </div>
     </div>
   </div>
@@ -263,7 +266,7 @@ const handlePageSizeChange = (e) => {
   min-width: 28px;
   height: 28px;
   padding: 0 6px;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
   background-color: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   color: var(--text-secondary);
@@ -313,24 +316,6 @@ const handlePageSizeChange = (e) => {
 }
 
 .page-size-select {
-  height: 28px;
-  padding: 0 8px;
-  border-radius: var(--radius-xs);
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-secondary);
-  font-size: var(--font-size-smaller);
-  cursor: pointer;
-  outline: none;
-  transition: border-color 120ms ease;
-}
-
-.page-size-select:hover:not(:disabled) {
-  border-color: var(--border-hover);
-  color: var(--text-primary);
-}
-
-.page-size-select:focus {
-  border-color: var(--accent-primary);
+  width: 108px;
 }
 </style>

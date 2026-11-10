@@ -1119,7 +1119,7 @@ onUnmounted(() => {
 .status-notice {
   margin-bottom: 20px;
   padding: 14px 16px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   background: var(--tag-blue-bg);
   color: var(--text-primary);
   font-size: var(--font-size-smaller);

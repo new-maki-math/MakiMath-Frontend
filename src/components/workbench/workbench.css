@@ -56,7 +56,7 @@
   /* 提示框背景 */
   background-color: var(--bg-surface);
   border: 1px dashed var(--border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   font-size: var(--font-size);
   color: var(--text-secondary);
   line-height: 1.8;
@@ -85,7 +85,7 @@
   gap: 10px;
   height: 36px;
   padding: 0 10px;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
   font-size: var(--font-size);
   color: var(--text-secondary);
   transition:
@@ -130,7 +130,7 @@
   /* 文件放置区 */
   background-color: var(--bg-surface);
   border: 1px dashed var(--border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   color: var(--text-secondary);
   font-size: var(--font-size);
   cursor: pointer;
@@ -153,8 +153,8 @@
   -webkit-appearance: none;
   width: 15px;
   height: 15px;
-  border-radius: var(--radius-xs, 3px);
-  border: 1px solid var(--border-medium, rgba(255, 255, 255, 0.2));
+  border-radius: var(--radius);
+  border: 1px solid var(--border-medium);
   background-color: var(--bg-surface);
   cursor: pointer;
   display: inline-flex;
@@ -179,7 +179,7 @@
   content: '';
   width: 4px;
   height: 8px;
-  border: solid #fff;
+  border: solid var(--color-on-solid);
   border-width: 0 1.5px 1.5px 0;
   transform: rotate(45deg);
   margin-top: -1.5px;
@@ -194,7 +194,7 @@
   content: '';
   width: 7px;
   height: 1.5px;
-  background-color: #fff;
+  background-color: var(--color-on-solid);
 }
 
 .wb-list-item.is-selected {
@@ -209,7 +209,7 @@
   padding: 8px 12px;
   background-color: var(--bg-elevated);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   margin-bottom: 8px;
   font-size: var(--font-size);
   animation: batchFadeIn 140ms ease;

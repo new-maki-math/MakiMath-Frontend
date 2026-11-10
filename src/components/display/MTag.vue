@@ -61,7 +61,7 @@ defineProps({
   justify-content: center;
   vertical-align: middle;
   gap: 5px;
-  border-radius: var(--radius-xs, 2px);
+  border-radius: var(--radius);
   font-weight: var(--font-weight-medium, 500);
   user-select: none;
   line-height: 1;
@@ -78,19 +78,19 @@ defineProps({
 .size-sm {
   height: 20px;
   padding: 0 6px;
-  font-size: var(--font-size-smallest, 12px);
+  font-size: var(--font-size-smallest);
 }
 
 .size-md {
   height: 24px;
   padding: 0 8px;
-  font-size: var(--font-size-smaller, 13px);
+  font-size: var(--font-size-smaller);
 }
 
 .tag-dot {
   width: 5px;
   height: 5px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   background-color: currentColor;
   flex-shrink: 0;
 }
@@ -133,11 +133,11 @@ defineProps({
   background-color: var(--tag-orange-bg);
 }
 .variant-teal {
-  color: var(--tag-teal, #2dd4bf);
-  background-color: var(--tag-teal-bg, rgba(45, 212, 191, 0.16));
+  color: var(--tag-teal);
+  background-color: var(--tag-teal-bg);
 }
 .variant-lime {
-  color: var(--tag-lime, #a3e635);
-  background-color: var(--tag-lime-bg, rgba(163, 230, 53, 0.14));
+  color: var(--tag-lime);
+  background-color: var(--tag-lime-bg);
 }
 </style>

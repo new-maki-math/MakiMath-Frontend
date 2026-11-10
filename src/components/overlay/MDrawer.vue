@@ -212,7 +212,7 @@ onBeforeUnmount(() => {
 .m-drawer-panel {
   display: flex;
   flex-direction: column;
-  background-color: var(--bg-sidebar, #181818);
+  background-color: var(--bg-sidebar);
   overflow: hidden;
   user-select: none;
   pointer-events: auto;
@@ -235,15 +235,15 @@ onBeforeUnmount(() => {
 /* 左侧展开（边界在右） */
 .m-drawer-panel.placement-left {
   left: 0;
-  border-right: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
-  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.45);
+  border-right: 1px solid var(--border-subtle);
+  box-shadow: 4px 0 24px var(--shadow-color-strong);
 }
 
 /* 右侧展开（边界在左） */
 .m-drawer-panel.placement-right {
   right: 0;
-  border-left: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
-  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.45);
+  border-left: 1px solid var(--border-subtle);
+  box-shadow: -4px 0 24px var(--shadow-color-strong);
 }
 
 /* 抽屉头部 */
@@ -253,16 +253,16 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  border-bottom: 1px solid var(--border-subtle);
   flex-shrink: 0;
-  background-color: var(--bg-sidebar, #181818);
+  background-color: var(--bg-sidebar);
 }
 
 .drawer-title {
-  font-size: var(--font-size-smallest, 12px);
+  font-size: var(--font-size-smallest);
   font-weight: var(--font-weight-semibold, 600);
   letter-spacing: 0.8px;
-  color: var(--text-muted, #808080);
+  color: var(--text-muted);
 }
 
 .drawer-toggle-btn {
@@ -271,10 +271,10 @@ onBeforeUnmount(() => {
   justify-content: center;
   width: 24px;
   height: 24px;
-  border-radius: var(--radius-xs, 2px);
+  border-radius: var(--radius);
   background: transparent;
   border: 1px solid transparent;
-  color: var(--text-muted, #808080);
+  color: var(--text-muted);
   cursor: pointer;
   transition:
     background-color 120ms ease,
@@ -282,8 +282,8 @@ onBeforeUnmount(() => {
 }
 
 .drawer-toggle-btn:hover {
-  background-color: var(--bg-hover, #282828);
-  color: var(--text-primary, #e0e0e0);
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 /* 抽屉正文滚动区 */
@@ -298,7 +298,7 @@ onBeforeUnmount(() => {
 /* 抽屉底部 */
 .drawer-footer {
   padding: 10px 14px;
-  border-top: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  border-top: 1px solid var(--border-subtle);
   flex-shrink: 0;
 }
 

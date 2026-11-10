@@ -38,6 +38,7 @@ const paths = {
   LogOut:
     'M5 3h8a2 2 0 0 1 2 2v3h-2V5H5v14h8v-3h2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2m12 5 4 4-4 4-1.4-1.4 1.6-1.6H9v-2h8.2l-1.6-1.6z',
   Menu: 'M3 5h18v2H3zm0 6h18v2H3zm0 6h18v2H3z',
+  Calendar: 'M7 2h2v2h6V2h2v2h2a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2zm12 7H5v10h14zM7 11h3v3H7zm5 0h3v3h-3zm-5 5h3v2H7zm5 0h3v2h-3z',
   NavArrowDown: 'M5.6 8.6 12 15l6.4-6.4-1.4-1.4-5 5-5-5z',
   NavArrowLeft: 'M14.6 4.6 7.2 12l7.4 7.4 1.4-1.4-6-6 6-6z',
   NavArrowRight: 'M9.4 4.6 8 6l6 6-6 6 1.4 1.4 7.4-7.4z',
@@ -50,6 +51,12 @@ const paths = {
     'M12 3a9 9 0 0 1 7.5 4H22v5h-5V9h.9A7 7 0 0 0 5.2 10.4l-1.94-.5A9 9 0 0 1 12 3M7 12v3h-.9a7 7 0 0 0 12.7-1.4l1.94.5A9 9 0 0 1 4.5 17H2v-5z',
   Search:
     'M10.5 3a7.5 7.5 0 1 0 4.64 13.39l4.65 4.65 1.41-1.41-4.65-4.65A7.5 7.5 0 0 0 10.5 3m0 2a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11',
+  SeasonSpring:
+    'M8.83 7.63 Q12 -1.2 15.17 7.63 Q24.55 7.92 17.14 13.67 Q19.76 22.68 12 17.4 Q4.24 22.68 6.86 13.67 Q-0.55 7.92 8.83 7.63 Z M12 10.15a1.85 1.85 0 1 0 0 3.7 1.85 1.85 0 0 0 0-3.7',
+  SeasonAutumn:
+    'M20.6 3.2c-6.3.15-11.6 1.6-14.4 4.7-2.2 2.4-2.6 5.7-.9 8.3l-2 2 1.4 1.4 2-2c2.6 1.7 5.9 1.3 8.3-.9 3.1-2.8 4.55-8.1 4.7-13.5zM7.6 15l2.2-2.2-.1-3.2 1.4-.04.07 1.87 3.54-3.54 1.4 1.42-3.5 3.5 1.86.06-.05 1.4-3.2-.1L9 16.4z',
+  SeasonWinter:
+    'M12.82 9.6 L12.82 6.4 L14.95 4.27 L13.95 3.27 L12.82 4.4 L12.82 2 L11.18 2 L11.18 4.4 L10.05 3.27 L9.05 4.27 L11.18 6.4 L11.18 9.6 L10.33 10.09 L7.56 8.49 L6.78 5.58 L5.41 5.95 L5.83 7.49 L3.75 6.29 L2.93 7.71 L5.01 8.91 L3.46 9.32 L3.83 10.69 L6.74 9.91 L9.51 11.51 L9.51 12.49 L6.74 14.09 L3.83 13.31 L3.46 14.68 L5.01 15.09 L2.93 16.29 L3.75 17.71 L5.83 16.51 L5.41 18.05 L6.78 18.42 L7.56 15.51 L10.33 13.91 L11.18 14.4 L11.18 17.6 L9.05 19.73 L10.05 20.73 L11.18 19.6 L11.18 22 L12.82 22 L12.82 19.6 L13.95 20.73 L14.95 19.73 L12.82 17.6 L12.82 14.4 L13.67 13.91 L16.44 15.51 L17.22 18.42 L18.59 18.05 L18.17 16.51 L20.25 17.71 L21.07 16.29 L18.99 15.09 L20.54 14.68 L20.17 13.31 L17.26 14.09 L14.49 12.49 L14.49 11.51 L17.26 9.91 L20.17 10.69 L20.54 9.32 L18.99 8.91 L21.07 7.71 L20.25 6.29 L18.17 7.49 L18.59 5.95 L17.22 5.58 L16.44 8.49 L13.67 10.09 Z',
   SunLight:
     'M11 2h2v3h-2zm0 17h2v3h-2zM2 11h3v2H2zm17 0h3v2h-3zM4.22 5.64l1.42-1.42 2.12 2.12-1.42 1.42zm12.02 12.02 1.42-1.42 2.12 2.12-1.42 1.42zM16.24 6.34l2.12-2.12 1.42 1.42-2.12 2.12zM4.22 18.36l2.12-2.12 1.42 1.42-2.12 2.12zM12 6a6 6 0 1 0 0 12 6 6 0 0 0 0-12',
   Terminal: 'M4.7 5.3 11.4 12l-6.7 6.7-1.4-1.4L8.6 12 3.3 6.7zM12 17h9v2h-9z',
@@ -88,6 +95,7 @@ const paths = {
 };
 
 function createIcon(name) {
+  const scale = name === 'SeasonSpring' ? 1.14 : name === 'SeasonAutumn' ? 1.12 : 1;
   return defineComponent({
     name: `MIcon${name}`,
     setup(_, { attrs }) {
@@ -106,6 +114,8 @@ function createIcon(name) {
           [
             h('path', {
               d: paths[name],
+              transform:
+                scale === 1 ? undefined : `translate(12 12) scale(${scale}) translate(-12 -12)`,
               'fill-rule': 'evenodd',
               'clip-rule': 'evenodd'
             })
@@ -139,6 +149,7 @@ export const Lock = createIcon('Lock');
 export const LogOut = createIcon('LogOut');
 export const Menu = createIcon('Menu');
 export const NavArrowDown = createIcon('NavArrowDown');
+export const Calendar = createIcon('Calendar');
 export const NavArrowLeft = createIcon('NavArrowLeft');
 export const NavArrowRight = createIcon('NavArrowRight');
 export const NavArrowUp = createIcon('NavArrowUp');
@@ -148,6 +159,9 @@ export const Play = createIcon('Play');
 export const Plus = createIcon('Plus');
 export const Refresh = createIcon('Refresh');
 export const Search = createIcon('Search');
+export const SeasonSpring = createIcon('SeasonSpring');
+export const SeasonAutumn = createIcon('SeasonAutumn');
+export const SeasonWinter = createIcon('SeasonWinter');
 export const SunLight = createIcon('SunLight');
 export const Terminal = createIcon('Terminal');
 export const Trash = createIcon('Trash');

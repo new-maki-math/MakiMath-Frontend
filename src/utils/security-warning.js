@@ -7,8 +7,11 @@ export function printSecurityWarning() {
     return;
   }
   hasPrinted = true;
+  const tokens = getComputedStyle(document.documentElement);
+  const warningColor = tokens.getPropertyValue('--status-error').trim();
+  const communityColor = tokens.getPropertyValue('--tag-blue').trim();
 
-  console.log('%c网络安全警示', 'color: #b91c1c; font-size: 22px; font-weight: bold;');
+  console.log('%c网络安全警示', `color: ${warningColor}; font-size: 22px; font-weight: bold;`);
 
   console.log(
     '%c根据《中华人民共和国网络安全法》第二十九条之规定，任何个人和组织不得从事非法侵入他人网络、干扰他人网络正常功能、窃取网络数据等危害网络安全的活动；不得提供专门用于从事侵入网络、干扰网络正常功能及防护措施、窃取网络数据等危害网络安全活动的程序、工具；明知他人从事危害网络安全的活动的，不得为其提供技术支持、广告推广、支付结算等帮助。',
@@ -17,12 +20,12 @@ export function printSecurityWarning() {
 
   console.log(
     '%c根据《中华人民共和国网络安全法》第六十六条，违反第二十九条规定，从事危害网络安全的活动，或者提供专门用于从事危害网络安全活动的程序、工具，或者为他人从事危害网络安全的活动提供技术支持、广告推广、支付结算等帮助，尚不构成犯罪的，依法给予相应行政处罚；构成犯罪的，依法追究刑事责任。',
-    'color: #991b1b; font-size: 14px; font-weight: bold; line-height: 1.8;'
+    `color: ${warningColor}; font-size: 14px; font-weight: bold; line-height: 1.8;`
   );
 
   console.log(
     '%c请立即停止任何未经授权的系统访问、非法获取数据、绕过安全控制或破坏系统的行为。未经授权的操作可能产生相应法律责任。',
-    'color: #b91c1c; font-size: 14px; font-weight: bold; line-height: 1.8;'
+    `color: ${warningColor}; font-size: 14px; font-weight: bold; line-height: 1.8;`
   );
 
   console.log(
@@ -31,7 +34,10 @@ export function printSecurityWarning() {
   );
 
   console.log('');
-  console.log('%cMakiMath 开源共建', 'color: #3b82f6; font-size: 16px; font-weight: bold;');
+  console.log(
+    '%cMakiMath 开源共建',
+    `color: ${communityColor}; font-size: 16px; font-weight: bold;`
+  );
 
   console.log(
     '%cMakiMath 是一个纯粹的开源公益数学项目，旨在为考研同学与数学学习者提供自由、开放、免费的知识检索与学习体验。没有商业推广，不设付费门槛。',
@@ -45,6 +51,6 @@ export function printSecurityWarning() {
 
   console.log(
     '%c期待与你在开源社区相遇，一起把这份公益资源做得更好。',
-    'color: #3b82f6; font-size: 13px; font-weight: bold;'
+    `color: ${communityColor}; font-size: 13px; font-weight: bold;`
   );
 }

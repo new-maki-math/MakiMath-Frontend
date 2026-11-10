@@ -40,7 +40,7 @@ const colors = computed(() => {
   justify-content: center;
   padding: 0.2em 0.4em;
   border: 1px solid var(--mm-tag-dark-border);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
   background: var(--mm-tag-dark-background);
   color: var(--mm-tag-dark-text);
   font-size: 0.88em;

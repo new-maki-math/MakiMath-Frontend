@@ -184,27 +184,27 @@ onMounted(() => {
 .method-tag {
   display: inline-block;
   padding: 2px 5px;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
   font-size: 10px;
   font-weight: var(--font-weight-semibold);
   background-color: var(--bg-hover);
 }
 
 .method-tag.is-post {
-  color: #98c379;
+  color: var(--tag-green);
 }
 
 .method-tag.is-patch,
 .method-tag.is-put {
-  color: #e5c07b;
+  color: var(--tag-amber);
 }
 
 .method-tag.is-delete {
-  color: #e06c75;
+  color: var(--tag-red);
 }
 
 .method-tag.is-get {
-  color: #61afef;
+  color: var(--tag-blue);
 }
 
 .col-path {
@@ -214,10 +214,10 @@ onMounted(() => {
 }
 
 .status-dot.status-ok {
-  color: #98c379;
+  color: var(--tag-green);
 }
 
 .status-dot.status-err {
-  color: #e06c75;
+  color: var(--tag-red);
 }
 </style>

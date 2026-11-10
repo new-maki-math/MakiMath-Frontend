@@ -464,7 +464,7 @@ onMounted(() => {
   });
   themeObserver.observe(document.documentElement, {
     attributes: true,
-    attributeFilter: ['data-theme', 'class', 'style']
+    attributeFilter: ['data-theme', 'data-season', 'class', 'style']
   });
   watchResolution();
   document.fonts?.ready.then(() => {

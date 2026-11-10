@@ -230,7 +230,7 @@ onUnmounted(() => {
   /* 弹窗面板容器 */
   background-color: var(--bg-elevated);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius);
   overflow: hidden;
   transition: height 220ms cubic-bezier(0.2, 0, 0, 1);
 }
@@ -272,6 +272,25 @@ onUnmounted(() => {
   min-height: 0;
   padding: 16px 20px;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-hover) transparent;
+}
+
+.modal-body::-webkit-scrollbar {
+  width: 10px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: var(--radius-full);
+  background: var(--border-hover);
+  background-clip: padding-box;
 }
 
 .modal-content {

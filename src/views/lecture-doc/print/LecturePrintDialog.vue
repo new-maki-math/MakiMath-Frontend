@@ -390,17 +390,17 @@ select {
   color: var(--text-primary);
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
 }
 .print-message {
   color: var(--text-secondary);
 }
 .print-error {
-  color: var(--status-danger, #df6570);
+  color: var(--status-error);
   white-space: pre-wrap;
 }
 .print-diagnostics {
-  color: var(--status-danger, #df6570);
+  color: var(--status-error);
   font-size: var(--font-size-smaller);
   line-height: 1.5;
 }

@@ -90,6 +90,7 @@ const targetTransform = {
 };
 let canvasRenderer = null;
 let resizeObserver = null;
+let themeObserver = null;
 let draggedNode = null;
 let mouseDownPos = {
   x: 0,
@@ -548,6 +549,11 @@ function onCanvasTouchEnd(e) {
 }
 
 onMounted(() => {
+  themeObserver = new MutationObserver(requestRender);
+  themeObserver.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['data-theme', 'data-season', 'class', 'style']
+  });
   const canvas = canvasRef.value;
   if (canvas) {
     try {
@@ -632,6 +638,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   treeRequest++;
+  themeObserver?.disconnect();
   if (simulation) {
     simulation.stop();
     simulation = null;
@@ -828,9 +835,9 @@ watch(() => [props.tree, props.lectureId, props.lectureSlug, props.revisionId], 
   position: relative;
   width: 100%;
   height: 580px;
-  background-color: var(--bg-app, #121212);
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
-  border-radius: var(--radius-sm, 6px);
+  background-color: var(--bg-app);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
   overflow: hidden;
   user-select: none;
 }
@@ -866,34 +873,34 @@ watch(() => [props.tree, props.lectureId, props.lectureSlug, props.revisionId], 
   align-items: center;
   gap: 6px;
   height: 32px;
-  background-color: var(--bg-surface, #1e1e1e);
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
-  border-radius: var(--radius-sm, 4px);
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
   padding: 0 10px;
   width: 180px;
 }
 
 .search-icon {
-  color: var(--text-muted, #737373);
+  color: var(--text-muted);
 }
 
 .search-input {
   background: transparent;
   border: none;
   outline: none;
-  color: var(--text-primary, #ffffff);
+  color: var(--text-primary);
   font-size: 11px;
   width: 100%;
 }
 
 .search-input::placeholder {
-  color: var(--text-muted, #666666);
+  color: var(--text-muted);
 }
 
 .clear-btn {
   background: transparent;
   border: none;
-  color: var(--text-muted, #888888);
+  color: var(--text-muted);
   cursor: pointer;
   padding: 0;
   display: flex;
@@ -905,9 +912,9 @@ watch(() => [props.tree, props.lectureId, props.lectureSlug, props.revisionId], 
   display: flex;
   align-items: center;
   height: 32px;
-  background-color: var(--bg-surface, #1e1e1e);
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
-  border-radius: var(--radius-sm, 4px);
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
   padding: 3px;
   gap: 3px;
 }
@@ -916,24 +923,24 @@ watch(() => [props.tree, props.lectureId, props.lectureSlug, props.revisionId], 
   height: 100%;
   background: transparent;
   border: 1px solid transparent;
-  color: var(--text-muted, #888888);
+  color: var(--text-muted);
   font-size: 11px;
   padding: 0 14px;
-  border-radius: var(--radius-xs, 3px);
+  border-radius: var(--radius);
   cursor: pointer;
   transition: all 120ms ease;
   white-space: nowrap;
 }
 
 .level-btn:hover {
-  color: var(--text-primary, #ffffff);
-  background-color: var(--bg-hover, rgba(255, 255, 255, 0.05));
+  color: var(--text-primary);
+  background-color: var(--bg-hover);
 }
 
 .level-btn.active {
-  background-color: var(--bg-elevated, #282828);
-  border-color: var(--border-subtle, rgba(255, 255, 255, 0.15));
-  color: var(--text-primary, #ffffff);
+  background-color: var(--bg-elevated);
+  border-color: var(--border-subtle);
+  color: var(--text-primary);
   font-weight: 600;
 }
 
@@ -942,9 +949,9 @@ watch(() => [props.tree, props.lectureId, props.lectureSlug, props.revisionId], 
   display: flex;
   align-items: center;
   height: 32px;
-  background-color: var(--bg-surface, #1e1e1e);
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
-  border-radius: var(--radius-sm, 4px);
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
   padding: 2px 4px;
   gap: 2px;
 }
@@ -957,15 +964,15 @@ watch(() => [props.tree, props.lectureId, props.lectureSlug, props.revisionId], 
   justify-content: center;
   background: transparent;
   border: none;
-  color: var(--text-muted, #888888);
-  border-radius: var(--radius-xs, 3px);
+  color: var(--text-muted);
+  border-radius: var(--radius);
   cursor: pointer;
   transition: all 120ms ease;
 }
 
 .tool-btn:hover {
-  color: var(--text-primary, #ffffff);
-  background-color: var(--bg-hover, rgba(255, 255, 255, 0.08));
+  color: var(--text-primary);
+  background-color: var(--bg-hover);
 }
 
 /* 遮罩与状态 */
@@ -976,15 +983,15 @@ watch(() => [props.tree, props.lectureId, props.lectureSlug, props.revisionId], 
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background-color: rgba(18, 18, 18, 0.85);
-  color: var(--text-muted, #888888);
+  background-color: var(--roadmap-overlay);
+  color: var(--text-muted);
   font-size: 12px;
   gap: 10px;
   z-index: 8;
 }
 
 .error-state {
-  color: #ef4444;
+  color: var(--status-error);
 }
 
 .error-title {
@@ -993,7 +1000,7 @@ watch(() => [props.tree, props.lectureId, props.lectureSlug, props.revisionId], 
 }
 
 .error-desc {
-  color: var(--text-muted, #888888);
+  color: var(--text-muted);
   font-size: 11px;
 }
 
@@ -1042,24 +1049,24 @@ watch(() => [props.tree, props.lectureId, props.lectureSlug, props.revisionId], 
     right: 10px;
     z-index: 10;
     padding: 6px 12px;
-    border-radius: var(--radius-full, 9999px);
+    border-radius: var(--radius-full);
     background-color: var(--bg-surface);
     background-color: color-mix(in srgb, var(--bg-surface) 88%, transparent);
     -webkit-backdrop-filter: blur(8px);
     backdrop-filter: blur(8px);
-    border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.15));
-    color: var(--text-secondary, #a1a1aa);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
     font-size: 11.5px;
     cursor: pointer;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 4px 14px var(--overlay-backdrop);
     transition: all 140ms ease;
   }
 
   .touch-pan-pill.is-active {
-    background-color: var(--accent-primary, #38bdf8);
-    color: #09090b;
+    background-color: var(--accent-primary);
+    color: var(--color-on-solid);
     font-weight: 600;
-    border-color: var(--accent-primary, #38bdf8);
+    border-color: var(--accent-primary);
   }
 }
 </style>

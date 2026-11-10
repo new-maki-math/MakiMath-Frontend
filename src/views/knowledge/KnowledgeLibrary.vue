@@ -1256,7 +1256,7 @@ function closeReading(sessionId) {
   min-height: 38px;
   padding: 0 12px;
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
   background: var(--bg-surface);
   color: var(--text-primary);
   text-align: left;
@@ -1295,14 +1295,14 @@ function closeReading(sessionId) {
   padding: 12px;
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
 }
 .relation-info {
   margin-top: 8px;
   padding: 10px 12px;
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
 }
 .relation-label.before {
   color: var(--tag-orange);
@@ -1339,7 +1339,7 @@ function closeReading(sessionId) {
 .search-results li button {
   width: 100%;
   padding: 7px 8px;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
   color: var(--text-primary);
   text-align: left;
   overflow-wrap: anywhere;
@@ -1364,7 +1364,7 @@ function closeReading(sessionId) {
   padding: 9px 10px;
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
   color: var(--text-secondary);
   font-size: var(--font-size-smallest);
 }
@@ -1378,7 +1378,7 @@ function closeReading(sessionId) {
   width: 10px;
   height: 10px;
   flex-shrink: 0;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
 }
 .swatch {
   background: color-mix(in srgb, var(--text-muted) 38%, var(--bg-hover));

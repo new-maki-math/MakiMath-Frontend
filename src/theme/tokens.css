@@ -1,0 +1,300 @@
+:root {
+  /* 圆角 */
+  --radius-none: 0;
+  --radius: 6px;
+  --radius-full: 9999px;
+
+  /* 书架与台历 */
+  --shelf-face: color-mix(in srgb, var(--border-hover) 42%, var(--bg-surface));
+  --shelf-edge: color-mix(in srgb, var(--border-hover) 65%, var(--bg-surface));
+  --calendar-paper: color-mix(in srgb, var(--bg-elevated) 88%, var(--bg-surface));
+  --calendar-band: color-mix(in srgb, var(--shelf-face) 38%, var(--calendar-paper));
+
+  /* 字体 */
+  --font-mono-latin:
+    ui-monospace, 'SFMono-Regular', 'Cascadia Code', 'Roboto Mono', Menlo, Monaco, Consolas;
+  --font-chinese: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+  --font-ui: var(--font-mono-latin), var(--font-chinese);
+  --font-doc: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, var(--font-chinese);
+  --font-mono: var(--font-mono-latin), monospace;
+  --font-sans: var(--font-chinese);
+  --font-size-smallest: 12px;
+  --font-size-smaller: 13px;
+  --font-size: 14px;
+  --font-size-larger: 16px;
+  --font-size-largest: 18px;
+  --font-weight-bold: 600;
+  --font-weight-semibold: 550;
+  --font-weight-medium: 500;
+  --font-weight-regular: 400;
+
+  /* 布局 */
+  --topbar-height: 54px;
+  --sidebar-width: max-content;
+  --sidebar-min-width: 220px;
+  --sidebar-max-width: 420px;
+
+  /* 遮罩与阴影 */
+  --search-overlay: rgba(0, 0, 0, 0.65);
+  --overlay-backdrop: rgba(0, 0, 0, 0.4);
+  --overlay-knowledge: rgba(0, 0, 0, 0.48);
+  --shadow-color-subtle: rgba(0, 0, 0, 0.1);
+  --shadow-color-soft: rgba(0, 0, 0, 0.15);
+  --shadow-color-medium: rgba(0, 0, 0, 0.25);
+  --shadow-color-strong: rgba(0, 0, 0, 0.45);
+  --shadow-color-heavy: rgba(0, 0, 0, 0.55);
+  --shadow-color-deep: rgba(0, 0, 0, 0.6);
+
+  /* 路线图 */
+  --roadmap-course: #f59e0b;
+  --roadmap-chapter-1: #3b82f6;
+  --roadmap-chapter-2: #10b981;
+  --roadmap-chapter-3: #8b5cf6;
+  --roadmap-chapter-4: #ec4899;
+  --roadmap-chapter-5: #06b6d4;
+  --roadmap-chapter-6: #f43f5e;
+  --roadmap-chapter-7: #14b8a6;
+  --roadmap-chapter-8: #a855f7;
+
+  /* 文件图标与通用前景 */
+  --color-on-solid: #fff;
+  --file-pdf: #d85c64;
+  --file-document: #5388d8;
+  --file-spreadsheet: #43a779;
+  --file-presentation: #d98954;
+  --file-image: #a77bcc;
+  --file-zip: #b6924f;
+  --file-generic: #8793a2;
+  --file-folder-back: #ddae55;
+  --file-folder-front: #ebc67a;
+  --file-archive-back: #8090a0;
+  --file-archive-front: #a0adba;
+  --file-archive-mark: #536474;
+
+  /* 内容显示 */
+  --animation-stage-bg: #f4eee0;
+  --typst-highlight-default: #fffd11a1;
+  --print-difficulty-color: #92610b;
+}
+
+:root,
+:root[data-theme='dark'],
+[data-theme='dark'],
+.theme-dark {
+  /* 背景与文字 */
+  --bg-topbar: #090909;
+  --bg-sidebar: #0f0f0f;
+  --bg-app: #181818;
+  --bg-surface: #202020;
+  --cover-art-background: var(--bg-surface);
+  --bg-elevated: #282828;
+  --bg-hover: #303030;
+  --text-primary: #e0e0e0;
+  --text-secondary: #aaaaaa;
+  --text-muted: #808080;
+
+  /* 主题与选中状态 */
+  --accent-primary: #007acc;
+  --accent-hover: #1f8ad2;
+  --accent-active: #0062a3;
+  --button-primary-bg: var(--accent-primary);
+  --button-primary-hover-bg: var(--accent-hover);
+  --button-primary-active-bg: var(--accent-active);
+  --accent-muted: rgba(0, 122, 204, 0.16);
+  --tree-selected-bg: #094771;
+  --tree-selected-hover-bg: #0e639c;
+
+  /* 边框与选择 */
+  --reader-guide-border: rgba(255, 255, 255, 0.05);
+  --selection-text: #ffffff;
+  --selection-bg: rgba(0, 122, 204, 0.45);
+  --border-medium: rgba(255, 255, 255, 0.2);
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(255, 255, 255, 0.16);
+  --border-focus: rgba(0, 122, 204, 0.6);
+
+  /* 状态与通知 */
+  --status-success: #10b981;
+  --status-error: #ef4444;
+  --status-warning: #f59e0b;
+  --notice-error-border: rgba(224, 112, 112, 0.5);
+  --notice-error-text: #e8a0a0;
+  --notice-error-bg: rgba(45, 20, 20, 0.95);
+  --notice-warning-border: rgba(245, 158, 11, 0.4);
+  --notice-warning-text: #fbbf24;
+  --notice-info-border: rgba(56, 189, 248, 0.4);
+  --tree-error-text: #e07070;
+
+  /* 按钮 */
+  --btn-danger-bg: #8b1d1d;
+  --btn-danger-hover-bg: #a82828;
+  --btn-secondary-hover-bg: #303030;
+  --btn-ghost-border: rgba(255, 255, 255, 0.08);
+  --btn-ghost-hover-border: rgba(255, 255, 255, 0.16);
+
+  /* 标签与品牌颜色 */
+  --tag-purple: #b180ff;
+  --tag-purple-bg: rgba(177, 128, 255, 0.14);
+  --tag-green: #4ec9b0;
+  --tag-green-bg: rgba(78, 201, 176, 0.14);
+  --tag-amber: #ce9178;
+  --tag-amber-bg: rgba(206, 145, 120, 0.14);
+  --tag-cyan: #4fc1ff;
+  --tag-cyan-bg: rgba(79, 193, 255, 0.14);
+  --tag-teal: #2dd4bf;
+  --tag-teal-bg: rgba(45, 212, 191, 0.16);
+  --tag-lime: #a3e635;
+  --tag-lime-bg: rgba(163, 230, 53, 0.14);
+  --tag-red: #fb7185;
+  --tag-red-bg: rgba(251, 113, 133, 0.14);
+  --tag-orange: #fb923c;
+  --tag-orange-bg: rgba(251, 146, 60, 0.14);
+  --tag-gray: #94a3b8;
+  --tag-gray-bg: rgba(148, 163, 184, 0.14);
+  --tag-blue: #38bdf8;
+  --tag-blue-bg: rgba(56, 189, 248, 0.14);
+  --maki-blue-lit: #38bdf8;
+  --maki-red-lit: #fb7185;
+  --maki-green-lit: #34d399;
+
+  /* 教学标签 */
+  --mm-tag-blue-text: #8acbff;
+  --mm-tag-blue-background: #173147;
+  --mm-tag-blue-border: #2f6790;
+  --mm-tag-cyan-text: #7ddce8;
+  --mm-tag-cyan-background: #15373c;
+  --mm-tag-cyan-border: #347680;
+  --mm-tag-green-text: #8dd9b4;
+  --mm-tag-green-background: #18392c;
+  --mm-tag-green-border: #417a5b;
+  --mm-tag-orange-text: #ffc08a;
+  --mm-tag-orange-background: #432b1a;
+  --mm-tag-orange-border: #8d5933;
+  --mm-tag-rose-text: #ffabbc;
+  --mm-tag-rose-background: #45242e;
+  --mm-tag-rose-border: #92505e;
+  --mm-tag-purple-text: #d1b6ff;
+  --mm-tag-purple-background: #342844;
+  --mm-tag-purple-border: #72558f;
+
+  /* 热力图 */
+  --heat-0: #161b22;
+  --heat-1: #0e4429;
+  --heat-2: #006d32;
+  --heat-3: #26a641;
+  --heat-4: #39d353;
+
+  /* 路线图 */
+  --roadmap-overlay: rgba(18, 18, 18, 0.85);
+}
+
+:root[data-theme='light'],
+[data-theme='light'],
+.theme-light {
+  /* 背景与文字 */
+  --bg-topbar: #f6f8fa;
+  --bg-sidebar: #f8f9fa;
+  --bg-app: #ffffff;
+  --bg-surface: #f6f8fa;
+  --cover-art-background: var(--bg-surface);
+  --bg-elevated: #ffffff;
+  --bg-hover: #f2f4f7;
+  --text-primary: #1f2328;
+  --text-secondary: #59636e;
+  --text-muted: #8c959f;
+
+  /* 主题与选中状态 */
+  --accent-primary: #0969da;
+  --accent-hover: #0854c3;
+  --accent-active: #07449c;
+  --button-primary-bg: var(--accent-primary);
+  --button-primary-hover-bg: var(--accent-hover);
+  --button-primary-active-bg: var(--accent-active);
+  --accent-muted: rgba(9, 105, 218, 0.1);
+  --tree-selected-bg: #0060c0;
+  --tree-selected-hover-bg: #006cd9;
+
+  /* 边框与选择 */
+  --reader-guide-border: rgba(0, 0, 0, 0.08);
+  --selection-text: #1f2328;
+  --selection-bg: #cce5ff;
+  --scrollbar-light-thumb-hover: #afb8c1;
+  --border-medium: #8c959f;
+  --border-subtle: #d0d7de;
+  --border-hover: #8c959f;
+  --border-focus: rgba(9, 105, 218, 0.65);
+
+  /* 状态与通知 */
+  --status-success: #059669;
+  --status-error: #dc2626;
+  --status-warning: #b45309;
+  --notice-error-border: #e5a2a2;
+  --notice-error-text: #992b47;
+  --notice-error-bg: #fff0f3;
+  --notice-warning-border: #e5b585;
+  --notice-warning-text: #8b3900;
+  --notice-info-border: #9cc4ed;
+  --tree-error-text: #b42318;
+
+  /* 按钮 */
+  --btn-danger-bg: #cf222e;
+  --btn-danger-hover-bg: #b62324;
+  --btn-secondary-hover-bg: #f3f4f6;
+  --btn-ghost-border: transparent;
+  --btn-ghost-hover-border: #d0d7de;
+
+  /* 标签与品牌颜色 */
+  --tag-purple: #7c3aed;
+  --tag-purple-bg: rgba(124, 58, 237, 0.1);
+  --tag-green: #059669;
+  --tag-green-bg: rgba(5, 150, 105, 0.1);
+  --tag-amber: #b45309;
+  --tag-amber-bg: rgba(180, 83, 9, 0.1);
+  --tag-cyan: #0284c7;
+  --tag-cyan-bg: rgba(2, 132, 199, 0.1);
+  --tag-teal: #0d9488;
+  --tag-teal-bg: rgba(13, 148, 136, 0.1);
+  --tag-lime: #4d7c0f;
+  --tag-lime-bg: rgba(77, 124, 15, 0.1);
+  --tag-red: #dc2626;
+  --tag-red-bg: rgba(220, 38, 38, 0.1);
+  --tag-orange: #ea580c;
+  --tag-orange-bg: rgba(234, 88, 12, 0.1);
+  --tag-gray: #64748b;
+  --tag-gray-bg: rgba(100, 116, 139, 0.1);
+  --tag-blue: #0969da;
+  --tag-blue-bg: rgba(9, 105, 218, 0.1);
+  --maki-blue-lit: #0284c7;
+  --maki-red-lit: #e11d48;
+  --maki-green-lit: #059669;
+
+  /* 教学标签 */
+  --mm-tag-blue-text: #064d9b;
+  --mm-tag-blue-background: #e8f2ff;
+  --mm-tag-blue-border: #9cc4ed;
+  --mm-tag-cyan-text: #075c6b;
+  --mm-tag-cyan-background: #e2f7f9;
+  --mm-tag-cyan-border: #8ccbd2;
+  --mm-tag-green-text: #12603d;
+  --mm-tag-green-background: #e5f5eb;
+  --mm-tag-green-border: #a3d3b4;
+  --mm-tag-orange-text: #8b3900;
+  --mm-tag-orange-background: #fff0df;
+  --mm-tag-orange-border: #e5b585;
+  --mm-tag-rose-text: #992b47;
+  --mm-tag-rose-background: #fff0f3;
+  --mm-tag-rose-border: #e7a9b8;
+  --mm-tag-purple-text: #623398;
+  --mm-tag-purple-background: #f2eaff;
+  --mm-tag-purple-border: #c6abe6;
+
+  /* 热力图 */
+  --heat-0: #ebedf0;
+  --heat-1: #9be9a8;
+  --heat-2: #40c463;
+  --heat-3: #30a14e;
+  --heat-4: #216e39;
+
+  /* 路线图 */
+  --roadmap-overlay: rgba(246, 248, 250, 0.9);
+}

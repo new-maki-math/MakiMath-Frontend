@@ -100,17 +100,17 @@ const handleClose = notify.clear;
 /* 通知浮层定位 */
 .m-notice {
   position: fixed;
-  top: calc(var(--topbar-height, 54px) + 14px);
+  top: calc(var(--topbar-height) + 14px);
   left: 50%;
   transform: translateX(-50%);
   z-index: 9999;
   max-width: min(520px, calc(100vw - 48px));
   padding: 8px 14px;
-  border-radius: var(--radius-sm, 4px);
-  font-size: var(--font-size-smaller, 13px);
+  border-radius: var(--radius);
+  font-size: var(--font-size-smaller);
   background-color: var(--bg-elevated);
   border: 1px solid var(--border-subtle);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 6px 20px var(--shadow-color-strong);
   color: var(--text-primary);
   display: flex;
   align-items: center;
@@ -133,15 +133,15 @@ const handleClose = notify.clear;
 }
 
 .m-notice-icon.is-ok {
-  color: #10b981;
+  color: var(--status-success);
 }
 
 .m-notice-icon.is-error {
-  color: #ef4444;
+  color: var(--status-error);
 }
 
 .m-notice-icon.is-warn {
-  color: #f59e0b;
+  color: var(--status-warning);
 }
 
 .m-notice-icon.is-info {
@@ -167,7 +167,7 @@ const handleClose = notify.clear;
   color: var(--text-muted);
   cursor: pointer;
   padding: 2px;
-  border-radius: var(--radius-xs, 2px);
+  border-radius: var(--radius);
   flex-shrink: 0;
   transition: color 140ms ease;
 }
@@ -178,19 +178,19 @@ const handleClose = notify.clear;
 
 /* 状态修饰 */
 .m-notice.is-error {
-  border-color: rgba(224, 112, 112, 0.5);
-  color: #e8a0a0;
-  background-color: rgba(45, 20, 20, 0.95);
+  border-color: var(--notice-error-border);
+  color: var(--notice-error-text);
+  background-color: var(--notice-error-bg);
 }
 
 .m-notice.is-warn,
 .m-notice.is-warning {
-  border-color: rgba(245, 158, 11, 0.4);
-  color: #fbbf24;
+  border-color: var(--notice-warning-border);
+  color: var(--notice-warning-text);
 }
 
 .m-notice.is-info {
-  border-color: rgba(56, 189, 248, 0.4);
+  border-color: var(--notice-info-border);
 }
 
 /* 过渡动画 */

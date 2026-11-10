@@ -134,7 +134,7 @@ const handleNavigate = (section) => {
   padding: 16px 18px;
   background-color: var(--bg-surface);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   cursor: pointer;
   text-align: left;
   user-select: none;

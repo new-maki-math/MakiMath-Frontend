@@ -91,7 +91,7 @@ const progressPercent = computed(() => {
 
 .loading-text {
   font-size: 13px;
-  color: var(--text-primary, #e0e0e0);
+  color: var(--text-primary);
   text-align: center;
   line-height: 1.4;
   letter-spacing: 0.02em;
@@ -108,19 +108,19 @@ const progressPercent = computed(() => {
   flex: 1;
   height: 3px;
   background: var(--border-hover);
-  border-radius: 2px;
+  border-radius: var(--radius);
   overflow: hidden;
 }
 
 .loading-bar-fill {
   height: 100%;
-  background: var(--accent-primary, #38bdf8);
+  background: var(--accent-primary);
   transition: width 160ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .loading-bar-num {
   font-size: 11.5px;
-  color: var(--text-muted, #808080);
+  color: var(--text-muted);
   min-width: 30px;
   text-align: right;
 }

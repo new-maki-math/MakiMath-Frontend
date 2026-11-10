@@ -89,7 +89,7 @@ defineProps({
   margin: 1em 0;
   padding: 12px 14px;
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
   background: var(--bg-surface);
   overflow-wrap: anywhere;
 }
@@ -144,10 +144,10 @@ defineProps({
 }
 @media print {
   .difficulty-star {
-    stroke: #92610b;
+    stroke: var(--print-difficulty-color);
   }
   .difficulty-star.is-filled {
-    fill: #92610b;
+    fill: var(--print-difficulty-color);
   }
 }
 .mm-question-body {

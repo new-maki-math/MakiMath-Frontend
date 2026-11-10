@@ -39,7 +39,31 @@ const lineCount = computed(() => Math.max(1, String(props.modelValue || '').spli
 const charCount = computed(() => String(props.modelValue || '').length);
 
 function currentEditorTheme() {
-  return document.documentElement.getAttribute('data-theme') === 'light' ? 'vs' : 'vs-dark';
+  const root = document.documentElement;
+  const base = root.getAttribute('data-theme') === 'light' ? 'vs' : 'vs-dark';
+  const season = root.getAttribute('data-season');
+  if (!monaco || !['spring', 'summer', 'autumn', 'winter'].includes(season)) {
+    return base;
+  }
+  const styles = getComputedStyle(root);
+  const token = (name) => styles.getPropertyValue(name).trim();
+  const name = `maki-${season}`;
+  monaco.editor.defineTheme(name, {
+    base,
+    inherit: true,
+    rules: [],
+    colors: {
+      'editor.background': token('--bg-surface'),
+      'editor.foreground': token('--text-primary'),
+      'editorLineNumber.foreground': token('--text-muted'),
+      'editorCursor.foreground': token('--accent-primary'),
+      'editor.lineHighlightBackground': token('--bg-hover'),
+      'editorGutter.background': token('--bg-surface'),
+      'editorWidget.background': token('--bg-elevated'),
+      'editorWidget.foreground': token('--text-primary')
+    }
+  });
+  return name;
 }
 
 function updateEditorTheme() {
@@ -155,7 +179,7 @@ onMounted(() => {
   themeObserver = new MutationObserver(updateEditorTheme);
   themeObserver.observe(document.documentElement, {
     attributes: true,
-    attributeFilter: ['data-theme']
+    attributeFilter: ['data-theme', 'data-season']
   });
   initializeEditor();
 });
@@ -354,9 +378,9 @@ onBeforeUnmount(() => {
   position: relative;
   width: 100%;
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm, 3px);
+  border-radius: var(--radius);
   overflow: hidden;
-  background-color: var(--bg-surface, #202020);
+  background-color: var(--bg-surface);
   transition: border-color 140ms ease;
   min-height: 0;
 }

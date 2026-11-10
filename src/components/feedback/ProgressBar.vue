@@ -162,6 +162,6 @@ defineExpose({
 }
 
 .top-progress-bar.is-error {
-  background-color: #f85149;
+  background-color: var(--status-error);
 }
 </style>

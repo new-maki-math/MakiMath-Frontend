@@ -135,30 +135,47 @@ export function useLayoutState() {
   watch(() => route.name, updateBreakpoint);
 
   // 切换主题
-  const isDark = ref(true);
+  const currentTheme = ref('dark');
+  const themes = new Set(['dark', 'light', 'spring', 'summer', 'autumn', 'winter']);
+  const isDark = computed(() => ['dark', 'winter'].includes(currentTheme.value));
 
-  const initTheme = () => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-    const saved = localStorage.getItem('maki-theme');
-    if (saved === 'light') {
-      isDark.value = false;
-      document.documentElement.setAttribute('data-theme', 'light');
+  const applyTheme = (value) => {
+    const selected = themes.has(value) ? value : 'dark';
+    currentTheme.value = selected;
+    document.documentElement.setAttribute(
+      'data-theme',
+      ['dark', 'winter'].includes(selected) ? 'dark' : 'light'
+    );
+    if (['spring', 'summer', 'autumn', 'winter'].includes(selected)) {
+      document.documentElement.setAttribute('data-season', selected);
     } else {
-      isDark.value = true;
-      document.documentElement.removeAttribute('data-theme');
+      document.documentElement.removeAttribute('data-season');
     }
   };
 
-  const toggleTheme = () => {
-    isDark.value = !isDark.value;
-    if (isDark.value) {
-      document.documentElement.removeAttribute('data-theme');
-      localStorage.setItem('maki-theme', 'dark');
-    } else {
-      document.documentElement.setAttribute('data-theme', 'light');
-      localStorage.setItem('maki-theme', 'light');
+  const initTheme = () => {
+    try {
+      applyTheme(localStorage.getItem('maki-theme'));
+    } catch {
+      applyTheme('dark');
+    }
+  };
+
+  const setTheme = (value) => {
+    if (!themes.has(value)) {
+      return;
+    }
+    applyTheme(value);
+    try {
+      localStorage.setItem('maki-theme', value);
+    } catch {
+      // 存储不可用时仍保留当前页面的主题。
+    }
+  };
+
+  const syncTheme = (event) => {
+    if (event.key === 'maki-theme') {
+      applyTheme(event.newValue);
     }
   };
 
@@ -444,6 +461,7 @@ export function useLayoutState() {
     initAuth();
     updateBreakpoint();
     window.addEventListener('resize', updateBreakpoint);
+    window.addEventListener('storage', syncTheme);
 
     if (progressBarRef.value) {
       registerProgressBar(progressBarRef.value);
@@ -468,6 +486,7 @@ export function useLayoutState() {
 
   onUnmounted(() => {
     window.removeEventListener('resize', updateBreakpoint);
+    window.removeEventListener('storage', syncTheme);
     removeBeforeHook?.();
     removeAfterHook?.();
     registerProgressBar(null);
@@ -479,7 +498,8 @@ export function useLayoutState() {
     isMobile,
     progressBarRef,
     isDark,
-    toggleTheme,
+    currentTheme,
+    setTheme,
     currentUser,
     isLoggedIn,
     isSuperAdmin,

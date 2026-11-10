@@ -224,7 +224,7 @@ onBeforeUnmount(() => {
   overflow: hidden;
   margin-bottom: 24px;
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   background: var(--bg-surface);
 }
 .animation-stage {
@@ -240,7 +240,7 @@ onBeforeUnmount(() => {
   position: absolute;
   inset: 0;
   border: 0;
-  background: #f4eee0;
+  background: var(--animation-stage-bg);
 }
 .animation-controls {
   display: flex;

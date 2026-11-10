@@ -90,7 +90,7 @@ const handleLogin = async () => {
 <style scoped>
 .auth-wrap {
   width: 100%;
-  height: calc(100vh - var(--topbar-height, 54px));
+  height: calc(100vh - var(--topbar-height));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -102,7 +102,7 @@ const handleLogin = async () => {
   max-width: 380px;
   background-color: var(--bg-surface);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   overflow: hidden;
 }
 

@@ -285,7 +285,7 @@ onBeforeUnmount(() => {
   min-height: 0;
   overflow: hidden;
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
 }
 .heading {
   display: flex;

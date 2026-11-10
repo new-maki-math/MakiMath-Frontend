@@ -518,7 +518,7 @@ watch(
   gap: 6px;
   min-height: 34px;
   padding: 0 12px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   color: var(--text-secondary);
   font-size: var(--font-size);
   font-weight: var(--font-weight-medium);

@@ -199,7 +199,7 @@ defineExpose({
 .head-icon-btn {
   width: 28px;
   height: 28px;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
   color: var(--text-secondary);
   display: inline-flex;
   align-items: center;

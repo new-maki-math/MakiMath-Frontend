@@ -131,7 +131,7 @@ onMounted(() => {
 .platform-layout {
   display: flex;
   width: 100%;
-  height: calc(100vh - var(--topbar-height, 54px));
+  height: calc(100vh - var(--topbar-height));
   background-color: var(--bg-app);
   overflow: hidden;
 }
@@ -176,7 +176,7 @@ onMounted(() => {
   width: 100%;
   height: 36px;
   padding: 0 12px;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
   background-color: transparent;
   border: none;
   color: var(--text-muted);

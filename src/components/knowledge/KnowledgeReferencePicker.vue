@@ -181,7 +181,7 @@ function keydown(event) {
   width: 100%;
   padding: 10px 12px;
   border: 0;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
   background: transparent;
   color: var(--text-primary);
   text-align: left;

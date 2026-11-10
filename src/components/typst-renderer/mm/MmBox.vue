@@ -59,7 +59,7 @@ defineProps({
   margin: 1em 0;
   padding: 12px 14px;
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
   background: var(--bg-surface);
   overflow-wrap: anywhere;
 }

@@ -18,7 +18,8 @@ export async function createKnowledgeTransition2D(
   titleEndColor,
   waveColor,
   glyphAdvance,
-  beforeFrame
+  beforeFrame,
+  backdropColor
 ) {
   const context = canvas.getContext('2d');
   if (!context) {
@@ -42,7 +43,7 @@ export async function createKnowledgeTransition2D(
     }
     context.setTransform(1, 0, 0, 1, 0, 0);
     context.clearRect(0, 0, width, height);
-    context.fillStyle = `rgba(0,0,0,${0.48 * dim})`;
+    context.fillStyle = color(backdropColor, backdropColor[3] * dim);
     context.fillRect(0, 0, width, height);
     context.setTransform(width / bounds.width, 0, 0, height / bounds.height, 0, 0);
     const {
@@ -53,10 +54,15 @@ export async function createKnowledgeTransition2D(
       titleX,
       titleY,
       titleFontSize,
-      titleFont
+      titleFont,
+      targetRadius
     } = geometry();
     const box = source.map((part, index) => mix(part, target[index], progress));
-    const radius = Math.min(mix(sourceFontSize * 0.2, 6, progress), box[2] / 2, box[3] / 2);
+    const radius = Math.min(
+      mix(sourceFontSize * 0.2, targetRadius, progress),
+      box[2] / 2,
+      box[3] / 2
+    );
     context.save();
     context.beginPath();
     context.roundRect(box[0], box[1], box[2], box[3], radius);

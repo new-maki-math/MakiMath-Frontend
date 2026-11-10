@@ -119,7 +119,7 @@ const getRowKey = (row, index, rowKey) => {
   width: 100%;
   background-color: var(--bg-surface);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   overflow-x: auto;
 }
 

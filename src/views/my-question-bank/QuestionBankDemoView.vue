@@ -223,7 +223,7 @@ h1 {
   gap: 12px;
   padding: 20px;
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   background: var(--bg-surface);
 }
 .card-title {
@@ -262,7 +262,7 @@ h1 {
   padding: 10px 12px;
   border: 1px solid var(--border-subtle);
   background: var(--bg-elevated);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
   color: var(--text-muted);
   font-size: var(--font-size-smallest);
 }
@@ -311,7 +311,7 @@ h2 {
 }
 .chapter {
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   overflow: hidden;
   background: var(--bg-surface);
 }

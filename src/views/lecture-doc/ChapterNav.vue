@@ -202,7 +202,7 @@ const handleSelect = (section) => {
   justify-content: center;
   width: 24px;
   height: 24px;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
   background: transparent;
   border: 1px solid transparent;
   color: var(--text-muted);
@@ -237,7 +237,7 @@ const handleSelect = (section) => {
   gap: 6px;
   height: 30px;
   padding: 0 8px;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
   cursor: pointer;
   user-select: none;
   color: var(--text-secondary);
@@ -282,7 +282,7 @@ const handleSelect = (section) => {
   flex-direction: column;
   margin-left: 14px;
   padding-left: 8px;
-  border-left: 1px solid rgba(255, 255, 255, 0.05);
+  border-left: 1px solid var(--reader-guide-border);
   gap: 2px;
   margin-top: 2px;
   margin-bottom: 4px;
@@ -293,7 +293,7 @@ const handleSelect = (section) => {
   align-items: center;
   height: 28px;
   padding: 0 8px;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
   font-size: var(--font-size-smaller);
   color: var(--text-secondary);
   cursor: pointer;

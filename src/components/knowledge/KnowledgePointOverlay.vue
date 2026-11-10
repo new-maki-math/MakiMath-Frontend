@@ -85,7 +85,7 @@ function colorOf(value) {
     Number(parts[0] || 0) / divisor,
     Number(parts[1] || 0) / divisor,
     Number(parts[2] || 0) / divisor,
-    1
+    parts.length > 3 ? Number(parts[3]) : 1
   ];
 }
 async function prepareCanvas() {
@@ -129,7 +129,8 @@ async function prepareCanvas() {
       titleX: headingRect ? headingRect.left - bounds.left : currentTarget.left - bounds.left + 20,
       titleY: headingRect ? headingRect.top - bounds.top : currentTarget.top - bounds.top + 18,
       titleFontSize: parseFloat(headingStyle?.fontSize) || 14,
-      titleFont: headingStyle?.fontFamily || 'sans-serif'
+      titleFont: headingStyle?.fontFamily || 'sans-serif',
+      targetRadius: parseFloat(getComputedStyle(shell.value).borderTopLeftRadius) || 0
     };
   };
   const tileColor = props.mastered
@@ -143,11 +144,12 @@ async function prepareCanvas() {
     geometry,
     colorOf(originColor),
     colorOf('var(--bg-surface)'),
-    colorOf(props.mastered ? 'var(--tree-selected-fg)' : 'var(--text-primary)'),
+    colorOf(props.mastered ? 'var(--color-on-solid)' : 'var(--text-primary)'),
     colorOf('var(--text-primary)'),
     colorOf(originColor),
     props.glyphAdvance,
-    props.beforeFrame
+    props.beforeFrame,
+    colorOf('var(--overlay-knowledge)')
   );
 }
 function updateContentOpacity(wave) {
@@ -376,8 +378,8 @@ onBeforeUnmount(() => {
       :style="{
         visibility: canvasTransitioning ? 'hidden' : 'visible',
         '--point-origin': mastered
-          ? 'color-mix(in srgb, color-mix(in srgb, var(--accent-primary) 50%, var(--tree-selected-bg)) 88%, white)'
-          : 'color-mix(in srgb, color-mix(in srgb, var(--text-muted) 38%, var(--bg-hover)) 88%, white)'
+          ? 'color-mix(in srgb, color-mix(in srgb, var(--accent-primary) 50%, var(--tree-selected-bg)) 88%, var(--color-on-solid))'
+          : 'color-mix(in srgb, color-mix(in srgb, var(--text-muted) 38%, var(--bg-hover)) 88%, var(--color-on-solid))'
       }"
       aria-hidden="true"
     >
@@ -436,13 +438,15 @@ onBeforeUnmount(() => {
 .point-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.48);
+  background: var(--overlay-knowledge);
 }
 .point-shell,
 .point-content {
   position: absolute;
   inset: clamp(12px, 4%, 48px);
-  border-radius: 6px;
+  left: max(clamp(12px, 4%, 48px), calc((100% - 880px) / 2));
+  right: max(clamp(12px, 4%, 48px), calc((100% - 880px) / 2));
+  border-radius: var(--radius);
 }
 .point-shell {
   overflow: hidden;
@@ -493,7 +497,7 @@ onBeforeUnmount(() => {
   width: 32px;
   height: 32px;
   border: 0;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
   background: transparent;
   color: var(--text-primary);
   font-size: 24px;

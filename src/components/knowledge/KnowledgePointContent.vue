@@ -272,7 +272,7 @@ async function copyReference() {
 .mastery-status i {
   width: 7px;
   height: 7px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   background: var(--text-muted);
 }
 .mastery-status.is-mastered i {
@@ -314,7 +314,7 @@ async function copyReference() {
   margin-top: 24px;
   padding: 10px 12px;
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   background: var(--bg-surface);
 }
 .reference-code code {

@@ -73,7 +73,7 @@ defineEmits(['click']);
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   border: 1px solid transparent;
   font-weight: var(--font-weight-medium);
   cursor: pointer;
@@ -148,41 +148,41 @@ defineEmits(['click']);
 
 /* 风格变体 */
 .variant-primary {
-  background-color: var(--accent-primary);
-  color: var(--btn-primary-text);
+  background-color: var(--button-primary-bg);
+  color: var(--color-on-solid);
 }
 .variant-primary:hover:not(:disabled) {
-  background-color: var(--accent-hover);
+  background-color: var(--button-primary-hover-bg);
 }
 .variant-primary:active:not(:disabled) {
-  background-color: var(--accent-active);
+  background-color: var(--button-primary-active-bg);
 }
 
 .variant-secondary {
-  background-color: var(--btn-secondary-bg, var(--bg-elevated));
-  color: var(--btn-secondary-color, var(--text-primary));
-  border: 1px solid var(--btn-secondary-border, var(--border-subtle));
+  background-color: var(--bg-elevated);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
 }
 .variant-secondary:hover:not(:disabled) {
   background-color: var(--btn-secondary-hover-bg, var(--bg-hover));
-  color: var(--btn-secondary-hover-color, var(--text-primary));
-  border-color: var(--btn-secondary-hover-border, var(--border-hover));
+  color: var(--text-primary);
+  border-color: var(--border-hover);
 }
 
 .variant-ghost {
   background-color: transparent;
-  color: var(--btn-ghost-color, var(--text-secondary));
+  color: var(--text-secondary);
   border: 1px solid var(--btn-ghost-border, transparent);
 }
 .variant-ghost:hover:not(:disabled) {
-  background-color: var(--btn-ghost-hover-bg, var(--bg-hover));
-  color: var(--btn-ghost-hover-color, var(--text-primary));
+  background-color: var(--btn-secondary-hover-bg, var(--bg-hover));
+  color: var(--text-primary);
   border-color: var(--btn-ghost-hover-border, var(--border-subtle));
 }
 
 .variant-danger {
   background-color: var(--btn-danger-bg);
-  color: var(--btn-primary-text);
+  color: var(--color-on-solid);
 }
 .variant-danger:hover:not(:disabled) {
   background-color: var(--btn-danger-hover-bg);

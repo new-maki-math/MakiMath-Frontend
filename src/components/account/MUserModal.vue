@@ -350,8 +350,8 @@ const handleSavePassword = async () => {
   display: flex;
   background-color: var(--bg-surface);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  border-radius: var(--radius);
+  box-shadow: 0 16px 40px var(--shadow-color-strong);
   overflow: hidden;
 }
 
@@ -400,7 +400,7 @@ const handleSavePassword = async () => {
   width: 100%;
   height: 36px;
   padding: 0 12px;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
   background-color: transparent;
   border: none;
   color: var(--text-muted);
@@ -452,7 +452,7 @@ const handleSavePassword = async () => {
   justify-content: center;
   width: 26px;
   height: 26px;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
   background-color: transparent;
   border: none;
   color: var(--text-muted);

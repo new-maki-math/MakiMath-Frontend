@@ -218,7 +218,7 @@ function keydown(event) {
   gap: 12px;
   width: 100%;
   padding: 10px 12px;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
   color: var(--text-primary);
   text-align: left;
 }

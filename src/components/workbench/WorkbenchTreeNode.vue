@@ -288,7 +288,7 @@ const canMoveDown = computed(() =>
   gap: 4px;
   min-height: 34px;
   padding-right: 2px;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
   color: var(--text-secondary);
   font-size: var(--font-size);
   cursor: pointer;
@@ -310,11 +310,11 @@ const canMoveDown = computed(() =>
   content: '';
   position: absolute;
   z-index: 0;
-  left: var(--node-indent, 4px);
+  left: var(--node-indent);
   right: 2px;
   top: 4px;
   bottom: 4px;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
   background: var(--bg-hover);
 }
 
@@ -349,7 +349,7 @@ const canMoveDown = computed(() =>
   align-items: center;
   justify-content: center;
   color: var(--text-muted);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
   transition:
     color 120ms ease,
     background-color 120ms ease;
@@ -364,7 +364,7 @@ const canMoveDown = computed(() =>
 }
 
 .node-caret:not(.is-leaf):hover {
-  background-color: var(--bg-elevated);
+  background-color: color-mix(in srgb, var(--border-subtle) 45%, var(--bg-hover));
 }
 
 .node-caret:focus-visible,
@@ -447,7 +447,7 @@ const canMoveDown = computed(() =>
 .node-action {
   width: 26px;
   height: 26px;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
   color: var(--text-muted);
   display: inline-flex;
   align-items: center;
@@ -456,7 +456,10 @@ const canMoveDown = computed(() =>
 
 .node-action,
 .node-caret:not(.is-leaf) {
-  border-radius: 0;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  cursor: pointer;
 }
 
 .node-action:hover:not(:focus-visible) {
@@ -471,7 +474,7 @@ const canMoveDown = computed(() =>
 }
 
 .node-action:hover:not(:disabled) {
-  background-color: var(--bg-elevated);
+  background-color: var(--bg-hover);
   color: var(--text-primary);
 }
 
@@ -481,7 +484,7 @@ const canMoveDown = computed(() =>
 }
 
 .node-action.is-danger:hover:not(:disabled) {
-  color: #e07070;
+  color: var(--tree-error-text);
 }
 
 .node-hint {

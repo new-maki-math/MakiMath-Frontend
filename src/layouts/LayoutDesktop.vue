@@ -3,16 +3,15 @@ import { inject, ref } from 'vue';
 import { RouterView } from 'vue-router';
 
 import UserDataBackup from '../components/account/UserDataBackup.vue';
+import MThemeSwitcher from '../components/app/MThemeSwitcher.vue';
 import MUpdateLog from '../components/app/MUpdateLog.vue';
 import SearchBar from '../components/app/SearchBar.vue';
 import ViewportHeader from '../components/app/ViewportHeader.vue';
 import {
-  HalfMoon,
   HelpCircle,
   LogOut,
   NavArrowLeft,
   NavArrowRight,
-  SunLight,
   Terminal,
   UserCircle
 } from '../components/icons/icons.js';
@@ -24,8 +23,8 @@ import { useLayoutState } from './useLayoutState.js';
 const state = inject('layoutState', null) || useLayoutState();
 
 const {
-  isDark,
-  toggleTheme,
+  currentTheme,
+  setTheme,
   isLoggedIn,
   userDisplayName,
   isUserModalOpen,
@@ -139,23 +138,10 @@ const handleNavClick = (item) => {
           />
         </button>
 
-        <button
-          class="topbar-action-btn"
-          :title="isDark ? '切换至浅色模式' : '切换至深色模式'"
-          aria-label="切换浅色/深色模式"
-          @click="toggleTheme"
-        >
-          <SunLight
-            v-if="isDark"
-            width="20"
-            height="20"
-          />
-          <HalfMoon
-            v-else
-            width="20"
-            height="20"
-          />
-        </button>
+        <MThemeSwitcher
+          :model-value="currentTheme"
+          @update:model-value="setTheme"
+        />
         <MUpdateLog />
       </div>
     </header>
@@ -360,7 +346,7 @@ const handleNavClick = (item) => {
   justify-content: center;
   width: 28px;
   height: 28px;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
   color: var(--text-secondary);
   background-color: transparent;
   border: none;
@@ -387,8 +373,8 @@ const handleNavClick = (item) => {
 /* 侧边栏容器 */
 .maki-sidebar {
   width: var(--sidebar-width, max-content);
-  min-width: var(--sidebar-min-width, 220px);
-  max-width: var(--sidebar-max-width, 420px);
+  min-width: var(--sidebar-min-width);
+  max-width: var(--sidebar-max-width);
   background-color: var(--bg-sidebar);
   border-right: 1px solid var(--border-subtle);
   display: flex;
@@ -444,7 +430,7 @@ const handleNavClick = (item) => {
   justify-content: center;
   width: 28px;
   height: 28px;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
   background: transparent;
   border: 0;
   color: var(--text-muted);
@@ -506,7 +492,7 @@ const handleNavClick = (item) => {
   width: 100%;
   height: 36px;
   padding: 0 10px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   background: transparent;
   color: var(--text-secondary);
   border: 1px solid transparent;
@@ -556,7 +542,7 @@ const handleNavClick = (item) => {
   bottom: 6px;
   width: 3px;
   background-color: var(--accent-primary);
-  border-radius: 0 2px 2px 0;
+  border-radius: var(--radius-none) var(--radius) var(--radius) var(--radius-none);
 }
 
 .maki-sidebar.is-collapsed .nav-button.active::before {

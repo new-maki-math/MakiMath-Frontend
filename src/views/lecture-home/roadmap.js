@@ -1,14 +1,14 @@
 import { pointer, zoomIdentity } from 'd3';
 
 const CHAPTER_PALETTE = [
-  '#3b82f6',
-  '#10b981',
-  '#8b5cf6',
-  '#ec4899',
-  '#06b6d4',
-  '#f43f5e',
-  '#14b8a6',
-  '#a855f7'
+  '--roadmap-chapter-1',
+  '--roadmap-chapter-2',
+  '--roadmap-chapter-3',
+  '--roadmap-chapter-4',
+  '--roadmap-chapter-5',
+  '--roadmap-chapter-6',
+  '--roadmap-chapter-7',
+  '--roadmap-chapter-8'
 ];
 
 export function buildLectureGraph(tree) {
@@ -30,7 +30,7 @@ export function buildLectureGraph(tree) {
     tag: '课程',
     level: 1,
     type: 'course',
-    color: '#f59e0b',
+    color: '--roadmap-course',
     radius: 22,
     isOrigin: true
   });
@@ -222,9 +222,12 @@ export class RoadmapCanvas2DRenderer {
     const { width, height, dpr } = this;
     const { k, x, y } = transform;
     const styles = getComputedStyle(document.documentElement);
-    const background = styles.getPropertyValue('--bg-app').trim() || '#181818';
-    const text = styles.getPropertyValue('--text-primary').trim() || '#ffffff';
-    const mutedText = styles.getPropertyValue('--text-secondary').trim() || '#94a3b8';
+    const background = styles.getPropertyValue('--bg-app').trim();
+    const text = styles.getPropertyValue('--text-primary').trim();
+    const mutedText = styles.getPropertyValue('--text-secondary').trim();
+    const incomingColor = styles.getPropertyValue('--roadmap-chapter-2').trim();
+    const outgoingColor = styles.getPropertyValue('--roadmap-chapter-1').trim();
+    const targetColor = styles.getPropertyValue('--color-on-solid').trim();
     let needsMoreFrames = false;
 
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -255,7 +258,7 @@ export class RoadmapCanvas2DRenderer {
       const alpha = hl ? (active ? 1 : 0.05) : major ? 0.35 : 0.18;
       needsMoreFrames = fade(link, 'currentAlpha', alpha) || needsMoreFrames;
       ctx.globalAlpha = link.currentAlpha;
-      ctx.strokeStyle = incoming ? '#10b981' : outgoing ? '#3b82f6' : text;
+      ctx.strokeStyle = incoming ? incomingColor : outgoing ? outgoingColor : text;
       ctx.lineWidth = active ? (major ? 2.8 : 2) : major ? 2 : 1.1;
       ctx.beginPath();
       ctx.moveTo(source.x, source.y);
@@ -291,10 +294,11 @@ export class RoadmapCanvas2DRenderer {
       ctx.globalAlpha = node.currentAlpha;
       ctx.beginPath();
       ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
-      ctx.fillStyle = node.color || '#888888';
+      const nodeColor = styles.getPropertyValue(node.color || '--text-muted').trim() || mutedText;
+      ctx.fillStyle = nodeColor;
       ctx.fill();
       ctx.lineWidth = isTarget ? 3.5 : node.level === 1 ? 2.5 : 1.6;
-      ctx.strokeStyle = isTarget ? '#ffffff' : node.color || '#888888';
+      ctx.strokeStyle = isTarget ? targetColor : nodeColor;
       ctx.stroke();
     }
 
