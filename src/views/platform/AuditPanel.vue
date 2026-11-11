@@ -1,6 +1,6 @@
 <script setup>
 // 全站审计日志面板组件
-import { onMounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 
 import { request } from '../../api/client.js';
 import MPagination from '../../components/display/MPagination.vue';
@@ -16,21 +16,32 @@ const isLoadingAudit = ref(false);
 const auditTotal = ref(0);
 const auditPage = ref(1);
 const auditLimit = ref(20);
+let auditSequence = 0;
 
 // 加载审计日志流水
 const loadAuditLogs = async (page = 1, limit = auditLimit.value) => {
+  const current = ++auditSequence;
   isLoadingAudit.value = true;
   auditPage.value = page;
   auditLimit.value = limit;
   try {
-    const res = await request('/api/audit-logs');
-    const items = Array.isArray(res) ? res : [];
-    auditLogs.value = items.slice((page - 1) * limit, page * limit);
-    auditTotal.value = items.length;
+    const params = new URLSearchParams({ limit: String(limit), offset: String((page - 1) * limit) });
+    const res = await request(`/api/audit-logs?${params}`);
+    if (current !== auditSequence) return;
+    if (!Array.isArray(res?.items) || !Number.isSafeInteger(res.total) || res.total < 0) {
+      throw new Error('审计日志分页数据格式不正确');
+    }
+    const lastPage = Math.max(1, Math.ceil(res.total / limit));
+    if (page > lastPage) {
+      await loadAuditLogs(lastPage, limit);
+      return;
+    }
+    auditLogs.value = res.items;
+    auditTotal.value = res.total;
   } catch (err) {
-    notify(err.message || '加载全站日志失败', 'error');
+    if (current === auditSequence) notify(err.message || '加载全站日志失败', 'error');
   } finally {
-    isLoadingAudit.value = false;
+    if (current === auditSequence) isLoadingAudit.value = false;
   }
 };
 
@@ -41,6 +52,9 @@ const handlePageChange = ({ page, pageSize }) => {
 
 onMounted(() => {
   loadAuditLogs(1, 20);
+});
+onUnmounted(() => {
+  auditSequence++;
 });
 </script>
 
