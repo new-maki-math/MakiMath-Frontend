@@ -27,7 +27,7 @@ function updateGuideArrow() {
   const guide = guideRef.value;
   const target = document.querySelector('[data-navigation-id="recom-lecture"]');
   const shelf = guide?.closest('.my-lecture');
-  guideVisible.value = window.innerWidth < 768 || !shelf || shelf.scrollTop < 1;
+  guideVisible.value = window.innerWidth < 768 || !shelf || (shelf.scrollTop < 1 && window.scrollY < 1);
   if (!guide || !target || window.innerWidth < 768) {
     arrowPath.value = '';
     guidePosition.value = null;

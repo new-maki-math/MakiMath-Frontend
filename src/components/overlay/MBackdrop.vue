@@ -146,6 +146,7 @@ onUnmounted(() => {
   inset: 0;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   z-index: 80;
 }
 
@@ -153,5 +154,25 @@ onUnmounted(() => {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
+}
+
+@supports (-webkit-touch-callout: none) {
+  @media (max-width: 767px) {
+    .m-backdrop.is-fixed {
+      transition:
+        opacity 190ms cubic-bezier(0.16, 1, 0.3, 1),
+        visibility 190ms,
+        display 190ms allow-discrete;
+    }
+    .m-backdrop.is-fixed:not(.is-open) {
+      display: none;
+    }
+    @starting-style {
+      .m-backdrop.is-fixed.is-open {
+        opacity: 0;
+        visibility: hidden;
+      }
+    }
+  }
 }
 </style>

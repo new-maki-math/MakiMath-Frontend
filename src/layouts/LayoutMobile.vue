@@ -192,6 +192,7 @@ watch(
     <MDrawer
       :open="isDrawerOpen"
       placement="left"
+      fixed
       title="MAKI MATH // 导航"
       width="300px"
       @close="closeDrawer"
@@ -343,6 +344,7 @@ watch(
   flex-direction: column;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   background-color: var(--bg-app);
   color: var(--text-primary);
   overflow: hidden;
@@ -354,8 +356,8 @@ watch(
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 48px;
-  padding: 0 10px;
+  height: calc(48px + env(safe-area-inset-top, 0px));
+  padding: env(safe-area-inset-top, 0px) 10px 0;
   background-color: var(--bg-topbar);
   border-bottom: 1px solid var(--border-subtle);
   flex-shrink: 0;

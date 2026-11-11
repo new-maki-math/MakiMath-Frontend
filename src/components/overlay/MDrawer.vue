@@ -202,6 +202,7 @@ onBeforeUnmount(() => {
   inset: 0;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
 }
 
 .m-drawer-container.is-open.is-modal {
@@ -230,6 +231,12 @@ onBeforeUnmount(() => {
   top: 0;
   bottom: 0;
   height: 100vh;
+  height: 100dvh;
+}
+@media (max-width: 767px) {
+  .m-drawer-panel {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
 }
 
 /* 左侧展开（边界在右） */

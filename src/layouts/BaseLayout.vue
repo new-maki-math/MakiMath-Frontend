@@ -149,6 +149,11 @@ provide('openKnowledgeSearch', (node, focusTarget) =>
   position: relative;
   background-color: var(--bg-app);
 }
+@media (max-width: 767px) {
+  .maki-base-layout-root {
+    height: 100dvh;
+  }
+}
 
 .reauth-form,
 .reauth-fields {

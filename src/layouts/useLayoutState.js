@@ -151,6 +151,18 @@ export function useLayoutState() {
     } else {
       document.documentElement.removeAttribute('data-season');
     }
+    const isAppleMobile = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    if (!isAppleMobile) {
+      let themeColor = document.querySelector('meta[name="theme-color"]');
+      if (!themeColor) {
+        themeColor = document.createElement('meta');
+        themeColor.setAttribute('name', 'theme-color');
+        document.head.appendChild(themeColor);
+      }
+      const topbarColor = getComputedStyle(document.documentElement).getPropertyValue('--bg-topbar').trim();
+      if (topbarColor) themeColor.setAttribute('content', topbarColor);
+    }
   };
 
   const initTheme = () => {

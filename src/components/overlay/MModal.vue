@@ -225,6 +225,7 @@ onUnmounted(() => {
   box-sizing: border-box;
   max-width: calc(100vw - 48px);
   max-height: calc(100vh - 96px);
+  max-height: calc(100dvh - 96px - env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: column;
   /* 弹窗面板容器 */
