@@ -191,7 +191,7 @@ onMounted(() => {
 }
 
 .nav-tab-btn.active {
-  background-color: var(--bg-elevated);
+  background-color: color-mix(in srgb, var(--accent-primary) 15%, var(--bg-sidebar));
   color: var(--text-primary);
 }
 

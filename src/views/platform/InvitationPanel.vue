@@ -119,7 +119,6 @@ onMounted(() => {
       <div class="toolbar-actions">
         <MButton
           variant="primary"
-          size="sm"
           :mono="true"
           @click="handleOpenCreateInvite"
         >
