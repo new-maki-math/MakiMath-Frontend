@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 import MTag from '../../components/display/MTag.vue';
 import { NavArrowLeft, NavArrowRight } from '../../components/icons/icons.js';
 
@@ -25,7 +26,7 @@ const handleNavigate = (section) => {
 <template>
   <footer
     class="doc-footer-nav"
-    aria-label="讲义章节切换导航"
+    :aria-label="t('讲义章节切换导航')"
   >
     <!-- 上一讲 -->
     <button
@@ -40,7 +41,7 @@ const handleNavigate = (section) => {
           height="14"
           class="arrow-icon prev-arrow"
         />
-        <span>PREV // 上一讲</span>
+        <span>{{ t('PREV // 上一讲') }}</span>
       </div>
       <div class="card-content">
         <MTag
@@ -73,7 +74,7 @@ const handleNavigate = (section) => {
       @click="handleNavigate(nextSection)"
     >
       <div class="card-direction font-mono">
-        <span>下一讲 // NEXT</span>
+        <span>{{ t('下一讲 // NEXT') }}</span>
         <NavArrowRight
           width="14"
           height="14"

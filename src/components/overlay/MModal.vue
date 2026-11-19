@@ -1,6 +1,7 @@
 <script setup>
 import { nextTick, onUnmounted, ref, watch } from 'vue';
 
+import { t } from '../../i18n.js';
 import MButton from '../form/MButton.vue';
 import { Xmark } from '../icons/icons.js';
 import MBackdrop from './MBackdrop.vue';
@@ -154,7 +155,7 @@ onUnmounted(() => {
             v-if="showClose"
             type="button"
             class="modal-close"
-            aria-label="关闭窗口"
+            :aria-label="t('关闭窗口')"
             @click="emit('close')"
           >
             <Xmark
@@ -198,7 +199,7 @@ onUnmounted(() => {
               :disabled="busy"
               @click="emit('close')"
             >
-              {{ cancelText }}
+              {{ t(cancelText) }}
             </MButton>
             <MButton
               :variant="confirmVariant"
@@ -207,7 +208,7 @@ onUnmounted(() => {
               :disabled="busy"
               @click="emit('confirm')"
             >
-              {{ busy ? '处理中...' : confirmText }}
+              {{ busy ? t('处理中...') : t(confirmText) }}
             </MButton>
           </slot>
         </footer>

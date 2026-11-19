@@ -5,6 +5,7 @@ let autoPromptChecked = false;
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
+import { t } from '../../i18n.js';
 import { getCachedFile, hashCacheValue, putCachedFile } from '../../utils/file-cache.js';
 import { markUpdateRead, readUpdateVersions } from '../../utils/update-log-read.js';
 import MButton from '../form/MButton.vue';
@@ -164,8 +165,8 @@ onBeforeUnmount(() => {
     :class="{
       active: open
     }"
-    :title="hasUnread ? '更新日志，有未读版本' : '更新日志'"
-    :aria-label="hasUnread ? '更新日志，有未读版本' : '更新日志'"
+    :title="t(hasUnread ? '更新日志，有未读版本' : '更新日志')"
+    :aria-label="t(hasUnread ? '更新日志，有未读版本' : '更新日志')"
     @click="show"
   >
     <Journal
@@ -179,7 +180,7 @@ onBeforeUnmount(() => {
   </button>
   <MModal
     :open="open"
-    title="更新日志"
+    :title="t('更新日志')"
     width="640px"
     hide-footer
     show-close
@@ -190,7 +191,7 @@ onBeforeUnmount(() => {
         v-if="loading"
         class="update-note"
       >
-        正在加载更新日志…
+        {{ t('正在加载更新日志…') }}
       </p>
       <p
         v-else-if="error"
@@ -201,7 +202,7 @@ onBeforeUnmount(() => {
         <MButton
           size="sm"
           @click="loadLog"
-          >重试</MButton
+          >{{ t('重试') }}</MButton
         >
       </p>
       <div
@@ -216,7 +217,7 @@ onBeforeUnmount(() => {
           v-if="releases.length > 1"
           class="update-history"
         >
-          <div class="update-history-label">历史版本</div>
+          <div class="update-history-label">{{ t('历史版本') }}</div>
           <details
             v-for="release in releases.slice(1)"
             :key="release.title"
@@ -255,7 +256,7 @@ onBeforeUnmount(() => {
           :variant="readVersions.has(version) ? 'secondary' : 'primary'"
           :disabled="marking || readVersions.has(version)"
           @click="confirmRead"
-          >{{ marking ? '保存中…' : readVersions.has(version) ? '已读' : '标记已读' }}</MButton
+          >{{ t(marking ? '保存中…' : readVersions.has(version) ? '已读' : '标记已读') }}</MButton
         >
       </div>
     </div>

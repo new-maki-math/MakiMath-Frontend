@@ -1,8 +1,10 @@
 <script setup>
+import { t } from '../i18n.js';
 import { inject, ref } from 'vue';
 import { RouterView } from 'vue-router';
 
 import UserDataBackup from '../components/account/UserDataBackup.vue';
+import MLanguageSwitcher from '../components/app/MLanguageSwitcher.vue';
 import MThemeSwitcher from '../components/app/MThemeSwitcher.vue';
 import MUpdateLog from '../components/app/MUpdateLog.vue';
 import SearchBar from '../components/app/SearchBar.vue';
@@ -98,8 +100,8 @@ const handleNavClick = (item) => {
             :class="{
               active: isUserModalOpen
             }"
-            :title="isLoggedIn ? '用户设置与详情' : '登录或注册'"
-            :aria-label="isLoggedIn ? '查看用户设置与详情' : '登录或注册'"
+            :title="t(isLoggedIn ? '用户设置与详情' : '登录或注册')"
+            :aria-label="t(isLoggedIn ? '查看用户设置与详情' : '登录或注册')"
             @click="openUserModal"
           >
             <UserCircle
@@ -112,8 +114,8 @@ const handleNavClick = (item) => {
         <button
           v-if="isLoggedIn"
           class="topbar-action-btn"
-          title="退出登录"
-          aria-label="退出登录"
+          :title="t('退出登录')"
+          :aria-label="t('退出登录')"
           @click="handleLogout"
         >
           <LogOut
@@ -128,8 +130,8 @@ const handleNavClick = (item) => {
           :class="{
             active: isHelpModalOpen
           }"
-          title="如何使用"
-          aria-label="如何使用"
+          :title="t('如何使用')"
+          :aria-label="t('如何使用')"
           @click="openHelpModal"
         >
           <HelpCircle
@@ -138,6 +140,7 @@ const handleNavClick = (item) => {
           />
         </button>
 
+        <MLanguageSwitcher />
         <MThemeSwitcher
           :model-value="currentTheme"
           @update:model-value="setTheme"
@@ -169,7 +172,7 @@ const handleNavClick = (item) => {
           </MCollapse>
           <button
             class="sidebar-collapse-btn"
-            :title="isSidebarCollapsed ? '展开导航栏' : '收起导航栏'"
+            :title="t(isSidebarCollapsed ? '展开导航栏' : '收起导航栏')"
             @click="toggleSidebar"
           >
             <component

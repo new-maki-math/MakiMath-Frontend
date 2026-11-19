@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 import { computed, ref, watch } from 'vue';
 
 import MLectureCover from '../../components/book/MLectureCover.vue';
@@ -33,25 +34,25 @@ const sortedVersions = computed(() => {
 
 function versionName(version) {
   if (version.invalidDraft) {
-    return '版本数据异常';
+    return t('版本数据异常');
   }
   if (version.kind === 'working_draft') {
-    return '草稿版本';
+    return t('草稿版本');
   }
-  return version.revision_no == null ? '版本号未提供' : `V${version.revision_no}`;
+  return version.revision_no == null ? t('版本号未提供') : `V${version.revision_no}`;
 }
 
 function versionStatus(version) {
   if (version.invalidDraft) {
-    return '请联系管理员处理';
+    return t('请联系管理员处理');
   }
   if (version.is_public) {
-    return '当前公开';
+    return t('当前公开');
   }
   if (version.kind === 'working_draft') {
-    return '编辑中';
+    return t('编辑中');
   }
-  return (
+  return t(
     {
       pending: '审核中',
       approved: '已通过',
@@ -83,10 +84,10 @@ function versionStatus(version) {
       @wheel.stop
     >
       <div class="version-head">
-        <span>讲义版本</span
+        <span>{{ t('讲义版本') }}</span
         ><button
           type="button"
-          aria-label="收起版本"
+          :aria-label="t('收起版本')"
           @click="expanded = false"
         >
           <Xmark
@@ -99,10 +100,10 @@ function versionStatus(version) {
         v-if="lecture.versionsLoading"
         class="version-message"
       >
-        正在加载版本…
+        {{ t('正在加载版本…') }}
       </p>
       <template v-else-if="lecture.versionsError"
-        ><p class="version-message">版本加载失败</p>
+        ><p class="version-message">{{ t('版本加载失败') }}</p>
         <button
           class="version-retry"
           type="button"
@@ -115,7 +116,7 @@ function versionStatus(version) {
         v-else-if="!lecture.versions?.length"
         class="version-message"
       >
-        暂无可查看版本
+        {{ t('暂无可查看版本') }}
       </p>
       <button
         v-for="version in sortedVersions"
@@ -126,7 +127,7 @@ function versionStatus(version) {
         }"
         type="button"
         :disabled="version.invalidDraft"
-        :title="version.invalidDraft ? '版本记录异常，请联系管理员处理' : undefined"
+        :title="version.invalidDraft ? t('版本记录异常，请联系管理员处理') : undefined"
         @click="$emit('open', lecture, version)"
       >
         <span class="version-name">{{ versionName(version) }}</span>

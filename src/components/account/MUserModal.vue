@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 // 用户中心模态窗口组件
 import { computed, ref, watch } from 'vue';
 
@@ -103,7 +104,7 @@ const roleMeta = computed(() => {
 // 保存基本信息修改
 const handleSaveProfile = async () => {
   if (profileForm.value.displayName.trim().length > 100) {
-    notify('昵称不能超过一百个字符', 'error');
+    notify(t('昵称不能超过一百个字符'), 'error');
     return;
   }
   isSavingProfile.value = true;
@@ -117,11 +118,11 @@ const handleSaveProfile = async () => {
     if (res?.user) {
       const token = getAuthToken();
       setAuth(token, res.user);
-      notify('基本信息已更新', 'success');
+      notify(t('基本信息已更新'), 'success');
       emit('updated', res.user);
     }
   } catch (err) {
-    notify(err.message || '更新基本信息失败', 'error');
+    notify(err.message || t('更新基本信息失败'), 'error');
   } finally {
     isSavingProfile.value = false;
   }
@@ -130,18 +131,18 @@ const handleSaveProfile = async () => {
 // 修改密码
 const handleSavePassword = async () => {
   if (!passwordForm.value.oldPassword) {
-    notify('请输入原密码', 'error');
+    notify(t('请输入原密码'), 'error');
     return;
   }
   if (
     passwordForm.value.newPassword.length < 8 ||
     new TextEncoder().encode(passwordForm.value.newPassword).length > 72
   ) {
-    notify('新密码至少需要八位字符且不能超过七十二字节', 'error');
+    notify(t('新密码至少需要八位字符且不能超过七十二字节'), 'error');
     return;
   }
   if (passwordForm.value.newPassword !== passwordForm.value.confirmPassword) {
-    notify('两次输入的新密码不一致', 'error');
+    notify(t('两次输入的新密码不一致'), 'error');
     return;
   }
   isSavingPassword.value = true;
@@ -160,9 +161,9 @@ const handleSavePassword = async () => {
     };
     emit('close');
     invalidateSession();
-    notify('密码修改成功，请重新登录', 'success');
+    notify(t('密码修改成功，请重新登录'), 'success');
   } catch (err) {
-    notify(err.message || '修改密码失败', 'error');
+    notify(err.message || t('修改密码失败'), 'error');
   } finally {
     isSavingPassword.value = false;
   }
@@ -212,7 +213,7 @@ const handleSavePassword = async () => {
                 height="16"
                 class="tab-icon"
               />
-              <span class="tab-text">{{ tab.label }}</span>
+              <span class="tab-text">{{ t(tab.label) }}</span>
             </button>
           </nav>
         </div>
@@ -221,12 +222,12 @@ const handleSavePassword = async () => {
           <div class="content-header">
             <div class="header-left">
               <span class="header-section-name">
-                {{ tabs.find((t) => t.id === currentTab)?.label }}
+                {{ t(tabs.find((tab) => tab.id === currentTab)?.label || '') }}
               </span>
             </div>
             <button
               class="header-close-btn"
-              title="关闭窗口"
+              :title="t('关闭窗口')"
               @click="emit('close')"
             >
               <Xmark
@@ -246,12 +247,12 @@ const handleSavePassword = async () => {
                 @submit.prevent="handleSaveProfile"
               >
                 <div class="field-item">
-                  <span class="field-label">账号角色</span>
+                  <span class="field-label">{{ t('账号角色') }}</span>
                   <div class="field-static-row">
                     <MTag
                       :variant="roleMeta.variant"
                       size="md"
-                      >{{ roleMeta.label }}</MTag
+                      >{{ t(roleMeta.label) }}</MTag
                     >
                     <span class="role-desc">Role: {{ user?.role || 'user' }}</span>
                   </div>
@@ -259,15 +260,15 @@ const handleSavePassword = async () => {
 
                 <MInput
                   v-model="profileForm.username"
-                  label="登录账号"
-                  placeholder="用户名不可修改"
+                  :label="t('登录账号')"
+                  :placeholder="t('用户名不可修改')"
                   :disabled="true"
                 />
 
                 <MInput
                   v-model="profileForm.displayName"
-                  label="用户昵称"
-                  placeholder="请输入您的昵称"
+                  :label="t('用户昵称')"
+                  :placeholder="t('请输入您的昵称')"
                   :disabled="isSavingProfile"
                 />
 
@@ -279,7 +280,7 @@ const handleSavePassword = async () => {
                     :mono="true"
                     :disabled="isSavingProfile"
                   >
-                    {{ isSavingProfile ? '保存中...' : '保存修改' }}
+                    {{ t(isSavingProfile ? '保存中...' : '保存修改') }}
                   </MButton>
                 </div>
               </form>
@@ -295,25 +296,25 @@ const handleSavePassword = async () => {
               >
                 <MInput
                   v-model="passwordForm.oldPassword"
-                  label="当前密码"
+                  :label="t('当前密码')"
                   type="password"
-                  placeholder="请输入原登录密码"
+                  :placeholder="t('请输入原登录密码')"
                   :disabled="isSavingPassword"
                 />
 
                 <MInput
                   v-model="passwordForm.newPassword"
-                  label="新密码"
+                  :label="t('新密码')"
                   type="password"
-                  placeholder="至少六位新密码"
+                  :placeholder="t('至少六位新密码')"
                   :disabled="isSavingPassword"
                 />
 
                 <MInput
                   v-model="passwordForm.confirmPassword"
-                  label="确认新密码"
+                  :label="t('确认新密码')"
                   type="password"
-                  placeholder="请再次输入新密码"
+                  :placeholder="t('请再次输入新密码')"
                   :disabled="isSavingPassword"
                 />
 
@@ -325,7 +326,7 @@ const handleSavePassword = async () => {
                     :mono="true"
                     :disabled="isSavingPassword"
                   >
-                    {{ isSavingPassword ? '提交中...' : '确认修改密码' }}
+                    {{ t(isSavingPassword ? '提交中...' : '确认修改密码') }}
                   </MButton>
                 </div>
               </form>

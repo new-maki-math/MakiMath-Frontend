@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 import MButton from '../../components/form/MButton.vue';
 import WorkbenchPanel from '../../components/workbench/WorkbenchPanel.vue';
 
@@ -13,7 +14,7 @@ defineProps({
 defineEmits(['retry', 'open']);
 
 function publicationStatus(value) {
-  return (
+  return t(
     {
       published: '已上架',
       unpublished: '未上架',
@@ -23,7 +24,7 @@ function publicationStatus(value) {
   );
 }
 function revisionStatus(value) {
-  return (
+  return t(
     {
       draft: '草稿',
       pending: '审核中',
@@ -34,15 +35,15 @@ function revisionStatus(value) {
 }
 function revisionLabel(revision) {
   if (!revision) {
-    return '暂无版本';
+    return t('暂无版本');
   }
-  const kind =
+  const kind = t(
     {
       working_draft: '草稿版本',
       snapshot: '快照版本'
-    }[revision.kind] || '版本类型未知';
+    }[revision.kind] || '版本类型未知');
   return revision.revision_no == null
-    ? `${kind} · 版本号未提供`
+    ? t('{kind} · 版本号未提供', { kind })
     : `${kind} · V${revision.revision_no}`;
 }
 </script>
@@ -50,14 +51,14 @@ function revisionLabel(revision) {
 <template>
   <WorkbenchPanel
     kind="BOOK"
-    :title="item?.latest_revision?.title || '图书信息'"
+    :title="item?.latest_revision?.title || t('图书信息')"
     :editable="false"
   >
     <p
       v-if="loading"
       class="summary-note"
     >
-      正在加载图书信息…
+      {{ t('正在加载图书信息…') }}
     </p>
     <p
       v-else-if="error"
@@ -77,21 +78,21 @@ function revisionLabel(revision) {
       class="summary-fields"
     >
       <div>
-        <span>所有者</span><strong>{{ item.owner_username || '未提供' }}</strong>
+        <span>{{ t('所有者') }}</span><strong>{{ item.owner_username || t('未提供') }}</strong>
       </div>
       <div>
-        <span>图书状态</span><strong>{{ publicationStatus(item.publication_status) }}</strong>
+        <span>{{ t('图书状态') }}</span><strong>{{ publicationStatus(item.publication_status) }}</strong>
       </div>
       <div>
-        <span>最新版本</span><strong>{{ revisionLabel(item.latest_revision) }}</strong>
+        <span>{{ t('最新版本') }}</span><strong>{{ revisionLabel(item.latest_revision) }}</strong>
       </div>
       <div v-if="item.latest_revision">
-        <span>版本审核状态</span><strong>{{ revisionStatus(item.latest_revision.status) }}</strong>
+        <span>{{ t('版本审核状态') }}</span><strong>{{ revisionStatus(item.latest_revision.status) }}</strong>
       </div>
       <MButton
         v-if="item.latest_revision"
         @click="$emit('open')"
-        >打开图书</MButton
+        >{{ t('打开图书') }}</MButton
       >
     </div>
   </WorkbenchPanel>

@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -73,7 +74,7 @@ function scrollToCatalog() {
           <MButton
             variant="secondary"
             @click="scrollToCatalog"
-            >查看题目册目录</MButton
+            >{{ t('查看题目册目录') }}</MButton
           >
         </div>
       </div>
@@ -81,7 +82,7 @@ function scrollToCatalog() {
 
     <section class="overview">
       <div class="spec-card">
-        <span class="card-title">OVERVIEW // 题目册概要</span>
+        <span class="card-title">{{ t('OVERVIEW // 题目册概要') }}</span>
         <div class="spec-item"><span>年份</span><strong>2010 — 2026</strong></div>
         <div class="spec-item"><span>试卷</span><strong>51 套</strong></div>
         <div class="spec-item"><span>题位</span><strong>1,155 题</strong></div>
@@ -100,7 +101,7 @@ function scrollToCatalog() {
       <div class="section-header">
         <div>
           <span class="kicker">PAPERS &amp; QUESTIONS</span>
-          <h2>题目册目录</h2>
+          <h2>{{ t('题目册目录') }}</h2>
         </div>
         <div class="catalog-actions">
           <span>17 年 · 51 套</span
@@ -108,13 +109,13 @@ function scrollToCatalog() {
             type="button"
             @click="openYears = new Set(chapters.map((chapter) => chapter.year))"
           >
-            全部展开</button
+            {{ t('全部展开') }}</button
           ><span>/</span
           ><button
             type="button"
             @click="openYears = new Set()"
           >
-            全部折叠
+            {{ t('全部折叠') }}
           </button>
         </div>
       </div>

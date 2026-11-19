@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 import { onUnmounted, ref, watch } from 'vue';
 
 import { notify } from '../../components/feedback/MNotice.vue';
@@ -37,7 +38,7 @@ watch(
   () => chapter.value,
   () => {
     if (open.value || reading.value) {
-      notify('章节已变化，请重新选择要导入的文件', 'warn');
+      notify(t('章节已变化，请重新选择要导入的文件'), 'warn');
     }
     sequence++;
     reading.value = false;
@@ -62,11 +63,11 @@ async function readFiles(event) {
     return;
   }
   if (pickerChapter !== chapter.value) {
-    notify('章节已变化，请重新选择要导入的文件', 'warn');
+    notify(t('章节已变化，请重新选择要导入的文件'), 'warn');
     return;
   }
   if (files.some((file) => !/\.typ$/i.test(file.name))) {
-    notify('请选择 .typ 文件', 'warn');
+    notify(t('请选择 .typ 文件'), 'warn');
     return;
   }
   const current = ++sequence;
@@ -82,7 +83,7 @@ async function readFiles(event) {
           fatal: true
         }).decode(await file.arrayBuffer());
       } catch {
-        throw new Error(`无法读取 ${file.name}，请确认文件为 UTF-8 编码`);
+        throw new Error(t('无法读取 {name}，请确认文件为 UTF-8 编码', { name: file.name }));
       }
       if (current !== sequence || targetChapter !== chapter.value) {
         return;
@@ -105,7 +106,7 @@ async function readFiles(event) {
     open.value = true;
   } catch (err) {
     if (current === sequence) {
-      notify(err.message || '读取文件失败', 'error');
+      notify(err.message || t('读取文件失败'), 'error');
     }
   } finally {
     if (current === sequence) {
@@ -124,11 +125,11 @@ function confirmImport() {
     const title = item.title.trim();
     const slug = item.slug.trim();
     if (!title || !slug) {
-      notify(`请填写 ${item.filename} 的小节标题和小节标识`, 'warn');
+      notify(t('请填写 {name} 的小节标题和小节标识', { name: item.filename }), 'warn');
       return;
     }
     if (slugs.has(slug)) {
-      notify(`小节标识 ${slug} 与章节内已有或待导入的小节重复`, 'warn');
+      notify(t('小节标识 {slug} 与章节内已有或待导入的小节重复', { slug }), 'warn');
       return;
     }
     slugs.add(slug);
@@ -146,7 +147,7 @@ function confirmImport() {
   }
   emit('imported');
   close();
-  notify(`已添加 ${sections.length} 个小节，请保存图书`, 'success');
+  notify(t('已添加 {count} 个小节，请保存图书', { count: sections.length }), 'success');
 }
 </script>
 
@@ -155,10 +156,10 @@ function confirmImport() {
     v-if="editable"
     class="wb-block section-import"
   >
-    <div class="wb-block-head"><span class="wb-block-title">批量导入小节</span></div>
+    <div class="wb-block-head"><span class="wb-block-title">{{ t('批量导入小节') }}</span></div>
     <MFilePicker
-      title="Typst 文件"
-      :detail="reading ? '正在读取文件…' : '可选择一个或多个 .typ 文件，导入后请保存图书'"
+      :title="t('Typst 文件')"
+      :detail="t(reading ? '正在读取文件…' : '可选择一个或多个 .typ 文件，导入后请保存图书')"
       accept=".typ"
       multiple
       :disabled="saving || reading"
@@ -168,10 +169,10 @@ function confirmImport() {
   </div>
   <MModal
     :open="open"
-    title="批量导入小节"
-    desc="请确认每个文件的小节标题和小节标识，导入后保存图书生效。"
+    :title="t('批量导入小节')"
+    :desc="t('请确认每个文件的小节标题和小节标识，导入后保存图书生效。')"
     width="720px"
-    confirm-text="添加小节"
+    :confirm-text="t('添加小节')"
     :busy="saving || !editable"
     @close="close"
     @confirm="confirmImport"
@@ -191,13 +192,13 @@ function confirmImport() {
         <div class="import-fields">
           <MInput
             v-model="item.title"
-            label="小节标题"
+            :label="t('小节标题')"
             required
           />
           <MInput
             v-model="item.slug"
-            label="小节标识"
-            hint="章节内唯一"
+            :label="t('小节标识')"
+            :hint="t('章节内唯一')"
             required
           />
         </div>

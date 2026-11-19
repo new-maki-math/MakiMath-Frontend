@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 import { computed, ref } from 'vue';
 
 import MFilePicker from '../../components/form/MFilePicker.vue';
@@ -83,7 +84,7 @@ async function chooseAnimation(event) {
 <template>
   <WorkbenchPanel
     kind="SECTION"
-    :title="section.title || section.slug || '未命名小节'"
+    :title="section.title || section.slug || t('未命名小节')"
     :dirty="dirty"
     :saving="saving"
     :editable="editable"
@@ -103,23 +104,23 @@ async function chooseAnimation(event) {
       <div class="wb-form-grid">
         <MInput
           v-model="section.title"
-          label="小节标题"
+          :label="t('小节标题')"
           required
         />
         <MInput
           v-model="section.slug"
-          label="小节标识"
-          hint="章节内唯一"
+          :label="t('小节标识')"
+          :hint="t('章节内唯一')"
           required
         />
         <MInput
           v-model="section.tag"
-          label="标签"
+          :label="t('标签')"
         />
         <div class="wb-span-2">
           <MTextarea
             v-model="section.summary"
-            label="摘要"
+            :label="t('摘要')"
             :rows="2"
           />
         </div>
@@ -129,11 +130,11 @@ async function chooseAnimation(event) {
       class="wb-block"
       :inert="!editable"
     >
-      <div class="wb-block-head"><span class="wb-block-title">分步动画</span></div>
+      <div class="wb-block-head"><span class="wb-block-title">{{ t('分步动画') }}</span></div>
       <MFilePicker
-        :title="animationLoading ? '正在检查动画文件…' : '小节动画资源'"
-        detail="包含 animation.json 和场景资源，最大 22 MB"
-        :action="animationPackage ? '替换文件夹' : '选择文件夹'"
+        :title="t(animationLoading ? '正在检查动画文件…' : '小节动画资源')"
+        :detail="t('包含 animation.json 和场景资源，最大 22 MB')"
+        :action="t(animationPackage ? '替换文件夹' : '选择文件夹')"
         directory
         :disabled="animationLoading || !editable"
         @change="chooseAnimation"
@@ -146,7 +147,7 @@ async function chooseAnimation(event) {
       </p>
       <template v-if="animationPackage">
         <details class="animation-files">
-          <summary>已导入 {{ Object.keys(animationPackage.files).length }} 个文件</summary>
+          <summary>{{ t('已导入 {count} 个文件', { count: Object.keys(animationPackage.files).length }) }}</summary>
           <ul>
             <li
               v-for="path in Object.keys(animationPackage.files).sort()"
@@ -161,18 +162,18 @@ async function chooseAnimation(event) {
           type="button"
           @click="section.animation_source = ''"
         >
-          移除动画
+          {{ t('移除动画') }}
         </button>
       </template>
       <p
         v-else-if="section.animation_source"
         class="animation-error"
       >
-        当前动画不是资源包，请选择动画文件夹替换。
+        {{ t('当前动画不是资源包，请选择动画文件夹替换。') }}
       </p>
     </div>
     <div class="wb-block">
-      <div class="wb-block-head"><span class="wb-block-title">小节内容</span></div>
+      <div class="wb-block-head"><span class="wb-block-title">{{ t('小节内容') }}</span></div>
       <TypstEditorPreview
         :key="section.occurrence_id"
         v-model="section.source"

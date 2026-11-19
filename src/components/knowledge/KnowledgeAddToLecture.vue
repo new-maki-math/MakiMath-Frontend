@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 import { computed, nextTick, ref, watch } from 'vue';
 
 import { bookApi } from '../../api/books.js';
@@ -392,7 +393,7 @@ async function addReference() {
   <MModal
     :open="open"
     title="添加到我的讲义"
-    confirm-text="添加"
+    :confirm-text="t('添加')"
     :busy="saving"
     @close="!saving && $emit('close')"
     @confirm="addReference"

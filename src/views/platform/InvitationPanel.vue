@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 // 邀请码管理面板组件
 import { onMounted, ref } from 'vue';
 
@@ -26,7 +27,7 @@ const loadInvitations = async (page = 1) => {
     invitations.value = Array.isArray(res) ? res : [];
     inviteTotal.value = invitations.value.length;
   } catch (err) {
-    notify(err.message || '加载邀请码失败', 'error');
+    notify(err.message || t('加载邀请码失败'), 'error');
   } finally {
     isLoadingInvitations.value = false;
   }
@@ -59,7 +60,7 @@ const handleCreateInvite = async () => {
   try {
     const days = Number(createInviteForm.value.expiresInDays);
     if (!Number.isFinite(days) || days < 0) {
-      throw new Error('有效期天数不正确');
+      throw new Error(t('有效期天数不正确'));
     }
     await request('/api/invitations', {
       method: 'POST',
@@ -70,11 +71,11 @@ const handleCreateInvite = async () => {
         note: createInviteForm.value.note.trim()
       }
     });
-    notify('邀请码生成成功', 'success');
+    notify(t('邀请码生成成功'), 'success');
     isCreateInviteOpen.value = false;
     loadInvitations(1);
   } catch (err) {
-    notify(err.message || '生成邀请码失败', 'error');
+    notify(err.message || t('生成邀请码失败'), 'error');
   } finally {
     isCreatingInvite.value = false;
   }
@@ -82,24 +83,24 @@ const handleCreateInvite = async () => {
 
 // 作废指定邀请码
 const handleRevokeInvite = async (inv) => {
-  if (!window.confirm(`确定要作废邀请码 ${inv.code} 吗？`)) {
+  if (!window.confirm(t('确定要作废邀请码 {code} 吗？', { code: inv.code }))) {
     return;
   }
   try {
     await request(`/api/invitations/${inv.id}`, {
       method: 'DELETE'
     });
-    notify('邀请码已作废', 'success');
+    notify(t('邀请码已作废'), 'success');
     loadInvitations(invitePage.value);
   } catch (err) {
-    notify(err.message || '作废邀请码失败', 'error');
+    notify(err.message || t('作废邀请码失败'), 'error');
   }
 };
 
 // 复制文本到剪贴板
 const handleCopy = (text) => {
   navigator.clipboard.writeText(text);
-  notify('已复制到剪贴板', 'success');
+  notify(t('已复制到剪贴板'), 'success');
 };
 
 onMounted(() => {
@@ -111,9 +112,9 @@ onMounted(() => {
   <section class="section-pane font-mono">
     <div class="pane-toolbar">
       <div class="toolbar-title-wrap">
-        <h1 class="pane-title font-mono">INVITATIONS // 邀请码管理</h1>
+        <h1 class="pane-title font-mono">{{ t('INVITATIONS // 邀请码管理') }}</h1>
         <p class="pane-subtitle">
-          生成系统准入注册邀请码，设定授权角色、限制使用频次与监控使用进度。
+          {{ t('生成系统准入注册邀请码，设定授权角色、限制使用频次与监控使用进度。') }}
         </p>
       </div>
       <div class="toolbar-actions">
@@ -127,13 +128,13 @@ onMounted(() => {
               width="14"
               height="14"
           /></template>
-          生成邀请码
+          {{ t('生成邀请码') }}
         </MButton>
         <MButton
           variant="secondary"
           icon-only
-          title="刷新列表"
-          aria-label="刷新列表"
+          :title="t('刷新列表')"
+          :aria-label="t('刷新列表')"
           @click="loadInvitations(invitePage)"
         >
           <Refresh
@@ -150,13 +151,13 @@ onMounted(() => {
     >
       <template #header>
         <th>邀请码</th>
-        <th>角色</th>
-        <th>使用次数</th>
-        <th>状态</th>
-        <th>备注</th>
-        <th>有效期至</th>
-        <th>生成时间</th>
-        <th>操作</th>
+        <th>{{ t('角色') }}</th>
+        <th>{{ t('使用次数') }}</th>
+        <th>{{ t('状态') }}</th>
+        <th>{{ t('备注') }}</th>
+        <th>{{ t('有效期至') }}</th>
+        <th>{{ t('生成时间') }}</th>
+        <th>{{ t('操作') }}</th>
       </template>
       <template #rows="{ data }">
         <tr
@@ -167,7 +168,7 @@ onMounted(() => {
             <span>{{ inv.code }}</span>
             <button
               class="copy-inline-btn"
-              title="复制邀请码"
+              :title="t('复制邀请码')"
               @click="handleCopy(inv.code)"
             >
               <Copy
@@ -195,12 +196,12 @@ onMounted(() => {
               }"
             >
               {{
-                inv.status === 'active' ? '有效' : inv.status === 'exhausted' ? '已耗尽' : '已作废'
+                t(inv.status === 'active' ? '有效' : inv.status === 'exhausted' ? '已耗尽' : '已作废')
               }}
             </span>
           </td>
           <td class="col-dim">{{ inv.note || '-' }}</td>
-          <td class="col-dim">{{ inv.expires_at ? formatDate(inv.expires_at) : '永久有效' }}</td>
+          <td class="col-dim">{{ inv.expires_at ? formatDate(inv.expires_at) : t('永久有效') }}</td>
           <td class="col-dim">{{ formatDate(inv.created_at) }}</td>
           <td>
             <MButton
@@ -208,10 +209,10 @@ onMounted(() => {
               variant="danger"
               size="sm"
               :mono="true"
-              title="废弃此邀请码"
+              :title="t('废弃此邀请码')"
               @click="handleRevokeInvite(inv)"
             >
-              作废
+              {{ t('作废') }}
             </MButton>
             <span
               v-else
@@ -226,8 +227,8 @@ onMounted(() => {
     <!-- 生成邀请码弹窗 -->
     <MModal
       :open="isCreateInviteOpen"
-      title="生成注册邀请码"
-      confirm-text="生成"
+      :title="t('生成注册邀请码')"
+      :confirm-text="t('生成')"
       :busy="isCreatingInvite"
       @close="isCreateInviteOpen = false"
       @confirm="handleCreateInvite"
@@ -235,23 +236,23 @@ onMounted(() => {
       <div class="form-grid">
         <MInput
           v-model="createInviteForm.maxUses"
-          label="允许使用次数"
+          :label="t('允许使用次数')"
           type="number"
-          placeholder="默认为 1 次"
+          :placeholder="t('默认为 1 次')"
         />
         <MInput
           v-model="createInviteForm.expiresInDays"
-          label="有效期天数"
+          :label="t('有效期天数')"
           type="number"
-          placeholder="填 0 为永久有效，默认 7 天"
+          :placeholder="t('填 0 为永久有效，默认 7 天')"
         />
         <MInput
           v-model="createInviteForm.note"
-          label="用途备注"
-          placeholder="例如：指派给微积分课程团队"
+          :label="t('用途备注')"
+          :placeholder="t('例如：指派给微积分课程团队')"
         />
         <div class="field-item">
-          <span class="field-label">注册绑定角色</span>
+          <span class="field-label">{{ t('注册绑定角色') }}</span>
           <div class="role-selector">
             <button
               type="button"

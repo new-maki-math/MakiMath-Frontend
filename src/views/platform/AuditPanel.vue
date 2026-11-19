@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 // 全站审计日志面板组件
 import { onMounted, onUnmounted, ref } from 'vue';
 
@@ -39,7 +40,7 @@ const loadAuditLogs = async (page = 1, limit = auditLimit.value) => {
     auditLogs.value = res.items;
     auditTotal.value = res.total;
   } catch (err) {
-    if (current === auditSequence) notify(err.message || '加载全站日志失败', 'error');
+    if (current === auditSequence) notify(err.message || t('加载全站日志失败'), 'error');
   } finally {
     if (current === auditSequence) isLoadingAudit.value = false;
   }
@@ -62,17 +63,17 @@ onUnmounted(() => {
   <section class="section-pane font-mono">
     <div class="pane-toolbar">
       <div class="toolbar-title-wrap">
-        <h1 class="pane-title font-mono">AUDIT // 全站操作审计日志</h1>
+        <h1 class="pane-title font-mono">{{ t('AUDIT // 全站操作审计日志') }}</h1>
         <p class="pane-subtitle">
-          实时留痕全站所有需鉴权管理与讲义编撰接口的调用流水，保障系统运维安全。
+          {{ t('实时留痕全站所有需鉴权管理与讲义编撰接口的调用流水，保障系统运维安全。') }}
         </p>
       </div>
       <div class="toolbar-actions">
         <MButton
           variant="secondary"
           icon-only
-          title="刷新日志"
-          aria-label="刷新日志"
+          :title="t('刷新日志')"
+          :aria-label="t('刷新日志')"
           @click="loadAuditLogs(auditPage, auditLimit)"
         >
           <Refresh
@@ -88,14 +89,14 @@ onUnmounted(() => {
       :loading="isLoadingAudit"
     >
       <template #header>
-        <th>时间</th>
-        <th>操作者</th>
-        <th>角色</th>
-        <th>方法</th>
-        <th>API 路由</th>
-        <th>状态</th>
-        <th>耗时</th>
-        <th>IP 地址</th>
+        <th>{{ t('时间') }}</th>
+        <th>{{ t('操作者') }}</th>
+        <th>{{ t('角色') }}</th>
+        <th>{{ t('方法') }}</th>
+        <th>{{ t('API 路由') }}</th>
+        <th>{{ t('状态') }}</th>
+        <th>{{ t('耗时') }}</th>
+        <th>{{ t('IP 地址') }}</th>
       </template>
       <template #rows="{ data }">
         <tr
@@ -103,7 +104,7 @@ onUnmounted(() => {
           :key="log.id"
         >
           <td class="col-dim">{{ formatDate(log.created_at) }}</td>
-          <td class="col-bold">{{ log.username || '匿名/系统' }}</td>
+          <td class="col-bold">{{ log.username || t('匿名/系统') }}</td>
           <td>
             <MTag
               :variant="log.user_role === 'super_admin' ? 'purple' : 'gray'"

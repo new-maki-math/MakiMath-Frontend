@@ -1,4 +1,5 @@
 <script setup>
+import { locale, t } from '../../i18n.js';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 
 import { getCachedFile, hashCacheValue, putCachedFile } from '../../utils/file-cache.js';
@@ -20,7 +21,7 @@ const showEditor = ref(false);
 const dateKey = (year, month, day) => `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 const selectedDate = computed(() => dateKey(displayedMonth.value.getFullYear(), displayedMonth.value.getMonth(), selectedDay.value));
 const selectedWeekday = computed(() =>
-  `星期${'日一二三四五六'[new Date(displayedMonth.value.getFullYear(), displayedMonth.value.getMonth(), selectedDay.value).getDay()]}`
+  new Intl.DateTimeFormat(locale.value, { weekday: 'long' }).format(new Date(displayedMonth.value.getFullYear(), displayedMonth.value.getMonth(), selectedDay.value))
 );
 const selectedEvents = computed(() => events.value.filter((event) => event.date === selectedDate.value));
 const eventDays = computed(() => new Set(events.value.map((event) => event.date)));
@@ -49,7 +50,7 @@ async function reloadEvents() {
     events.value = await listSchedule();
     error.value = '';
   } catch {
-    error.value = '无法读取日程，请稍后重试。';
+    error.value = t('无法读取日程，请稍后重试。');
   }
 }
 
@@ -69,7 +70,7 @@ async function submitEvent() {
     showEditor.value = false;
     await reloadEvents();
   } catch {
-    error.value = '保存日程失败，请重试。';
+    error.value = t('保存日程失败，请重试。');
   }
 }
 
@@ -79,7 +80,7 @@ async function toggleEvent(event) {
     window.dispatchEvent(new Event('maki-schedule-changed'));
     await reloadEvents();
   } catch {
-    error.value = '更新日程失败，请重试。';
+    error.value = t('更新日程失败，请重试。');
   }
 }
 
@@ -90,10 +91,10 @@ async function removeEvent(id) {
     if (editingId.value === id) showEditor.value = false;
     await reloadEvents();
   } catch {
-    error.value = '删除日程失败，请重试。';
+    error.value = t('删除日程失败，请重试。');
   }
 }
-const weekdays = ['一', '二', '三', '四', '五', '六', '日'];
+const weekdays = computed(() => Array.from({ length: 7 }, (_, index) => new Intl.DateTimeFormat(locale.value, { weekday: 'narrow' }).format(new Date(2024, 0, 1 + index))));
 const solarFestivals = {
   '1-1': '元旦',
   '3-8': '妇女节',
@@ -155,7 +156,7 @@ const sayings = [
   '留下思考，也为下一次出发铺路。',
   '知识因分享而生长。'
 ];
-const monthLabel = computed(() => `${displayedMonth.value.getFullYear()} 年 ${displayedMonth.value.getMonth() + 1} 月`);
+const monthLabel = computed(() => new Intl.DateTimeFormat(locale.value, { year: 'numeric', month: 'long' }).format(displayedMonth.value));
 const days = computed(() => {
   const year = displayedMonth.value.getFullYear();
   const month = displayedMonth.value.getMonth();
@@ -248,19 +249,19 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <aside class="shelf-companion" aria-label="日历和一言">
-    <section v-if="mode !== 'saying'" class="companion-card calendar" :class="{ 'desk-calendar': mode === 'calendar' }" aria-label="本月日历">
+  <aside class="shelf-companion" :aria-label="t('日历和一言')">
+    <section v-if="mode !== 'saying'" class="companion-card calendar" :class="{ 'desk-calendar': mode === 'calendar' }" :aria-label="t('本月日历')">
       <div v-if="mode === 'calendar'" class="calendar-binding" aria-hidden="true"><span></span><span></span></div>
       <div v-if="mode === 'calendar'" class="desk-heading">
         <div class="date-switcher">
-          <button class="icon-button" type="button" aria-label="上一年" @click="changeYear(-1)"><NavArrowLeft width="14" height="14" /></button>
-          <span>{{ displayedMonth.getFullYear() }} 年</span>
-          <button class="icon-button" type="button" aria-label="下一年" @click="changeYear(1)"><NavArrowRight width="14" height="14" /></button>
+          <button class="icon-button" type="button" :aria-label="t('上一年')" @click="changeYear(-1)"><NavArrowLeft width="14" height="14" /></button>
+          <span>{{ new Intl.DateTimeFormat(locale, { year: 'numeric' }).format(displayedMonth) }}</span>
+          <button class="icon-button" type="button" :aria-label="t('下一年')" @click="changeYear(1)"><NavArrowRight width="14" height="14" /></button>
         </div>
         <div class="date-switcher">
-          <button class="icon-button" type="button" aria-label="上个月" @click="changeMonth(-1)"><NavArrowLeft width="14" height="14" /></button>
-          <span>{{ displayedMonth.getMonth() + 1 }} 月</span>
-          <button class="icon-button" type="button" aria-label="下个月" @click="changeMonth(1)"><NavArrowRight width="14" height="14" /></button>
+          <button class="icon-button" type="button" :aria-label="t('上个月')" @click="changeMonth(-1)"><NavArrowLeft width="14" height="14" /></button>
+          <span>{{ new Intl.DateTimeFormat(locale, { month: 'long' }).format(displayedMonth) }}</span>
+          <button class="icon-button" type="button" :aria-label="t('下个月')" @click="changeMonth(1)"><NavArrowRight width="14" height="14" /></button>
         </div>
         <div class="selected-date">
           <span class="selected-date-number">{{ selectedDay }}</span>
@@ -271,8 +272,8 @@ onUnmounted(() => {
       <div v-else class="card-heading">
         <h2>{{ monthLabel }}</h2>
         <div class="month-actions">
-          <button class="icon-button" type="button" aria-label="上个月" @click="changeMonth(-1)"><NavArrowLeft width="16" height="16" /></button>
-          <button class="icon-button" type="button" aria-label="下个月" @click="changeMonth(1)"><NavArrowRight width="16" height="16" /></button>
+          <button class="icon-button" type="button" :aria-label="t('上个月')" @click="changeMonth(-1)"><NavArrowLeft width="16" height="16" /></button>
+          <button class="icon-button" type="button" :aria-label="t('下个月')" @click="changeMonth(1)"><NavArrowRight width="16" height="16" /></button>
         </div>
       </div>
       <div class="calendar-grid">
@@ -301,22 +302,22 @@ onUnmounted(() => {
     </section>
     <section v-if="mode === 'all'" class="schedule">
       <div class="schedule-heading">
-        <h2>{{ displayedMonth.getMonth() + 1 }} 月 {{ selectedDay }} 日的日程</h2>
-        <button class="icon-button" type="button" title="添加日程" aria-label="添加日程" @click="editEvent(null)"><Plus width="16" height="16" /></button>
+        <h2>{{ t('{date}的日程', { date: new Intl.DateTimeFormat(locale, { month: 'long', day: 'numeric' }).format(new Date(displayedMonth.getFullYear(), displayedMonth.getMonth(), selectedDay)) }) }}</h2>
+        <button class="icon-button" type="button" :title="t('添加日程')" :aria-label="t('添加日程')" @click="editEvent(null)"><Plus width="16" height="16" /></button>
       </div>
       <p v-if="error" class="schedule-error" role="alert">{{ error }}</p>
-      <p v-if="!selectedEvents.length && !showEditor" class="schedule-empty">这一天还没有日程</p>
+      <p v-if="!selectedEvents.length && !showEditor" class="schedule-empty">{{ t('这一天还没有日程') }}</p>
       <ul v-if="selectedEvents.length" class="schedule-list">
         <li v-for="event in selectedEvents" :key="event.id" class="schedule-item">
-          <input type="checkbox" :checked="event.completed" :aria-label="`完成${event.title}`" @change="toggleEvent(event)" />
+          <input type="checkbox" :checked="event.completed" :aria-label="t('完成{name}', { name: event.title })" @change="toggleEvent(event)" />
           <span :class="{ completed: event.completed }">{{ event.title }}</span>
-          <button class="icon-button" type="button" :aria-label="`编辑${event.title}`" @click="editEvent(event)"><EditPencil width="15" height="15" /></button>
-          <button class="icon-button" type="button" :aria-label="`删除${event.title}`" @click="removeEvent(event.id)"><Trash width="15" height="15" /></button>
+          <button class="icon-button" type="button" :aria-label="t('编辑{name}', { name: event.title })" @click="editEvent(event)"><EditPencil width="15" height="15" /></button>
+          <button class="icon-button" type="button" :aria-label="t('删除{name}', { name: event.title })" @click="removeEvent(event.id)"><Trash width="15" height="15" /></button>
         </li>
       </ul>
       <form v-if="showEditor" class="schedule-editor" @submit.prevent="submitEvent">
-        <input v-model="draft" maxlength="120" aria-label="日程内容" placeholder="输入日程内容" required />
-        <div class="editor-actions"><button type="button" @click="showEditor = false">取消</button><button type="submit">保存</button></div>
+        <input v-model="draft" maxlength="120" :aria-label="t('日程内容')" :placeholder="t('输入日程内容')" required />
+        <div class="editor-actions"><button type="button" @click="showEditor = false">{{ t('取消') }}</button><button type="submit">{{ t('保存') }}</button></div>
       </form>
     </section>
     <section v-if="mode !== 'calendar'" class="companion-card saying">

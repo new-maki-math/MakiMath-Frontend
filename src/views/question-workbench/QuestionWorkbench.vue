@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 import '../../components/workbench/workbench.css';
 
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
@@ -94,10 +95,10 @@ const treeNodes = computed(() => {
         actionsOnHover: true,
         actions: {
           add: true,
-          addLabel: '新建',
+          addLabel: t('新建'),
           import: true,
           remove: true,
-          removeLabel: '删除分类'
+          removeLabel: t('删除分类')
         },
         children: []
       }
@@ -137,7 +138,7 @@ const treeNodes = computed(() => {
           moveUpDisabled: saving.value || index === 0,
           moveDownDisabled: saving.value || index >= page.total - 1,
           remove: true,
-          removeLabel: '删除来源'
+          removeLabel: t('删除来源')
         }
       }))
     );
@@ -145,7 +146,7 @@ const treeNodes = computed(() => {
       node.children.push({
         type: 'more',
         id: category.id,
-        label: '加载更多',
+        label: t('加载更多'),
         categoryId: category.id
       });
     }
@@ -154,11 +155,11 @@ const treeNodes = computed(() => {
   roots.push({
     type: 'group',
     id: 'orphaned',
-    label: '无来源题目',
+    label: t('无来源题目'),
     actionsOnHover: true,
     actions: {
       remove: true,
-      removeLabel: '清空无来源题目',
+      removeLabel: t('清空无来源题目'),
       removeDisabled: saving.value
     },
     children: [
@@ -173,7 +174,7 @@ const treeNodes = computed(() => {
             {
               type: 'more',
               id: 'orphaned',
-              label: '加载更多'
+              label: t('加载更多')
             }
           ]
         : [])
@@ -894,10 +895,10 @@ onBeforeUnmount(() => {
       :nodes="authorized ? treeNodes : []"
       :loading="loading"
       :selected-key="selectedKey"
-      :add-label="authorized ? '新建顶级分类' : ''"
+      :add-label="authorized ? t('新建顶级分类') : ''"
       :show-refresh="authorized"
-      refresh-label="刷新题库"
-      empty-text="请使用超级管理员账号登录"
+      :refresh-label="t('刷新题库')"
+      :empty-text="t('请使用超级管理员账号登录')"
       @refresh="refresh"
       @add-root="openCategory()"
       @expand="expand"
@@ -917,7 +918,7 @@ onBeforeUnmount(() => {
       <WorkbenchPanel
         v-if="form && selected && authorized"
         kind="QUESTION"
-        :title="selected.type === 'new-question' ? '新建题目' : selected.slug"
+        :title="selected.type === 'new-question' ? t('新建题目') : selected.slug"
         :dirty="dirty"
         :saving="saving"
         :can-save="!saveUncertain"
@@ -928,20 +929,20 @@ onBeforeUnmount(() => {
           v-if="saveUncertain"
           class="muted"
         >
-          保存结果尚未确认，请保留当前内容并刷新核对。
+          {{ t('保存结果尚未确认，请保留当前内容并刷新核对。') }}
         </p>
         <template #actions>
           <template v-if="selected.type === 'question'">
             <MButton
               size="sm"
               @click="openEntry()"
-              >添加来源</MButton
+              >{{ t('添加来源') }}</MButton
             >
             <MButton
               v-if="selected.entry"
               size="sm"
               @click="openEntry(selected.entry)"
-              >编辑来源</MButton
+              >{{ t('编辑来源') }}</MButton
             >
             <MButton
               size="sm"
@@ -952,7 +953,7 @@ onBeforeUnmount(() => {
                   questionId: selected.id
                 })
               "
-              >删除题目</MButton
+              >{{ t('删除题目') }}</MButton
             >
           </template>
         </template>
@@ -960,18 +961,18 @@ onBeforeUnmount(() => {
           <MInput
             v-if="selected.type === 'new-question'"
             v-model="form.slug"
-            label="题目标识"
+            :label="t('题目标识')"
             hint="创建后不可修改"
             required
           />
           <MInput
             v-if="selected.type === 'new-question'"
             v-model="form.source_number"
-            label="来源题号"
+            :label="t('来源题号')"
           />
           <MSelect
             v-model="form.difficulty"
-            label="难度"
+            :label="t('难度')"
             :options="
               [1, 2, 3, 4, 5].map((n) => ({
                 value: String(n),
@@ -982,11 +983,11 @@ onBeforeUnmount(() => {
         </div>
         <div class="wb-block">
           <div class="wb-block-head">
-            <span class="wb-block-title">关联知识点</span
+            <span class="wb-block-title">{{ t('关联知识点') }}</span
             ><MButton
               size="sm"
               @click="knowledgeOpen = true"
-              >添加</MButton
+              >{{ t('添加') }}</MButton
             >
           </div>
           <div class="wb-row">
@@ -997,7 +998,7 @@ onBeforeUnmount(() => {
               >{{ slug }}
               <button
                 type="button"
-                :aria-label="`移除 ${slug}`"
+                :aria-label="t('移除 {name}', { name: slug })"
                 @click="form.knowledge_slugs = form.knowledge_slugs.filter((item) => item !== slug)"
               >
                 ×
@@ -1006,7 +1007,7 @@ onBeforeUnmount(() => {
             <span
               v-if="!form.knowledge_slugs.length"
               class="muted"
-              >未关联知识点</span
+              >{{ t('未关联知识点') }}</span
             >
           </div>
         </div>
@@ -1014,7 +1015,7 @@ onBeforeUnmount(() => {
           v-if="selected.type === 'question'"
           class="wb-block"
         >
-          <div class="wb-block-title">来源</div>
+          <div class="wb-block-title">{{ t('来源') }}</div>
           <p
             v-for="source in selected.sources"
             :key="source.entry_id"
@@ -1026,7 +1027,7 @@ onBeforeUnmount(() => {
           <span
             v-if="!selected.sources.length"
             class="muted"
-            >暂无来源</span
+            >{{ t('暂无来源') }}</span
           >
         </div>
         <div class="wb-block">
@@ -1037,7 +1038,7 @@ onBeforeUnmount(() => {
               size="sm"
               :variant="activeSource === field.key ? 'primary' : 'ghost'"
               @click="activeSource = field.key"
-              >{{ field.label }}</MButton
+              >{{ t(field.label) }}</MButton
             >
           </div>
           <TypstEditorPreview
@@ -1052,7 +1053,7 @@ onBeforeUnmount(() => {
       <MEmpty
         v-else
         class="workbench-empty"
-        :description="authorized ? '从左侧选择分类或题目' : '请使用超级管理员账号登录'"
+        :description="t(authorized ? '从左侧选择分类或题目' : '请使用超级管理员账号登录')"
       />
     </main>
     <KnowledgeReferencePicker
@@ -1062,7 +1063,7 @@ onBeforeUnmount(() => {
     />
     <MModal
       :open="modal === 'choose-add'"
-      title="新建"
+      :title="t('新建')"
       :hide-footer="true"
       :show-close="true"
       @close="
@@ -1070,16 +1071,16 @@ onBeforeUnmount(() => {
         addTarget = null;
       "
     >
-      <p class="muted">在“{{ addTarget?.name }}”下新建</p>
+      <p class="muted">{{ t('在“{name}”下新建', { name: addTarget?.name }) }}</p>
       <div class="add-choices">
-        <MButton @click="chooseAdd('category')">新建子分类</MButton>
-        <MButton @click="chooseAdd('question')">新建题目</MButton>
-        <MButton @click="chooseAdd('entry')">关联题目</MButton>
+        <MButton @click="chooseAdd('category')">{{ t('新建子分类') }}</MButton>
+        <MButton @click="chooseAdd('question')">{{ t('新建题目') }}</MButton>
+        <MButton @click="chooseAdd('entry')">{{ t('关联题目') }}</MButton>
       </div>
     </MModal>
     <MModal
       :open="modal === 'category'"
-      title="新建分类"
+      :title="t('新建分类')"
       :busy="saving"
       @close="modal = ''"
       @confirm="confirmModal"
@@ -1087,20 +1088,20 @@ onBeforeUnmount(() => {
       <div class="modal-fields">
         <MInput
           v-model="modalForm.name"
-          label="分类名称"
+          :label="t('分类名称')"
           required
         />
         <MInput
           v-model="modalForm.slug"
-          label="分类标识"
+          :label="t('分类标识')"
           hint="创建后不可修改"
           required
         />
         <p class="muted">
           {{
             modalForm.parent_id
-              ? `父分类：${categories.find((item) => String(item.id) === modalForm.parent_id)?.name || ''}`
-              : '顶级分类'
+              ? t('父分类：{name}', { name: categories.find((item) => String(item.id) === modalForm.parent_id)?.name || '' })
+              : t('顶级分类')
           }}
         </p>
       </div>
@@ -1108,7 +1109,7 @@ onBeforeUnmount(() => {
     <MModal
       :open="modal === 'entry' || modal === 'edit-entry'"
       :title="
-        modalForm.fixed_category ? '关联题目' : modal === 'entry' ? '添加题目来源' : '编辑题目来源'
+        t(modalForm.fixed_category ? '关联题目' : modal === 'entry' ? '添加题目来源' : '编辑题目来源')
       "
       :height="modal === 'entry' ? 'min(600px, calc(100vh - 96px))' : ''"
       :busy="saving"
@@ -1131,11 +1132,11 @@ onBeforeUnmount(() => {
         <MSelect
           v-if="modal === 'edit-entry'"
           v-model="modalForm.category_id"
-          label="来源分类"
+          :label="t('来源分类')"
           :options="[
             {
               value: '',
-              label: '请选择分类'
+              label: t('请选择分类')
             },
             ...categoryOptions
           ]"
@@ -1143,19 +1144,19 @@ onBeforeUnmount(() => {
         <MInput
           v-if="modal === 'edit-entry'"
           v-model="modalForm.source_number"
-          label="来源题号"
+          :label="t('来源题号')"
         />
         <MInput
           v-if="modal === 'edit-entry'"
           v-model="modalForm.pos"
-          label="排序"
+          :label="t('排序')"
           type="number"
         />
       </div>
     </MModal>
     <MModal
       :open="modal === 'import'"
-      title="导入题目"
+      :title="t('导入题目')"
       :busy="saving"
       confirm-text="导入"
       @close="modal = ''"
@@ -1167,9 +1168,9 @@ onBeforeUnmount(() => {
         32 MiB。
       </p>
       <MFilePicker
-        :title="importFile?.name || 'JSON 文件'"
-        detail="选择符合导入格式的文件"
-        :action="importFile ? '重新选择' : '选择文件'"
+        :title="importFile?.name || t('JSON 文件')"
+        :detail="t('选择符合导入格式的文件')"
+        :action="t(importFile ? '重新选择' : '选择文件')"
         accept=".json,application/json"
         :disabled="saving"
         @change="importFile = $event.target.files[0] || null"
@@ -1177,43 +1178,40 @@ onBeforeUnmount(() => {
     </MModal>
     <MModal
       :open="modal === 'clear-orphaned'"
-      title="清空无来源题目"
-      :confirm-text="clearStage === 2 ? '确认永久清空' : `继续确认 ${clearStage + 1} / 3`"
+      :title="t('清空无来源题目')"
+      :confirm-text="clearStage === 2 ? t('确认永久清空') : t('继续确认 {step} / 3', { step: clearStage + 1 })"
       confirm-variant="danger"
       :busy="saving"
       @close="closeClearOrphaned"
       @confirm="confirmClearOrphaned"
     >
       <p>
-        当前有
-        {{ clearImpact?.count }}
-        个无来源题目。数量可能变化，执行时所有仍无来源的题目及其知识点关联都会被永久删除，无法撤销。知识点本身不会删除，图书中的相关引用会显示缺失。
+        {{ t('当前有 {count} 个无来源题目。数量可能变化，执行时所有仍无来源的题目及其知识点关联都会被永久删除，无法撤销。知识点本身不会删除，图书中的相关引用会显示缺失。', { count: clearImpact?.count }) }}
       </p>
-      <p>第 {{ clearStage + 1 }} 次确认，共 3 次。</p>
+      <p>{{ t('第 {step} 次确认，共 3 次。', { step: clearStage + 1 }) }}</p>
     </MModal>
     <MModal
       :open="modal === 'delete-category' || modal === 'delete-question' || modal === 'delete-entry'"
-      title="确认删除"
-      confirm-text="永久删除"
+      :title="t('确认删除')"
+      :confirm-text="t('永久删除')"
       confirm-variant="danger"
       :busy="saving"
       @close="modal = ''"
       @confirm="confirmModal"
     >
       <p v-if="modal === 'delete-category'">
-        将删除 {{ impact?.result?.categories }} 个分类和
-        {{ impact?.result?.entries }} 个来源，题目本身会保留。
+        {{ t('将删除 {categories} 个分类和 {entries} 个来源，题目本身会保留。', { categories: impact?.result?.categories, entries: impact?.result?.entries }) }}
       </p>
       <p v-else-if="modal === 'delete-question'">
-        将永久删除题目及其所有来源和知识点关联，已有图书引用将无法显示该题目。
+        {{ t('将永久删除题目及其所有来源和知识点关联，已有图书引用将无法显示该题目。') }}
       </p>
-      <p v-else>将删除此来源，题目本身会保留。</p>
+      <p v-else>{{ t('将删除此来源，题目本身会保留。') }}</p>
     </MModal>
     <MModal
       :open="leaveOpen"
-      title="放弃未保存的修改"
-      desc="离开后当前修改将丢失"
-      confirm-text="放弃修改"
+      :title="t('放弃未保存的修改')"
+      :desc="t('离开后当前修改将丢失')"
+      :confirm-text="t('放弃修改')"
       confirm-variant="danger"
       @close="finishLeave(false)"
       @confirm="finishLeave(true)"

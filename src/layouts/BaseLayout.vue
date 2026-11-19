@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../i18n.js';
 import { provide, ref } from 'vue';
 
 import MAuthForm from '../components/account/MAuthForm.vue';
@@ -42,9 +43,9 @@ const reauthenticate = async () => {
       password: reauthPassword.value
     });
     reauthPassword.value = '';
-    notify('登录已恢复，请继续编辑', 'success');
+    notify(t('登录已恢复，请继续编辑'), 'success');
   } catch (err) {
-    notify(err.message || '重新登录失败', 'error');
+    notify(err.message || t('重新登录失败'), 'error');
   } finally {
     reauthBusy.value = false;
   }
@@ -75,7 +76,7 @@ provide('openKnowledgeSearch', (node, focusTarget) =>
 
     <MModal
       :open="isUserModalOpen && userModalMode === 'login'"
-      title="登录或注册"
+      :title="t('登录或注册')"
       hide-footer
       show-close
       @close="closeUserModal"
@@ -93,8 +94,8 @@ provide('openKnowledgeSearch', (node, focusTarget) =>
 
     <MModal
       :open="authStatus === 'expired'"
-      title="登录已过期"
-      desc="请使用当前账号重新登录，正在编辑的内容会保留"
+      :title="t('登录已过期')"
+      :desc="t('请使用当前账号重新登录，正在编辑的内容会保留')"
       hide-footer
     >
       <form
@@ -104,12 +105,12 @@ provide('openKnowledgeSearch', (node, focusTarget) =>
         <div class="reauth-fields">
           <MInput
             :model-value="currentUser?.username || ''"
-            label="账号"
+            :label="t('账号')"
             disabled
           />
           <MInput
             v-model="reauthPassword"
-            label="密码"
+            :label="t('密码')"
             type="password"
             :disabled="reauthBusy"
           />
@@ -119,7 +120,7 @@ provide('openKnowledgeSearch', (node, focusTarget) =>
             type="submit"
             variant="primary"
             :disabled="reauthBusy || !reauthPassword"
-            >{{ reauthBusy ? '正在登录…' : '重新登录' }}</MButton
+            >{{ t(reauthBusy ? '正在登录…' : '重新登录') }}</MButton
           >
         </div>
       </form>

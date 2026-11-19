@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 import { computed, onUnmounted, provide, ref, shallowRef, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -170,12 +171,12 @@ onUnmounted(() => {
       <List
         width="14"
         height="14"
-      /><span>目录</span>
+      /><span>{{ t('目录') }}</span>
     </button>
     <MDrawer
       :open="drawerOpen"
       placement="left"
-      title="CHAPTERS // 目录"
+      :title="t('CHAPTERS // 目录')"
       width="300px"
       @close="drawerOpen = false"
     >
@@ -213,7 +214,7 @@ onUnmounted(() => {
           class="reading-loading"
           :loading="true"
           :spinner-size="32"
-          text="正在加载内容和引用…"
+          :text="t('正在加载内容和引用…')"
         />
         <div
           v-else-if="error"
@@ -248,14 +249,14 @@ onUnmounted(() => {
             v-else
             class="reading-note"
           >
-            暂无源码
+            {{ t('暂无源码') }}
           </p>
         </template>
         <p
           v-else
           class="reading-note"
         >
-          暂无讲义小节
+          {{ t('暂无讲义小节') }}
         </p>
         <DocFooterNav
           v-if="!loading && !error"
@@ -325,6 +326,9 @@ onUnmounted(() => {
   max-width: 920px;
   margin: 0 auto;
   padding: 32px clamp(20px, 5vw, 48px) 64px;
+}
+.reading-content-wrap :deep(.mm-box) {
+  margin: 0.6em 0;
 }
 .reading-content-wrap.is-loading {
   display: flex;

@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 import { nextTick, onBeforeUnmount, ref, watch } from 'vue';
 
 import { questionApi } from '../../api/questions.js';
@@ -137,7 +138,7 @@ onBeforeUnmount(() => {
 <template>
   <MModal
     :open="questionId !== null"
-    :title="questionTitle ? `题目详情 · ${questionTitle}` : '题目详情'"
+    :title="questionTitle ? t('题目详情 · {title}', { title: questionTitle }) : t('题目详情')"
     width="760px"
     hide-scrollbar
     show-close
@@ -146,14 +147,14 @@ onBeforeUnmount(() => {
     <MDataView
       :loading="loading"
       :content-key="questionId"
-      text="正在加载题目…"
+      :text="t('正在加载题目…')"
     >
       <p
         v-if="error"
         class="state"
         role="alert"
       >
-        {{ error }}
+        {{ t(error) }}
         <MButton
           v-if="error === '题目加载失败'"
           size="sm"
@@ -171,7 +172,7 @@ onBeforeUnmount(() => {
       <div
         ref="navigation"
         class="question-navigation"
-        aria-label="文件内题目切换"
+        :aria-label="t('文件内题目切换')"
       >
         <MButton
           variant="ghost"
@@ -184,7 +185,7 @@ onBeforeUnmount(() => {
             height="16"
             aria-hidden="true"
           />
-          上一题
+          {{ t('上一题') }}
         </MButton>
         <button
           v-if="neighborsError"
@@ -192,7 +193,7 @@ onBeforeUnmount(() => {
           class="navigation-error"
           @click="loadNeighbors"
         >
-          切换加载失败，点击重试
+          {{ t('切换加载失败，点击重试') }}
         </button>
         <MButton
           variant="ghost"
@@ -200,7 +201,7 @@ onBeforeUnmount(() => {
           :disabled="neighborsLoading || !neighbors?.next"
           @click="emit('navigate', neighbors.next)"
         >
-          下一题
+          {{ t('下一题') }}
           <NavArrowRight
             width="16"
             height="16"

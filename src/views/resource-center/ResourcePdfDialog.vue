@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 import { ref, watch } from 'vue';
 
 import { resourceApi } from '../../api/resources.js';
@@ -65,7 +66,7 @@ async function download() {
     }
     quota.value =
       failure.data?.details?.code === 'DOWNLOAD_QUOTA_EXCEEDED' ? failure.data.details : null;
-    error.value = quota.value ? '下载额度不足' : failure.message || '无法开始下载';
+    error.value = quota.value ? t('下载额度不足') : failure.message || t('无法开始下载');
     emit('quota-change');
   } finally {
     if (generation === downloadGeneration) {
@@ -196,7 +197,7 @@ watch(
         }
         quota.value =
           failure.data?.details?.code === 'DOWNLOAD_QUOTA_EXCEEDED' ? failure.data.details : null;
-        error.value = quota.value ? '下载额度不足' : failure.message || 'PDF 加载失败';
+        error.value = quota.value ? t('下载额度不足') : failure.message || t('PDF 加载失败');
         emit('quota-change');
       } finally {
         if (active) {
@@ -261,8 +262,8 @@ watch(
       >
         <MFileTypeIcon type="pdf" />
       </MSpinner>
-      <span class="pdf-loading-title">正在加载预览</span>
-      <span class="pdf-loading-caption">正在准备 PDF，请稍候</span>
+      <span class="pdf-loading-title">{{ t('正在加载预览') }}</span>
+      <span class="pdf-loading-caption">{{ t('正在准备 PDF，请稍候') }}</span>
     </div>
     <div
       v-else-if="error"
@@ -271,9 +272,9 @@ watch(
     >
       <p>{{ error }}</p>
       <p v-if="quota">
-        剩余额度 {{ (quota.remaining_bytes / 1024 / 1024).toFixed(1) }} MiB<span
+        {{ t('剩余额度 {amount} MiB', { amount: (quota.remaining_bytes / 1024 / 1024).toFixed(1) }) }}<span
           v-if="quota.next_available_at"
-          >，最早释放时间 {{ new Date(quota.next_available_at).toLocaleString() }}</span
+          >{{ t('，最早释放时间 {time}', { time: new Date(quota.next_available_at).toLocaleString() }) }}</span
         >
       </p>
     </div>
@@ -302,22 +303,22 @@ watch(
           />
         </svg>
       </span>
-      <h3>已发起下载</h3>
+      <h3>{{ t('已发起下载') }}</h3>
       <div class="download-state-actions">
         <MButton
           v-if="objectUrl && !tooLarge"
           variant="ghost"
           @click="downloadResult = false"
-          >返回预览</MButton
+          >{{ t('返回预览') }}</MButton
         >
         <MButton
           v-else
           variant="ghost"
           :disabled="downloading"
           @click="download"
-          >再次下载</MButton
+          >{{ t('再次下载') }}</MButton
         >
-        <MButton @click="emit('close')">关闭</MButton>
+        <MButton @click="emit('close')">{{ t('关闭') }}</MButton>
       </div>
     </div>
     <template v-else-if="tooLarge && !loading">
@@ -327,9 +328,9 @@ watch(
           type="pdf"
         />
         <div class="pdf-large-copy">
-          <p class="pdf-large-title">文件过大，无法预览</p>
+          <p class="pdf-large-title">{{ t('文件过大，无法预览') }}</p>
           <p class="pdf-large-detail">
-            {{ formatFileSize(resource?.size_bytes) }} · 预览上限 5 MiB，请下载后查看
+            {{ t('{size} · 预览上限 5 MiB，请下载后查看', { size: formatFileSize(resource?.size_bytes) }) }}
           </p>
         </div>
       </div>
@@ -338,7 +339,7 @@ watch(
           variant="primary"
           :disabled="downloading"
           @click="download"
-          >下载 PDF</MButton
+          >{{ t('下载 PDF') }}</MButton
         >
       </div>
     </template>
@@ -355,7 +356,7 @@ watch(
           target="_blank"
           rel="noopener noreferrer"
         >
-          在新页面打开
+          {{ t('在新页面打开') }}
           <ArrowRight
             class="pdf-open-icon"
             width="15"
@@ -365,7 +366,7 @@ watch(
         <MButton
           :disabled="downloading"
           @click="download"
-          >下载 PDF</MButton
+          >{{ t('下载 PDF') }}</MButton
         >
       </div>
     </template>

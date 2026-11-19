@@ -3,6 +3,7 @@ import { inject, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import { fetchSearchRecommendations } from '../../api/courses.js';
+import { t } from '../../i18n.js';
 import {
   getBrightTagVariant,
   getSectionTags,
@@ -281,7 +282,7 @@ defineExpose({
           autocomplete="off"
           spellcheck="false"
           class="native-search-input"
-          :placeholder="variant === 'topbar' ? '查找节点、公式定义或输入命令...' : ''"
+          :placeholder="variant === 'topbar' ? t('查找节点、公式定义或输入命令...') : ''"
           @focus="handleInputFocus"
           @blur="handleInputBlur"
           @keydown="handleKeyDown"
@@ -300,7 +301,7 @@ defineExpose({
               :key="currentPlaceholder"
               class="placeholder-text"
             >
-              {{ currentPlaceholder }}
+              {{ t(currentPlaceholder) }}
             </span>
           </transition>
         </div>
@@ -311,7 +312,7 @@ defineExpose({
         v-if="query"
         type="button"
         class="search-clear-btn"
-        title="清除内容"
+        :title="t('清除内容')"
         @click.stop="handleClear"
       >
         <Xmark
@@ -337,8 +338,8 @@ defineExpose({
       >
         <!-- 结果列表头部统计 -->
         <div class="dropdown-header">
-          <span>{{ query ? '匹配知识点与图书' : '推荐图书' }}</span>
-          <span class="count-tag font-mono">{{ displayResults.length }} 节点</span>
+          <span>{{ t(query ? '匹配知识点与图书' : '推荐图书') }}</span>
+          <span class="count-tag font-mono">{{ t('{count} 节点', { count: displayResults.length }) }}</span>
         </div>
 
         <!-- 滚动列表 -->
@@ -365,11 +366,11 @@ defineExpose({
                 :mono="false"
               >
                 {{
-                  item.type === 'knowledge'
+                  t(item.type === 'knowledge'
                     ? '知识点'
                     : (item.book_kind ?? item.kind) === 'workbook'
                       ? '题目册'
-                      : '讲义'
+                      : '讲义')
                 }}
               </MTag>
               <MTag
@@ -412,27 +413,27 @@ defineExpose({
             type="button"
             @mousedown.prevent.stop="executeSearch(query)"
           >
-            重试
+            {{ t('重试') }}
           </button>
         </div>
         <div
           v-else-if="isSearching"
           class="empty-state"
         >
-          正在搜索
+          {{ t('正在搜索') }}
         </div>
         <div
           v-else
           class="empty-state"
         >
-          <span>{{ query ? `未找到与「${query}」相关的内容` : '暂无推荐图书' }}</span>
+          <span>{{ query ? t('未找到与「{query}」相关的内容', { query }) : t('暂无推荐图书') }}</span>
         </div>
 
         <!-- 底部快捷键指南 -->
         <div class="dropdown-footer font-mono">
-          <span><kbd>↑</kbd><kbd>↓</kbd> 导航</span>
-          <span><kbd>Enter</kbd> 确认跳转</span>
-          <span><kbd>Esc</kbd> 退出</span>
+          <span><kbd>↑</kbd><kbd>↓</kbd> {{ t('导航') }}</span>
+          <span><kbd>Enter</kbd> {{ t('确认跳转') }}</span>
+          <span><kbd>Esc</kbd> {{ t('退出') }}</span>
         </div>
       </div>
     </transition>

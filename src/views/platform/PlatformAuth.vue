@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 // 平台管理超级管理员登录组件
 import { ref } from 'vue';
 
@@ -21,7 +22,7 @@ const form = ref({
 // 执行超管登录验证
 const handleLogin = async () => {
   if (!form.value.username.trim() || !form.value.password) {
-    notify('用户名和密码不能为空', 'error');
+    notify(t('用户名和密码不能为空'), 'error');
     return;
   }
   isSubmitting.value = true;
@@ -34,10 +35,10 @@ const handleLogin = async () => {
       },
       'super_admin'
     );
-    notify('超级管理员认证成功', 'success');
+    notify(t('超级管理员认证成功'), 'success');
     emit('success', user);
   } catch (err) {
-    notify(err.message || '登录失败，请检查账号密码', 'error');
+    notify(err.message || t('登录失败，请检查账号密码'), 'error');
   } finally {
     isSubmitting.value = false;
   }
@@ -50,7 +51,7 @@ const handleLogin = async () => {
       <div class="auth-card-inner">
         <header class="auth-head">
           <h2 class="auth-title">PLATFORM ADMIN</h2>
-          <p class="auth-desc">请验证超级管理员凭据以进入系统管理控制台</p>
+          <p class="auth-desc">{{ t('请验证超级管理员凭据以进入系统管理控制台') }}</p>
         </header>
 
         <form
@@ -59,15 +60,15 @@ const handleLogin = async () => {
         >
           <MInput
             v-model="form.username"
-            label="管理员账号"
-            placeholder="请输入超级管理员用户名"
+            :label="t('管理员账号')"
+            :placeholder="t('请输入超级管理员用户名')"
             :disabled="isSubmitting"
           />
           <MInput
             v-model="form.password"
-            label="登录密码"
+            :label="t('登录密码')"
             type="password"
-            placeholder="请输入管理员密码"
+            :placeholder="t('请输入管理员密码')"
             :disabled="isSubmitting"
           />
           <div class="auth-action">
@@ -78,7 +79,7 @@ const handleLogin = async () => {
               :mono="true"
               :disabled="isSubmitting"
             >
-              {{ isSubmitting ? '验证中...' : '进入控制台' }}
+              {{ t(isSubmitting ? '验证中...' : '进入控制台') }}
             </MButton>
           </div>
         </form>

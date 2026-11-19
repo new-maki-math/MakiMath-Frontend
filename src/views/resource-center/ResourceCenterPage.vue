@@ -1,4 +1,5 @@
 <script setup>
+import { locale, t } from '../../i18n.js';
 import { computed, inject, onUnmounted, ref, watch } from 'vue';
 
 import { resourceApi } from '../../api/resources.js';
@@ -72,18 +73,18 @@ const actions = [
   }
 ];
 const total = computed(() => data.value?.pagination?.total || 0);
-const title = computed(() => data.value?.current?.name || '全部资源');
-const formatter = new Intl.DateTimeFormat('zh-CN', {
+const title = computed(() => data.value?.current?.name || t('全部资源'));
+const formatter = computed(() => new Intl.DateTimeFormat(locale.value, {
   year: 'numeric',
   month: '2-digit',
   day: '2-digit',
   hour: '2-digit',
   minute: '2-digit',
   hour12: false
-});
+}));
 function formatDate(value) {
   const time = Date.parse(value);
-  return Number.isFinite(time) ? formatter.format(time) : '—';
+  return Number.isFinite(time) ? formatter.value.format(time) : '—';
 }
 function showAction(action, item = null) {
   if (!isManager.value || item?.is_system) {
@@ -161,8 +162,8 @@ onUnmounted(() => {
           variant="ghost"
           size="sm"
           icon-only
-          title="上一级"
-          aria-label="上一级"
+          :title="t('上一级')"
+          :aria-label="t('上一级')"
           @click="goUp"
           ><ArrowLeft
             aria-hidden="true"
@@ -171,28 +172,28 @@ onUnmounted(() => {
         /></MButton>
         <div class="section-title">
           <h2>{{ title }}</h2>
-          <span v-if="data">{{ total }} 项</span>
+          <span v-if="data">{{ t('{count} 项', { count: total }) }}</span>
         </div>
         <div class="heading-actions">
           <span
             v-if="quota && !quota.unlimited"
             class="quota"
             >{{
-              `下载额度 ${(quota.used_bytes / 1024 / 1024).toFixed(1)} / ${(quota.limit_bytes / 1024 / 1024).toFixed(1)} MiB（最近 12 小时）`
+              t('下载额度 {used} / {limit} MiB（最近 12 小时）', { used: (quota.used_bytes / 1024 / 1024).toFixed(1), limit: (quota.limit_bytes / 1024 / 1024).toFixed(1) })
             }}</span
           >
           <span
             v-else-if="quotaError"
             class="quota"
-            >下载额度暂不可用</span
+            >{{ t('下载额度暂不可用') }}</span
           >
           <template v-if="isManager">
             <MButton
               variant="ghost"
               size="sm"
               icon-only
-              title="新建文件夹"
-              aria-label="新建文件夹"
+              :title="t('新建文件夹')"
+              :aria-label="t('新建文件夹')"
               @click="showAction('folder')"
               ><FolderPlus
                 aria-hidden="true"
@@ -203,8 +204,8 @@ onUnmounted(() => {
               variant="ghost"
               size="sm"
               icon-only
-              title="上传 PDF"
-              aria-label="上传 PDF"
+              :title="t('上传 PDF')"
+              :aria-label="t('上传 PDF')"
               @click="showAction('upload')"
               ><Upload
                 aria-hidden="true"
@@ -216,7 +217,7 @@ onUnmounted(() => {
       </header>
       <MDataView
         :loading="loading"
-        text="正在加载资源…"
+        :text="t('正在加载资源…')"
         :content-key="`${parentId}:${sort}:${order}:${offset}`"
       >
         <p
@@ -248,20 +249,20 @@ onUnmounted(() => {
                 名称
                 <MSortIcon :direction="sort === 'name' ? order : ''" />
                 <span class="sr-only">{{
-                  sort === 'name' ? (order === 'asc' ? '升序' : '降序') : ''
+                  sort === 'name' ? t(order === 'asc' ? '升序' : '降序') : ''
                 }}</span>
               </button>
-              <span>大小</span>
-              <span>下载量</span>
+              <span>{{ t('大小') }}</span>
+              <span>{{ t('下载量') }}</span>
               <button
                 type="button"
                 class="sort-button"
                 @click="changeSort('updated_at')"
               >
-                修改时间
+                {{ t('修改时间') }}
                 <MSortIcon :direction="sort === 'updated_at' ? order : ''" />
                 <span class="sr-only">{{
-                  sort === 'updated_at' ? (order === 'asc' ? '升序' : '降序') : ''
+                  sort === 'updated_at' ? t(order === 'asc' ? '升序' : '降序') : ''
                 }}</span>
               </button>
             </div>
@@ -288,14 +289,7 @@ onUnmounted(() => {
                   <span class="mobile-meta">
                     <template v-if="item.kind === 'pdf'">
                       <span>{{ formatFileSize(item.size_bytes) }}</span>
-                      <span>
-                        {{
-                          Number.isSafeInteger(item.download_count) && item.download_count >= 0
-                            ? item.download_count.toLocaleString()
-                            : '—'
-                        }}
-                        次下载
-                      </span>
+                      <span>{{ t('{count} 次下载', { count: Number.isSafeInteger(item.download_count) && item.download_count >= 0 ? item.download_count.toLocaleString(locale) : '—' }) }}</span>
                     </template>
                     <time :datetime="item.updated_at">{{ formatDate(item.updated_at) }}</time>
                   </span>
@@ -331,8 +325,8 @@ onUnmounted(() => {
                   variant="ghost"
                   size="sm"
                   icon-only
-                  title="替换 PDF"
-                  :aria-label="`替换 ${item.name}`"
+                  :title="t('替换 PDF')"
+                  :aria-label="t('替换 {name}', { name: item.name })"
                   @click="showAction('replace', item)"
                   ><Upload
                     width="16"
@@ -345,8 +339,8 @@ onUnmounted(() => {
                   variant="ghost"
                   size="sm"
                   icon-only
-                  :title="action.label"
-                  :aria-label="`${action.label} ${item.name}`"
+                  :title="t(action.label)"
+                  :aria-label="t('{action} {name}', { action: t(action.label), name: item.name })"
                   @click="showAction(action.key, item)"
                   ><component
                     :is="action.icon"

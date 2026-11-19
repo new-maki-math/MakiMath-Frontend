@@ -3,6 +3,7 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { bookApi } from '../../api/books.js';
+import { t } from '../../i18n.js';
 import ShelfCompanion from '../../components/app/ShelfCompanion.vue';
 import MLectureCover from '../../components/book/MLectureCover.vue';
 import MHorizontalShelf from '../../components/display/MHorizontalShelf.vue';
@@ -187,7 +188,7 @@ async function loadOnline() {
 
 function openVersion(lecture, version) {
   if (!lecture.slug || !version.revision_id || version.invalidDraft) {
-    notify('讲义或版本标识缺失，无法打开', 'warn');
+    notify(t('讲义或版本标识缺失，无法打开'), 'warn');
     return;
   }
   router.push(
@@ -205,11 +206,11 @@ function openLecture(source, lecture) {
     try {
       validateLocalLectureSlug(lecture.slug);
     } catch (error) {
-      notify('本地讲义标识无效，请在讲义工作台修改', 'warn');
+      notify(t('本地讲义标识无效，请在讲义工作台修改'), 'warn');
       return;
     }
     if (localLectures.value.filter((item) => item.slug === lecture.slug).length !== 1) {
-      notify('本地讲义标识重复，请在讲义工作台修改', 'warn');
+      notify(t('本地讲义标识重复，请在讲义工作台修改'), 'warn');
       return;
     }
     router.push(
@@ -223,7 +224,7 @@ function openLecture(source, lecture) {
     return;
   }
   if (!lecture.slug) {
-    notify('我创作的讲义缺少标识，无法打开', 'warn');
+    notify(t('我创作的讲义缺少标识，无法打开'), 'warn');
     return;
   }
   router.push(
@@ -257,24 +258,24 @@ onUnmounted(() => {
     <div class="shelf-content">
     <section class="shelf-section has-companion">
       <div class="shelf-heading">
-        <h1>本地讲义</h1>
-        <span v-if="!localLoading && !localError" class="shelf-count">{{ localLectureItems.length }} 本</span>
+        <h1>{{ t('本地讲义') }}</h1>
+        <span v-if="!localLoading && !localError" class="shelf-count">{{ t('{count} 本', { count: localLectureItems.length }) }}</span>
       </div>
       <MDataView
         :loading="localLoading"
-        text="正在加载本地讲义…"
+        :text="t('正在加载本地讲义…')"
         :animate="!!localLectureItems.length && !localError"
       >
         <p
           v-if="localError"
           class="shelf-message error"
         >
-          {{ localError }}
+          {{ t(localError) }}
           <MButton
             size="sm"
             variant="ghost"
             @click="loadLocal"
-            >重试</MButton
+            >{{ t('重试') }}</MButton
           >
         </p>
         <MEmpty
@@ -303,7 +304,7 @@ onUnmounted(() => {
               variant="ghost"
               :tabindex="guideVisible ? undefined : -1"
               @click="router.push('/recom-lecture')"
-              >去图书推荐，添加一本讲义到本地</MButton
+              >{{ t('去图书推荐，添加一本讲义到本地') }}</MButton
             >
           </div>
         </MEmpty>
@@ -311,7 +312,7 @@ onUnmounted(() => {
           <MLectureCover
             v-for="lecture in localLectureItems"
             :key="lecture.id"
-            :title="lecture.revision?.title || '未命名讲义'"
+            :title="lecture.revision?.title || t('未命名讲义')"
             :subtitle="lecture.revision?.subtitle || ''"
             :image="lecture.cover || ''"
             @click="openLecture('local', lecture)"
@@ -326,24 +327,24 @@ onUnmounted(() => {
       class="shelf-section"
     >
       <div class="shelf-heading">
-        <h2>我创作的讲义</h2>
-        <span v-if="!onlineLoading && !onlineError" class="shelf-count">{{ onlineLectureItems.length }} 本</span>
+        <h2>{{ t('我创作的讲义') }}</h2>
+        <span v-if="!onlineLoading && !onlineError" class="shelf-count">{{ t('{count} 本', { count: onlineLectureItems.length }) }}</span>
       </div>
       <MDataView
         :loading="onlineLoading"
-        text="正在加载我创作的讲义…"
+        :text="t('正在加载我创作的讲义…')"
         :animate="!!onlineLectureItems.length && !onlineError"
       >
         <p
           v-if="onlineError"
           class="shelf-message error"
         >
-          {{ onlineError }}
+          {{ t(onlineError) }}
           <MButton
             size="sm"
             variant="ghost"
             @click="loadOnline"
-            >重试</MButton
+            >{{ t('重试') }}</MButton
           >
         </p>
         <MEmpty
@@ -363,18 +364,18 @@ onUnmounted(() => {
     </section>
     <section class="shelf-section">
       <div class="shelf-heading">
-        <h2>本地题目册</h2>
-        <span v-if="!localLoading && !localError" class="shelf-count">{{ localWorkbookItems.length }} 本</span>
+        <h2>{{ t('本地题目册') }}</h2>
+        <span v-if="!localLoading && !localError" class="shelf-count">{{ t('{count} 本', { count: localWorkbookItems.length }) }}</span>
       </div>
       <MDataView
         :loading="localLoading"
-        text="正在加载本地题目册…"
+        :text="t('正在加载本地题目册…')"
       >
         <p
           v-if="localError"
           class="shelf-message error"
         >
-          {{ localError }}
+          {{ t(localError) }}
         </p>
         <MEmpty
           v-else-if="!localWorkbookItems.length"
@@ -384,7 +385,7 @@ onUnmounted(() => {
           <MLectureCover
             v-for="book in localWorkbookItems"
             :key="book.id"
-            :title="book.revision?.title || '未命名题目册'"
+            :title="book.revision?.title || t('未命名题目册')"
             :subtitle="book.revision?.subtitle || ''"
             :image="book.cover || ''"
             @click="openLecture('local', book)"
@@ -397,18 +398,18 @@ onUnmounted(() => {
       class="shelf-section"
     >
       <div class="shelf-heading">
-        <h2>我创作的题目册</h2>
-        <span v-if="!onlineLoading && !onlineError" class="shelf-count">{{ onlineWorkbookItems.length }} 本</span>
+        <h2>{{ t('我创作的题目册') }}</h2>
+        <span v-if="!onlineLoading && !onlineError" class="shelf-count">{{ t('{count} 本', { count: onlineWorkbookItems.length }) }}</span>
       </div>
       <MDataView
         :loading="onlineLoading"
-        text="正在加载我创作的题目册…"
+        :text="t('正在加载我创作的题目册…')"
       >
         <p
           v-if="onlineError"
           class="shelf-message error"
         >
-          {{ onlineError }}
+          {{ t(onlineError) }}
         </p>
         <MEmpty
           v-else-if="!onlineWorkbookItems.length"

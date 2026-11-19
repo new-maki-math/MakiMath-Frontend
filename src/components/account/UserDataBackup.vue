@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 import { computed, onMounted, ref } from 'vue';
 
 import { workbenchPanelState } from '../../composables/useWorkbenchGuard.js';
@@ -274,8 +275,8 @@ onMounted(updateRecovery);
       size="md"
       icon-only
       :disabled="busy"
-      title="导出用户数据"
-      aria-label="导出用户数据"
+      :title="t('导出用户数据')"
+      :aria-label="t('导出用户数据')"
       @click="exportData"
     >
       <Upload
@@ -289,8 +290,8 @@ onMounted(updateRecovery);
       size="md"
       icon-only
       :disabled="busy"
-      title="导入用户数据"
-      aria-label="导入用户数据"
+      :title="t('导入用户数据')"
+      :aria-label="t('导入用户数据')"
       @click="openImport"
     >
       <Download
@@ -304,8 +305,8 @@ onMounted(updateRecovery);
       size="md"
       icon-only
       :disabled="busy"
-      title="清理本地数据"
-      aria-label="清理本地数据"
+      :title="t('清理本地数据')"
+      :aria-label="t('清理本地数据')"
       @click="openCleanup"
     >
       <Trash
@@ -316,53 +317,53 @@ onMounted(updateRecovery);
     </MButton>
     <MModal
       :open="open"
-      title="导入用户数据"
+      :title="t('导入用户数据')"
       width="520px"
       hide-footer
       show-close
       @close="closeImport"
     >
       <MFilePicker
-        :title="fileName || '选择用户数据备份'"
-        detail="仅支持本站导出的 JSON 备份"
+        :title="fileName || t('选择用户数据备份')"
+        :detail="t('仅支持本站导出的 JSON 备份')"
         accept=".json,application/json"
         :disabled="busy"
         @change="selectFile"
       />
       <template v-if="inspection">
-        <p class="backup-text">备份时间：{{ new Date(inspection.exportedAt).toLocaleString() }}</p>
+        <p class="backup-text">{{ t('备份时间：{time}', { time: new Date(inspection.exportedAt).toLocaleString() }) }}</p>
         <ul class="backup-list">
           <li
             v-for="item in inspection.summary"
             :key="item.name"
           >
-            {{ labels[item.name] }}：{{ item.count }} 条
+            {{ t('{label}：{count} 条', { label: t(labels[item.name] || item.name), count: item.count }) }}
           </li>
         </ul>
         <p class="backup-warning">
-          确认后将覆盖上述数据库中的当前数据，其他数据库不会被删除。建议先导出备份，并关闭其他本站标签页。
+          {{ t('确认后将覆盖上述数据库中的当前数据，其他数据库不会被删除。建议先导出备份，并关闭其他本站标签页。') }}
         </p>
         <p class="backup-text">
-          只包含当前浏览器的本地数据，不包含登录凭据和服务器在线数据。导入成功后页面将刷新。
+          {{ t('只包含当前浏览器的本地数据，不包含登录凭据和服务器在线数据。导入成功后页面将刷新。') }}
         </p>
       </template>
       <div
         v-if="recovery"
         class="backup-recovery"
       >
-        <p>检测到上次导入的恢复副本，请先保存并确认后再清除。</p>
+        <p>{{ t('检测到上次导入的恢复副本，请先保存并确认后再清除。') }}</p>
         <div class="backup-recovery-actions">
           <MButton
             size="sm"
             @click="downloadRecovery"
-            >下载恢复副本</MButton
+            >{{ t('下载恢复副本') }}</MButton
           >
           <MButton
             v-if="!recoveryIncomplete"
             size="sm"
             variant="ghost"
             @click="clearOpen = true"
-            >清除恢复副本</MButton
+            >{{ t('清除恢复副本') }}</MButton
           >
         </div>
       </div>
@@ -371,7 +372,7 @@ onMounted(updateRecovery);
         class="backup-text"
         role="status"
       >
-        正在处理本地数据，请稍候…
+        {{ t('正在处理本地数据，请稍候…') }}
       </p>
       <p
         v-if="error"
@@ -385,29 +386,29 @@ onMounted(updateRecovery);
           v-if="recoveryIncomplete"
           variant="primary"
           @click="reloadPage"
-          >刷新页面</MButton
+          >{{ t('刷新页面') }}</MButton
         >
         <MButton
           v-else
           variant="ghost"
           :disabled="busy"
           @click="closeImport"
-          >取消</MButton
+          >{{ t('取消') }}</MButton
         >
         <MButton
           v-if="!recoveryIncomplete"
           variant="primary"
           :disabled="busy || !inspection || !!recovery"
           @click="confirmImport"
-          >确认覆盖导入</MButton
+          >{{ t('确认覆盖导入') }}</MButton
         >
       </div>
     </MModal>
     <MModal
       :open="clearOpen"
-      title="清除恢复副本"
-      desc="请先确认已下载并保存恢复副本。清除后无法再从浏览器找回。"
-      confirm-text="确认清除"
+      :title="t('清除恢复副本')"
+      :desc="t('请先确认已下载并保存恢复副本。清除后无法再从浏览器找回。')"
+      :confirm-text="t('确认清除')"
       confirm-variant="danger"
       :busy="busy"
       @close="clearOpen = false"
@@ -415,7 +416,7 @@ onMounted(updateRecovery);
     />
     <MModal
       :open="cleanupOpen"
-      title="清理本地数据"
+      :title="t('清理本地数据')"
       width="520px"
       hide-footer
       show-close
@@ -423,7 +424,7 @@ onMounted(updateRecovery);
     >
       <template v-if="cleanupStage === 0">
         <p class="backup-warning">
-          请选择要永久删除的数据库。不会自动保留副本，建议先导出；请关闭其他本站标签页。
+          {{ t('请选择要永久删除的数据库。不会自动保留副本，建议先导出；请关闭其他本站标签页。') }}
         </p>
         <div class="cleanup-modes">
           <MRadio
@@ -432,7 +433,7 @@ onMounted(updateRecovery);
             value="legacy"
             :disabled="busy"
             @update:model-value="changeCleanupMode"
-            >已停用的数据库</MRadio
+            >{{ t('已停用的数据库') }}</MRadio
           >
           <MRadio
             :model-value="cleanupMode"
@@ -440,7 +441,7 @@ onMounted(updateRecovery);
             value="cache"
             :disabled="busy"
             @update:model-value="changeCleanupMode"
-            >缓存数据库</MRadio
+            >{{ t('缓存数据库') }}</MRadio
           >
           <MRadio
             :model-value="cleanupMode"
@@ -448,15 +449,15 @@ onMounted(updateRecovery);
             value="all"
             :disabled="busy"
             @update:model-value="changeCleanupMode"
-            >全部数据库</MRadio
+            >{{ t('全部数据库') }}</MRadio
           >
         </div>
-        <p class="backup-text">当前没有可确认安全删除的遗弃字段，未识别的字段不会被自动清理。</p>
+        <p class="backup-text">{{ t('当前没有可确认安全删除的遗弃字段，未识别的字段不会被自动清理。') }}</p>
         <p
           v-if="cleanupMode === 'cache'"
           class="backup-text"
         >
-          缓存用于加快资源加载，不包含在用户数据备份中；删除后需要时会重新下载。
+          {{ t('缓存用于加快资源加载，不包含在用户数据备份中；删除后需要时会重新下载。') }}
         </p>
         <div
           v-if="visibleDatabases.length"
@@ -466,13 +467,13 @@ onMounted(updateRecovery);
             size="sm"
             variant="ghost"
             @click="selectVisibleDatabases"
-            >全选当前范围</MButton
+            >{{ t('全选当前范围') }}</MButton
           >
           <MButton
             size="sm"
             variant="ghost"
             @click="selectedDatabases = []"
-            >清空选择</MButton
+            >{{ t('清空选择') }}</MButton
           >
         </div>
         <div
@@ -487,30 +488,30 @@ onMounted(updateRecovery);
             :disabled="busy"
             class="cleanup-item"
           >
-            {{ labels[database.name] || '未识别数据库' }} · {{ database.name }}
-            <span v-if="database.legacy">（已停用）</span
-            ><span v-else-if="!database.known">（用途未知）</span>
+            {{ t(labels[database.name] || '未识别数据库') }} · {{ database.name }}
+            <span v-if="database.legacy">{{ t('（已停用）') }}</span
+            ><span v-else-if="!database.known">{{ t('（用途未知）') }}</span>
           </MCheckbox>
         </div>
         <p
           v-else-if="!busy"
           class="backup-text"
         >
-          当前范围没有数据库。
+          {{ t('当前范围没有数据库。') }}
         </p>
         <p
           v-if="selectedDatabases.includes('MakiMath_UserData')"
           class="backup-warning"
         >
-          旧版讲义册库可能包含旧讲义和收藏记录，删除后不可恢复。
+          {{ t('旧版讲义册库可能包含旧讲义和收藏记录，删除后不可恢复。') }}
         </p>
       </template>
       <template v-else>
         <p class="backup-warning">
           {{
             cleanupStage === 1
-              ? '再次确认要永久删除以下数据库？'
-              : '最后确认：删除后无法恢复，且不会自动保留副本。'
+              ? t('再次确认要永久删除以下数据库？')
+              : t('最后确认：删除后无法恢复，且不会自动保留副本。')
           }}
         </p>
         <ul class="backup-list">
@@ -518,10 +519,10 @@ onMounted(updateRecovery);
             v-for="name in selectedDatabases"
             :key="name"
           >
-            {{ labels[name] || '未识别数据库' }} · {{ name }}
+            {{ t(labels[name] || '未识别数据库') }} · {{ name }}
           </li>
         </ul>
-        <p class="backup-text">其他未选择的数据库、登录凭据和服务器数据不受此操作影响。</p>
+        <p class="backup-text">{{ t('其他未选择的数据库、登录凭据和服务器数据不受此操作影响。') }}</p>
       </template>
       <p
         v-if="cleanupProgress"
@@ -542,21 +543,21 @@ onMounted(updateRecovery);
           v-if="cleanupIncomplete"
           variant="primary"
           @click="reloadPage"
-          >刷新页面</MButton
+          >{{ t('刷新页面') }}</MButton
         >
         <MButton
           v-else
           variant="ghost"
           :disabled="busy"
           @click="closeCleanup"
-          >取消</MButton
+          >{{ t('取消') }}</MButton
         >
         <MButton
           v-if="!cleanupIncomplete"
           variant="danger"
           :disabled="busy || !selectedDatabases.length"
           @click="confirmCleanup"
-          >{{ ['确认所选 1/3', '再次确认 2/3', '永久删除 3/3'][cleanupStage] }}</MButton
+          >{{ t(['确认所选 1/3', '再次确认 2/3', '永久删除 3/3'][cleanupStage]) }}</MButton
         >
       </div>
     </MModal>

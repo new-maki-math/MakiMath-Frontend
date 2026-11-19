@@ -2,6 +2,7 @@
 // 全局通用数据分页组件
 import { computed } from 'vue';
 
+import { t } from '../../i18n.js';
 import MButton from '../form/MButton.vue';
 import MSelect from '../form/MSelect.vue';
 import { NavArrowLeft, NavArrowRight } from '../icons/icons.js';
@@ -87,7 +88,7 @@ const goToPage = (p) => {
 const pageSizeChoices = computed(() =>
   props.pageSizeOptions.map((value) => ({
     value,
-    label: `${value} 条/页`
+    label: t('{count} 条/页', { count: value })
   }))
 );
 
@@ -115,7 +116,7 @@ const handlePageSizeChange = (value) => {
       variant="ghost"
       :disabled="disabled || page <= 1"
       @click="goToPage(page - 1)"
-      >上一页</MButton
+      >{{ t('上一页') }}</MButton
     >
     <span>{{ page }} / {{ totalPages }}</span>
     <MButton
@@ -123,7 +124,7 @@ const handlePageSizeChange = (value) => {
       variant="ghost"
       :disabled="disabled || page >= totalPages"
       @click="goToPage(page + 1)"
-      >下一页</MButton
+      >{{ t('下一页') }}</MButton
     >
   </div>
   <div
@@ -134,7 +135,7 @@ const handlePageSizeChange = (value) => {
     }"
   >
     <div class="pagination-info">
-      <span class="info-muted">共 {{ total }} 条</span>
+      <span class="info-muted">{{ t('共 {count} 条', { count: total }) }}</span>
     </div>
 
     <div class="pagination-controls">
@@ -142,7 +143,7 @@ const handlePageSizeChange = (value) => {
         type="button"
         class="page-nav-btn"
         :disabled="disabled || page <= 1"
-        title="上一页"
+        :title="t('上一页')"
         @click="goToPage(page - 1)"
       >
         <NavArrowLeft
@@ -180,7 +181,7 @@ const handlePageSizeChange = (value) => {
         type="button"
         class="page-nav-btn"
         :disabled="disabled || page >= totalPages"
-        title="下一页"
+        :title="t('下一页')"
         @click="goToPage(page + 1)"
       >
         <NavArrowRight
@@ -195,7 +196,7 @@ const handlePageSizeChange = (value) => {
           :model-value="pageSize"
           :options="pageSizeChoices"
           size="sm"
-          aria-label="每页条数"
+          :aria-label="t('每页条数')"
           :disabled="disabled"
           @update:model-value="handlePageSizeChange"
         />

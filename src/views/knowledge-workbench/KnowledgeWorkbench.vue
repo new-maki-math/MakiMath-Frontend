@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 import '../../components/workbench/workbench.css';
 
 import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue';
@@ -828,9 +829,9 @@ onUnmounted(() => {
       "
       ref="treeRef"
       title="KNOWLEDGE WORKBENCH"
-      refresh-label="刷新分类与知识点"
-      empty-text="暂无分类或知识点"
-      :add-label="authorized ? '新建分类' : ''"
+      :refresh-label="t('刷新分类与知识点')"
+      :empty-text="t('暂无分类或知识点')"
+      :add-label="authorized ? t('新建分类') : ''"
       :nodes="treeNodes"
       :selected-key="selectedKey"
       :loading="loading"
@@ -859,13 +860,13 @@ onUnmounted(() => {
         v-if="point && !ownsContext"
         class="workbench-empty"
       >
-        <h2>当前账号无法访问此编辑内容</h2>
-        <p>请使用原账号重新登录，或离开后选择其他知识点。</p>
+        <h2>{{ t('当前账号无法访问此编辑内容') }}</h2>
+        <p>{{ t('请使用原账号重新登录，或离开后选择其他知识点。') }}</p>
       </div>
       <WorkbenchPanel
         v-else-if="point"
         kind="KNOWLEDGE"
-        :title="point.title || '未命名知识点'"
+        :title="point.title || t('未命名知识点')"
         :dirty="dirty"
         :saving="saving || selecting || createOpen"
         :editable="editable"
@@ -877,7 +878,7 @@ onUnmounted(() => {
           v-if="pendingPointVerification !== null"
           class="status-notice"
         >
-          分类已删除，正在核对当前知识点。若列表加载失败，请刷新后再继续编辑。
+          {{ t('分类已删除，正在核对当前知识点。若列表加载失败，请刷新后再继续编辑。') }}
         </div>
         <div
           class="wb-block"
@@ -886,18 +887,18 @@ onUnmounted(() => {
           <div class="wb-form-grid">
             <MInput
               v-model="point.title"
-              label="知识点标题"
+              :label="t('知识点标题')"
               required
             />
             <MInput
               :model-value="point.slug || ''"
-              label="知识点标识"
+              :label="t('知识点标识')"
               disabled
             />
           </div>
         </div>
         <div class="wb-block">
-          <div class="wb-block-head"><span class="wb-block-title">知识点内容</span></div>
+          <div class="wb-block-head"><span class="wb-block-title">{{ t('知识点内容') }}</span></div>
           <TypstEditorPreview
             :key="point.id"
             v-model="point.source"
@@ -911,13 +912,13 @@ onUnmounted(() => {
         class="workbench-empty"
       >
         <span class="empty-label font-mono">KNOWLEDGE WORKBENCH</span>
-        <h2>{{ authorized ? '选择一个知识点' : '知识库工作台' }}</h2>
-        <p>{{ authorized ? '从左侧选择分类或知识点。' : '请使用超级管理员账号登录。' }}</p>
+        <h2>{{ t(authorized ? '选择一个知识点' : '知识库工作台') }}</h2>
+        <p>{{ t(authorized ? '从左侧选择分类或知识点。' : '请使用超级管理员账号登录。') }}</p>
       </div>
     </main>
     <MModal
       :open="categoryOpen"
-      title="新建分类"
+      :title="t('新建分类')"
       :busy="saving"
       @close="!saving && (categoryOpen = false)"
       @confirm="createCategory"
@@ -925,22 +926,22 @@ onUnmounted(() => {
       <div class="create-fields">
         <MInput
           v-model="categoryForm.name"
-          label="分类名称"
+          :label="t('分类名称')"
           required
         /><MInput
           v-model="categoryForm.slug"
-          label="分类标识"
+          :label="t('分类标识')"
           required
         /><MSelect
           v-model="categoryForm.parentId"
-          label="父分类"
+          :label="t('父分类')"
           :options="categoryOptions"
         />
       </div>
     </MModal>
     <MModal
       :open="Boolean(importTarget)"
-      title="导入知识点"
+      :title="t('导入知识点')"
       width="480px"
       :hide-footer="true"
       :show-close="!saving"
@@ -951,9 +952,9 @@ onUnmounted(() => {
           导入目标 <strong :title="importTarget?.name">{{ importTarget?.name }}</strong>
         </p>
         <MFilePicker
-          :title="importName || 'JSON 文件'"
-          :detail="importName ? formatFileSize(importSize) : '选择符合导入格式的文件'"
-          :action="importName ? '重新选择' : '选择文件'"
+          :title="importName || t('JSON 文件')"
+          :detail="importName ? formatFileSize(importSize) : t('选择符合导入格式的文件')"
+          :action="t(importName ? '重新选择' : '选择文件')"
           accept=".json,application/json"
           :disabled="saving || importUncertain"
           @choose="$event.target.value = ''"
@@ -963,7 +964,7 @@ onUnmounted(() => {
           v-if="importReading"
           class="import-hint"
         >
-          正在读取文件…
+          {{ t('正在读取文件…') }}
         </p>
         <p
           v-if="importError"
@@ -981,26 +982,26 @@ onUnmounted(() => {
             文件中的顶层分类将挂在目标分类下；没有直接分类的知识点将归入目标分类。
           </p>
         </template>
-        <p class="import-hint">导入不会覆盖现有内容。</p>
+        <p class="import-hint">{{ t('导入不会覆盖现有内容。') }}</p>
         <div class="import-actions">
           <MButton
             variant="secondary"
             :disabled="saving"
             @click="closeImport"
-            >{{ importUncertain ? '关闭并核对' : '取消' }}</MButton
+            >{{ t(importUncertain ? '关闭并核对' : '取消') }}</MButton
           ><MButton
             class="import-confirm"
             variant="primary"
             :disabled="saving || importReading || importUncertain || !importData"
             @click="submitImport"
-            >{{ saving ? '导入中…' : '确认导入' }}</MButton
+            >{{ t(saving ? '导入中…' : '确认导入') }}</MButton
           >
         </div>
       </div>
     </MModal>
     <MModal
       :open="createOpen"
-      title="新建知识点"
+      :title="t('新建知识点')"
       :busy="saving"
       @close="!saving && (createOpen = false)"
       @confirm="createPoint"
@@ -1008,35 +1009,35 @@ onUnmounted(() => {
       <div class="create-fields">
         <MInput
           v-model="createForm.title"
-          label="知识点标题"
+          :label="t('知识点标题')"
           required
         /><MInput
           v-model="createForm.slug"
-          label="知识点标识"
-          hint="创建后无法修改"
+          :label="t('知识点标识')"
+          :hint="t('创建后无法修改')"
           required
         /><MTextarea
           v-model="createForm.source"
-          label="正文"
-          hint="创建时必须填写正文"
+          :label="t('正文')"
+          :hint="t('创建时必须填写正文')"
           :rows="5"
         />
       </div>
     </MModal>
     <MModal
       :open="Boolean(deleteTarget)"
-      :title="deleteTarget?.type === 'group' ? '永久删除分类' : '永久删除知识点'"
+      :title="t(deleteTarget?.type === 'group' ? '永久删除分类' : '永久删除知识点')"
       :hide-footer="true"
       :show-close="!saving"
       @close="closeDelete"
     >
       <div class="delete-fields">
-        <p>确定永久删除“{{ deleteTarget?.label }}”吗？此操作不可撤销。</p>
+        <p>{{ t('确定永久删除“{name}”吗？此操作不可撤销。', { name: deleteTarget?.label }) }}</p>
         <p v-if="deleteTarget?.type === 'group'">
-          将删除此分类及全部子分类，并删除仅属于这些分类的知识点。还关联范围外分类的知识点会保留，仅移除范围内的分类关联。涉及被删除知识点的前置关系也会清理，讲义中的相关引用可能显示缺失占位。本地掌握记录和批注不会自动清理。
+          {{ t('将删除此分类及全部子分类，并删除仅属于这些分类的知识点。还关联范围外分类的知识点会保留，仅移除范围内的分类关联。涉及被删除知识点的前置关系也会清理，讲义中的相关引用可能显示缺失占位。本地掌握记录和批注不会自动清理。') }}
         </p>
         <p v-else>
-          删除将同时清理此知识点的分类关联和前置、后续关系，其他知识点保留。讲义源码不会修改，引用处将显示缺失占位；本地掌握记录和批注不会自动清理。
+          {{ t('删除将同时清理此知识点的分类关联和前置、后续关系，其他知识点保留。讲义源码不会修改，引用处将显示缺失占位；本地掌握记录和批注不会自动清理。') }}
         </p>
         <p
           v-if="deleteError"
@@ -1050,21 +1051,21 @@ onUnmounted(() => {
             variant="ghost"
             :disabled="saving"
             @click="closeDelete"
-            >取消</MButton
+            >{{ t('取消') }}</MButton
           ><MButton
             variant="danger"
             :disabled="saving || deleteUncertain"
             @click="confirmDelete"
-            >{{ saving ? '删除中…' : '永久删除' }}</MButton
+            >{{ t(saving ? '删除中…' : '永久删除') }}</MButton
           >
         </div>
       </div>
     </MModal>
     <MModal
       :open="leaveOpen"
-      title="放弃未保存的修改"
-      desc="离开后当前修改将丢失"
-      confirm-text="放弃修改"
+      :title="t('放弃未保存的修改')"
+      :desc="t('离开后当前修改将丢失')"
+      :confirm-text="t('放弃修改')"
       confirm-variant="danger"
       @close="finishLeave(false)"
       @confirm="finishLeave(true)"

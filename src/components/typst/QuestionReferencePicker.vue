@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 import { onBeforeUnmount, ref, watch } from 'vue';
 
 import { questionApi } from '../../api/questions.js';
@@ -121,7 +122,7 @@ function keydown(event) {
 <template>
   <MModal
     :open="open"
-    title="选择题目"
+    :title="t('选择题目')"
     width="480px"
     hide-footer
     show-close
@@ -134,7 +135,7 @@ function keydown(event) {
       <MInput
         ref="input"
         v-model="query"
-        label="搜索题目"
+        :label="t('搜索题目')"
         placeholder="输入题干、标识或来源题号"
       />
       <div

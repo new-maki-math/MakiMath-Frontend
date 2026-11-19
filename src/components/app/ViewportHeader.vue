@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
 
+import { t } from '../../i18n.js';
 import MSpinner from '../feedback/MSpinner.vue';
 import MButton from '../form/MButton.vue';
 import { Refresh } from '../icons/icons.js';
@@ -113,8 +114,8 @@ const handleRefresh = () => {
             size="md"
             icon-only
             class="header-refresh-btn"
-            title="刷新内容区域"
-            aria-label="刷新内容区域"
+            :title="t('刷新内容区域')"
+            :aria-label="t('刷新内容区域')"
             @click="handleRefresh"
           >
             <template #icon>

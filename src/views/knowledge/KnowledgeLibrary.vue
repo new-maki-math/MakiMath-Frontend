@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 import { hierarchy, treemap, treemapBinary, treemapSquarify } from 'd3';
 import { computed, inject, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
@@ -986,7 +987,7 @@ function closeReading(sessionId) {
   <section class="knowledge-library">
     <MLoadingMask
       :visible="mapLoading"
-      text="正在加载知识地图…"
+      :text="t('正在加载知识地图…')"
       :z-index="50"
     />
     <main
@@ -1005,7 +1006,7 @@ function closeReading(sessionId) {
           @click="filtersOpen = !filtersOpen"
         >
           <span>{{ currentLibraryName }}</span
-          ><span>{{ filtersOpen ? '收起' : '筛选与搜索' }}</span>
+          ><span>{{ t(filtersOpen ? '收起' : '筛选与搜索') }}</span>
         </button>
         <MCollapse
           id="knowledge-filters"
@@ -1015,20 +1016,20 @@ function closeReading(sessionId) {
           <div class="knowledge-filters">
             <MSelect
               v-model="categoryId"
-              aria-label="选择知识库"
+              :aria-label="t('选择知识库')"
               :options="librarySelectOptions"
             />
             <MInput
               v-model="searchQuery"
-              aria-label="搜索知识点标题"
+              :aria-label="t('搜索知识点标题')"
               type="search"
-              placeholder="搜索知识点标题"
+              :placeholder="t('搜索知识点标题')"
             />
             <p
               v-if="librariesLoading"
               class="filter-note"
             >
-              正在加载知识库分类…
+              {{ t('正在加载知识库分类…') }}
             </p>
             <p
               v-else-if="librariesError"
@@ -1047,19 +1048,19 @@ function closeReading(sessionId) {
               v-else-if="!categoryOptions.length"
               class="filter-note"
             >
-              暂无可选择的一级知识库分类
+              {{ t('暂无可选择的一级知识库分类') }}
             </p>
             <div
               v-if="searchQuery.trim()"
               class="search-results"
             >
               <div class="search-result-head">
-                <span>{{ searchResults.length }} 条结果</span
+                <span>{{ t('{count} 条结果', { count: searchResults.length }) }}</span
                 ><button
                   type="button"
                   @click="searchQuery = ''"
                 >
-                  清空
+                  {{ t('清空') }}
                 </button>
               </div>
               <ul v-if="searchResults.length">
@@ -1082,13 +1083,13 @@ function closeReading(sessionId) {
                 v-else
                 class="filter-note"
               >
-                当前范围没有匹配的知识点
+                {{ t('当前范围没有匹配的知识点') }}
               </p>
               <p
                 v-if="searchResults.length > 50"
                 class="filter-note"
               >
-                显示前 50 条，请继续输入缩小范围
+                {{ t('显示前 50 条，请继续输入缩小范围') }}
               </p>
             </div>
           </div>
@@ -1111,13 +1112,13 @@ function closeReading(sessionId) {
           v-else-if="categoryId && !mapLoading && !learningNodes.length"
           class="detail-note"
         >
-          当前分类暂无公开知识点
+          {{ t('当前分类暂无公开知识点') }}
         </p>
         <p
           v-else-if="categoryId && !mapLoading && !chipNodes.length"
           class="detail-note"
         >
-          当前筛选没有匹配的知识点
+          {{ t('当前筛选没有匹配的知识点') }}
         </p>
         <p
           v-if="storageError"
@@ -1130,12 +1131,12 @@ function closeReading(sessionId) {
           v-if="showingRelations && selected"
           class="relation-info"
         >
-          <p>正在查看：{{ selected.title }}</p>
+          <p>{{ t('正在查看：{title}', { title: selected.title }) }}</p>
           <p>
-            <span class="relation-label before">前置</span
-            ><span class="relation-label after">后续</span>
+            <span class="relation-label before">{{ t('前置') }}</span
+            ><span class="relation-label after">{{ t('后续') }}</span>
           </p>
-          <p>前置和后续仅在当前地图范围内高亮</p>
+          <p>{{ t('前置和后续仅在当前地图范围内高亮') }}</p>
           <p
             v-if="prerequisitesError"
             class="storage-error"
@@ -1146,7 +1147,7 @@ function closeReading(sessionId) {
           <MButton
             size="sm"
             @click="showingRelations = false"
-            >退出关系查看</MButton
+            >{{ t('退出关系查看') }}</MButton
           >
         </div>
       </div>
@@ -1167,9 +1168,9 @@ function closeReading(sessionId) {
         class="floating-legend"
         :inert="reading"
       >
-        <span><i class="swatch" />未掌握</span><span><i class="swatch mastered" />已掌握</span
-        ><span><i class="boundary-key domain" />分区</span
-        ><span><i class="boundary-key topic" />子分区</span
+        <span><i class="swatch" />{{ t('未掌握') }}</span><span><i class="swatch mastered" />{{ t('已掌握') }}</span
+        ><span><i class="boundary-key domain" />{{ t('分区') }}</span
+        ><span><i class="boundary-key topic" />{{ t('子分区') }}</span
         ><span>{{ totalStats.done }} / {{ totalStats.total }}</span>
       </div>
       <KnowledgePointOverlay

@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../../i18n.js';
 import { inject, onBeforeUnmount, ref, watch } from 'vue';
 
 import { authStatus, currentUser } from '../../../utils/auth.js';
@@ -78,7 +79,7 @@ onBeforeUnmount(() => {
     v-if="loading"
     class="reference-state"
   >
-    正在加载题目…
+    {{ t('正在加载题目…') }}
   </div>
   <div
     v-else-if="error"

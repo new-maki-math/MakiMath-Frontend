@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 import MLoadingMask from '../../components/feedback/MLoadingMask.vue';
@@ -154,7 +155,7 @@ onBeforeUnmount(() => {
 <template>
   <section
     class="section-animation"
-    aria-label="小节分步动画"
+    :aria-label="t('小节分步动画')"
   >
     <div
       class="animation-stage"
@@ -166,7 +167,7 @@ onBeforeUnmount(() => {
         v-if="documentSource"
         ref="packageFrame"
         class="course-frame"
-        title="小节动画"
+        :title="t('小节动画')"
         :srcdoc="documentSource"
         sandbox="allow-scripts"
         @error="
@@ -176,7 +177,7 @@ onBeforeUnmount(() => {
       ></iframe>
       <MLoadingMask
         :visible="loading"
-        text="正在加载动画…"
+        :text="t('正在加载动画…')"
         :z-index="1"
       />
       <div
@@ -184,7 +185,7 @@ onBeforeUnmount(() => {
         class="animation-error"
         role="alert"
       >
-        <p>动画无法显示：{{ playbackError }}</p>
+        <p>{{ t('动画无法显示：{error}', { error: playbackError }) }}</p>
         <MButton
           size="sm"
           @click="retryKey++"
@@ -200,20 +201,19 @@ onBeforeUnmount(() => {
         size="sm"
         :disabled="loading"
         @click="sendCommand('prev')"
-        >上一步</MButton
+        >{{ t('上一步') }}</MButton
       >
       <span
         v-if="packageProgress"
         class="animation-progress"
-        >{{ packageProgress.page }} / {{ packageProgress.pages }} 页 · {{ packageProgress.step }} /
-        {{ packageProgress.steps }} 步</span
+        >{{ t('{page} / {pages} 页 · {step} / {steps} 步', { page: packageProgress.page, pages: packageProgress.pages, step: packageProgress.step, steps: packageProgress.steps }) }}</span
       >
       <MButton
         size="sm"
         variant="primary"
         :disabled="loading"
         @click="sendCommand('next')"
-        >下一步</MButton
+        >{{ t('下一步') }}</MButton
       >
     </div>
   </section>

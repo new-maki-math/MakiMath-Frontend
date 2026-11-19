@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -14,16 +15,16 @@ import { lectureLocation } from '../../utils/lecture-route.js';
 const router = useRouter();
 const lectures = ref([]);
 const selectedType = ref('lecture');
-const bookTypes = [
+const bookTypes = computed(() => [
   {
-    label: '讲义',
+    label: t('讲义'),
     value: 'lecture'
   },
   {
-    label: '题目册',
+    label: t('题目册'),
     value: 'question-book'
   }
-];
+]);
 const visibleBooks = computed(() =>
   lectures.value.filter(
     (item) => item.kind === (selectedType.value === 'lecture' ? 'lecture' : 'workbook')
@@ -62,7 +63,7 @@ async function load() {
 
 function openLecture(lecture) {
   if (!lecture.slug) {
-    notify('讲义标识缺失，请刷新列表', 'warn');
+    notify(t('讲义标识缺失，请刷新列表'), 'warn');
     return;
   }
   router.push(
@@ -89,14 +90,14 @@ onUnmounted(() => {
     />
     <MDataView
       :loading="loading"
-      text="正在加载图书…"
+      :text="t('正在加载图书…')"
       :animate="!!visibleBooks.length && !error"
     >
       <p
         v-if="error"
         class="shelf-message error"
       >
-        {{ error }}
+        {{ t(error) }}
         <MButton
           size="sm"
           variant="ghost"
@@ -112,7 +113,7 @@ onUnmounted(() => {
         <MLectureCover
           v-for="lecture in visibleBooks"
           :key="lecture.id"
-          :title="lecture.title || '未命名图书'"
+          :title="lecture.title || t('未命名图书')"
           :subtitle="lecture.subtitle || ''"
           :cover-revision-id="lecture.revision_id"
           :cover-hash="lecture.cover_hash || ''"

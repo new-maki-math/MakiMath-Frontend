@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 import { onUnmounted, ref, watch } from 'vue';
 
 import { resourceApi } from '../../api/resources.js';
@@ -144,10 +145,10 @@ onUnmounted(() => {
       class="destination-current"
       :aria-busy="busy"
     >
-      <span>当前目标</span>
-      <strong>{{ error ? '目录加载失败' : current?.name || '资源中心' }}</strong>
+      <span>{{ t('当前目标') }}</span>
+      <strong>{{ error ? t('目录加载失败') : current?.name || t('资源中心') }}</strong>
     </div>
-    <span class="destination-label">选择目标文件夹</span>
+    <span class="destination-label">{{ t('选择目标文件夹') }}</span>
     <div class="destination-picker">
       <div class="destination-heading">
         <MButton
@@ -155,8 +156,8 @@ onUnmounted(() => {
           variant="ghost"
           size="sm"
           icon-only
-          title="上一级"
-          aria-label="上一级"
+          :title="t('上一级')"
+          :aria-label="t('上一级')"
           :disabled="busy || disabled"
           :class="{
             'loading-action': busy && !disabled
@@ -169,14 +170,14 @@ onUnmounted(() => {
         /></MButton>
         <nav
           class="destination-path"
-          aria-label="目标目录路径"
+          :aria-label="t('目标目录路径')"
         >
           <button
             type="button"
             :disabled="busy || disabled || parentId === null"
             @click="navigate(null)"
           >
-            资源中心
+            {{ t('资源中心') }}
           </button>
           <template
             v-for="crumb in breadcrumbs"
@@ -199,11 +200,11 @@ onUnmounted(() => {
       </div>
       <div
         class="destination-list"
-        aria-label="子文件夹列表"
+        :aria-label="t('子文件夹列表')"
       >
         <MDataView
           :loading="busy"
-          text="正在读取目录…"
+          :text="t('正在读取目录…')"
           :content-key="`${parentId}:${offset}`"
         >
           <p
@@ -241,7 +242,7 @@ onUnmounted(() => {
               v-if="!folders.length"
               class="destination-note"
             >
-              {{ total > 50 ? '本页没有可选择的文件夹，可翻页查看' : '没有可选择的子文件夹' }}
+              {{ t(total > 50 ? '本页没有可选择的文件夹，可翻页查看' : '没有可选择的子文件夹') }}
             </p>
           </template>
         </MDataView>

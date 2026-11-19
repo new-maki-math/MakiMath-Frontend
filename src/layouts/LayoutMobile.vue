@@ -1,7 +1,9 @@
 <script setup>
+import { t } from '../i18n.js';
 import { inject, ref, watch } from 'vue';
 import { RouterView } from 'vue-router';
 
+import MLanguageSwitcher from '../components/app/MLanguageSwitcher.vue';
 import MThemeSwitcher from '../components/app/MThemeSwitcher.vue';
 import MUpdateLog from '../components/app/MUpdateLog.vue';
 import SearchBar from '../components/app/SearchBar.vue';
@@ -90,8 +92,8 @@ watch(
         <button
           type="button"
           class="mobile-icon-btn hamburger-btn"
-          title="打开导航目录"
-          aria-label="打开导航目录"
+          :title="t('打开导航目录')"
+          :aria-label="t('打开导航目录')"
           @click="openDrawer"
         >
           <Menu
@@ -121,8 +123,8 @@ watch(
         <button
           type="button"
           class="mobile-icon-btn"
-          title="搜索数学节点或公式"
-          aria-label="搜索数学节点或公式"
+          :title="t('搜索数学节点或公式')"
+          :aria-label="t('搜索数学节点或公式')"
           @click="openSearch"
         >
           <Search
@@ -143,8 +145,8 @@ watch(
           :class="{
             active: isUserModalOpen
           }"
-          :title="isLoggedIn ? '个人中心' : '登录或注册'"
-          :aria-label="isLoggedIn ? '个人中心' : '登录或注册'"
+          :title="t(isLoggedIn ? '个人中心' : '登录或注册')"
+          :aria-label="t(isLoggedIn ? '个人中心' : '登录或注册')"
           @click="openUserModal"
         >
           <UserCircle
@@ -156,8 +158,8 @@ watch(
           v-if="isLoggedIn"
           type="button"
           class="mobile-icon-btn"
-          title="退出登录"
-          aria-label="退出登录"
+          :title="t('退出登录')"
+          :aria-label="t('退出登录')"
           @click="handleLogout"
         >
           <LogOut
@@ -171,8 +173,8 @@ watch(
           :class="{
             active: isHelpModalOpen
           }"
-          title="如何使用"
-          aria-label="如何使用"
+          :title="t('如何使用')"
+          :aria-label="t('如何使用')"
           @click="openHelpModal"
         >
           <HelpCircle
@@ -180,6 +182,7 @@ watch(
             height="20"
           />
         </button>
+        <MLanguageSwitcher />
         <MThemeSwitcher
           :model-value="currentTheme"
           @update:model-value="setTheme"
@@ -191,6 +194,7 @@ watch(
     <!-- 移动端侧滑导航抽屉 -->
     <MDrawer
       :open="isDrawerOpen"
+      class="mobile-nav-drawer"
       placement="left"
       fixed
       title="MAKI MATH // 导航"
@@ -229,7 +233,7 @@ watch(
                 v-if="item.desktopOnly"
                 variant="muted"
                 size="sm"
-                >电脑端</MTag
+                >{{ t('电脑端') }}</MTag
               >
             </button>
           </template>
@@ -253,7 +257,7 @@ watch(
           </div>
           <button
             class="mobile-icon-btn logout-btn"
-            title="退出登录"
+            :title="t('退出登录')"
             @click="handleLogout"
           >
             <LogOut
@@ -283,7 +287,7 @@ watch(
           <button
             type="button"
             class="close-search-btn"
-            title="关闭搜索"
+            :title="t('关闭搜索')"
             @click="closeSearch"
           >
             <Xmark
@@ -303,7 +307,8 @@ watch(
     <main
       class="mobile-viewport"
       :class="{
-        'is-lecture-shelf': route.name === 'my-lecture'
+        'is-lecture-shelf': route.name === 'my-lecture',
+        'is-reading': route.name === 'lecture-doc' || route.name === 'local-lecture-doc'
       }"
     >
       <ViewportHeader
@@ -319,12 +324,12 @@ watch(
           class="desktop-only-notice"
         >
           <span class="desktop-only-label font-mono">DESKTOP ONLY</span>
-          <h2>请在电脑端使用</h2>
-          <p>{{ currentItem.label }}暂不支持移动端，请使用电脑访问。</p>
+          <h2>{{ t('请在电脑端使用') }}</h2>
+          <p>{{ t('移动端不支持', { name: currentItem.label }) }}</p>
           <MButton
             size="sm"
             @click="handleNavClick('/my-lecture')"
-            >返回首页</MButton
+            >{{ t('返回首页') }}</MButton
           >
         </div>
         <slot
@@ -370,11 +375,19 @@ watch(
   align-items: center;
   gap: 4px;
 }
-
+.topbar-left {
+  flex: none;
+}
 .topbar-right {
+  flex: 1 1 0;
   min-width: 0;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+}
+.topbar-right > * {
+  flex: none;
 }
 .topbar-right::-webkit-scrollbar {
   display: none;
@@ -618,11 +631,13 @@ watch(
   height: calc(100vh - 48px);
 }
 
-.mobile-viewport.is-lecture-shelf {
+.mobile-viewport.is-lecture-shelf,
+.mobile-viewport.is-reading {
   overflow: hidden;
   min-height: 0;
 }
-.mobile-viewport.is-lecture-shelf .mobile-content-container {
+.mobile-viewport.is-lecture-shelf .mobile-content-container,
+.mobile-viewport.is-reading .mobile-content-container {
   min-height: 0;
   overflow: hidden;
 }

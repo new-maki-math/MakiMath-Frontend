@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 import { ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -24,7 +25,7 @@ async function load() {
     }
   } catch (error) {
     if (id === loadId) {
-      notify(error.message || '加载审核列表失败', 'error');
+      notify(error.message || t('加载审核列表失败'), 'error');
     }
   } finally {
     if (id === loadId) {
@@ -35,7 +36,7 @@ async function load() {
 
 function openReview(item) {
   if (!item.book_slug || !item.id) {
-    notify('讲义或审核版本标识缺失，请刷新审核列表', 'error');
+    notify(t('讲义或审核版本标识缺失，请刷新审核列表'), 'error');
     return;
   }
   router.push(
@@ -62,16 +63,16 @@ watch(
 
 <template>
   <section class="review-panel font-mono">
-    <h1>内容审核</h1>
+    <h1>{{ t('内容审核') }}</h1>
     <MTable
       :data="items"
       :loading="loading"
     >
       <template #header
-        ><th>版本</th>
-        <th>标题</th>
-        <th>提交时间</th>
-        <th>操作</th></template
+        ><th>{{ t('版本') }}</th>
+        <th>{{ t('标题') }}</th>
+        <th>{{ t('提交时间') }}</th>
+        <th>{{ t('操作') }}</th></template
       >
       <template #rows="{ data }">
         <tr
@@ -85,7 +86,7 @@ watch(
             <MButton
               size="sm"
               @click="openReview(item)"
-              >审核</MButton
+              >{{ t('审核') }}</MButton
             >
           </td>
         </tr>

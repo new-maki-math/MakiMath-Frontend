@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 import { onMounted, ref } from 'vue';
 
 import { request } from '../../api/client.js';
@@ -19,7 +20,7 @@ const loadUsers = async () => {
   try {
     users.value = await request('/api/users');
   } catch (err) {
-    notify(err.message || '加载用户列表失败', 'error');
+    notify(err.message || t('加载用户列表失败'), 'error');
   } finally {
     loading.value = false;
   }
@@ -38,9 +39,9 @@ const toggleUserStatus = async (user) => {
       }
     });
     Object.assign(user, updated);
-    notify('账号状态已更新', 'success');
+    notify(t('账号状态已更新'), 'success');
   } catch (err) {
-    notify(err.message || '更新账号状态失败', 'error');
+    notify(err.message || t('更新账号状态失败'), 'error');
   } finally {
     changingId.value = null;
   }
@@ -53,14 +54,14 @@ onMounted(loadUsers);
   <section class="section-pane font-mono">
     <div class="pane-toolbar">
       <div class="toolbar-title-wrap">
-        <h1 class="pane-title font-mono">USERS // 用户管理</h1>
-        <p class="pane-subtitle">查看用户并管理账号状态</p>
+        <h1 class="pane-title font-mono">{{ t('USERS // 用户管理') }}</h1>
+        <p class="pane-subtitle">{{ t('查看用户并管理账号状态') }}</p>
       </div>
       <MButton
         variant="secondary"
         icon-only
-        title="刷新列表"
-        aria-label="刷新列表"
+        :title="t('刷新列表')"
+        :aria-label="t('刷新列表')"
         @click="loadUsers"
       >
         <Refresh
@@ -75,12 +76,12 @@ onMounted(loadUsers);
     >
       <template #header>
         <th>ID</th>
-        <th>用户名</th>
-        <th>显示昵称</th>
-        <th>系统角色</th>
-        <th>账号状态</th>
-        <th>注册时间</th>
-        <th>操作</th>
+        <th>{{ t('用户名') }}</th>
+        <th>{{ t('显示昵称') }}</th>
+        <th>{{ t('系统角色') }}</th>
+        <th>{{ t('账号状态') }}</th>
+        <th>{{ t('注册时间') }}</th>
+        <th>{{ t('操作') }}</th>
       </template>
       <template #rows="{ data }">
         <tr
@@ -94,14 +95,14 @@ onMounted(loadUsers);
             <MTag
               :variant="user.role === 'super_admin' ? 'purple' : 'blue'"
               size="sm"
-              >{{ user.role === 'super_admin' ? '超级管理员' : '编者' }}</MTag
+              >{{ t(user.role === 'super_admin' ? '超级管理员' : '编者') }}</MTag
             >
           </td>
           <td>
             <span
               class="status-pill"
               :class="user.status === 'active' ? 'status-active' : 'status-disabled'"
-              >{{ user.status === 'active' ? '正常' : '已禁用' }}</span
+              >{{ t(user.status === 'active' ? '正常' : '已禁用') }}</span
             >
           </td>
           <td class="col-dim">{{ formatDate(user.created_at) }}</td>
@@ -110,7 +111,7 @@ onMounted(loadUsers);
               size="sm"
               :disabled="changingId !== null || user.id === currentUser?.id"
               @click="toggleUserStatus(user)"
-              >{{ user.status === 'active' ? '禁用' : '启用' }}</MButton
+              >{{ t(user.status === 'active' ? '禁用' : '启用') }}</MButton
             >
           </td>
         </tr>

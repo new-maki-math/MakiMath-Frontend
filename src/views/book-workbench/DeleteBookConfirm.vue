@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 import { ref, watch } from 'vue';
 
 import MButton from '../../components/form/MButton.vue';
@@ -62,7 +63,7 @@ watch(
         mono
         :disabled="busy"
         @click="emit('close')"
-        >取消</MButton
+        >{{ t('取消') }}</MButton
       >
       <MButton
         v-if="step < 3"
@@ -70,7 +71,7 @@ watch(
         size="sm"
         mono
         @click="step++"
-        >下一步</MButton
+        >{{ t('下一步') }}</MButton
       >
       <MButton
         v-else

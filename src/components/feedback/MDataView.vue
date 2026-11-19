@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 import MSpinner from './MSpinner.vue';
 
 defineProps({
@@ -36,7 +37,7 @@ defineProps({
       role="status"
     >
       <MSpinner :size="spinnerSize" />
-      <span>{{ text }}</span>
+      <span>{{ t(text) }}</span>
     </div>
     <Transition
       v-else

@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 import MTag from '../display/MTag.vue';
 import MButton from '../form/MButton.vue';
 import MModal from '../overlay/MModal.vue';
@@ -16,7 +17,7 @@ const emit = defineEmits(['close']);
 <template>
   <MModal
     :open="open"
-    title="如何使用"
+    :title="t('如何使用')"
     hide-footer
     @close="emit('close')"
   >
@@ -32,7 +33,7 @@ const emit = defineEmits(['close']);
         variant="secondary"
         size="sm"
         @click="emit('close')"
-        >关闭</MButton
+        >{{ t('关闭') }}</MButton
       >
     </div>
   </MModal>

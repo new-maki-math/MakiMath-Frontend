@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 import { computed, nextTick, onBeforeUpdate, onMounted, ref, watch } from 'vue';
 
 const props = defineProps({
@@ -115,7 +116,7 @@ onMounted(refresh);
 <template>
   <nav
     class="outline-timeline"
-    aria-label="本节大纲"
+    :aria-label="t('本节大纲')"
   >
     <div class="timeline-header font-mono">OUTLINE</div>
     <button

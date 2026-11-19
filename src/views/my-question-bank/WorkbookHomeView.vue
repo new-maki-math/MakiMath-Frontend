@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 import { computed, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -103,8 +104,8 @@ async function load() {
     if (current === sequence) {
       error.value =
         failure.status === 404
-          ? '题目册不存在或当前账号无权访问'
-          : failure.message || '题目册加载失败';
+          ? t('题目册不存在或当前账号无权访问')
+          : failure.message || t('题目册加载失败');
     }
   } finally {
     if (current === sequence) {
@@ -161,7 +162,7 @@ async function changeCover(event) {
     !['image/jpeg', 'image/png', 'image/webp'].includes(file.type) ||
     file.size > 5 * 1024 * 1024
   ) {
-    notify('请选择不超过 5 MB 的 JPG、PNG 或 WebP 图片', 'warn');
+    notify(t('请选择不超过 5 MB 的 JPG、PNG 或 WebP 图片'), 'warn');
     return;
   }
   const current = sequence;
@@ -192,11 +193,11 @@ async function changeCover(event) {
         cover: data
       };
       coverOpen.value = false;
-      notify('封面已保存', 'success');
+      notify(t('封面已保存'), 'success');
     }
   } catch (failure) {
     if (current === sequence) {
-      notify(failure.message || '封面保存失败', 'error');
+      notify(failure.message || t('封面保存失败'), 'error');
     }
   } finally {
     busy.value = false;
@@ -216,11 +217,11 @@ async function removeCover() {
         cover: ''
       };
       coverOpen.value = false;
-      notify('已恢复通用封面', 'success');
+      notify(t('已恢复通用封面'), 'success');
     }
   } catch (failure) {
     if (current === sequence) {
-      notify(failure.message || '删除封面失败', 'error');
+      notify(failure.message || t('删除封面失败'), 'error');
     }
   } finally {
     busy.value = false;
@@ -236,12 +237,12 @@ async function removeBook() {
     await deleteLocalLecture(String(book.value.id));
     if (current === sequence) {
       deleteOpen.value = false;
-      notify('本地题目册已删除', 'success');
+      notify(t('本地题目册已删除'), 'success');
       await router.push('/my-lecture');
     }
   } catch (failure) {
     if (current === sequence) {
-      notify(failure.message || '删除题目册失败', 'error');
+      notify(failure.message || t('删除题目册失败'), 'error');
     }
   } finally {
     busy.value = false;
@@ -277,7 +278,7 @@ async function addBook() {
           String(item.revision_id) === String(tree.revision_id)
       )
     ) {
-      throw new Error('该版本已不再公开，请刷新后重试');
+      throw new Error(t('该版本已不再公开，请刷新后重试'));
     }
     const record = portableToLocalLecture(data);
     record.slug = localSlug;
@@ -286,11 +287,11 @@ async function addBook() {
     await createLocalLecture(record);
     if (current === sequence) {
       addOpen.value = false;
-      notify('已添加到我的书架', 'success');
+      notify(t('已添加到我的书架'), 'success');
     }
   } catch (failure) {
     if (current === sequence) {
-      notify(failure.message || '添加题目册失败', 'error');
+      notify(failure.message || t('添加题目册失败'), 'error');
     }
   } finally {
     busy.value = false;
@@ -327,7 +328,7 @@ async function submitReview() {
     if (current === sequence) {
       reviewStatus.value = decision;
       reviewDecision.value = '';
-      notify('审核已完成', 'success');
+      notify(t('审核已完成'), 'success');
       if (decision === 'approved') {
         try {
           const published = await bookApi.list({
@@ -348,7 +349,7 @@ async function submitReview() {
   } catch (failure) {
     if (current === sequence) {
       notify(
-        failure.status === 409 ? '审核状态已变化，请刷新后重新核对' : failure.message || '审核失败',
+        failure.status === 409 ? t('审核状态已变化，请刷新后重新核对') : failure.message || t('审核失败'),
         'error'
       );
     }
@@ -362,7 +363,7 @@ async function submitReview() {
   <main class="view-container">
     <MDataView
       :loading="loading"
-      text="正在加载题目册…"
+      :text="t('正在加载题目册…')"
       :content-key="`${source}:${slug}:${revisionId}`"
     >
       <p
@@ -406,33 +407,33 @@ async function submitReview() {
             <div>
               <span class="eyebrow">QUESTION COLLECTION</span>
               <h1>{{ book.title }}</h1>
-              <p class="description">{{ book.desc || '暂无题目册简介。' }}</p>
+              <p class="description">{{ book.desc || t('暂无题目册简介。') }}</p>
             </div>
             <div class="actions">
               <MButton
                 variant="primary"
                 :disabled="!sectionCount"
                 @click="readFirst"
-                >阅读题目册</MButton
+                >{{ t('阅读题目册') }}</MButton
               >
               <MButton
                 variant="secondary"
                 @click="scrollToCatalog"
-                >查看题目册目录</MButton
+                >{{ t('查看题目册目录') }}</MButton
               >
               <MButton
                 v-if="source === 'local'"
                 variant="secondary"
                 :disabled="busy"
                 @click="coverOpen = true"
-                >编辑封面</MButton
+                >{{ t('编辑封面') }}</MButton
               >
               <MButton
                 v-if="source === 'local'"
                 variant="secondary"
                 :disabled="busy"
                 @click="deleteOpen = true"
-                >删除题目册</MButton
+                >{{ t('删除题目册') }}</MButton
               >
               <MButton
                 v-if="source === 'online' && publicVersion"
@@ -442,7 +443,7 @@ async function submitReview() {
                   addSlug = slug;
                   addOpen = true;
                 "
-                >添加到我的书架</MButton
+                >{{ t('添加到我的书架') }}</MButton
               >
               <div
                 v-if="
@@ -454,13 +455,13 @@ async function submitReview() {
                   variant="primary"
                   :disabled="reviewSaving"
                   @click="openReview('approved')"
-                  >通过审核</MButton
+                  >{{ t('通过审核') }}</MButton
                 >
                 <MButton
                   variant="danger"
                   :disabled="reviewSaving"
                   @click="openReview('rejected')"
-                  >驳回题目册</MButton
+                  >{{ t('驳回题目册') }}</MButton
                 >
               </div>
             </div>
@@ -468,45 +469,45 @@ async function submitReview() {
         </header>
         <section class="overview">
           <div class="spec-card">
-            <span class="card-title">OVERVIEW // 题目册概要</span>
+            <span class="card-title">{{ t('OVERVIEW // 题目册概要') }}</span>
             <div class="spec-item">
-              <span>章节与小节</span
-              ><strong>{{ chapters.length }} 章 · {{ sectionCount }} 节</strong>
+              <span>{{ t('章节与小节') }}</span
+              ><strong>{{ t('{chapters} 章 · {sections} 节', { chapters: chapters.length, sections: sectionCount }) }}</strong>
             </div>
             <div class="spec-item">
-              <span>题目册版本</span
+              <span>{{ t('题目册版本') }}</span
               ><strong>{{
                 source === 'local'
-                  ? '本地版本'
+                  ? t('本地版本')
                   : book.revisionNo != null
                     ? `V${book.revisionNo}`
-                    : '未提供'
+                    : t('未提供')
               }}</strong>
             </div>
             <div class="spec-item">
-              <span>版本状态</span
+              <span>{{ t('版本状态') }}</span
               ><strong>{{
                 source === 'local'
-                  ? '本地编辑'
-                  : {
+                  ? t('本地编辑')
+                  : t({
                       draft: '草稿',
                       pending: '审核中',
                       approved: '已通过',
                       rejected: '已驳回'
-                    }[reviewStatus] || '未提供'
+                    }[reviewStatus] || '未提供')
               }}</strong>
             </div>
             <div
               v-if="updatedAt"
               class="spec-item"
             >
-              <span>更新时间</span><strong>{{ updatedAt }}</strong>
+              <span>{{ t('更新时间') }}</span><strong>{{ updatedAt }}</strong>
             </div>
           </div>
           <div class="spec-card">
-            <span class="card-title">GUIDE // 学习指引</span>
-            <p class="guide">从目录中选择小节，查看题目并回顾考点与解答。</p>
-            <p class="note">点击下方目录中的小节进入阅读。</p>
+            <span class="card-title">{{ t('GUIDE // 学习指引') }}</span>
+            <p class="guide">{{ t('从目录中选择小节，查看题目并回顾考点与解答。') }}</p>
+            <p class="note">{{ t('点击下方目录中的小节进入阅读。') }}</p>
           </div>
         </section>
         <section
@@ -516,21 +517,21 @@ async function submitReview() {
           <div class="section-header">
             <div>
               <span class="kicker">CONTENTS &amp; QUESTIONS</span>
-              <h2>题目册目录</h2>
+              <h2>{{ t('题目册目录') }}</h2>
             </div>
             <div class="catalog-actions">
-              <span>{{ chapters.length }} 章 · {{ sectionCount }} 节</span
+              <span>{{ t('{chapters} 章 · {sections} 节', { chapters: chapters.length, sections: sectionCount }) }}</span
               ><button
                 type="button"
                 @click="openChapters = new Set(chapters.map((chapter) => chapter.id))"
               >
-                全部展开</button
+                {{ t('全部展开') }}</button
               ><span>/</span
               ><button
                 type="button"
                 @click="openChapters = new Set()"
               >
-                全部折叠
+                {{ t('全部折叠') }}
               </button>
             </div>
           </div>
@@ -551,7 +552,7 @@ async function submitReview() {
               >
                 <strong>{{ chapter.title }}</strong
                 ><span class="chapter-meta"
-                  >{{ chapter.sections.length }} 节
+                  >{{ t('{count} 节', { count: chapter.sections.length }) }}
                   <NavArrowRight
                     :class="{
                       rotated: openChapters.has(chapter.id)
@@ -570,7 +571,7 @@ async function submitReview() {
                     @click="openSection(chapter, section)"
                   >
                     <span>{{ section.title }}</span
-                    ><span>查看题目 →</span>
+                    ><span>{{ t('查看题目 →') }}</span>
                   </button>
                 </div></MCollapse
               >
@@ -580,70 +581,70 @@ async function submitReview() {
             v-else
             class="state"
           >
-            暂无题目册目录
+            {{ t('暂无题目册目录') }}
           </p>
         </section>
       </template>
     </MDataView>
     <MModal
       :open="coverOpen && source === 'local'"
-      title="编辑封面"
+      :title="t('编辑封面')"
       hide-footer
       show-close
       @close="!busy && (coverOpen = false)"
-      ><p class="guide">选择不超过 5 MB 的 JPG、PNG 或 WebP 图片。</p>
+      ><p class="guide">{{ t('选择不超过 5 MB 的 JPG、PNG 或 WebP 图片。') }}</p>
       <div class="actions">
         <MButton
           variant="primary"
           :disabled="busy"
           @click="coverInput?.click()"
-          >{{ book?.cover ? '替换封面' : '选择封面' }}</MButton
+          >{{ t(book?.cover ? '替换封面' : '选择封面') }}</MButton
         ><MButton
           v-if="book?.cover"
           variant="ghost"
           :disabled="busy"
           @click="removeCover"
-          >删除封面</MButton
+          >{{ t('删除封面') }}</MButton
         >
       </div></MModal
     >
     <MModal
       :open="deleteOpen && source === 'local'"
-      title="删除本地题目册"
-      confirm-text="删除题目册"
+      :title="t('删除本地题目册')"
+      :confirm-text="t('删除题目册')"
       confirm-variant="danger"
       :busy="busy"
       @close="!busy && (deleteOpen = false)"
       @confirm="removeBook"
       ><p class="guide">
-        确定删除“{{ book?.title }}”吗？本地题目册内容将被删除，且无法恢复。
+        {{ t('确定删除“{title}”吗？本地题目册内容将被删除，且无法恢复。', { title: book?.title }) }}
       </p></MModal
     >
     <MModal
       :open="addOpen"
-      title="添加到我的书架"
-      desc="保存当前公开版本为本地题目册。"
-      confirm-text="添加"
+      :title="t('添加到我的书架')"
+      :desc="t('保存当前公开版本为本地题目册。')"
+      :confirm-text="t('添加')"
       :busy="busy"
       @close="!busy && (addOpen = false)"
       @confirm="addBook"
       ><MInput
         v-model="addSlug"
-        label="本地题目册标识"
-        hint="标识需在本浏览器中唯一"
+        :label="t('本地题目册标识')"
+        :hint="t('标识需在本浏览器中唯一')"
         required
     /></MModal>
     <MModal
       :open="Boolean(reviewDecision)"
-      :title="reviewDecision === 'approved' ? '通过审核' : '驳回题目册'"
-      :confirm-text="reviewDecision === 'approved' ? '确认通过' : '确认驳回'"
+      :title="t(reviewDecision === 'approved' ? '通过审核' : '驳回题目册')"
+      :confirm-text="t(reviewDecision === 'approved' ? '确认通过' : '确认驳回')"
       :confirm-variant="reviewDecision === 'approved' ? 'primary' : 'danger'"
       :busy="reviewSaving"
       @close="!reviewSaving && (reviewDecision = '')"
       @confirm="submitReview"
       ><MTextarea
         v-model="reviewComment"
-        label="审核意见"
+        :label="t('审核意见')"
         :rows="3"
     /></MModal>
   </main>

@@ -1,4 +1,6 @@
 <script setup>
+import { t } from '../../i18n.js';
+
 defineProps({
   description: {
     type: String,
@@ -14,7 +16,7 @@ defineProps({
       aria-hidden="true"
       >( ·_· )</span
     >
-    <p>空空如也</p>
+    <p>{{ t('空空如也') }}</p>
     <p
       v-if="description"
       class="m-empty-description"

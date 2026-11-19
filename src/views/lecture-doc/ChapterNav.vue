@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 import { ref, watch } from 'vue';
 
 import { NavArrowLeft, NavArrowRight } from '../../components/icons/icons.js';
@@ -80,7 +81,7 @@ const handleSelect = (section) => {
     :class="{
       'is-collapsed': collapsed
     }"
-    aria-label="课程章节目录导航"
+    :aria-label="t('课程章节目录导航')"
   >
     <div class="chapter-nav-inner">
       <!-- 目录头部与收起触发按钮（可选） -->
@@ -89,11 +90,11 @@ const handleSelect = (section) => {
         class="nav-header"
       >
         <div class="nav-header-title font-mono">
-          <span>CHAPTERS // 目录</span>
+          <span>{{ t('CHAPTERS // 目录') }}</span>
         </div>
         <button
           class="nav-toggle-btn"
-          title="收起章节目录"
+          :title="t('收起章节目录')"
           @click="emit('toggle-collapse')"
         >
           <NavArrowLeft

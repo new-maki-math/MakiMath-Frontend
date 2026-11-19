@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 import { computed, ref, watch } from 'vue';
 
 import { notify } from '../feedback/MNotice.vue';
@@ -165,7 +166,7 @@ async function copyReference() {
         ><MButton
           size="sm"
           @click="copyReference"
-          >复制</MButton
+          >{{ t('复制') }}</MButton
         >
       </div>
       <p

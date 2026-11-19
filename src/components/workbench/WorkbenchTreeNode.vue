@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 import { computed, ref, watch } from 'vue';
 
 import {
@@ -96,8 +97,8 @@ const canMoveDown = computed(() =>
           'is-open': node.expanded
         }"
         type="button"
-        :title="node.expanded ? '收起' : '展开'"
-        :aria-label="`${node.expanded ? '收起' : '展开'}${node.label}`"
+        :title="t(node.expanded ? '收起' : '展开')"
+        :aria-label="t('{action}{name}', { action: t(node.expanded ? '收起' : '展开'), name: node.label })"
         :aria-expanded="Boolean(node.expanded)"
         @click.stop="emit('toggle', node)"
       >
@@ -131,7 +132,7 @@ const canMoveDown = computed(() =>
       <span
         v-if="node.type === 'section' && node.hasSource === false"
         class="node-flag font-mono"
-        >空</span
+        >{{ t('空') }}</span
       >
 
       <span
@@ -142,7 +143,7 @@ const canMoveDown = computed(() =>
           v-if="node.actions.move"
           class="node-action"
           type="button"
-          title="上移"
+          :title="t('上移')"
           :disabled="!canMoveUp"
           @click.stop="
             emit('move', {
@@ -160,7 +161,7 @@ const canMoveDown = computed(() =>
           v-if="node.actions.move"
           class="node-action"
           type="button"
-          title="下移"
+          :title="t('下移')"
           :disabled="!canMoveDown"
           @click.stop="
             emit('move', {
@@ -178,8 +179,8 @@ const canMoveDown = computed(() =>
           v-if="node.actions.add"
           class="node-action"
           type="button"
-          :title="node.actions.addLabel || '新建子项'"
-          :aria-label="node.actions.addLabel || '新建子项'"
+          :title="node.actions.addLabel || t('新建子项')"
+          :aria-label="node.actions.addLabel || t('新建子项')"
           @click.stop="emit('add', node)"
         >
           <Plus
@@ -191,8 +192,8 @@ const canMoveDown = computed(() =>
           v-if="node.actions.import"
           class="node-action import-action"
           type="button"
-          title="导入 JSON"
-          aria-label="导入 JSON"
+          :title="t('导入 JSON')"
+          :aria-label="t('导入 JSON')"
           @click.stop="emit('import', node)"
         >
           JSON
@@ -201,8 +202,8 @@ const canMoveDown = computed(() =>
           v-if="node.actions.archive"
           class="node-action"
           type="button"
-          title="归档讲义"
-          :aria-label="`归档讲义 ${node.label}`"
+          :title="t('归档讲义')"
+          :aria-label="t('归档讲义 {name}', { name: node.label })"
           @click.stop="emit('archive', node)"
         >
           <Archive
@@ -214,8 +215,8 @@ const canMoveDown = computed(() =>
           v-if="node.actions.remove"
           class="node-action is-danger"
           type="button"
-          :title="node.actions.removeLabel || '删除'"
-          :aria-label="node.actions.removeLabel || '删除'"
+          :title="node.actions.removeLabel || t('删除')"
+          :aria-label="node.actions.removeLabel || t('删除')"
           :disabled="Boolean(node.actions.removeDisabled)"
           @click.stop="emit('remove', node)"
         >
@@ -259,7 +260,7 @@ const canMoveDown = computed(() =>
             paddingLeft: childIndent
           }"
         >
-          加载中...
+          {{ t('加载中...') }}
         </div>
         <div
           v-else-if="isEmpty"
@@ -268,7 +269,7 @@ const canMoveDown = computed(() =>
             paddingLeft: childIndent
           }"
         >
-          暂无内容
+          {{ t('暂无内容') }}
         </div>
       </div>
     </MCollapse>

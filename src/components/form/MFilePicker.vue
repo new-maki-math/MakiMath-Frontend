@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 import { Upload } from '../icons/icons.js';
 
 defineProps({
@@ -59,7 +60,7 @@ defineEmits(['choose', 'change']);
         >{{ detail }}</span
       >
     </span>
-    <span class="file-action">{{ action }}</span>
+    <span class="file-action">{{ t(action) }}</span>
     <input
       type="file"
       :accept="accept"

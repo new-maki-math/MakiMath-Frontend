@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 import { computed, ref } from 'vue';
 
 import MButton from '../../components/form/MButton.vue';
@@ -91,7 +92,7 @@ function goToLevel(index) {
   <main class="resource-center">
     <header class="resource-heading">
       <div>
-        <h1>资源中心</h1>
+        <h1>{{ t('资源中心') }}</h1>
         <p class="page-note">PDF 资料与归档资源</p>
       </div>
       <span class="sample-note">示例展示 · 数据暂未接入</span>
@@ -99,20 +100,20 @@ function goToLevel(index) {
 
     <nav
       class="folder-path"
-      aria-label="资源路径"
+      :aria-label="t('资源路径')"
     >
       <span
         v-if="!folderPath.length"
         class="path-current"
         aria-current="page"
-        >全部资源</span
+        >{{ t('全部资源') }}</span
       >
       <MButton
         v-else
         variant="ghost"
         size="sm"
         @click="goToLevel(0)"
-        >全部资源</MButton
+        >{{ t('全部资源') }}</MButton
       >
       <template
         v-for="(folder, index) in folderPath"
@@ -145,7 +146,7 @@ function goToLevel(index) {
           class="list-heading"
           aria-hidden="true"
         >
-          <span>名称</span><span>类型</span>
+          <span>{{ t('名称') }}</span><span>{{ t('类型') }}</span>
         </div>
         <component
           :is="item.children ? 'button' : 'div'"

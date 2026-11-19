@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 import MInput from '../../components/form/MInput.vue';
 import MTextarea from '../../components/form/MTextarea.vue';
 import WorkbenchPanel from '../../components/workbench/WorkbenchPanel.vue';
@@ -45,7 +46,7 @@ defineEmits(['save', 'reset', 'imported']);
 <template>
   <WorkbenchPanel
     kind="CHAPTER"
-    :title="chapter.title || chapter.slug || '未命名章节'"
+    :title="chapter.title || chapter.slug || t('未命名章节')"
     :dirty="dirty"
     :saving="saving"
     :editable="editable"
@@ -65,23 +66,23 @@ defineEmits(['save', 'reset', 'imported']);
       <div class="wb-form-grid">
         <MInput
           v-model="chapter.title"
-          label="章节名称"
+          :label="t('章节名称')"
           required
         />
         <MInput
           v-model="chapter.slug"
-          label="章节标识"
-          hint="课程内唯一"
+          :label="t('章节标识')"
+          :hint="t('课程内唯一')"
           required
         />
         <MInput
           v-model="chapter.tag"
-          label="标签"
+          :label="t('标签')"
         />
         <div class="wb-span-2">
           <MTextarea
             v-model="chapter.summary"
-            label="摘要"
+            :label="t('摘要')"
             :rows="2"
           />
         </div>

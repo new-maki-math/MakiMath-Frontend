@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 import { computed, onUnmounted, ref, watch } from 'vue';
 
 import { bookApi } from '../../api/books.js';
@@ -45,7 +46,7 @@ const props = defineProps({
 });
 const emit = defineEmits(['save', 'reset', 'cover-change']);
 const bookKind = computed(() => lecture.value.kind ?? 'lecture');
-const kindLabel = computed(() => (bookKind.value === 'workbook' ? '题目册' : '讲义'));
+const kindLabel = computed(() => (t(bookKind.value === 'workbook' ? '题目册' : '讲义')));
 const selectedCategory = computed({
   get: () => (revision.value.category_id == null ? '' : String(revision.value.category_id)),
   set: (value) => {
@@ -247,7 +248,7 @@ function removeCover() {
     >
       <div class="course-layout">
         <div class="cover-field">
-          <span class="cover-label">图书封面</span>
+          <span class="cover-label">{{ t('图书封面') }}</span>
           <div class="cover-editor">
             <div
               class="cover-preview"
@@ -255,7 +256,7 @@ function removeCover() {
               inert
             >
               <MLectureCover
-                :title="revision.title || '图书封面'"
+                :title="revision.title || t('图书封面')"
                 :image="cover"
                 :show-caption="false"
               />
@@ -273,7 +274,7 @@ function removeCover() {
                 size="sm"
                 :disabled="!editable || saving || coverLoading"
                 @click="coverInput?.click()"
-                >{{ cover ? '更换封面' : '选择封面' }}</MButton
+                >{{ t(cover ? '更换封面' : '选择封面') }}</MButton
               >
               <MButton
                 v-if="cover"
@@ -281,12 +282,12 @@ function removeCover() {
                 variant="ghost"
                 :disabled="!editable || saving || coverLoading"
                 @click="removeCover"
-                >删除封面</MButton
+                >{{ t('删除封面') }}</MButton
               >
               <span class="cover-hint">{{
                 lecture.isLocal
-                  ? '支持 JPG、PNG、WebP，最大 5 MB，选择后请保存图书'
-                  : '支持 JPG、PNG、WebP，最大 512 KB，修改后立即保存'
+                  ? t('支持 JPG、PNG、WebP，最大 5 MB，选择后请保存图书')
+                  : t('支持 JPG、PNG、WebP，最大 512 KB，修改后立即保存')
               }}</span>
               <span
                 v-if="coverError"
@@ -307,30 +308,30 @@ function removeCover() {
           <div class="wb-span-2">
             <MInput
               v-model="revision.title"
-              label="图书名称"
+              :label="t('图书名称')"
               required
             />
           </div>
           <div class="wb-span-2">
             <MInput
               v-model="revision.subtitle"
-              label="副标题"
+              :label="t('副标题')"
             />
           </div>
           <div class="wb-span-2">
             <MSelect
               :model-value="bookKind"
-              label="图书类型"
-              hint="图书类型创建后不可修改"
+              :label="t('图书类型')"
+              :hint="t('图书类型创建后不可修改')"
               disabled
               :options="[
                 {
                   value: 'lecture',
-                  label: '讲义'
+                  label: t('讲义')
                 },
                 {
                   value: 'workbook',
-                  label: '题目册'
+                  label: t('题目册')
                 }
               ]"
             />
@@ -338,23 +339,23 @@ function removeCover() {
           <MInput
             v-if="lecture.isLocal"
             v-model="lecture.slug"
-            :label="`${kindLabel}标识`"
-            hint="修改后图书地址会改变"
+            :label="t('{kind}标识', { kind: kindLabel })"
+            :hint="t('修改后图书地址会改变')"
             required
           />
           <MInput
             v-else
             :model-value="lecture.slug"
-            :label="`${kindLabel}标识`"
+            :label="t('{kind}标识', { kind: kindLabel })"
             disabled
           />
           <MSelect
             v-model="selectedCategory"
-            :label="`${kindLabel}分类`"
+            :label="t('{kind}分类', { kind: kindLabel })"
             :options="[
               {
                 value: '',
-                label: '未分类'
+                label: t('未分类')
               },
               ...categories.map((item) => ({
                 value: String(item.id),
@@ -365,14 +366,14 @@ function removeCover() {
           <div class="wb-span-2">
             <MTextarea
               v-model="revision.descr"
-              label="简介"
+              :label="t('简介')"
               :rows="3"
             />
           </div>
           <div class="wb-span-2">
             <MTextarea
               v-model="revision.change_note"
-              label="修改说明"
+              :label="t('修改说明')"
               :rows="2"
             />
           </div>
@@ -383,14 +384,14 @@ function removeCover() {
       class="wb-block animation-base"
       :inert="!editable"
     >
-      <div class="wb-block-head"><span class="wb-block-title">图书动画基础资源</span></div>
+      <div class="wb-block-head"><span class="wb-block-title">{{ t('图书动画基础资源') }}</span></div>
       <p class="animation-base-hint">
-        在这里配置所有小节共用的脚本、字体和图片；播放器和数学公式依赖由平台提供。
+        {{ t('在这里配置所有小节共用的脚本、字体和图片；播放器和数学公式依赖由平台提供。') }}
       </p>
       <MFilePicker
-        :title="animationBaseBusy ? '正在读取动画基础包…' : '动画基础包'"
-        detail="共用脚本、字体与图片，最大 22 MB"
-        :action="animationBase.files ? '替换文件夹' : '选择文件夹'"
+        :title="t(animationBaseBusy ? '正在读取动画基础包…' : '动画基础包')"
+        :detail="t('共用脚本、字体与图片，最大 22 MB')"
+        :action="t(animationBase.files ? '替换文件夹' : '选择文件夹')"
         directory
         :disabled="!editable || animationBaseBusy"
         @change="importAnimationBase"
@@ -405,7 +406,7 @@ function removeCover() {
         v-if="animationBase.files"
         class="animation-base-files"
       >
-        <summary>已导入 {{ Object.keys(animationBase.files).length }} 个基础文件</summary>
+        <summary>{{ t('已导入 {count} 个基础文件', { count: Object.keys(animationBase.files).length }) }}</summary>
         <ul>
           <li
             v-for="path in Object.keys(animationBase.files).sort()"
@@ -424,7 +425,7 @@ function removeCover() {
             files: null
           })
         "
-        >移除动画基础资源</MButton
+        >{{ t('移除动画基础资源') }}</MButton
       >
     </div>
   </WorkbenchPanel>

@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 import '../../components/workbench/workbench.css';
 
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
@@ -2597,8 +2598,8 @@ onUnmounted(() => {
         v-else-if="revision && lecture && !ownsContext"
         class="workbench-empty"
       >
-        <h2>当前账号无法访问此编辑内容</h2>
-        <p>请使用原账号重新登录，或离开后选择其他图书。</p>
+        <h2>{{ t('当前账号无法访问此编辑内容') }}</h2>
+        <p>{{ t('请使用原账号重新登录，或离开后选择其他图书。') }}</p>
       </div>
       <CoursePanel
         v-else-if="revision && lecture && selected.type === 'lecture'"
@@ -2620,7 +2621,7 @@ onUnmounted(() => {
             :mono="true"
             :disabled="saving || loading"
             @click="exportLecture"
-            >导出 JSON</MButton
+            >{{ t('导出 JSON') }}</MButton
           >
           <MButton
             v-if="
@@ -2631,7 +2632,7 @@ onUnmounted(() => {
             :mono="true"
             :disabled="archiveBusy || saving"
             @click="restoreLecture"
-            >恢复归档</MButton
+            >{{ t('恢复归档') }}</MButton
           >
           <MButton
             v-if="isArchived && currentUser?.role === 'super_admin'"
@@ -2640,16 +2641,16 @@ onUnmounted(() => {
             :mono="true"
             :disabled="saving || loading"
             @click="openDeleteLecture"
-            >永久删除</MButton
+            >{{ t('永久删除') }}</MButton
           >
           <MButton
             v-if="onlineConflict"
             size="sm"
             :mono="true"
             :disabled="saving"
-            title="重新读取会放弃未保存的修改"
+            :title="t('重新读取会放弃未保存的修改')"
             @click="reloadConflictedLecture"
-            >重新读取</MButton
+            >{{ t('重新读取') }}</MButton
           >
           <MButton
             v-if="!lecture.isLocal && !isArchived"
@@ -2657,7 +2658,7 @@ onUnmounted(() => {
             :mono="true"
             :disabled="saving"
             @click="openDownload"
-            >下载到本地</MButton
+            >{{ t('下载到本地') }}</MButton
           >
           <MButton
             v-if="canEditOnline && revision.status === 'draft'"
@@ -2665,10 +2666,10 @@ onUnmounted(() => {
             :mono="true"
             :disabled="saving || dirty || !!pendingSnapshotId || onlineConflict"
             :title="
-              dirty ? '请先保存所有修改' : pendingSnapshotId ? '已有待审核快照' : '提交已保存的草稿'
+              t(dirty ? '请先保存所有修改' : pendingSnapshotId ? '已有待审核快照' : '提交已保存的草稿')
             "
             @click="openSubmit"
-            >{{ pendingSnapshotId ? '审核中' : '提交审核' }}</MButton
+            >{{ t(pendingSnapshotId ? '审核中' : '提交审核') }}</MButton
           >
         </template>
       </CoursePanel>
@@ -2692,9 +2693,9 @@ onUnmounted(() => {
             size="sm"
             :mono="true"
             :disabled="saving"
-            title="重新读取会放弃未保存的修改"
+            :title="t('重新读取会放弃未保存的修改')"
             @click="reloadConflictedLecture"
-            >重新读取</MButton
+            >{{ t('重新读取') }}</MButton
           >
           <MButton
             v-if="!lecture.isLocal && !isArchived"
@@ -2702,7 +2703,7 @@ onUnmounted(() => {
             :mono="true"
             :disabled="saving"
             @click="openDownload"
-            >下载到本地</MButton
+            >{{ t('下载到本地') }}</MButton
           >
           <MButton
             v-if="canEditOnline && revision.status === 'draft'"
@@ -2710,10 +2711,10 @@ onUnmounted(() => {
             :mono="true"
             :disabled="saving || dirty || !!pendingSnapshotId || onlineConflict"
             :title="
-              dirty ? '请先保存所有修改' : pendingSnapshotId ? '已有待审核快照' : '提交已保存的草稿'
+              t(dirty ? '请先保存所有修改' : pendingSnapshotId ? '已有待审核快照' : '提交已保存的草稿')
             "
             @click="openSubmit"
-            >{{ pendingSnapshotId ? '审核中' : '提交审核' }}</MButton
+            >{{ t(pendingSnapshotId ? '审核中' : '提交审核') }}</MButton
           >
         </template>
       </ChapterPanel>
@@ -2737,9 +2738,9 @@ onUnmounted(() => {
             size="sm"
             :mono="true"
             :disabled="saving"
-            title="重新读取会放弃未保存的修改"
+            :title="t('重新读取会放弃未保存的修改')"
             @click="reloadConflictedLecture"
-            >重新读取</MButton
+            >{{ t('重新读取') }}</MButton
           >
           <MButton
             v-if="!lecture.isLocal && !isArchived"
@@ -2747,7 +2748,7 @@ onUnmounted(() => {
             :mono="true"
             :disabled="saving"
             @click="openDownload"
-            >下载到本地</MButton
+            >{{ t('下载到本地') }}</MButton
           >
           <MButton
             v-if="canEditOnline && revision.status === 'draft'"
@@ -2755,10 +2756,10 @@ onUnmounted(() => {
             :mono="true"
             :disabled="saving || dirty || !!pendingSnapshotId || onlineConflict"
             :title="
-              dirty ? '请先保存所有修改' : pendingSnapshotId ? '已有待审核快照' : '提交已保存的草稿'
+              t(dirty ? '请先保存所有修改' : pendingSnapshotId ? '已有待审核快照' : '提交已保存的草稿')
             "
             @click="openSubmit"
-            >{{ pendingSnapshotId ? '审核中' : '提交审核' }}</MButton
+            >{{ t(pendingSnapshotId ? '审核中' : '提交审核') }}</MButton
           >
         </template>
       </SectionPanel>
@@ -2767,13 +2768,13 @@ onUnmounted(() => {
         class="workbench-empty"
       >
         <span class="empty-label font-mono">BOOK WORKBENCH</span>
-        <h2>选择一份图书</h2>
-        <p>从左侧选择本地图书或我创作的图书，选择课程、章节或小节。</p>
+        <h2>{{ t('选择一份图书') }}</h2>
+        <p>{{ t('从左侧选择本地图书或我创作的图书，选择课程、章节或小节。') }}</p>
       </div>
     </main>
     <MModal
       :open="importOpen"
-      :title="importSource === 'local' ? '导入本地图书' : '导入在线图书'"
+      :title="t(importSource === 'local' ? '导入本地图书' : '导入在线图书')"
       width="480px"
       hide-footer
       :show-close="!saving"
@@ -2781,9 +2782,9 @@ onUnmounted(() => {
     >
       <div class="lecture-import">
         <MFilePicker
-          :title="importName || '图书 JSON 文件'"
-          :detail="importReading ? '正在读取文件…' : '选择一份完整图书文件'"
-          :action="importName ? '重新选择' : '选择文件'"
+          :title="importName || t('图书 JSON 文件')"
+          :detail="t(importReading ? '正在读取文件…' : '选择一份完整图书文件')"
+          :action="t(importName ? '重新选择' : '选择文件')"
           accept=".json,application/json"
           :disabled="saving || importUncertain"
           @choose="$event.target.value = ''"
@@ -2792,8 +2793,8 @@ onUnmounted(() => {
         <MInput
           v-if="importFile"
           v-model="importSlug"
-          :label="importFile.book.kind === 'workbook' ? '题目册标识' : '讲义标识'"
-          hint="导入将新建图书，标识不能与已有图书重复"
+          :label="t(importFile.book.kind === 'workbook' ? '题目册标识' : '讲义标识')"
+          :hint="t('导入将新建图书，标识不能与已有图书重复')"
           required
           :disabled="saving || importUncertain"
         />
@@ -2816,12 +2817,12 @@ onUnmounted(() => {
             variant="secondary"
             :disabled="saving"
             @click="closeLectureImport"
-            >{{ importUncertain ? '关闭并核对' : '取消' }}</MButton
+            >{{ t(importUncertain ? '关闭并核对' : '取消') }}</MButton
           ><MButton
             variant="primary"
             :disabled="saving || importReading || importUncertain || !importFile"
             @click="submitLectureImport"
-            >{{ saving ? '导入中…' : '确认导入' }}</MButton
+            >{{ t(saving ? '导入中…' : '确认导入') }}</MButton
           >
         </div>
       </div>
@@ -2843,7 +2844,7 @@ onUnmounted(() => {
     />
     <MModal
       :open="submitOpen"
-      title="确认提交审核"
+      :title="t('确认提交审核')"
       hide-footer
       show-close
       @close="closeSubmit"
@@ -2857,13 +2858,13 @@ onUnmounted(() => {
         }}
       </p>
       <p>已保存内容：{{ submitTarget?.chapterCount }} 章，{{ submitTarget?.sectionCount }} 小节</p>
-      <p>提交会基于已保存内容创建独立且不可修改的审核快照，原草稿仍可继续编辑。</p>
+      <p>{{ t('提交会基于已保存内容创建独立且不可修改的审核快照，原草稿仍可继续编辑。') }}</p>
       <div class="submit-actions">
         <MButton
           variant="ghost"
           size="sm"
           @click="closeSubmit"
-          >{{ saving ? '关闭' : '取消' }}</MButton
+          >{{ t(saving ? '关闭' : '取消') }}</MButton
         >
         <MButton
           variant="primary"
@@ -2880,61 +2881,61 @@ onUnmounted(() => {
     </MModal>
     <MModal
       :open="downloadOpen"
-      title="下载到本地"
+      :title="t('下载到本地')"
       :busy="saving"
       @close="!saving && (downloadOpen = false)"
       @confirm="downloadLecture"
       ><MInput
         v-model="downloadSlug"
-        label="本地图书标识"
-        hint="本地图书标识需在本浏览器中唯一"
+        :label="t('本地图书标识')"
+        :hint="t('本地图书标识需在本浏览器中唯一')"
         required
     /></MModal>
     <MModal
       :open="leaveOpen"
-      title="放弃未保存的修改"
-      desc="离开后当前修改将丢失"
-      confirm-text="放弃修改"
+      :title="t('放弃未保存的修改')"
+      :desc="t('离开后当前修改将丢失')"
+      :confirm-text="t('放弃修改')"
       confirm-variant="danger"
       @close="finishLeave(false)"
       @confirm="finishLeave(true)"
     />
     <MModal
       :open="createOpen"
-      :title="createSource === 'local' ? '新建本地图书' : '新建在线图书'"
+      :title="t(createSource === 'local' ? '新建本地图书' : '新建在线图书')"
       :busy="saving"
       @close="!saving && (createOpen = false)"
       @confirm="createLecture"
       ><MInput
         v-model="createForm.title"
-        label="图书名称"
+        :label="t('图书名称')"
         required /><MSelect
         v-model="createForm.kind"
-        label="图书类型"
+        :label="t('图书类型')"
         :options="[
           {
             value: 'lecture',
-            label: '讲义'
+            label: t('讲义')
           },
           {
             value: 'workbook',
-            label: '题目册'
+            label: t('题目册')
           }
         ]" /><MInput
         v-model="createForm.slug"
-        :label="createForm.kind === 'workbook' ? '题目册标识' : '讲义标识'"
-        :hint="createSource === 'local' ? '需在本浏览器的本地图书中唯一' : '创建后不能修改'"
+        :label="t(createForm.kind === 'workbook' ? '题目册标识' : '讲义标识')"
+        :hint="t(createSource === 'local' ? '需在本浏览器的本地图书中唯一' : '创建后不能修改')"
         required
     /></MModal>
     <MModal
       :open="Boolean(removeTarget)"
-      title="确认移除"
+      :title="t('确认移除')"
       :desc="
         removeTarget?.type === 'lecture'
-          ? '本地课程及其章节和小节将被删除，此操作无法撤销。'
-          : '移除将在保存草稿后生效，保存前可放弃修改。'
+          ? t('本地课程及其章节和小节将被删除，此操作无法撤销。')
+          : t('移除将在保存草稿后生效，保存前可放弃修改。')
       "
-      confirm-text="移除"
+      :confirm-text="t('移除')"
       confirm-variant="danger"
       :busy="treeBusy"
       @close="!treeBusy && (removeTarget = null)"

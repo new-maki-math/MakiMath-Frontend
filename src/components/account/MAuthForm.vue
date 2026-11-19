@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 // 登录与邀请注册组件
 import { ref } from 'vue';
 
@@ -37,7 +38,7 @@ const handleLogin = async () => {
     return;
   }
   if (!loginForm.value.username.trim() || !loginForm.value.password) {
-    notify('用户名和密码不能为空', 'error');
+    notify(t('用户名和密码不能为空'), 'error');
     return;
   }
   isSubmitting.value = true;
@@ -46,10 +47,10 @@ const handleLogin = async () => {
       username: loginForm.value.username.trim(),
       password: loginForm.value.password
     });
-    notify('登录成功', 'success');
+    notify(t('登录成功'), 'success');
     emit('success', user);
   } catch (err) {
-    notify(err.message || '登录失败，请检查账号密码', 'error');
+    notify(err.message || t('登录失败，请检查账号密码'), 'error');
   } finally {
     isSubmitting.value = false;
   }
@@ -61,22 +62,22 @@ const handleRegister = async () => {
     return;
   }
   if (!registerForm.value.inviteCode.trim()) {
-    notify('请输入邀请码', 'error');
+    notify(t('请输入邀请码'), 'error');
     return;
   }
   if (registerForm.value.username.trim().length < 3) {
-    notify('用户名至少需要三个字符', 'error');
+    notify(t('用户名至少需要三个字符'), 'error');
     return;
   }
   if (
     registerForm.value.password.length < 8 ||
     new TextEncoder().encode(registerForm.value.password).length > 72
   ) {
-    notify('密码至少需要八位字符且不能超过七十二字节', 'error');
+    notify(t('密码至少需要八位字符且不能超过七十二字节'), 'error');
     return;
   }
   if (registerForm.value.password !== registerForm.value.confirmPassword) {
-    notify('两次输入的密码不一致', 'error');
+    notify(t('两次输入的密码不一致'), 'error');
     return;
   }
   isSubmitting.value = true;
@@ -92,9 +93,9 @@ const handleRegister = async () => {
     });
     loginForm.value.username = registerForm.value.username.trim();
     mode.value = 'login';
-    notify('注册成功，请登录', 'success');
+    notify(t('注册成功，请登录'), 'success');
   } catch (err) {
-    notify(err.message || '注册失败，请检查邀请码或输入信息', 'error');
+    notify(err.message || t('注册失败，请检查邀请码或输入信息'), 'error');
   } finally {
     isSubmitting.value = false;
   }
@@ -107,11 +108,11 @@ const handleRegister = async () => {
       v-model="mode"
       :tabs="[
         {
-          label: '账号登录',
+          label: t('账号登录'),
           value: 'login'
         },
         {
-          label: '邀请码注册',
+          label: t('邀请码注册'),
           value: 'register'
         }
       ]"
@@ -129,15 +130,15 @@ const handleRegister = async () => {
       >
         <MInput
           v-model="loginForm.username"
-          label="用户名"
-          placeholder="请输入用户名"
+          :label="t('用户名')"
+          :placeholder="t('请输入用户名')"
           :disabled="isSubmitting"
         />
         <MInput
           v-model="loginForm.password"
-          label="密码"
+          :label="t('密码')"
           type="password"
-          placeholder="请输入密码"
+          :placeholder="t('请输入密码')"
           :disabled="isSubmitting"
         />
         <div class="auth-action">
@@ -148,7 +149,7 @@ const handleRegister = async () => {
             :mono="true"
             :disabled="isSubmitting"
           >
-            {{ isSubmitting ? '登录中...' : '立即登录' }}
+            {{ t(isSubmitting ? '登录中...' : '立即登录') }}
           </MButton>
         </div>
       </form>
@@ -161,34 +162,34 @@ const handleRegister = async () => {
       >
         <MInput
           v-model="registerForm.inviteCode"
-          label="邀请码"
-          placeholder="请输入专属邀请码"
+          :label="t('邀请码')"
+          :placeholder="t('请输入专属邀请码')"
           :disabled="isSubmitting"
         />
         <MInput
           v-model="registerForm.username"
-          label="设置用户名"
-          placeholder="至少三个字符"
+          :label="t('设置用户名')"
+          :placeholder="t('至少三个字符')"
           :disabled="isSubmitting"
         />
         <MInput
           v-model="registerForm.displayName"
-          label="显示昵称"
-          placeholder="例如 高数助教"
+          :label="t('显示昵称')"
+          :placeholder="t('例如 高数助教')"
           :disabled="isSubmitting"
         />
         <MInput
           v-model="registerForm.password"
-          label="设置密码"
+          :label="t('设置密码')"
           type="password"
-          placeholder="至少八位密码"
+          :placeholder="t('至少八位密码')"
           :disabled="isSubmitting"
         />
         <MInput
           v-model="registerForm.confirmPassword"
-          label="确认密码"
+          :label="t('确认密码')"
           type="password"
-          placeholder="请再次输入密码"
+          :placeholder="t('请再次输入密码')"
           :disabled="isSubmitting"
         />
         <div class="auth-action">
@@ -199,7 +200,7 @@ const handleRegister = async () => {
             :mono="true"
             :disabled="isSubmitting"
           >
-            {{ isSubmitting ? '注册中...' : '验证并注册' }}
+            {{ t(isSubmitting ? '注册中...' : '验证并注册') }}
           </MButton>
         </div>
       </form>

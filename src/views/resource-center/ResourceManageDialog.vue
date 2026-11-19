@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 import { computed, ref, watch } from 'vue';
 
 import { resourceApi } from '../../api/resources.js';
@@ -161,7 +162,7 @@ async function submit() {
 <template>
   <MModal
     :open="!!action"
-    :title="titleMap[action] || ''"
+    :title="t(titleMap[action] || '')"
     width="520px"
     :height="showDestination ? 'min(600px, calc(100vh - 96px))' : ''"
     hide-footer
@@ -172,28 +173,28 @@ async function submit() {
       v-if="action === 'remove'"
       class="action-message"
     >
-      永久删除后无法恢复。文件夹及其中的所有内容都会被删除。
+      {{ t('永久删除后无法恢复。文件夹及其中的所有内容都会被删除。') }}
       {{ item?.name }}
     </p>
     <MFilePicker
       v-if="showFile"
-      :title="file?.name || '选择 PDF 文件'"
+      :title="file?.name || t('选择 PDF 文件')"
       accept=".pdf,application/pdf"
       :disabled="busy"
-      detail="单个文件不超过 32 MiB"
+      :detail="t('单个文件不超过 32 MiB')"
       @change="selectFile"
     />
     <MInput
       v-if="showName"
       v-model="name"
-      label="名称"
+      :label="t('名称')"
       required
       :disabled="busy"
     />
     <MTextarea
       v-if="showDescription"
       v-model="description"
-      label="说明"
+      :label="t('说明')"
       :disabled="busy"
     />
     <ResourceDestinationPicker
@@ -209,7 +210,7 @@ async function submit() {
         variant="ghost"
         :disabled="busy"
         @click="close"
-        >取消</MButton
+        >{{ t('取消') }}</MButton
       >
       <MButton
         :variant="action === 'remove' ? 'danger' : 'primary'"
@@ -220,10 +221,10 @@ async function submit() {
         @click="submit"
         >{{
           busy
-            ? '处理中…'
+            ? t('处理中…')
             : action === 'remove'
-              ? ['确认所选 1/3', '再次确认 2/3', '永久删除 3/3'][deleteStage]
-              : '确认'
+              ? t(['确认所选 1/3', '再次确认 2/3', '永久删除 3/3'][deleteStage])
+              : t('确认')
         }}</MButton
       >
     </div>

@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 import { onBeforeUnmount, ref, watch } from 'vue';
 
 import { questionApi } from '../../api/questions.js';
@@ -121,9 +122,9 @@ onBeforeUnmount(() => {
 <template>
   <div class="picker">
     <div class="selected">
-      <span>已选择</span><strong>{{ modelValue || '请选择题目' }}</strong>
+      <span>{{ t('已选择') }}</span><strong>{{ modelValue || t('请选择题目') }}</strong>
     </div>
-    <span class="label">选择题目</span>
+    <span class="label">{{ t('选择题目') }}</span>
     <div class="container">
       <div class="heading">
         <MButton
@@ -131,8 +132,8 @@ onBeforeUnmount(() => {
           variant="ghost"
           size="sm"
           icon-only
-          title="上一级"
-          aria-label="上一级"
+          :title="t('上一级')"
+          :aria-label="t('上一级')"
           :disabled="disabled || loading"
           @click="navigate(data?.breadcrumbs?.at(-2)?.id ?? null)"
           ><ArrowLeft
@@ -141,7 +142,7 @@ onBeforeUnmount(() => {
         /></MButton>
         <nav
           class="path"
-          aria-label="题目分类路径"
+          :aria-label="t('题目分类路径')"
         >
           <button
             type="button"
@@ -171,7 +172,7 @@ onBeforeUnmount(() => {
       <div class="list">
         <MDataView
           :loading="loading"
-          text="正在加载题目…"
+          :text="t('正在加载题目…')"
           :content-key="`${categoryId}:${offset}`"
         >
           <p
@@ -195,7 +196,7 @@ onBeforeUnmount(() => {
               :disabled="disabled"
               @click="navigate('orphaned')"
             >
-              <MFileTypeIcon type="folder" /><span>无来源题目</span
+              <MFileTypeIcon type="folder" /><span>{{ t('无来源题目') }}</span
               ><NavArrowRight
                 width="16"
                 height="16"

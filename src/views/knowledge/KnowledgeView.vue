@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 import { onUnmounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
@@ -42,7 +43,7 @@ onUnmounted(() => {
 
 <template>
   <div class="knowledge-view">
-    <p v-if="loading">正在加载知识点</p>
+    <p v-if="loading">{{ t('正在加载知识点') }}</p>
     <div v-else-if="error">
       <p>{{ error }}</p>
       <MButton

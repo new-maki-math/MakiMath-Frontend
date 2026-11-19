@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 import { ref } from 'vue';
 
 import MFileTypeIcon from '../../components/display/MFileTypeIcon.vue';
@@ -38,8 +39,8 @@ function goUp() {
         variant="ghost"
         size="sm"
         icon-only
-        aria-label="上一级"
-        title="上一级"
+        :aria-label="t('上一级')"
+        :title="t('上一级')"
         @click="goUp"
         ><ArrowLeft
           width="18"
@@ -47,14 +48,14 @@ function goUp() {
       /></MButton>
       <nav
         class="path"
-        aria-label="题库路径"
+        :aria-label="t('题库路径')"
       >
         <button
           type="button"
           :disabled="categoryId === null"
           @click="navigate(null)"
         >
-          全部题目
+          {{ t('全部题目') }}
         </button>
         <template
           v-for="crumb in data?.breadcrumbs || []"
@@ -77,13 +78,13 @@ function goUp() {
       <MInput
         v-model="query"
         class="search"
-        aria-label="搜索题目"
-        placeholder="搜索题干、标识或来源题号"
+        :aria-label="t('搜索题目')"
+        :placeholder="t('搜索题干、标识或来源题号')"
       />
     </div>
     <MDataView
       :loading="loading"
-      text="正在加载题库…"
+      :text="t('正在加载题库…')"
       :content-key="`${categoryId}:${offset}:${query}`"
     >
       <p
@@ -104,7 +105,7 @@ function goUp() {
           v-if="query.trim()"
           class="scope"
         >
-          {{ categoryId === null ? '搜索整个题库' : '搜索当前目录及子目录' }}
+          {{ t(categoryId === null ? '搜索整个题库' : '搜索当前目录及子目录') }}
         </p>
         <div class="items">
           <button
@@ -140,7 +141,7 @@ function goUp() {
               ><strong>{{ item.source_number || item.slug }}</strong
               ><span>{{ item.stem_summary || item.slug }}</span></span
             >
-            <span class="difficulty">难度 {{ item.difficulty }} / 5</span>
+            <span class="difficulty">{{ t('难度 {value} / 5', { value: item.difficulty }) }}</span>
           </button>
         </div>
         <MEmpty v-if="!data.children.length && !data.items.length" />

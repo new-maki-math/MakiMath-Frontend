@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 
+import { t } from '../../i18n.js';
 import MBackdrop from '../overlay/MBackdrop.vue';
 import MSpinner from './MSpinner.vue';
 
@@ -50,7 +51,7 @@ const progressPercent = computed(() => {
         v-if="text"
         class="loading-text font-mono"
       >
-        {{ text }}
+        {{ t(text) }}
       </div>
 
       <div

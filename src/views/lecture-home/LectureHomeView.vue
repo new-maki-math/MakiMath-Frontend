@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 import { computed, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -71,12 +72,12 @@ const totalSectionsCount = computed(() => {
 });
 const reviewStatusLabel = computed(
   () =>
-    ({
+    t(({
       draft: '草稿',
       pending: '审核中',
       approved: '已通过',
       rejected: '已驳回'
-    })[revisionStatus.value] || '未提供'
+    })[revisionStatus.value] || '未提供')
 );
 const updatedAt = computed(() => {
   if (!lecture.value?.updatedAt) {
@@ -93,7 +94,7 @@ const lectureTree = computed(() => {
   }
   return {
     id: lecture.value?.dbId || lecture.value?.id || lectureId.value,
-    title: lecture.value?.title || '当前讲义',
+    title: lecture.value?.title || t('当前讲义'),
     chapters: chapters.value
   };
 });
@@ -232,7 +233,7 @@ async function addLecture() {
       return;
     }
     if (!(await checkPublicVersion())) {
-      notify('无法确认该版本仍为公开版本，请刷新后重试', 'warn');
+      notify(t('无法确认该版本仍为公开版本，请刷新后重试'), 'warn');
       return;
     }
     if (sequence !== loadId || !addOpen.value) {
@@ -244,9 +245,9 @@ async function addLecture() {
     record.sourceRevisionId = sourceRevisionId;
     await createLocalLecture(record);
     addOpen.value = false;
-    notify('已添加到我的书架，可在讲义工作台编辑本地副本', 'success');
+    notify(t('已添加到我的书架，可在讲义工作台编辑本地副本'), 'success');
   } catch (error) {
-    notify(error.message || '添加讲义失败，请重试', 'error');
+    notify(error.message || t('添加讲义失败，请重试'), 'error');
   } finally {
     addSaving.value = false;
   }
@@ -287,11 +288,11 @@ async function submitReview() {
       if (decision === 'approved') {
         checkPublicVersion();
       }
-      notify('审核已完成', 'success');
+      notify(t('审核已完成'), 'success');
     }
   } catch (error) {
     notify(
-      error.status === 409 ? '审核状态已变化，请刷新后重新核对' : error.message || '审核失败',
+      error.status === 409 ? t('审核状态已变化，请刷新后重新核对') : error.message || t('审核失败'),
       'error'
     );
   } finally {
@@ -325,7 +326,7 @@ async function changeCover(event) {
     !['image/jpeg', 'image/png', 'image/webp'].includes(file.type) ||
     file.size > 5 * 1024 * 1024
   ) {
-    notify('请选择不超过 5 MB 的 JPG、PNG 或 WebP 图片', 'warn');
+    notify(t('请选择不超过 5 MB 的 JPG、PNG 或 WebP 图片'), 'warn');
     return;
   }
   const id = String(lecture.value.id);
@@ -353,9 +354,9 @@ async function changeCover(event) {
       };
     }
     coverDialogOpen.value = false;
-    notify('封面已保存', 'success');
+    notify(t('封面已保存'), 'success');
   } catch (error) {
-    notify(error.message || '保存封面失败', 'error');
+    notify(error.message || t('保存封面失败'), 'error');
   } finally {
     coverSaving.value = false;
   }
@@ -376,9 +377,9 @@ async function removeCover() {
       };
     }
     coverDialogOpen.value = false;
-    notify('已恢复通用封面', 'success');
+    notify(t('已恢复通用封面'), 'success');
   } catch (error) {
-    notify(error.message || '删除封面失败', 'error');
+    notify(error.message || t('删除封面失败'), 'error');
   } finally {
     coverSaving.value = false;
   }
@@ -399,12 +400,12 @@ async function removeLecture() {
       String(lecture.value?.id) === id
     ) {
       deleteDialogOpen.value = false;
-      notify('本地讲义已删除', 'success');
+      notify(t('本地讲义已删除'), 'success');
       await router.push('/my-lecture');
     }
   } catch (error) {
     if (currentLoad === loadId) {
-      notify(error.message || '删除本地讲义失败', 'error');
+      notify(error.message || t('删除本地讲义失败'), 'error');
     }
   } finally {
     deleteSaving.value = false;
@@ -467,8 +468,8 @@ const loadLectureData = async (slug) => {
         err.status === 404
           ? revisionId.value
             ? '讲义或指定版本不可访问，可能已更新或下架，请返回列表刷新'
-            : '讲义不存在或当前账号无权访问'
-          : err.message || '讲义加载失败，请重试';
+            : t('讲义不存在或当前账号无权访问')
+          : err.message || t('讲义加载失败，请重试');
     }
   } finally {
     if (id === loadId) {
@@ -553,7 +554,7 @@ onUnmounted(() => {
                 class="lecture-desc"
                 tabindex="0"
               >
-                {{ lecture.desc || '暂无课程描述信息。' }}
+                {{ lecture.desc || t('暂无课程描述信息。') }}
               </p>
             </div>
           </div>
@@ -572,7 +573,7 @@ onUnmounted(() => {
               :mono="true"
               @click="enterDoc"
             >
-              {{ isWorkbook ? '阅读题目册' : '阅读讲义'
+              {{ t(isWorkbook ? '阅读题目册' : '阅读讲义')
               }}<span class="action-translation">
                 // {{ isWorkbook ? 'READ WORKBOOK' : 'READ LECTURE' }}</span
               >
@@ -593,7 +594,7 @@ onUnmounted(() => {
               :mono="true"
               @click="scrollToCatalog"
             >
-              查看大纲目录<span class="action-translation"> // OUTLINE</span>
+              {{ t('查看大纲目录') }}<span class="action-translation"> // OUTLINE</span>
             </MButton>
             <MButton
               variant="secondary"
@@ -613,7 +614,7 @@ onUnmounted(() => {
                   width="16"
                   height="16"
               /></template>
-              编辑封面
+              {{ t('编辑封面') }}
             </MButton>
             <MButton
               v-if="shelfSource === 'local'"
@@ -626,7 +627,7 @@ onUnmounted(() => {
                   width="16"
                   height="16"
               /></template>
-              {{ isWorkbook ? '删除题目册' : '删除讲义' }}
+              {{ t(isWorkbook ? '删除题目册' : '删除讲义') }}
             </MButton>
             <MButton
               v-if="shelfSource === 'online' && isPublicVersion"
@@ -634,14 +635,14 @@ onUnmounted(() => {
               :disabled="addSaving || publicChecking"
               @click="openAddLecture"
             >
-              添加到我的书架
+              {{ t('添加到我的书架') }}
             </MButton>
             <MButton
               v-if="publicCheckError"
               variant="ghost"
               :disabled="publicChecking"
               @click="checkPublicVersion"
-              >公开状态检查失败，重试</MButton
+              >{{ t('公开状态检查失败，重试') }}</MButton
             >
             <div
               v-if="
@@ -656,13 +657,13 @@ onUnmounted(() => {
                 variant="primary"
                 :disabled="reviewSaving"
                 @click="openReview('approved')"
-                >通过审核</MButton
+                >{{ t('通过审核') }}</MButton
               >
               <MButton
                 variant="danger"
                 :disabled="reviewSaving"
                 @click="openReview('rejected')"
-                >驳回讲义</MButton
+                >{{ t('驳回讲义') }}</MButton
               >
             </div>
           </div>
@@ -671,41 +672,39 @@ onUnmounted(() => {
 
       <MModal
         :open="coverDialogOpen && shelfSource === 'local'"
-        title="编辑封面"
+        :title="t('编辑封面')"
         hide-footer
         show-close
         @close="!coverSaving && (coverDialogOpen = false)"
       >
-        <p class="cover-dialog-note">选择不超过 5 MB 的 JPG、PNG 或 WebP 图片。</p>
+        <p class="cover-dialog-note">{{ t('选择不超过 5 MB 的 JPG、PNG 或 WebP 图片。') }}</p>
         <div class="cover-dialog-actions">
           <MButton
             variant="primary"
             :disabled="coverSaving"
             @click="coverInput?.click()"
-            >{{ lecture?.cover ? '替换封面' : '选择封面' }}</MButton
+            >{{ t(lecture?.cover ? '替换封面' : '选择封面') }}</MButton
           >
           <MButton
             v-if="lecture?.cover"
             variant="ghost"
             :disabled="coverSaving"
             @click="removeCover"
-            >删除封面</MButton
+            >{{ t('删除封面') }}</MButton
           >
         </div>
       </MModal>
       <MModal
         :open="deleteDialogOpen && shelfSource === 'local'"
-        :title="isWorkbook ? '删除本地题目册' : '删除本地讲义'"
-        :confirm-text="isWorkbook ? '删除题目册' : '删除讲义'"
+        :title="t(isWorkbook ? '删除本地题目册' : '删除本地讲义')"
+        :confirm-text="t(isWorkbook ? '删除题目册' : '删除讲义')"
         confirm-variant="danger"
         :busy="deleteSaving"
         @close="!deleteSaving && (deleteDialogOpen = false)"
         @confirm="removeLecture"
       >
         <p class="cover-dialog-note">
-          确定删除“{{ lecture?.title }}”吗？本地{{
-            isWorkbook ? '题目册' : '讲义'
-          }}内容将被删除，且无法恢复。
+          {{ t(isWorkbook ? '确定删除“{title}”吗？本地题目册内容将被删除，且无法恢复。' : '确定删除“{title}”吗？本地讲义内容将被删除，且无法恢复。', { title: lecture?.title }) }}
         </p>
       </MModal>
       <LecturePrintDialog
@@ -721,37 +720,37 @@ onUnmounted(() => {
           <div class="spec-card">
             <div class="card-header">
               <span class="card-title font-mono"
-                >OVERVIEW // {{ isWorkbook ? '题目册概要' : '讲义概要' }}</span
+                >{{ t('OVERVIEW // {kind}', { kind: t(isWorkbook ? '题目册概要' : '讲义概要') }) }}</span
               >
             </div>
             <div class="spec-body">
               <div class="spec-item">
-                <span class="spec-label">章节与小节</span>
+                <span class="spec-label">{{ t('章节与小节') }}</span>
                 <span class="spec-value font-mono"
-                  >{{ chapters.length }} 章 · {{ totalSectionsCount }} 节</span
+                  >{{ t('{chapters} 章 · {sections} 节', { chapters: chapters.length, sections: totalSectionsCount }) }}</span
                 >
               </div>
               <div class="spec-item">
-                <span class="spec-label">{{ isWorkbook ? '题目册版本' : '讲义版本' }}</span>
+                <span class="spec-label">{{ t(isWorkbook ? '题目册版本' : '讲义版本') }}</span>
                 <span class="spec-value">{{
                   shelfSource === 'local'
-                    ? '本地版本'
+                    ? t('本地版本')
                     : lecture.revisionNo != null
                       ? `V${lecture.revisionNo}`
-                      : '未提供'
+                      : t('未提供')
                 }}</span>
               </div>
               <div class="spec-item">
-                <span class="spec-label">版本状态</span>
+                <span class="spec-label">{{ t('版本状态') }}</span>
                 <span class="spec-value">{{
-                  shelfSource === 'local' ? '本地编辑' : reviewStatusLabel
+                  shelfSource === 'local' ? t('本地编辑') : reviewStatusLabel
                 }}</span>
               </div>
               <div
                 v-if="updatedAt"
                 class="spec-item"
               >
-                <span class="spec-label">更新时间</span
+                <span class="spec-label">{{ t('更新时间') }}</span
                 ><span class="spec-value font-mono">{{ updatedAt }}</span>
               </div>
             </div>
@@ -760,22 +759,22 @@ onUnmounted(() => {
           <!-- 学习指引 -->
           <div class="spec-card">
             <div class="card-header">
-              <span class="card-title font-mono">PREREQUISITES // 学习指引</span>
+              <span class="card-title font-mono">{{ t('PREREQUISITES // 学习指引') }}</span>
             </div>
             <div class="spec-body">
               <p class="guide-text">
                 {{
                   isWorkbook
-                    ? '本题目册按章节和小节组织题目。你可以从目录中选择小节开始阅读。'
-                    : '本讲义按章节和小节组织内容。你可以从目录中选择小节开始阅读。'
+                    ? t('本题目册按章节和小节组织题目。你可以从目录中选择小节开始阅读。')
+                    : t('本讲义按章节和小节组织内容。你可以从目录中选择小节开始阅读。')
                 }}
               </p>
               <div class="guide-note font-mono">
                 TIP:
                 {{
                   isWorkbook
-                    ? '点击下方目录中的小节即可查看题目。'
-                    : '点击下方目录中的任一讲次即可直接进入全屏讲义阅读。'
+                    ? t('点击下方目录中的小节即可查看题目。')
+                    : t('点击下方目录中的任一讲次即可直接进入全屏讲义阅读。')
                 }}
               </div>
             </div>
@@ -791,7 +790,7 @@ onUnmounted(() => {
         <div class="roadmap-header">
           <div class="section-title-wrap">
             <span class="section-kicker font-mono">RELATIONSHIP GRAPH</span>
-            <h2 class="section-heading">讲义目录结构</h2>
+            <h2 class="section-heading">{{ t('讲义目录结构') }}</h2>
           </div>
           <div class="roadmap-meta font-mono">
             <span>OBSIDIAN-STYLE INTERACTIVE MAP</span>
@@ -819,26 +818,25 @@ onUnmounted(() => {
             <span class="section-kicker font-mono">{{
               isWorkbook ? 'CONTENTS & QUESTIONS' : 'SYLLABUS & LECTURES'
             }}</span>
-            <h2 class="section-heading">{{ isWorkbook ? '题目册目录' : '讲义大纲与章节目录' }}</h2>
+            <h2 class="section-heading">{{ t(isWorkbook ? '题目册目录' : '讲义大纲与章节目录') }}</h2>
           </div>
           <div class="curriculum-actions font-mono">
             <span class="curriculum-stats">
-              {{ chapters.length }} {{ isWorkbook ? '章' : '编' }} · {{ totalSectionsCount }}
-              {{ isWorkbook ? '节' : '讲' }}
+              {{ t(isWorkbook ? '{chapters} 章 · {sections} 节' : '{chapters} 编 · {sections} 讲', { chapters: chapters.length, sections: totalSectionsCount }) }}
             </span>
             <div class="toggle-group">
               <button
                 class="toggle-btn"
                 @click="expandAll"
               >
-                全部展开
+                {{ t('全部展开') }}
               </button>
               <span class="toggle-sep">/</span>
               <button
                 class="toggle-btn"
                 @click="collapseAll"
               >
-                全部折叠
+                {{ t('全部折叠') }}
               </button>
             </div>
           </div>
@@ -877,7 +875,7 @@ onUnmounted(() => {
 
               <div class="chapter-aside">
                 <span class="section-count font-mono"
-                  >{{ chap.sections?.length || 0 }} {{ isWorkbook ? '节' : '讲' }}</span
+                  >{{ t(isWorkbook ? '{count} 节' : '{count} 讲', { count: chap.sections?.length || 0 }) }}</span
                 >
                 <span
                   class="arrow-icon"
@@ -913,7 +911,7 @@ onUnmounted(() => {
                   </div>
 
                   <div class="entry-action font-mono">
-                    <span class="read-link">{{ isWorkbook ? '查看题目' : '进入讲义' }} →</span>
+                    <span class="read-link">{{ t(isWorkbook ? '查看题目' : '进入讲义') }} →</span>
                   </div>
                 </div>
               </div>
@@ -940,24 +938,24 @@ onUnmounted(() => {
     </div>
     <MModal
       :open="addOpen"
-      title="添加到我的书架"
-      desc="下载当前版本为本地讲义，可在讲义工作台编辑。"
-      confirm-text="添加"
+      :title="t('添加到我的书架')"
+      :desc="t('下载当前版本为本地讲义，可在讲义工作台编辑。')"
+      :confirm-text="t('添加')"
       :busy="addSaving"
       @close="!addSaving && (addOpen = false)"
       @confirm="addLecture"
     >
       <MInput
         v-model="addSlug"
-        label="本地讲义标识"
-        hint="本地讲义标识需在本浏览器中唯一"
+        :label="t('本地讲义标识')"
+        :hint="t('本地讲义标识需在本浏览器中唯一')"
         required
       />
     </MModal>
     <MModal
       :open="Boolean(reviewDecision)"
-      :title="reviewDecision === 'approved' ? '通过审核' : '驳回讲义'"
-      :confirm-text="reviewDecision === 'approved' ? '确认通过' : '确认驳回'"
+      :title="t(reviewDecision === 'approved' ? '通过审核' : '驳回讲义')"
+      :confirm-text="t(reviewDecision === 'approved' ? '确认通过' : '确认驳回')"
       :confirm-variant="reviewDecision === 'approved' ? 'primary' : 'danger'"
       :busy="reviewSaving"
       @close="!reviewSaving && (reviewDecision = '')"
@@ -965,7 +963,7 @@ onUnmounted(() => {
     >
       <MTextarea
         v-model="reviewComment"
-        label="审核意见"
+        :label="t('审核意见')"
         :rows="3"
       />
     </MModal>

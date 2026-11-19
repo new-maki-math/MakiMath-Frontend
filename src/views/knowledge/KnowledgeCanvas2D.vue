@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 import { select, zoom, zoomIdentity } from 'd3';
 import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 
@@ -507,13 +508,13 @@ onUnmounted(() => {
       />
       <div
         class="canvas-accessibility"
-        aria-label="知识点列表"
+        :aria-label="t('知识点列表')"
       >
         <button
           v-for="tile in layout.tiles"
           :key="tile.node.id"
           type="button"
-          :aria-label="`${tile.node.title}，${mastered.has(tile.node.slug) ? '已掌握' : '未掌握'}，激活打开阅读`"
+          :aria-label="t('{title}，{status}，激活打开阅读', { title: tile.node.title, status: t(mastered.has(tile.node.slug) ? '已掌握' : '未掌握') })"
           @focus="
             focusTile(tile);
             emit('focus', tile.node);
@@ -526,20 +527,20 @@ onUnmounted(() => {
     <div class="canvas-controls">
       <MButton
         size="sm"
-        aria-label="缩小画布"
+        :aria-label="t('缩小画布')"
         @click="scaleAt(0.8, width / 2, height / 2)"
         >−</MButton
       >
       <MButton
         size="sm"
-        aria-label="放大画布"
+        :aria-label="t('放大画布')"
         @click="scaleAt(1.25, width / 2, height / 2)"
         >+</MButton
       >
       <MButton
         size="sm"
         @click="fit"
-        >全览</MButton
+        >{{ t('全览') }}</MButton
       >
     </div>
   </div>

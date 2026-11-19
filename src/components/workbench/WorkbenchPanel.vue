@@ -1,4 +1,5 @@
 <script setup>
+import { locale, t } from '../../i18n.js';
 import { computed } from 'vue';
 
 import MButton from '../form/MButton.vue';
@@ -58,13 +59,13 @@ defineEmits(['save', 'reset']);
 
 function formatDate(value) {
   if (!value) {
-    return '未提供';
+    return t('未提供');
   }
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
-    return '未提供';
+    return t('未提供');
   }
-  return date.toLocaleString('zh-CN', {
+  return date.toLocaleString(locale.value, {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -91,7 +92,7 @@ const reviewedDate = computed(() => formatDate(props.reviewedAt));
           <span
             v-if="dirty"
             class="dirty-dot"
-            title="有未保存的改动"
+            :title="t('有未保存的改动')"
           ></span>
         </div>
         <p
@@ -112,7 +113,7 @@ const reviewedDate = computed(() => formatDate(props.reviewedAt));
           :disabled="saving"
           @click="$emit('reset')"
         >
-          放弃
+          {{ t('放弃') }}
         </MButton>
         <MButton
           v-if="editable"
@@ -122,7 +123,7 @@ const reviewedDate = computed(() => formatDate(props.reviewedAt));
           :disabled="saving || !canSave"
           @click="$emit('save')"
         >
-          {{ saving ? '保存中...' : saveLabel }}
+          {{ saving ? t('保存中...') : t(saveLabel) }}
         </MButton>
       </div>
     </header>
@@ -137,24 +138,24 @@ const reviewedDate = computed(() => formatDate(props.reviewedAt));
         :class="`status-${reviewStatus}`"
       >
         <template v-if="reviewStatus === 'pending'">
-          <strong>课程讲义正在审核中...</strong>
+          <strong>{{ t('课程讲义正在审核中...') }}</strong>
           <p>{{ readOnlyMessage }}</p>
           <div class="notice-details">
-            <span>提交日期：{{ submittedDate }}</span
-            ><span>提交用户：未提供</span>
+            <span>{{ t('提交日期：{date}', { date: submittedDate }) }}</span
+            ><span>{{ t('提交用户：未提供') }}</span>
           </div>
         </template>
         <template v-else-if="reviewStatus === 'rejected'">
-          <strong>课程讲义被驳回了！</strong>
-          <p>驳回原因：未提供；{{ readOnlyMessage }}</p>
+          <strong>{{ t('课程讲义被驳回了！') }}</strong>
+          <p>{{ t('驳回原因：未提供；{message}', { message: readOnlyMessage }) }}</p>
           <div class="notice-details">
-            <span>提交日期：{{ submittedDate }}</span
-            ><span>提交用户：未提供</span><span>驳回时间：{{ reviewedDate }}</span>
+            <span>{{ t('提交日期：{date}', { date: submittedDate }) }}</span
+            ><span>{{ t('提交用户：未提供') }}</span><span>{{ t('驳回时间：{date}', { date: reviewedDate }) }}</span>
           </div>
         </template>
         <template v-else-if="reviewStatus === 'approved'">
-          <strong>课程讲义审核通过！</strong>
-          <p>恭喜你🎉讲义审核通过</p>
+          <strong>{{ t('课程讲义审核通过！') }}</strong>
+          <p>{{ t('恭喜你🎉讲义审核通过') }}</p>
           <p>{{ readOnlyMessage }}</p>
         </template>
         <template v-else

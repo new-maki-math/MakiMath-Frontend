@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 import { ref } from 'vue';
 
 import MSpinner from '../feedback/MSpinner.vue';
@@ -131,7 +132,7 @@ defineExpose({
         v-if="loading && !nodes.length"
         class="tree-empty font-mono"
       >
-        加载中...
+        {{ t('加载中...') }}
       </div>
       <div
         v-else-if="!nodes.length"
@@ -142,7 +143,7 @@ defineExpose({
           aria-hidden="true"
           >（・_・）</span
         >
-        <p>{{ emptyText }}</p>
+        <p>{{ t(emptyText) }}</p>
       </div>
       <WorkbenchTreeNode
         v-for="(node, index) in prepare(props.nodes)"

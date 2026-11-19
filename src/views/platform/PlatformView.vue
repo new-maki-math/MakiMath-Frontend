@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 // 平台运维与管理控制台总视图
 import { onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -74,13 +75,13 @@ onMounted(() => {
     v-if="authStatus === 'initializing'"
     class="platform-content"
   >
-    正在验证登录状态
+    {{ t('正在验证登录状态') }}
   </div>
   <div
     v-else-if="authStatus === 'error'"
     class="platform-content"
   >
-    <p>登录状态验证失败，请重试</p>
+    <p>{{ t('登录状态验证失败，请重试') }}</p>
     <MButton @click="initAuth">重试</MButton>
   </div>
   <PlatformAuth
@@ -113,7 +114,7 @@ onMounted(() => {
             height="16"
             class="tab-icon"
           />
-          <span class="tab-label">{{ tab.label }}</span>
+          <span class="tab-label">{{ t(tab.label) }}</span>
         </button>
       </nav>
     </aside>

@@ -24,7 +24,6 @@ const paths = {
     'M3 5.5A2.5 2.5 0 0 1 5.5 3h3.8c.66 0 1.3.26 1.77.73L12.34 5h6.16A2.5 2.5 0 0 1 21 7.5v11a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 18.5zm8 4v3h-3v2h3v3h2v-3h3v-2h-3v-3z',
   Group:
     'M8 4a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7m8.5 1a3 3 0 1 0 0 6 3 3 0 0 0 0-6M2 18a6 6 0 0 1 12 0v1H2zm12.5-5.7a5 5 0 0 1 7.5 4.3V19h-6v-1a7.5 7.5 0 0 0-1.5-5.7',
-  HalfMoon: 'M19.9 15.2A8.6 8.6 0 0 1 8.8 4.1a9 9 0 1 0 11.1 11.1',
   HandCard:
     'M8 10V4.5a1.5 1.5 0 0 1 3 0V10h.5V3.5a1.5 1.5 0 0 1 3 0V10h.5V5a1.5 1.5 0 0 1 3 0v6h.5V8a1.5 1.5 0 0 1 3 0v6.5c0 4-2.5 6.5-6.5 6.5h-2c-2.5 0-4-1-5.5-3L4 13.5a1.5 1.5 0 0 1 2.2-2z',
   HelpCircle:
@@ -33,6 +32,8 @@ const paths = {
   Journal:
     'M6 3h12a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2m1 3v12h1.5V6zm3 1v1.5h7V7zm0 4v1.5h7V11z',
   Key: 'M8.5 3a5.5 5.5 0 1 0 3.4 9.82L14 15v2h2v2h2v2h3v-3l-7.18-7.18A5.5 5.5 0 0 0 8.5 3m-1 2.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3',
+  Language:
+    'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20M8.12 5.22A8.04 8.04 0 0 0 4.58 9h2.2a16.9 16.9 0 0 1 1.34-3.78M4.06 11a8.1 8.1 0 0 0 0 2h2.41a20.62 20.62 0 0 1 0-2zm.52 4a8.04 8.04 0 0 0 3.54 3.78A16.9 16.9 0 0 1 6.78 15zm7.42 4.94c1.05-.94 2.1-2.71 2.69-4.94H9.31c.59 2.23 1.64 4 2.69 4.94M8.48 11a18.6 18.6 0 0 0 0 2h7.04a18.6 18.6 0 0 0 0-2zM9.31 9h5.38C14.1 6.77 13.05 5 12 4.06 10.95 5 9.9 6.77 9.31 9m6.57-3.78A16.9 16.9 0 0 1 17.22 9h2.2a8.04 8.04 0 0 0-3.54-3.78M17.53 11a20.62 20.62 0 0 1 0 2h2.41a8.1 8.1 0 0 0 0-2zm-.31 4a16.9 16.9 0 0 1-1.34 3.78A8.04 8.04 0 0 0 19.42 15z',
   List: 'M4 5h3v3H4zm5 .5h11v2H9zM4 10.5h3v3H4zm5 .5h11v2H9zm-5 5h3v3H4zm5 .5h11v2H9z',
   Lock: 'M7 9V7a5 5 0 0 1 10 0v2h1a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2zm2 0h6V7a3 3 0 0 0-6 0zm3 3a1.5 1.5 0 0 0-1 2.62V17h2v-2.38A1.5 1.5 0 0 0 12 12',
   LogOut:
@@ -51,14 +52,6 @@ const paths = {
     'M12 3a9 9 0 0 1 7.5 4H22v5h-5V9h.9A7 7 0 0 0 5.2 10.4l-1.94-.5A9 9 0 0 1 12 3M7 12v3h-.9a7 7 0 0 0 12.7-1.4l1.94.5A9 9 0 0 1 4.5 17H2v-5z',
   Search:
     'M10.5 3a7.5 7.5 0 1 0 4.64 13.39l4.65 4.65 1.41-1.41-4.65-4.65A7.5 7.5 0 0 0 10.5 3m0 2a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11',
-  SeasonSpring:
-    'M8.83 7.63 Q12 -1.2 15.17 7.63 Q24.55 7.92 17.14 13.67 Q19.76 22.68 12 17.4 Q4.24 22.68 6.86 13.67 Q-0.55 7.92 8.83 7.63 Z M12 10.15a1.85 1.85 0 1 0 0 3.7 1.85 1.85 0 0 0 0-3.7',
-  SeasonAutumn:
-    'M20.6 3.2c-6.3.15-11.6 1.6-14.4 4.7-2.2 2.4-2.6 5.7-.9 8.3l-2 2 1.4 1.4 2-2c2.6 1.7 5.9 1.3 8.3-.9 3.1-2.8 4.55-8.1 4.7-13.5zM7.6 15l2.2-2.2-.1-3.2 1.4-.04.07 1.87 3.54-3.54 1.4 1.42-3.5 3.5 1.86.06-.05 1.4-3.2-.1L9 16.4z',
-  SeasonWinter:
-    'M12.82 9.6 L12.82 6.4 L14.95 4.27 L13.95 3.27 L12.82 4.4 L12.82 2 L11.18 2 L11.18 4.4 L10.05 3.27 L9.05 4.27 L11.18 6.4 L11.18 9.6 L10.33 10.09 L7.56 8.49 L6.78 5.58 L5.41 5.95 L5.83 7.49 L3.75 6.29 L2.93 7.71 L5.01 8.91 L3.46 9.32 L3.83 10.69 L6.74 9.91 L9.51 11.51 L9.51 12.49 L6.74 14.09 L3.83 13.31 L3.46 14.68 L5.01 15.09 L2.93 16.29 L3.75 17.71 L5.83 16.51 L5.41 18.05 L6.78 18.42 L7.56 15.51 L10.33 13.91 L11.18 14.4 L11.18 17.6 L9.05 19.73 L10.05 20.73 L11.18 19.6 L11.18 22 L12.82 22 L12.82 19.6 L13.95 20.73 L14.95 19.73 L12.82 17.6 L12.82 14.4 L13.67 13.91 L16.44 15.51 L17.22 18.42 L18.59 18.05 L18.17 16.51 L20.25 17.71 L21.07 16.29 L18.99 15.09 L20.54 14.68 L20.17 13.31 L17.26 14.09 L14.49 12.49 L14.49 11.51 L17.26 9.91 L20.17 10.69 L20.54 9.32 L18.99 8.91 L21.07 7.71 L20.25 6.29 L18.17 7.49 L18.59 5.95 L17.22 5.58 L16.44 8.49 L13.67 10.09 Z',
-  SunLight:
-    'M11 2h2v3h-2zm0 17h2v3h-2zM2 11h3v2H2zm17 0h3v2h-3zM4.22 5.64l1.42-1.42 2.12 2.12-1.42 1.42zm12.02 12.02 1.42-1.42 2.12 2.12-1.42 1.42zM16.24 6.34l2.12-2.12 1.42 1.42-2.12 2.12zM4.22 18.36l2.12-2.12 1.42 1.42-2.12 2.12zM12 6a6 6 0 1 0 0 12 6 6 0 0 0 0-12',
   Terminal: 'M4.7 5.3 11.4 12l-6.7 6.7-1.4-1.4L8.6 12 3.3 6.7zM12 17h9v2h-9z',
   Trash:
     'M9 3h6l1 2h4v2H4V5h4zm-3 5h12l-.8 11a2 2 0 0 1-2 2H8.8a2 2 0 0 1-2-2zm3 2v8h1.5v-8zm4.5 0v8H15v-8z',
@@ -95,7 +88,6 @@ const paths = {
 };
 
 function createIcon(name) {
-  const scale = name === 'SeasonSpring' ? 1.14 : name === 'SeasonAutumn' ? 1.12 : 1;
   return defineComponent({
     name: `MIcon${name}`,
     setup(_, { attrs }) {
@@ -114,8 +106,6 @@ function createIcon(name) {
           [
             h('path', {
               d: paths[name],
-              transform:
-                scale === 1 ? undefined : `translate(12 12) scale(${scale}) translate(-12 -12)`,
               'fill-rule': 'evenodd',
               'clip-rule': 'evenodd'
             })
@@ -138,12 +128,12 @@ export const Expand = createIcon('Expand');
 export const Folder = createIcon('Folder');
 export const FolderPlus = createIcon('FolderPlus');
 export const Group = createIcon('Group');
-export const HalfMoon = createIcon('HalfMoon');
 export const HandCard = createIcon('HandCard');
 export const HelpCircle = createIcon('HelpCircle');
 export const InfoCircleSolid = createIcon('InfoCircleSolid');
 export const Journal = createIcon('Journal');
 export const Key = createIcon('Key');
+export const Language = createIcon('Language');
 export const List = createIcon('List');
 export const Lock = createIcon('Lock');
 export const LogOut = createIcon('LogOut');
@@ -159,10 +149,6 @@ export const Play = createIcon('Play');
 export const Plus = createIcon('Plus');
 export const Refresh = createIcon('Refresh');
 export const Search = createIcon('Search');
-export const SeasonSpring = createIcon('SeasonSpring');
-export const SeasonAutumn = createIcon('SeasonAutumn');
-export const SeasonWinter = createIcon('SeasonWinter');
-export const SunLight = createIcon('SunLight');
 export const Terminal = createIcon('Terminal');
 export const Trash = createIcon('Trash');
 export const Upload = createIcon('Upload');

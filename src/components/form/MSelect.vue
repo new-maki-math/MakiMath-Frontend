@@ -1,4 +1,5 @@
 <script setup>
+import { t } from '../../i18n.js';
 import { computed, nextTick, onMounted, onUnmounted, ref, useAttrs, useId, watch } from 'vue';
 
 import { CheckCircleSolid, NavArrowDown } from '../icons/icons.js';
@@ -80,7 +81,7 @@ function triggerAttrs() {
 const selectedIndex = computed(() =>
   props.options.findIndex((option) => String(option.value) === String(props.modelValue))
 );
-const selectedLabel = computed(() => props.options[selectedIndex.value]?.label ?? '请选择');
+const selectedLabel = computed(() => props.options[selectedIndex.value]?.label ?? t('请选择'));
 const describedBy = computed(
   () => [attrs['aria-describedby'], props.hint ? hintId : ''].filter(Boolean).join(' ') || undefined
 );
@@ -359,7 +360,7 @@ onUnmounted(() => {
         class="select-menu"
         :style="position || 'visibility: hidden'"
         role="listbox"
-        :aria-label="ariaLabel || label || '选择选项'"
+        :aria-label="ariaLabel || label || t('选择选项')"
       >
         <div
           v-for="(option, index) in options"
@@ -398,7 +399,7 @@ onUnmounted(() => {
           v-if="!options.length"
           class="select-empty"
         >
-          暂无选项
+          {{ t('暂无选项') }}
         </div>
       </div>
     </Teleport>

@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { invalidateCourseRequests, toChapters } from '../api/courses.js';
 import { notify } from '../components/feedback/MNotice.vue';
 import { workbenchPanelState } from '../composables/useWorkbenchGuard.js';
+import { t } from '../i18n.js';
 import {
   authStatus,
   currentUser,
@@ -112,7 +113,7 @@ export function useLayoutState() {
   const navigationGroups = computed(() => {
     const visible = navItems.filter(
       (item) => !item.sidebarHidden && (!item.adminOnly || isSuperAdmin.value)
-    );
+    ).map((item) => ({ ...item, label: t(item.label) }));
     return ['primary', 'reader', 'library', 'management', 'platform']
       .map((group) => visible.filter((item) => item.group === group))
       .filter((group) => group.length);
@@ -248,7 +249,7 @@ export function useLayoutState() {
   const currentItem = computed(() => {
     const match = navItems.find((item) => item.path === route.path);
     if (match) {
-      return match;
+      return { ...match, label: t(match.label) };
     }
 
     return {
