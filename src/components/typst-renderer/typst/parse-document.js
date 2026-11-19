@@ -971,6 +971,14 @@ export function parseDocument(source) {
               renderToString(formula, {
                 displayMode: display,
                 strict: (warning) => {
+                  // 字形已回退到 MathML，保留其他公式诊断。
+                  if (
+                    /^Typlet does not support [\s\S]+ in HTML output, as New Computer Modern Math has no glyph for it; drawn as MathML[.!]?$/.test(
+                      warning.message
+                    )
+                  ) {
+                    return 'ignore';
+                  }
                   const begin = start + 1 + (warning.span?.start || 0);
                   const finish = start + 1 + (warning.span?.end ?? formula.length);
                   report(warning.message, begin, finish);
