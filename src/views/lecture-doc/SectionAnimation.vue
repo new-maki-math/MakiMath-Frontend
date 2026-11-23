@@ -1,9 +1,10 @@
 <script setup>
-import { t } from '../../i18n.js';
-import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 import MLoadingMask from '../../components/feedback/MLoadingMask.vue';
 import MButton from '../../components/form/MButton.vue';
+import MSelect from '../../components/form/MSelect.vue';
+import { t } from '../../i18n.js';
 import { cacheAnimationFont, prepareAnimationCDNStyles } from '../../utils/animation-cdn-cache.js';
 import {
   buildAnimationDocument,
@@ -31,6 +32,7 @@ const props = defineProps({
 });
 const packageFrame = ref(null);
 const packageProgress = ref(null);
+const pageList = ref([]);
 const playbackError = ref('');
 const aspectRatio = ref('16 / 9');
 const documentSource = ref('');
@@ -45,6 +47,7 @@ async function loadAnimation() {
   loading.value = true;
   documentSource.value = '';
   packageProgress.value = null;
+  pageList.value = [];
   playbackError.value = '';
   cdnFonts = new Set();
   cdnScope = '';
@@ -86,22 +89,66 @@ async function loadAnimation() {
     }
   }
 }
-function sendCommand(action) {
+function sendCommand(action, payload = {}) {
   const target = packageFrame.value?.contentWindow;
   target?.postMessage(
     {
       type: 'maki-animation-command',
-      action
+      action,
+      ...payload
     },
     '*'
   );
   target?.postMessage(
     {
-      type: action
+      type: action,
+      ...payload
     },
     '*'
   );
 }
+// 校验动画上报的页目录，只保留可用页面
+function normalizePageList(pages) {
+  if (!Array.isArray(pages)) {
+    return [];
+  }
+  return pages
+    .map((item) => ({
+      title: typeof item?.title === 'string' ? item.title.trim() : '',
+      steps: Number(item?.steps)
+    }))
+    .filter((item) => Number.isSafeInteger(item.steps) && item.steps > 0);
+}
+function jumpToPage(value) {
+  const target = Number(value);
+  if (!Number.isSafeInteger(target) || target === packageProgress.value?.page) {
+    return;
+  }
+  sendCommand('goto', {
+    page: target
+  });
+}
+// 动画包可能用内部 id 作为标题，标识符样式的标题不展示
+function readableTitle(title) {
+  return /^[a-z0-9]+(?:[_-][a-z0-9]+)+$/i.test(title) ? '' : title;
+}
+const pageOptions = computed(() =>
+  pageList.value.map((item, index) => {
+    const title = readableTitle(item.title);
+    return {
+      value: String(index + 1),
+      label: title
+        ? t('第 {page} 页 · {title}', {
+            page: index + 1,
+            title
+          })
+        : t('第 {page} 页', {
+            page: index + 1
+          })
+    };
+  })
+);
+const selectedPage = computed(() => String(packageProgress.value?.page ?? ''));
 function receive(event) {
   if (event.source !== packageFrame.value?.contentWindow) {
     return;
@@ -110,6 +157,10 @@ function receive(event) {
     if (typeof event.data.url === 'string') {
       cacheAnimationFont(event.data.url, cdnFonts, cdnScope);
     }
+    return;
+  }
+  if (event.data?.type === 'maki-animation-pages') {
+    pageList.value = normalizePageList(event.data.pages);
     return;
   }
   if (!['lecture-step', 'maki-animation-state'].includes(event.data?.type)) {
@@ -185,7 +236,13 @@ onBeforeUnmount(() => {
         class="animation-error"
         role="alert"
       >
-        <p>{{ t('动画无法显示：{error}', { error: playbackError }) }}</p>
+        <p>
+          {{
+            t('动画无法显示：{error}', {
+              error: playbackError
+            })
+          }}
+        </p>
         <MButton
           size="sm"
           @click="retryKey++"
@@ -197,6 +254,16 @@ onBeforeUnmount(() => {
       v-if="documentSource && !playbackError"
       class="animation-controls"
     >
+      <MSelect
+        v-if="pageOptions.length > 1 && packageProgress"
+        class="animation-page-select"
+        size="sm"
+        :model-value="selectedPage"
+        :options="pageOptions"
+        :disabled="loading"
+        :aria-label="t('跳转到页码')"
+        @update:model-value="jumpToPage"
+      />
       <MButton
         size="sm"
         :disabled="loading"
@@ -206,7 +273,14 @@ onBeforeUnmount(() => {
       <span
         v-if="packageProgress"
         class="animation-progress"
-        >{{ t('{page} / {pages} 页 · {step} / {steps} 步', { page: packageProgress.page, pages: packageProgress.pages, step: packageProgress.step, steps: packageProgress.steps }) }}</span
+        >{{
+          t('{page} / {pages} 页 · {step} / {steps} 步', {
+            page: packageProgress.page,
+            pages: packageProgress.pages,
+            step: packageProgress.step,
+            steps: packageProgress.steps
+          })
+        }}</span
       >
       <MButton
         size="sm"
@@ -255,6 +329,15 @@ onBeforeUnmount(() => {
   color: var(--text-secondary);
   font-size: var(--font-size-smaller);
   text-align: center;
+}
+.animation-page-select {
+  width: 220px;
+  max-width: 100%;
+}
+@media (max-width: 600px) {
+  .animation-page-select {
+    width: 100%;
+  }
 }
 .animation-error {
   position: absolute;
