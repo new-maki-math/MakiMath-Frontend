@@ -27,6 +27,19 @@
       '*'
     );
   }
+  // 页目录只需上报一次，父页面据此渲染页码跳转
+  function reportPages() {
+    parent.postMessage(
+      {
+        type: 'maki-animation-pages',
+        pages: pages.map((item) => ({
+          title: item.title || '',
+          steps: item.steps.length
+        }))
+      },
+      '*'
+    );
+  }
   function fit() {
     const scale = viewport.clientWidth / config.width;
     viewport.style.height = `${config.height * scale}px`;
@@ -134,6 +147,7 @@
       render = definition.render;
       page = 0;
       step = 0;
+      reportPages();
       const ready = document.fonts ? document.fonts.ready : Promise.resolve();
       ready
         .then(() => {
@@ -172,6 +186,12 @@
       }
     } else if (action === 'reset') {
       go(0, 0);
+    } else if (action === 'goto') {
+      // 页码从 1 起算，跳转只落到目标页的第一步
+      const target = Number(event.data.page);
+      if (Number.isSafeInteger(target) && target >= 1 && target <= pages.length) {
+        go(target - 1, 0);
+      }
     }
   });
   addEventListener('load', () => {
