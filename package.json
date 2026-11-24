@@ -3,6 +3,17 @@
   "private": true,
   "version": "1.2.0-beta",
   "type": "module",
+  "prettier": {
+    "singleQuote": true,
+    "semi": true,
+    "tabWidth": 2,
+    "trailingComma": "none",
+    "printWidth": 100,
+    "endOfLine": "lf",
+    "htmlWhitespaceSensitivity": "css",
+    "objectWrap": "preserve",
+    "singleAttributePerLine": true
+  },
   "scripts": {
     "dev": "vite",
     "dev:remote": "vite --mode remote",
