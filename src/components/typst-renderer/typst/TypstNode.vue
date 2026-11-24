@@ -383,6 +383,7 @@ function optionLabel(index) {
   min-width: 0;
   overflow-x: auto;
   overflow-wrap: anywhere;
+  padding-block: 1em;
 }
 .typst-horizontal-space {
   display: inline-block;
@@ -474,6 +475,7 @@ function optionLabel(index) {
   border-radius: var(--radius);
 }
 .typst-math {
+  display: inline-block;
   font-size: 1.3em;
 }
 .typst-math.is-display {
