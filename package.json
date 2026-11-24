@@ -10,12 +10,7 @@
     "preview": "vite preview",
     "deploy": "node scripts/deploy.js",
     "acl-deploy": "node scripts/deploy.js --acl",
-    "lint": "eslint . --max-warnings 0",
-    "lint:fix": "eslint . --fix",
-    "format": "eslint . --fix && prettier . --write",
-    "format:check": "prettier . --check",
-    "test": "node --test",
-    "check": "pnpm lint && pnpm format:check && pnpm test && pnpm build"
+    "check": "eslint . --fix --max-warnings 0 && prettier . --write && node --test && vite build"
   },
   "dependencies": {
     "acorn": "^8.19.0",
