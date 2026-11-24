@@ -816,7 +816,9 @@ function applyLocale() {
 }
 export function setLanguage(value) {
   languagePreference.value = locales.includes(value) ? value : 'system';
-  try { localStorage.setItem(storageKey, languagePreference.value); } catch { /* 使用当前会话设置 */ }
+  try { localStorage.setItem(storageKey, languagePreference.value); } catch {
+    // 使用当前会话设置
+  }
   applyLocale();
 }
 export function t(key, params = {}) {
