@@ -461,8 +461,24 @@ export function useLayoutState() {
     );
   });
 
-  const isItemActive = (item) =>
-    route.path === item.path || (item.id === 'knowledge' && route.name === 'knowledge');
+  const activeNavigationId = computed(() => {
+    const direct = navItems.find(
+      (item) => route.path === item.path || route.path.startsWith(`${item.path}/`)
+    );
+    if (direct) {
+      return direct.id;
+    }
+    for (const breadcrumb of currentBreadcrumbs.value.slice(1)) {
+      const target = typeof breadcrumb?.to === 'string' ? breadcrumb.to : breadcrumb?.to?.path;
+      const match = navItems.find((item) => item.path === target);
+      if (match) {
+        return match.id;
+      }
+    }
+    return null;
+  });
+
+  const isItemActive = (item) => item.id === activeNavigationId.value;
 
   const navigateTo = (targetPath) => {
     if (route.path === targetPath) {
