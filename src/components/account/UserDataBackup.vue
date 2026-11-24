@@ -21,6 +21,13 @@ import MRadio from '../form/MRadio.vue';
 import { Download, Trash, Upload } from '../icons/icons.js';
 import MModal from '../overlay/MModal.vue';
 
+defineProps({
+  collapsed: {
+    type: Boolean,
+    default: false
+  }
+});
+
 const open = ref(false);
 const busy = ref(false);
 const error = ref('');
@@ -269,11 +276,14 @@ onMounted(updateRecovery);
 </script>
 
 <template>
-  <div class="backup-actions">
+  <div
+    class="backup-actions"
+    :class="{ 'is-collapsed': collapsed }"
+  >
     <MButton
       variant="ghost"
       size="md"
-      icon-only
+      class="backup-action"
       :disabled="busy"
       :title="t('导出用户数据')"
       :aria-label="t('导出用户数据')"
@@ -284,11 +294,12 @@ onMounted(updateRecovery);
         height="19"
         aria-hidden="true"
       />
+      <span class="backup-action-label">{{ t('导出用户数据') }}</span>
     </MButton>
     <MButton
       variant="ghost"
       size="md"
-      icon-only
+      class="backup-action"
       :disabled="busy"
       :title="t('导入用户数据')"
       :aria-label="t('导入用户数据')"
@@ -299,11 +310,12 @@ onMounted(updateRecovery);
         height="19"
         aria-hidden="true"
       />
+      <span class="backup-action-label">{{ t('导入用户数据') }}</span>
     </MButton>
     <MButton
       variant="ghost"
       size="md"
-      icon-only
+      class="backup-action"
       :disabled="busy"
       :title="t('清理本地数据')"
       :aria-label="t('清理本地数据')"
@@ -314,6 +326,7 @@ onMounted(updateRecovery);
         height="19"
         aria-hidden="true"
       />
+      <span class="backup-action-label">{{ t('清理本地数据') }}</span>
     </MButton>
     <MModal
       :open="open"
@@ -588,8 +601,41 @@ onMounted(updateRecovery);
 <style scoped>
 .backup-actions {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  min-width: 0;
   gap: 4px;
+}
+.backup-action.m-button {
+  position: relative;
+  justify-content: flex-start;
+  width: 100%;
+  padding: 0 7px;
+  border-color: transparent;
+  overflow: hidden;
+}
+.backup-action :deep(.btn-content) {
+  display: flex;
+  align-items: center;
+}
+.backup-action-label {
+  position: absolute;
+  left: 38px;
+  right: 8px;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: opacity 160ms var(--ease-standard);
+}
+.backup-actions.is-collapsed .backup-action-label {
+  opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .backup-action-label {
+    transition: none;
+  }
 }
 .backup-text {
   color: var(--text-secondary);

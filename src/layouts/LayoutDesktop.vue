@@ -243,7 +243,7 @@ const toggleSidebar = () => {
         </nav>
 
         <div class="sidebar-footer">
-          <UserDataBackup />
+          <UserDataBackup :collapsed="isSidebarCollapsed" />
         </div>
       </aside>
 
@@ -556,12 +556,9 @@ const toggleSidebar = () => {
 }
 
 .sidebar-footer {
-  padding: 10px 12px;
+  padding: 10px 8px;
   border-top: 1px solid var(--border-subtle);
   display: flex;
-}
-
-.sidebar-footer :deep(.backup-actions) {
   flex-direction: column;
 }
 
