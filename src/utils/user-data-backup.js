@@ -335,20 +335,18 @@ function canManageDatabase(name) {
   return name !== AI_CREDENTIALS_DATABASE && (name !== AI_CONVERSATIONS_DATABASE || canUseAi.value);
 }
 
-function filterAiHistory(data) {
-  if (canUseAi.value || !Array.isArray(data?.databases)) {
+function isBackupDatabase(name) {
+  return Object.hasOwn(SCHEMAS, name) && !DISPOSABLE_DATABASES.has(name) && canManageDatabase(name);
+}
+
+function filterBackupDatabases(data) {
+  if (!Array.isArray(data?.databases)) {
     return data;
   }
   return {
     ...data,
-    databases: data.databases.map((item) =>
-      item?.name === AI_CONVERSATIONS_DATABASE
-        ? {
-            ...item,
-            present: false,
-            stores: []
-          }
-        : item
+    databases: data.databases.filter(
+      (item) => typeof item?.name !== 'string' || !item.name || isBackupDatabase(item.name)
     )
   };
 }
@@ -357,16 +355,7 @@ async function listDatabases() {
   if (!indexedDB.databases) {
     throw new Error('当前浏览器无法检查全部本地数据库，请使用支持该功能的浏览器');
   }
-  const databases = (await indexedDB.databases()).filter(
-    (item) => !DISPOSABLE_DATABASES.has(item.name) && canManageDatabase(item.name)
-  );
-  const unknown = databases.filter((item) => !Object.hasOwn(SCHEMAS, item.name));
-  if (unknown.length) {
-    throw new Error(
-      `发现未支持的本地数据库：${unknown.map((item) => item.name).join('、')}，无法安全备份或恢复`
-    );
-  }
-  return databases;
+  return (await indexedDB.databases()).filter((item) => isBackupDatabase(item.name));
 }
 
 function openDatabase(name, create = false) {
@@ -462,20 +451,15 @@ function readRecords(db, storeName) {
   });
 }
 
-async function snapshot() {
+async function snapshot(names) {
   const existing = await listDatabases();
   const databases = [];
-  for (const [name, schema] of Object.entries(SCHEMAS)) {
-    const info = existing.find((item) => item.name === name);
-    if (!info) {
-      databases.push({
-        name,
-        version: schema.version,
-        present: false,
-        stores: []
-      });
+  for (const info of existing) {
+    const { name } = info;
+    if (names && !names.has(name)) {
       continue;
     }
+    const schema = SCHEMAS[name];
     if (info.version !== schema.version) {
       throw new Error(`${name} 数据库版本不受支持`);
     }
@@ -531,11 +515,12 @@ function validateBackup(data) {
   const names = new Set();
   const plan = [];
   for (const database of data.databases) {
-    const schema = Object.hasOwn(SCHEMAS, database?.name) ? SCHEMAS[database.name] : null;
-    if (!schema || names.has(database.name)) {
+    const name = database?.name;
+    if (typeof name !== 'string' || !Object.hasOwn(SCHEMAS, name) || names.has(name)) {
       throw new Error('备份包含未知或重复数据库');
     }
-    names.add(database.name);
+    const schema = SCHEMAS[name];
+    names.add(name);
     if (
       database.version !== schema.version ||
       typeof database.present !== 'boolean' ||
@@ -649,8 +634,13 @@ function validateBackup(data) {
       stores
     });
   }
-  if (names.size !== Object.keys(SCHEMAS).length) {
-    throw new Error('备份缺少数据库清单，不能安全恢复');
+  return plan;
+}
+
+function getImportPlan(data) {
+  const plan = validateBackup(data);
+  if (!plan.length) {
+    throw new Error('备份中没有当前可导入的数据');
   }
   return plan;
 }
@@ -696,7 +686,7 @@ export async function exportUserData() {
       mode: 'exclusive'
     },
     async () => {
-      const data = filterAiHistory(await snapshot());
+      const data = filterBackupDatabases(await snapshot());
       validateBackup(data);
       return JSON.stringify(data);
     }
@@ -706,13 +696,17 @@ export async function exportUserData() {
 export async function inspectUserBackup(file) {
   let data;
   try {
-    data = filterAiHistory(JSON.parse(await file.text()));
+    data = filterBackupDatabases(JSON.parse(await file.text()));
   } catch {
     throw new Error('无法读取备份文件，请选择有效的 JSON 文件');
   }
-  const plan = validateBackup(data);
+  const plan = getImportPlan(data);
+  const names = new Set(plan.map((item) => item.name));
   const existing = await listDatabases();
   for (const entry of existing) {
+    if (!names.has(entry.name)) {
+      continue;
+    }
     if (entry.version !== SCHEMAS[entry.name].version) {
       throw new Error(`${entry.name} 数据库版本不受支持`);
     }
@@ -740,8 +734,8 @@ export async function restoreUserData(inspection, onIncomplete) {
       mode: 'exclusive'
     },
     async () => {
-      const plan = validateBackup(filterAiHistory(inspection.data));
-      const original = await snapshot();
+      const plan = getImportPlan(filterBackupDatabases(inspection.data));
+      const original = await snapshot(new Set(plan.map((item) => item.name)));
       const originalPlan = validateBackup(original);
       const directory = await navigator.storage.getDirectory();
       try {
@@ -824,7 +818,7 @@ export async function getRecoveryBackup() {
     if (canUseAi.value) {
       return file;
     }
-    const data = filterAiHistory(JSON.parse(await file.text()));
+    const data = filterBackupDatabases(JSON.parse(await file.text()));
     return new File([JSON.stringify(data)], file.name, {
       type: 'application/json'
     });
