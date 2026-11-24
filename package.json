@@ -9,7 +9,6 @@
     "build": "vite build",
     "preview": "vite preview",
     "deploy": "node scripts/deploy.js",
-    "acl-deploy": "node scripts/deploy.js --acl",
     "check": "eslint . --fix --max-warnings 0 && prettier . --write && node --test && vite build"
   },
   "dependencies": {

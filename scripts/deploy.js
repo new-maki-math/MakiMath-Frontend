@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process';
+import { randomUUID, timingSafeEqual } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
@@ -6,271 +7,111 @@ import { fileURLToPath } from 'node:url';
 
 import { NodeSSH } from 'node-ssh';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const rootDir = path.resolve(__dirname, '..');
-const configPath = path.join(rootDir, 'deploy.config.json');
-const aclMode = process.argv.includes('--acl');
-const sudo = aclMode ? 'sudo ' : '';
+const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const envPath = path.join(rootDir, '.env');
+if (fs.existsSync(envPath)) {
+  process.loadEnvFile(envPath);
+}
 
-if (!fs.existsSync(configPath)) {
-  console.error('未找到 deploy.config.json，请先补充部署配置。');
+const host = process.env.DEPLOY_HOST || '';
+const username = process.env.DEPLOY_USER || '';
+const privateKey = process.env.DEPLOY_SSH_KEY || '';
+const knownHosts = process.env.DEPLOY_KNOWN_HOSTS || '';
+const hostKeys = knownHosts
+  .split(/\r?\n/)
+  .map((line) => line.trim().split(/\s+/))
+  .filter(([hosts, type, key]) => hosts?.split(',').includes(host) && type && key)
+  .map(([, , key]) => Buffer.from(key, 'base64'));
+
+if (!host || !username || !privateKey || hostKeys.length === 0) {
+  console.error(
+    'Set DEPLOY_HOST, DEPLOY_USER, DEPLOY_SSH_KEY, and a matching DEPLOY_KNOWN_HOSTS in .env.'
+  );
   process.exit(1);
 }
 
-const fileConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-const config = {
-  host: process.env.DEPLOY_HOST || fileConfig.host,
-  port: Number(process.env.DEPLOY_PORT || fileConfig.port || 22),
-  username: process.env.DEPLOY_USERNAME || fileConfig.username,
-  password: process.env.DEPLOY_PASSWORD || fileConfig.password,
-  privateKeyPath: process.env.DEPLOY_PRIVATE_KEY_PATH || fileConfig.privateKeyPath || '',
-  passphrase: process.env.DEPLOY_SSH_PASSPHRASE || fileConfig.passphrase || '',
-  remoteBaseDir: process.env.DEPLOY_BASE_DIR || fileConfig.remoteBaseDir || '/var/www/maki-math',
-  domain: process.env.DEPLOY_DOMAIN || fileConfig.domain || '',
-  backendPort: Number(process.env.DEPLOY_BACKEND_PORT || fileConfig.backendPort || 3000),
-  configureNginx: fileConfig.configureNginx !== false,
-  email: process.env.DEPLOY_EMAIL || fileConfig.email || ''
-};
-
-const hasAuth = Boolean(config.password || config.privateKeyPath);
-if (
-  !config.host ||
-  !config.username ||
-  !hasAuth ||
-  !config.remoteBaseDir ||
-  !config.domain ||
-  !config.email
-) {
-  console.error('部署配置不完整，请检查 deploy.config.json 或环境变量。');
+if (process.argv.includes('--acl')) {
+  console.error('ACL mode is not supported. Use pnpm deploy.');
   process.exit(1);
 }
 
+const base = '/var/www/maki-frontend';
+const releaseId = `local-${Date.now()}-${randomUUID()}`;
+const release = `${base}/releases/${releaseId}`;
 const ssh = new NodeSSH();
-const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-const remoteTmpBase = `/tmp/maki-frontend-deploy-${timestamp}`;
-const remoteUploadDir = `${remoteTmpBase}/frontend`;
-const remoteFrontendDir = `${config.remoteBaseDir}/frontend`;
 
-const quote = (value) => `'${String(value).replace(/'/g, `'\\''`)}'`;
-
-function toPosixPath(value) {
-  return value.replaceAll('\\', '/');
-}
-
-function collectFiles(baseDir, currentDir = baseDir, files = []) {
-  const entries = fs.readdirSync(currentDir, {
-    withFileTypes: true
-  });
-  for (const entry of entries) {
-    const absolutePath = path.join(currentDir, entry.name);
-    if (entry.isDirectory()) {
-      collectFiles(baseDir, absolutePath, files);
-      continue;
-    }
-    if (!entry.isFile()) {
-      continue;
-    }
-    files.push({
-      absolutePath,
-      relativePath: toPosixPath(path.relative(baseDir, absolutePath))
-    });
+async function runRemote(command) {
+  const result = await ssh.execCommand(command);
+  if (result.code !== 0) {
+    throw new Error(result.stderr || `Remote command failed (${result.code})`);
   }
-  return files;
+  return result;
 }
-
-const nginxConfig = `server {
-    listen 80;
-    listen [::]:80;
-    server_name ${config.domain};
-    client_max_body_size 50m;
-
-    location /api/ {
-        proxy_pass http://127.0.0.1:${config.backendPort}/api/;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    location / {
-        root ${remoteFrontendDir};
-        index index.html;
-        try_files $uri $uri/ /index.html;
-    }
-}
-`;
 
 async function main() {
-  console.log('开始本地构建前端...');
-
-  const buildResult =
+  console.log('✅ Check and build');
+  const build =
     process.platform === 'win32'
-      ? spawnSync('cmd.exe', ['/d', '/s', '/c', 'pnpm run build'], {
+      ? spawnSync('cmd.exe', ['/d', '/s', '/c', 'pnpm check'], {
           cwd: rootDir,
           env: process.env,
           stdio: 'inherit',
           windowsHide: true
         })
-      : spawnSync('pnpm', ['run', 'build'], {
+      : spawnSync('pnpm', ['check'], {
           cwd: rootDir,
           env: process.env,
           stdio: 'inherit'
         });
-
-  if (buildResult.error) {
-    throw buildResult.error;
+  if (build.error) {
+    throw build.error;
+  }
+  if (build.status !== 0) {
+    throw new Error('Check and build failed');
   }
 
-  if (buildResult.status !== 0) {
-    throw new Error('本地前端构建失败');
+  const dist = path.join(rootDir, 'dist');
+  if (!fs.existsSync(path.join(dist, 'index.html'))) {
+    throw new Error('dist/index.html was not generated');
   }
 
-  const localDistDir = path.join(rootDir, 'dist');
-  if (!fs.existsSync(path.join(localDistDir, 'index.html'))) {
-    throw new Error('未生成前端构建产物（dist/index.html 不存在）');
-  }
+  console.log('🔐 Configure SSH');
+  await ssh.connect({
+    host,
+    username,
+    privateKey,
+    tryKeyboard: false,
+    hostVerifier: (key) =>
+      hostKeys.some((expected) => expected.length === key.length && timingSafeEqual(expected, key))
+  });
 
-  console.log(`开始连接 ${config.username}@${config.host}:${config.port} ...`);
-
-  const sshOptions = {
-    host: config.host,
-    port: config.port,
-    username: config.username,
-    tryKeyboard: false
-  };
-
-  if (config.privateKeyPath) {
-    if (!fs.existsSync(config.privateKeyPath)) {
-      throw new Error(`未找到指定的私钥文件：${config.privateKeyPath}`);
-    }
-    sshOptions.privateKey = fs.readFileSync(config.privateKeyPath, 'utf8');
-    if (config.passphrase) {
-      sshOptions.passphrase = config.passphrase;
-    }
-  } else {
-    sshOptions.password = config.password;
-  }
-
-  await ssh.connect(sshOptions);
-
-  console.log('连接成功，准备上传前端构建产物...');
-  const uploadFiles = collectFiles(localDistDir);
-  let uploadedCount = 0;
-
-  const remotePrep = await ssh.execCommand(`
-set -e
-mkdir -p -m 700 ${quote(remoteTmpBase)}
-mkdir -p ${quote(remoteUploadDir)}
-mkdir -p ${quote(remoteFrontendDir)}
-`);
-
-  if (remotePrep.code !== 0) {
-    throw new Error(remotePrep.stderr || '远程目录初始化失败');
-  }
-
-  const uploaded = await ssh.putDirectory(localDistDir, remoteUploadDir, {
+  console.log('🚀 Upload and activate release');
+  await runRemote(`umask 022; mkdir -p '${base}/releases'; mkdir '${release}'`);
+  const uploaded = await ssh.putDirectory(dist, release, {
     recursive: true,
-    concurrency: 8,
-    tick: (localPath, _remotePath, error) => {
-      if (error) {
-        return;
-      }
-      const stat = fs.existsSync(localPath) ? fs.statSync(localPath) : null;
-      if (!stat?.isFile()) {
-        return;
-      }
-      uploadedCount += 1;
-      console.log(
-        `[${uploadedCount}/${uploadFiles.length}] ${toPosixPath(path.relative(localDistDir, localPath))}`
-      );
-    }
+    concurrency: 8
   });
-
   if (!uploaded) {
-    throw new Error('前端产物文件上传失败');
+    throw new Error('Upload failed; the current release was not changed');
   }
 
-  console.log('上传完成，开始远程部署前端服务与 Nginx...');
-
-  // 普通部署安装依赖，ACL 部署使用已有环境
-  const installDependencies = aclMode
-    ? ''
-    : 'export DEBIAN_FRONTEND=noninteractive\napt-get update\napt-get install -y nginx certbot python3-certbot-nginx curl';
-  const deployScript = `
-set -e
-${installDependencies}
-
-mkdir -p ${quote(config.remoteBaseDir)}
-mkdir -p ${quote(remoteUploadDir)}
-mkdir -p ${quote(remoteFrontendDir)}
-
-if [ -d ${quote(remoteFrontendDir)} ]; then
-  find ${quote(remoteFrontendDir)} -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+  await runRemote(`set -e
+chmod -R a+rX '${release}'
+test -f '${release}/index.html'
+if [ -e '${base}/current' ] && [ ! -L '${base}/current' ]; then
+  echo 'current exists and is not a symlink; deployment stopped' >&2
+  exit 1
 fi
-
-cp -a ${quote(`${remoteUploadDir}/.`)} ${quote(remoteFrontendDir)}/
-
-if [ ${config.configureNginx ? '1' : '0'} = "1" ]; then
-NGINX_SITE_DIR=""
-NGINX_SITE_PATH=""
-
-if [ -d /etc/nginx/sites-available ]; then
-  NGINX_SITE_DIR="/etc/nginx/sites-available"
-  NGINX_SITE_PATH="/etc/nginx/sites-available/${config.domain}"
-elif [ -d /etc/nginx/conf.d ]; then
-  NGINX_SITE_DIR="/etc/nginx/conf.d"
-  NGINX_SITE_PATH="/etc/nginx/conf.d/${config.domain}.conf"
-else
-  ${sudo}mkdir -p /etc/nginx/conf.d
-  NGINX_SITE_DIR="/etc/nginx/conf.d"
-  NGINX_SITE_PATH="/etc/nginx/conf.d/${config.domain}.conf"
-fi
-
-cat <<'EOF' | ${sudo}tee "$NGINX_SITE_PATH" > /dev/null
-${nginxConfig}
-EOF
-
-if [ -d /etc/nginx/sites-enabled ] && [ -f "$NGINX_SITE_PATH" ]; then
-  ${sudo}ln -sf "$NGINX_SITE_PATH" "/etc/nginx/sites-enabled/${config.domain}"
-fi
-
-${sudo}rm -f /etc/nginx/conf.d/default.conf || true
-${sudo}rm -f /etc/nginx/sites-enabled/default || true
-
-${sudo}nginx -t
-${sudo}systemctl enable nginx
-${sudo}systemctl restart nginx
-
-${sudo}certbot --nginx --non-interactive --agree-tos -m ${quote(config.email)} -d ${quote(config.domain)} --redirect
-
-${sudo}nginx -t
-${sudo}systemctl reload nginx
-else
-  ${sudo}nginx -t
-  echo "保留现有 Nginx 配置与 HTTPS 证书，仅更新前端文件。"
-fi
-
-rm -rf ${quote(remoteTmpBase)}
-`;
-
-  const deployResult = await ssh.execCommand(`bash -lc ${quote(deployScript)}`, {
-    onStdout: (chunk) => process.stdout.write(chunk.toString()),
-    onStderr: (chunk) => process.stderr.write(chunk.toString())
-  });
-
-  if (deployResult.code !== 0) {
-    throw new Error(deployResult.stderr || '远程前端部署失败');
-  }
-
-  console.log(`前端部署完成：${remoteFrontendDir}`);
+ln -s '${release}' '${base}/.current-${releaseId}'
+mv -Tf '${base}/.current-${releaseId}' '${base}/current'`);
+  console.log(`Release activated: ${release}`);
 }
 
 main()
   .catch((error) => {
-    console.error('部署失败：', error.message);
+    console.error('Deployment failed:', error.message);
     process.exitCode = 1;
   })
-  .finally(async () => {
+  .finally(() => {
     ssh.dispose();
   });
