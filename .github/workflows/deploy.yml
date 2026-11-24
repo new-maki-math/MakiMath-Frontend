@@ -1,0 +1,70 @@
+name: 🚀 Deploy frontend
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: 🚀 Deploy to production
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: 🟢 Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+      - name: 📦 Install pnpm
+        run: npm install --global pnpm@12.14.0
+      - name: 📦 Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: ✅ Check and build
+        run: pnpm check
+      - name: 🔐 Configure SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          test -n "$DEPLOY_KEY" && test -n "$KNOWN_HOSTS"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/deploy_key
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/deploy_key ~/.ssh/known_hosts
+      - name: 🚀 Upload and activate release
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          RELEASE_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$DEPLOY_HOST" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]*$ ]]
+          [[ "$DEPLOY_USER" =~ ^[a-z_][a-z0-9_-]*[$]?$ ]]
+          [[ "$RELEASE_ID" =~ ^[0-9]+-[0-9]+$ ]]
+          ssh_args=(-i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -l "$DEPLOY_USER" "$DEPLOY_HOST")
+          tar -C dist -czf "$RUNNER_TEMP/frontend.tar.gz" .
+          ssh "${ssh_args[@]}" "mkdir -p /var/www/maki-frontend/releases/$RELEASE_ID"
+          ssh "${ssh_args[@]}" "tar -xzf - -C /var/www/maki-frontend/releases/$RELEASE_ID" < "$RUNNER_TEMP/frontend.tar.gz"
+          ssh "${ssh_args[@]}" "bash -s -- '$RELEASE_ID'" <<'REMOTE'
+          set -euo pipefail
+          base=/var/www/maki-frontend
+          release="$base/releases/$1"
+          test -f "$release/index.html"
+          if [ -e "$base/current" ] && [ ! -L "$base/current" ]; then
+            echo 'current exists and is not a symlink; migrate it before deployment.' >&2
+            exit 1
+          fi
+          ln -s "$release" "$base/.current-$1"
+          mv -Tf "$base/.current-$1" "$base/current"
+          REMOTE
