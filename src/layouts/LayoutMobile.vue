@@ -20,6 +20,7 @@ import {
 } from '../components/icons/icons.js';
 import MDrawer from '../components/overlay/MDrawer.vue';
 import { t } from '../i18n.js';
+import { canUseAi } from '../utils/ai-access.js';
 import NavigationIcon from './NavigationIcon.vue';
 import { useLayoutState } from './useLayoutState.js';
 
@@ -307,7 +308,7 @@ watch(
     <main
       class="mobile-viewport"
       :class="{
-        'is-lecture-shelf': route.name === 'my-lecture',
+        'is-lecture-shelf': route.name === 'my-lecture' || route.name === 'ai-lab',
         'is-reading': route.name === 'lecture-doc' || route.name === 'local-lecture-doc'
       }"
     >
@@ -338,11 +339,20 @@ watch(
             >{{ t('返回首页') }}</MButton
           >
         </div>
-        <slot
-          v-else
-          :current-item="currentItem"
-        >
-          <RouterView :key="docRefreshKey" />
+        <slot :current-item="currentItem">
+          <RouterView v-slot="{ Component, route: viewRoute }">
+            <KeepAlive v-if="canUseAi">
+              <component
+                :is="Component"
+                v-if="viewRoute.name === 'ai-lab' && !currentItem.desktopOnly"
+              />
+            </KeepAlive>
+            <component
+              :is="Component"
+              v-if="viewRoute.name !== 'ai-lab' && !currentItem.desktopOnly"
+              :key="docRefreshKey"
+            />
+          </RouterView>
         </slot>
       </div>
     </main>

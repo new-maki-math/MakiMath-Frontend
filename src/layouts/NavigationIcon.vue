@@ -1,5 +1,6 @@
 <script setup>
 import {
+  AiLab,
   BookWorkbench,
   Folder,
   Knowledge,
@@ -20,6 +21,7 @@ defineProps({
 });
 
 const icons = {
+  'ai-lab': AiLab,
   'my-lecture': Shelf,
   knowledge: Knowledge,
   'question-bank': QuestionBank,
@@ -33,6 +35,7 @@ const icons = {
 };
 
 const colors = {
+  'ai-lab': 'var(--tag-purple)',
   'my-lecture': 'var(--tag-blue)',
   knowledge: 'var(--tag-purple)',
   'question-bank': 'var(--tag-green)',

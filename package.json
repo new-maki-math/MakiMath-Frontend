@@ -26,8 +26,11 @@
     "acorn": "^8.19.0",
     "css-tree": "^3.2.1",
     "d3": "^7.9.0",
+    "katex": "^0.19.1",
+    "markstream-vue": "^2.0.30",
     "monaco-editor": "^0.57.0",
     "typlet": "^0.1.1",
+    "viewerjs": "^1.15.2",
     "vue": "^3.5.42",
     "vue-router": "^4.6.4"
   },

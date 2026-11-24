@@ -1,7 +1,8 @@
 <script setup>
-import { computed, ref, watch } from 'vue';
+import { computed, provide, ref, watch } from 'vue';
 
 import { t } from '../../i18n.js';
+import AiBadge from '../display/AiBadge.vue';
 import { notify } from '../feedback/MNotice.vue';
 import MButton from '../form/MButton.vue';
 import TypstDoc from '../typst-renderer/TypstDoc.vue';
@@ -32,10 +33,13 @@ const props = defineProps({
 defineEmits(['back', 'locate', 'mastery', 'retry', 'follow', 'relations']);
 const referenceSlug = computed(() => props.detail?.slug || props.selected?.slug || '');
 const addOpen = ref(false);
+const aiGlow = ref(false);
+provide('ai-card-glow', aiGlow);
 watch(
   () => props.selected?.id,
   () => {
     addOpen.value = false;
+    aiGlow.value = false;
   }
 );
 async function copyReference() {
@@ -157,7 +161,11 @@ async function copyReference() {
         :source="detail.source || ''"
         :box-title="detail.title || ''"
         :allow-knowledge-references="false"
-      />
+      >
+        <template #boxActions>
+          <AiBadge :reference="referenceSlug ? `知识点:${referenceSlug}` : ''" />
+        </template>
+      </TypstDoc>
       <div
         v-if="referenceSlug"
         class="reference-code"

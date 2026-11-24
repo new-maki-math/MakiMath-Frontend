@@ -1,6 +1,7 @@
 <script setup>
-import { computed, inject, provide, ref } from 'vue';
+import { computed, inject, provide, ref, watch } from 'vue';
 
+import AiBadge from '../../display/AiBadge.vue';
 import { NavArrowRight } from '../../icons/icons.js';
 import TypstNode from '../typst/TypstNode.vue';
 import TypstDoc from '../TypstDoc.vue';
@@ -22,6 +23,14 @@ const props = defineProps({
   }
 });
 provide('typstQuestionReferencesAllowed', ref(false));
+const aiGlow = ref(false);
+provide('ai-card-glow', aiGlow);
+watch(
+  () => props.detail.question?.id,
+  () => {
+    aiGlow.value = false;
+  }
+);
 const printReferences = inject('typstPrintQuestionReferences', null);
 const question = computed(() => props.detail.question || {});
 const difficulty = computed(() =>
@@ -79,11 +88,20 @@ const sections = computed(() =>
 
 <template>
   <MmQuestion
+    :ai-glow="true"
     :difficulty="difficulty === false ? null : difficulty"
     :has-title="Boolean(number)"
     :has-body="true"
   >
     <template #title>{{ number }}</template>
+    <template
+      v-if="!printReferences"
+      #header-actions
+    >
+      <AiBadge
+        :reference="question.slug || question.id ? `题目:${question.slug || question.id}` : ''"
+      />
+    </template>
     <div
       v-if="sources.length || knowledge.length || overrides.tags?.length"
       class="question-tags"

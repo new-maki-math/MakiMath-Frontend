@@ -7,8 +7,8 @@ import {
   subscribeMasteryChanges,
   toggleMastered
 } from '../../utils/knowledge-mastery.js';
+import MModal from '../overlay/MModal.vue';
 import KnowledgePointContent from './KnowledgePointContent.vue';
-import KnowledgePointOverlay from './KnowledgePointOverlay.vue';
 
 const selected = ref(null);
 const detail = ref(null);
@@ -22,8 +22,6 @@ const masterySaving = ref(false);
 const masteryAvailable = ref(false);
 const storageError = ref('');
 const history = ref([]);
-const overlay = ref(null);
-const session = ref(0);
 const isMastered = computed(() =>
   Boolean(detail.value?.slug && mastered.value.has(detail.value.slug))
 );
@@ -88,7 +86,6 @@ function openPoint(node, focusTarget) {
   }
   returnFocus = focusTarget || document.activeElement;
   history.value = [];
-  session.value++;
   loadPoint({
     ...node,
     id
@@ -151,50 +148,34 @@ defineExpose({
 </script>
 
 <template>
-  <Teleport to="body">
-    <div
+  <MModal
+    :open="Boolean(selected)"
+    title="知识点详情"
+    width="760px"
+    hide-footer
+    show-close
+    @close="closed"
+  >
+    <KnowledgePointContent
       v-if="selected"
-      class="search-knowledge-overlay"
-    >
-      <KnowledgePointOverlay
-        ref="overlay"
-        :key="session"
-        :session-id="session"
-        :source-rect="() => null"
-        :title="detail?.title || selected.title"
-        :node-id="selected.id"
-        :mastered="isMastered"
-        @closed="closed"
-      >
-        <KnowledgePointContent
-          :selected="selected"
-          :detail="detail"
-          :show-map-controls="false"
-          :detail-loading="detailLoading"
-          :detail-error="detailError"
-          :prerequisites-error="prerequisitesError"
-          :detail-prerequisites="prerequisites"
-          :successors="[]"
-          :can-return="Boolean(history.length)"
-          :is-mastered="isMastered"
-          :mastery-loading="masteryLoading"
-          :mastery-saving="masterySaving"
-          :mastery-available="masteryAvailable"
-          :storage-error="storageError"
-          @mastery="toggle"
-          @retry="loadPoint(selected)"
-          @follow="follow"
-          @back="back"
-        />
-      </KnowledgePointOverlay>
-    </div>
-  </Teleport>
+      :selected="selected"
+      :detail="detail"
+      :show-map-controls="false"
+      :detail-loading="detailLoading"
+      :detail-error="detailError"
+      :prerequisites-error="prerequisitesError"
+      :detail-prerequisites="prerequisites"
+      :successors="[]"
+      :can-return="Boolean(history.length)"
+      :is-mastered="isMastered"
+      :mastery-loading="masteryLoading"
+      :mastery-saving="masterySaving"
+      :mastery-available="masteryAvailable"
+      :storage-error="storageError"
+      @mastery="toggle"
+      @retry="loadPoint(selected)"
+      @follow="follow"
+      @back="back"
+    />
+  </MModal>
 </template>
-
-<style scoped>
-.search-knowledge-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 150;
-}
-</style>

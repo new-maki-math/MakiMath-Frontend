@@ -5,6 +5,7 @@ import { invalidateCourseRequests, toChapters } from '../api/courses.js';
 import { notify } from '../components/feedback/MNotice.vue';
 import { workbenchPanelState } from '../composables/useWorkbenchGuard.js';
 import { t } from '../i18n.js';
+import { canUseAi } from '../utils/ai-access.js';
 import {
   authStatus,
   currentUser,
@@ -30,6 +31,14 @@ export const navItems = [
     path: '/my-lecture',
     tag: 'LOCAL',
     group: 'primary'
+  },
+  {
+    id: 'ai-lab',
+    label: 'AI Lab',
+    path: '/ai-lab',
+    tag: 'AI LAB',
+    group: 'primary',
+    requiresAi: true
   },
   {
     id: 'knowledge',
@@ -112,7 +121,12 @@ export function useLayoutState() {
   const progressBarRef = ref(null);
   const navigationGroups = computed(() => {
     const visible = navItems
-      .filter((item) => !item.sidebarHidden && (!item.adminOnly || isSuperAdmin.value))
+      .filter(
+        (item) =>
+          !item.sidebarHidden &&
+          (!item.adminOnly || isSuperAdmin.value) &&
+          (!item.requiresAi || canUseAi.value)
+      )
       .map((item) => ({
         ...item,
         label: t(item.label)
@@ -442,6 +456,7 @@ export function useLayoutState() {
 
   const showViewportHeader = computed(() => {
     return (
+      route.name !== 'ai-lab' &&
       route.name !== 'knowledge-library' &&
       route.name !== 'knowledge-workbench' &&
       route.name !== 'question-workbench' &&
@@ -453,6 +468,7 @@ export function useLayoutState() {
 
   const isViewportLocked = computed(() => {
     return (
+      route.name === 'ai-lab' ||
       route.name === 'book-workbench' ||
       route.name === 'platform' ||
       route.path === '/platform' ||

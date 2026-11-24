@@ -1,9 +1,12 @@
+import { watch } from 'vue';
 import { createRouter, createWebHistory } from 'vue-router';
 
+import { aiFeaturesEnabled, canUseAi } from '../utils/ai-access.js';
 import { initAuth } from '../utils/auth.js';
 
 // 页面视图
 const RecomLectureView = () => import('../views/recom-lecture/RecomLectureView.vue');
+const AiLabView = () => import('../views/ai-lab/AiLabView.vue');
 const ResourceCenterView = () => import('../views/resource-center/ResourceCenterPage.vue');
 const MyLectureView = () => import('../views/my-lecture/MyLectureView.vue');
 const LectureHomeView = () => import('../views/lecture-home/LectureHomeView.vue');
@@ -27,6 +30,15 @@ export const routes = [
   {
     path: '/how-to-use',
     redirect: '/my-lecture'
+  },
+  {
+    path: '/ai-lab',
+    name: 'ai-lab',
+    component: AiLabView,
+    meta: {
+      title: 'AI Lab',
+      tag: 'AI LAB'
+    }
   },
   {
     path: '/workbook/online/:lectureSlug',
@@ -203,8 +215,26 @@ const router = createRouter({
 
 // 路由守卫加载认证状态
 router.beforeEach(async (to) => {
+  if (to.name === 'ai-lab') {
+    if (aiFeaturesEnabled) {
+      await initAuth();
+    }
+    return canUseAi.value
+      ? true
+      : {
+          name: 'my-lecture',
+          replace: true
+        };
+  }
   if (to.name === 'platform' || to.path === '/platform') {
     await initAuth();
+  }
+});
+watch(canUseAi, (allowed) => {
+  if (!allowed && router.currentRoute.value.name === 'ai-lab') {
+    router.replace({
+      name: 'my-lecture'
+    });
   }
 });
 

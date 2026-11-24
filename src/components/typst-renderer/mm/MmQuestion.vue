@@ -1,7 +1,11 @@
 <script setup>
+import { inject, ref } from 'vue';
+
+import AiGlow from '../../display/AiGlow.vue';
 import MmBoxIcon from './MmBoxIcon.vue';
 
 defineProps({
+  aiGlow: Boolean,
   source: {
     type: String,
     default: ''
@@ -23,11 +27,16 @@ defineProps({
     default: false
   }
 });
+const glow = inject('ai-card-glow', ref(false));
 </script>
 
 <template>
-  <section
+  <AiGlow
+    tag="section"
+    :active="aiGlow && glow"
+    trace
     class="mm-question"
+    :data-ai-card="aiGlow ? '' : null"
     :data-question-id="questionId || undefined"
   >
     <div class="mm-question-header">
@@ -72,6 +81,11 @@ defineProps({
           </svg>
         </span>
       </span>
+      <span
+        v-if="$slots['header-actions']"
+        class="mm-question-actions"
+        ><slot name="header-actions"
+      /></span>
     </div>
     <div class="mm-question-body">
       <span
@@ -80,7 +94,7 @@ defineProps({
         >题干待补</span
       ><slot />
     </div>
-  </section>
+  </AiGlow>
 </template>
 
 <style scoped>
@@ -120,6 +134,14 @@ defineProps({
 .mm-question-source,
 .mm-question-difficulty {
   font-size: 0.85em;
+}
+.mm-question-actions {
+  display: inline-flex;
+  flex: none;
+  margin-left: auto;
+}
+.mm-question-difficulty + .mm-question-actions {
+  margin-left: 0;
 }
 .mm-question-difficulty {
   display: inline-flex;

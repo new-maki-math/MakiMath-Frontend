@@ -336,6 +336,7 @@ function optionLabel(index) {
   /></MmTag>
   <MmBox
     v-else-if="node.type === 'mm-box'"
+    :ai-glow="Boolean(node.referenceBox)"
     :title="node.title"
     :tone="node.tone"
     :icon="node.icon"

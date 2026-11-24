@@ -2,6 +2,11 @@ import { defineComponent, h } from 'vue';
 
 // 全部图标使用同一坐标系并继承文字颜色。
 const paths = {
+  AiLab: 'M12 2.5 14.1 8.9 20.5 11l-6.4 2.1L12 19.5l-2.1-6.4L3.5 11l6.4-2.1zm7 12.5 1.1 3.4 3.4 1.1-3.4 1.1L19 24l-1.1-3.4-3.4-1.1 3.4-1.1z',
+  SendArrow:
+    'M12 3.75a1 1 0 0 1 .71.29l6 6a1 1 0 0 1-1.42 1.42L13 7.16V19.25a1 1 0 0 1-2 0V7.16l-4.29 4.3a1 1 0 1 1-1.42-1.42l6-6a1 1 0 0 1 .71-.29',
+  Settings:
+    'M10 2h4l.5 2.3c.5.16.98.36 1.43.62l2-1.27 2.83 2.83-1.27 2c.26.45.46.93.62 1.43l2.3.5v4l-2.3.5a8.2 8.2 0 0 1-.62 1.43l1.27 2-2.83 2.83-2-1.27c-.45.26-.93.46-1.43.62L14 22h-4l-.5-2.3a8.2 8.2 0 0 1-1.43-.62l-2 1.27-2.83-2.83 1.27-2a8.2 8.2 0 0 1-.62-1.43l-2.3-.5v-4l2.3-.5c.16-.5.36-.98.62-1.43l-1.27-2 2.83-2.83 2 1.27c.45-.26.93-.46 1.43-.62zM12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8',
   Archive:
     'M4 3h16a2 2 0 0 1 2 2v3a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5a2 2 0 0 1 2-2m0 7h16v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zm5 3a.75.75 0 0 0 0 1.5h6a.75.75 0 0 0 0-1.5z',
   ArrowLeft:
@@ -116,6 +121,9 @@ function createIcon(name) {
   });
 }
 
+export const AiLab = createIcon('AiLab');
+export const Settings = createIcon('Settings');
+export const SendArrow = createIcon('SendArrow');
 export const Archive = createIcon('Archive');
 export const ArrowLeft = createIcon('ArrowLeft');
 export const ArrowRight = createIcon('ArrowRight');

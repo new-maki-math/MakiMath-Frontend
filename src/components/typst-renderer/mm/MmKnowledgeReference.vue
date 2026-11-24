@@ -1,6 +1,7 @@
 <script setup>
-import { inject, onBeforeUnmount, ref, watch } from 'vue';
+import { inject, onBeforeUnmount, provide, ref, watch } from 'vue';
 
+import AiBadge from '../../display/AiBadge.vue';
 import TypstDoc from '../TypstDoc.vue';
 import { getReferencedKnowledge } from './knowledge-reference.js';
 import KnowledgeMasteryButton from './KnowledgeMasteryButton.vue';
@@ -15,10 +16,13 @@ const allowed = inject('typstKnowledgeReferencesAllowed', ref(true));
 const printReferences = inject('typstPrintReferences', null);
 const readingReferences = inject('typstReadingReferences', null);
 const detail = ref(null);
+const aiGlow = ref(false);
+provide('ai-card-glow', aiGlow);
 const loading = ref(false);
 const error = ref('');
 let sequence = 0;
 async function load() {
+  aiGlow.value = false;
   const current = ++sequence;
   detail.value = null;
   error.value = '';
@@ -101,7 +105,12 @@ onBeforeUnmount(() => {
     ><template
       v-if="!printReferences"
       #boxActions
-      ><KnowledgeMasteryButton :knowledge-slug="detail.slug" /></template
+    >
+      <AiBadge
+        :reference="`知识点:${detail.slug || knowledgeSlug}`"
+      />
+      <KnowledgeMasteryButton :knowledge-slug="detail.slug" />
+    </template
   ></TypstDoc>
 </template>
 

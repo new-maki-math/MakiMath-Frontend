@@ -1,3 +1,7 @@
+import { canUseAi } from './ai-access.js';
+import { AI_CONVERSATIONS_DATABASE } from './ai-conversations.js';
+import { AI_CREDENTIALS_DATABASE } from './ai-credentials.js';
+
 const FORMAT = 'maki-math-indexeddb-backup';
 const FORMAT_VERSION = 1;
 const LOCK_NAME = 'maki-user-data';
@@ -8,6 +12,15 @@ const SCHEMAS = {
     version: 1,
     stores: {
       events: {
+        keyPath: 'id',
+        indexes: []
+      }
+    }
+  },
+  [AI_CONVERSATIONS_DATABASE]: {
+    version: 1,
+    stores: {
+      conversations: {
         keyPath: 'id',
         indexes: []
       }
@@ -318,12 +331,34 @@ function decode(encoded, depth = 0) {
   throw new Error('备份包含不支持的数据类型');
 }
 
+function canManageDatabase(name) {
+  return name !== AI_CREDENTIALS_DATABASE && (name !== AI_CONVERSATIONS_DATABASE || canUseAi.value);
+}
+
+function filterAiHistory(data) {
+  if (canUseAi.value || !Array.isArray(data?.databases)) {
+    return data;
+  }
+  return {
+    ...data,
+    databases: data.databases.map((item) =>
+      item?.name === AI_CONVERSATIONS_DATABASE
+        ? {
+            ...item,
+            present: false,
+            stores: []
+          }
+        : item
+    )
+  };
+}
+
 async function listDatabases() {
   if (!indexedDB.databases) {
     throw new Error('当前浏览器无法检查全部本地数据库，请使用支持该功能的浏览器');
   }
   const databases = (await indexedDB.databases()).filter(
-    (item) => !DISPOSABLE_DATABASES.has(item.name)
+    (item) => !DISPOSABLE_DATABASES.has(item.name) && canManageDatabase(item.name)
   );
   const unknown = databases.filter((item) => !Object.hasOwn(SCHEMAS, item.name));
   if (unknown.length) {
@@ -661,7 +696,7 @@ export async function exportUserData() {
       mode: 'exclusive'
     },
     async () => {
-      const data = await snapshot();
+      const data = filterAiHistory(await snapshot());
       validateBackup(data);
       return JSON.stringify(data);
     }
@@ -671,7 +706,7 @@ export async function exportUserData() {
 export async function inspectUserBackup(file) {
   let data;
   try {
-    data = JSON.parse(await file.text());
+    data = filterAiHistory(JSON.parse(await file.text()));
   } catch {
     throw new Error('无法读取备份文件，请选择有效的 JSON 文件');
   }
@@ -705,7 +740,7 @@ export async function restoreUserData(inspection, onIncomplete) {
       mode: 'exclusive'
     },
     async () => {
-      const plan = validateBackup(inspection.data);
+      const plan = validateBackup(filterAiHistory(inspection.data));
       const original = await snapshot();
       const originalPlan = validateBackup(original);
       const directory = await navigator.storage.getDirectory();
@@ -733,6 +768,9 @@ export async function restoreUserData(inspection, onIncomplete) {
       const changed = [];
       try {
         for (const item of plan) {
+          if (!canManageDatabase(item.name)) {
+            throw new Error('当前账号无权恢复此数据库');
+          }
           const db = await openDatabase(
             item.name,
             !existing.some((entry) => entry.name === item.name)
@@ -782,7 +820,14 @@ export async function getRecoveryBackup() {
   try {
     const directory = await navigator.storage.getDirectory();
     const handle = await directory.getFileHandle(RECOVERY_FILE);
-    return await handle.getFile();
+    const file = await handle.getFile();
+    if (canUseAi.value) {
+      return file;
+    }
+    const data = filterAiHistory(JSON.parse(await file.text()));
+    return new File([JSON.stringify(data)], file.name, {
+      type: 'application/json'
+    });
   } catch (error) {
     if (error.name === 'NotFoundError') {
       return null;
@@ -801,13 +846,15 @@ export async function listClearableDatabases() {
     throw new Error('当前浏览器无法列出全部本地数据库');
   }
   const databases = await indexedDB.databases();
-  return databases.map((item) => ({
-    name: item.name,
-    version: item.version,
-    known: Object.hasOwn(SCHEMAS, item.name) || DISPOSABLE_DATABASES.has(item.name),
-    legacy: Boolean(SCHEMAS[item.name]?.legacy),
-    cache: DISPOSABLE_DATABASES.has(item.name) || item.name === 'maki-knowledge-glyphs'
-  }));
+  return databases
+    .filter((item) => canManageDatabase(item.name))
+    .map((item) => ({
+      name: item.name,
+      version: item.version,
+      known: Object.hasOwn(SCHEMAS, item.name) || DISPOSABLE_DATABASES.has(item.name),
+      legacy: Boolean(SCHEMAS[item.name]?.legacy),
+      cache: DISPOSABLE_DATABASES.has(item.name) || item.name === 'maki-knowledge-glyphs'
+    }));
 }
 
 export async function deleteSelectedDatabases(selected, progress, onIncomplete) {
@@ -815,7 +862,9 @@ export async function deleteSelectedDatabases(selected, progress, onIncomplete) 
   if (
     !Array.isArray(selected) ||
     !selected.length ||
-    selected.some((item) => typeof item.name !== 'string' || !item.name)
+    selected.some(
+      (item) => typeof item.name !== 'string' || !item.name || !canManageDatabase(item.name)
+    )
   ) {
     throw new Error('请选择要删除的数据库');
   }

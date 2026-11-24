@@ -17,6 +17,7 @@ import {
   UserCircle
 } from '../components/icons/icons.js';
 import { t } from '../i18n.js';
+import { canUseAi } from '../utils/ai-access.js';
 import NavigationIcon from './NavigationIcon.vue';
 import { useLayoutState } from './useLayoutState.js';
 
@@ -64,7 +65,9 @@ function updateActiveIndicator() {
     : null;
 }
 
-watch([activeNavigationId, navigationGroups], updateActiveIndicator, { flush: 'post' });
+watch([activeNavigationId, navigationGroups], updateActiveIndicator, {
+  flush: 'post'
+});
 
 onMounted(() => {
   updateActiveIndicator();
@@ -82,7 +85,6 @@ const toggleSidebar = () => {
   isSidebarCollapsed.value = !isSidebarCollapsed.value;
   localStorage.setItem('maki_sidebar_collapsed', String(isSidebarCollapsed.value));
 };
-
 </script>
 
 <template>
@@ -262,7 +264,19 @@ const toggleSidebar = () => {
         />
 
         <slot :current-item="currentItem">
-          <RouterView :key="docRefreshKey" />
+          <RouterView v-slot="{ Component, route: viewRoute }">
+            <KeepAlive v-if="canUseAi">
+              <component
+                :is="Component"
+                v-if="viewRoute.name === 'ai-lab'"
+              />
+            </KeepAlive>
+            <component
+              :is="Component"
+              v-if="viewRoute.name !== 'ai-lab'"
+              :key="docRefreshKey"
+            />
+          </RouterView>
         </slot>
       </main>
     </div>

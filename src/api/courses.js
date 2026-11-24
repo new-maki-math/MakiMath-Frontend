@@ -301,12 +301,12 @@ export async function getCourseSectionContent(courseKey, sectionId, existingTree
 }
 
 // 全文搜索讲义与课程节点
-export async function searchLectures(q, limit = 20) {
+export async function searchLectures(q, limit = 20, options = {}) {
   const trimmed = String(q || '').trim();
   if (!trimmed) {
     return [];
   }
-  const res = await request(`/api/search?q=${encodeURIComponent(trimmed)}&limit=${limit}`);
+  const res = await request(`/api/search?q=${encodeURIComponent(trimmed)}&limit=${limit}`, options);
   return Array.isArray(res?.hits) ? res.hits : [];
 }
 

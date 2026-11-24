@@ -8,15 +8,17 @@ const mutate = async (url, options) => {
 };
 
 export const knowledgeApi = {
-  map: (categoryId) =>
+  map: (categoryId, options = {}) =>
     request(
       `/api/knowledge-map${categoryId ? `?category_id=${encodeURIComponent(categoryId)}` : ''}`,
       {
+        ...options,
         cache: 'no-store'
       }
     ),
-  get: (id) =>
+  get: (id, options = {}) =>
     request(`/api/knowledge-points/${id}`, {
+      ...options,
       cache: 'no-store'
     }),
   getBySlug: (slug) =>

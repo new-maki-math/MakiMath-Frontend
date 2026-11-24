@@ -1,7 +1,11 @@
 <script setup>
+import { inject, ref } from 'vue';
+
+import AiGlow from '../../display/AiGlow.vue';
 import MmBoxIcon from './MmBoxIcon.vue';
 
 defineProps({
+  aiGlow: Boolean,
   title: {
     type: String,
     required: true
@@ -19,11 +23,16 @@ defineProps({
     default: false
   }
 });
+const glow = inject('ai-card-glow', ref(false));
 </script>
 
 <template>
-  <section
+  <AiGlow
+    tag="section"
+    :active="aiGlow && glow"
+    trace
     class="mm-box"
+    :data-ai-card="aiGlow ? '' : null"
     :class="`tone-${tone}`"
   >
     <div
@@ -50,7 +59,7 @@ defineProps({
       <slot name="actions" />
     </div>
     <div class="mm-box-content"><slot /></div>
-  </section>
+  </AiGlow>
 </template>
 
 <style scoped>

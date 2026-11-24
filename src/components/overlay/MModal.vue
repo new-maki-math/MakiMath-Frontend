@@ -54,6 +54,14 @@ const props = defineProps({
   showClose: {
     type: Boolean,
     default: false
+  },
+  contained: {
+    type: Boolean,
+    default: false
+  },
+  zIndex: {
+    type: Number,
+    default: 90
   }
 });
 
@@ -124,9 +132,9 @@ onUnmounted(() => {
 <template>
   <MBackdrop
     :open="open"
-    teleport
-    fixed
-    :z-index="90"
+    :teleport="!contained"
+    :fixed="!contained"
+    :z-index="zIndex"
     @close="emit('close')"
   >
     <transition
@@ -138,7 +146,8 @@ onUnmounted(() => {
         ref="panel"
         class="modal-panel"
         :class="{
-          'is-fixed-height': height
+          'is-fixed-height': height,
+          'is-contained': contained
         }"
         :style="{
           width,
@@ -235,6 +244,11 @@ onUnmounted(() => {
   border-radius: var(--radius);
   overflow: hidden;
   transition: height 220ms var(--ease-layout);
+}
+
+.modal-panel.is-contained {
+  max-width: calc(100% - 32px);
+  max-height: calc(100% - 32px);
 }
 
 .modal-head {
