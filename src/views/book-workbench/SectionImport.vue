@@ -1,11 +1,11 @@
 <script setup>
-import { t } from '../../i18n.js';
 import { onUnmounted, ref, watch } from 'vue';
 
 import { notify } from '../../components/feedback/MNotice.vue';
 import MFilePicker from '../../components/form/MFilePicker.vue';
 import MInput from '../../components/form/MInput.vue';
 import MModal from '../../components/overlay/MModal.vue';
+import { t } from '../../i18n.js';
 
 const chapter = defineModel('chapter', {
   type: Object,
@@ -83,7 +83,11 @@ async function readFiles(event) {
           fatal: true
         }).decode(await file.arrayBuffer());
       } catch {
-        throw new Error(t('无法读取 {name}，请确认文件为 UTF-8 编码', { name: file.name }));
+        throw new Error(
+          t('无法读取 {name}，请确认文件为 UTF-8 编码', {
+            name: file.name
+          })
+        );
       }
       if (current !== sequence || targetChapter !== chapter.value) {
         return;
@@ -125,11 +129,21 @@ function confirmImport() {
     const title = item.title.trim();
     const slug = item.slug.trim();
     if (!title || !slug) {
-      notify(t('请填写 {name} 的小节标题和小节标识', { name: item.filename }), 'warn');
+      notify(
+        t('请填写 {name} 的小节标题和小节标识', {
+          name: item.filename
+        }),
+        'warn'
+      );
       return;
     }
     if (slugs.has(slug)) {
-      notify(t('小节标识 {slug} 与章节内已有或待导入的小节重复', { slug }), 'warn');
+      notify(
+        t('小节标识 {slug} 与章节内已有或待导入的小节重复', {
+          slug
+        }),
+        'warn'
+      );
       return;
     }
     slugs.add(slug);
@@ -147,7 +161,12 @@ function confirmImport() {
   }
   emit('imported');
   close();
-  notify(t('已添加 {count} 个小节，请保存图书', { count: sections.length }), 'success');
+  notify(
+    t('已添加 {count} 个小节，请保存图书', {
+      count: sections.length
+    }),
+    'success'
+  );
 }
 </script>
 
@@ -156,7 +175,9 @@ function confirmImport() {
     v-if="editable"
     class="wb-block section-import"
   >
-    <div class="wb-block-head"><span class="wb-block-title">{{ t('批量导入小节') }}</span></div>
+    <div class="wb-block-head">
+      <span class="wb-block-title">{{ t('批量导入小节') }}</span>
+    </div>
     <MFilePicker
       :title="t('Typst 文件')"
       :detail="t(reading ? '正在读取文件…' : '可选择一个或多个 .typ 文件，导入后请保存图书')"

@@ -1,10 +1,10 @@
 <script setup>
-import { t } from '../../i18n.js';
 import { onUnmounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
 import { knowledgeApi } from '../../api/knowledge.js';
 import MButton from '../../components/form/MButton.vue';
+import { t } from '../../i18n.js';
 
 const route = useRoute();
 const point = ref(null);

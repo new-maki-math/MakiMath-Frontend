@@ -1,5 +1,4 @@
 <script setup>
-import { locale, t } from '../../i18n.js';
 import { computed, inject, onUnmounted, ref, watch } from 'vue';
 
 import { resourceApi } from '../../api/resources.js';
@@ -19,6 +18,7 @@ import {
   Trash,
   Upload
 } from '../../components/icons/icons.js';
+import { locale, t } from '../../i18n.js';
 import { authStatus, currentUser } from '../../utils/auth.js';
 import { formatFileSize } from '../../utils/file-size.js';
 import ResourceManageDialog from './ResourceManageDialog.vue';
@@ -74,14 +74,17 @@ const actions = [
 ];
 const total = computed(() => data.value?.pagination?.total || 0);
 const title = computed(() => data.value?.current?.name || t('全部资源'));
-const formatter = computed(() => new Intl.DateTimeFormat(locale.value, {
-  year: 'numeric',
-  month: '2-digit',
-  day: '2-digit',
-  hour: '2-digit',
-  minute: '2-digit',
-  hour12: false
-}));
+const formatter = computed(
+  () =>
+    new Intl.DateTimeFormat(locale.value, {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    })
+);
 function formatDate(value) {
   const time = Date.parse(value);
   return Number.isFinite(time) ? formatter.value.format(time) : '—';
@@ -172,14 +175,21 @@ onUnmounted(() => {
         /></MButton>
         <div class="section-title">
           <h2>{{ title }}</h2>
-          <span v-if="data">{{ t('{count} 项', { count: total }) }}</span>
+          <span v-if="data">{{
+            t('{count} 项', {
+              count: total
+            })
+          }}</span>
         </div>
         <div class="heading-actions">
           <span
             v-if="quota && !quota.unlimited"
             class="quota"
             >{{
-              t('下载额度 {used} / {limit} MiB（最近 12 小时）', { used: (quota.used_bytes / 1024 / 1024).toFixed(1), limit: (quota.limit_bytes / 1024 / 1024).toFixed(1) })
+              t('下载额度 {used} / {limit} MiB（最近 12 小时）', {
+                used: (quota.used_bytes / 1024 / 1024).toFixed(1),
+                limit: (quota.limit_bytes / 1024 / 1024).toFixed(1)
+              })
             }}</span
           >
           <span
@@ -289,7 +299,14 @@ onUnmounted(() => {
                   <span class="mobile-meta">
                     <template v-if="item.kind === 'pdf'">
                       <span>{{ formatFileSize(item.size_bytes) }}</span>
-                      <span>{{ t('{count} 次下载', { count: Number.isSafeInteger(item.download_count) && item.download_count >= 0 ? item.download_count.toLocaleString(locale) : '—' }) }}</span>
+                      <span>{{
+                        t('{count} 次下载', {
+                          count:
+                            Number.isSafeInteger(item.download_count) && item.download_count >= 0
+                              ? item.download_count.toLocaleString(locale)
+                              : '—'
+                        })
+                      }}</span>
                     </template>
                     <time :datetime="item.updated_at">{{ formatDate(item.updated_at) }}</time>
                   </span>
@@ -326,7 +343,11 @@ onUnmounted(() => {
                   size="sm"
                   icon-only
                   :title="t('替换 PDF')"
-                  :aria-label="t('替换 {name}', { name: item.name })"
+                  :aria-label="
+                    t('替换 {name}', {
+                      name: item.name
+                    })
+                  "
                   @click="showAction('replace', item)"
                   ><Upload
                     width="16"
@@ -340,7 +361,12 @@ onUnmounted(() => {
                   size="sm"
                   icon-only
                   :title="t(action.label)"
-                  :aria-label="t('{action} {name}', { action: t(action.label), name: item.name })"
+                  :aria-label="
+                    t('{action} {name}', {
+                      action: t(action.label),
+                      name: item.name
+                    })
+                  "
                   @click="showAction(action.key, item)"
                   ><component
                     :is="action.icon"

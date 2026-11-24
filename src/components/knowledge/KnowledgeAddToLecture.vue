@@ -1,8 +1,8 @@
 <script setup>
-import { t } from '../../i18n.js';
 import { computed, nextTick, ref, watch } from 'vue';
 
 import { bookApi } from '../../api/books.js';
+import { t } from '../../i18n.js';
 import { authStatus, currentUser } from '../../utils/auth.js';
 import { listLocalLectures, saveLocalLecture } from '../../utils/local-lectures.js';
 import { notify } from '../feedback/MNotice.vue';

@@ -1,11 +1,11 @@
 <script setup>
-import { t } from '../../i18n.js';
 // 平台运维与管理控制台总视图
 import { onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import MButton from '../../components/form/MButton.vue';
 import { BookmarkSolid, Group, Key, Page } from '../../components/icons/icons.js';
+import { t } from '../../i18n.js';
 import { authStatus, initAuth, isSuperAdmin } from '../../utils/auth.js';
 import AuditPanel from './AuditPanel.vue';
 import InvitationPanel from './InvitationPanel.vue';

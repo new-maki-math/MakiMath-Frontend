@@ -97,7 +97,9 @@ async function loadLog({ autoOpen = false } = {}) {
       }
     } catch (failure) {
       const cached = await getCachedFile(cacheKey);
-      if (typeof cached?.value !== 'string') throw failure;
+      if (typeof cached?.value !== 'string') {
+        throw failure;
+      }
       text = cached.value;
     }
     if (current === sequence && !disposed && open.value) {
@@ -151,7 +153,11 @@ function close() {
   sequence++;
   loading.value = false;
 }
-onMounted(() => loadLog({ autoOpen: true }));
+onMounted(() =>
+  loadLog({
+    autoOpen: true
+  })
+);
 onBeforeUnmount(() => {
   disposed = true;
   sequence++;

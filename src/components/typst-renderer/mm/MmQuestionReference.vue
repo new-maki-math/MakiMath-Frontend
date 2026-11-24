@@ -1,7 +1,7 @@
 <script setup>
-import { t } from '../../../i18n.js';
 import { inject, onBeforeUnmount, ref, watch } from 'vue';
 
+import { t } from '../../../i18n.js';
 import { authStatus, currentUser } from '../../../utils/auth.js';
 import { getReferencedQuestion } from './question-reference.js';
 import QuestionCard from './QuestionCard.vue';

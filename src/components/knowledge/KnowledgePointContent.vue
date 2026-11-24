@@ -1,7 +1,7 @@
 <script setup>
-import { t } from '../../i18n.js';
 import { computed, ref, watch } from 'vue';
 
+import { t } from '../../i18n.js';
 import { notify } from '../feedback/MNotice.vue';
 import MButton from '../form/MButton.vue';
 import TypstDoc from '../typst-renderer/TypstDoc.vue';

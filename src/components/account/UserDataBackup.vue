@@ -1,8 +1,8 @@
 <script setup>
-import { t } from '../../i18n.js';
 import { computed, onMounted, ref } from 'vue';
 
 import { workbenchPanelState } from '../../composables/useWorkbenchGuard.js';
+import { t } from '../../i18n.js';
 import { FILE_CACHE_DATABASE } from '../../utils/file-cache.js';
 import {
   clearRecoveryBackup,
@@ -331,20 +331,37 @@ onMounted(updateRecovery);
         @change="selectFile"
       />
       <template v-if="inspection">
-        <p class="backup-text">{{ t('备份时间：{time}', { time: new Date(inspection.exportedAt).toLocaleString() }) }}</p>
+        <p class="backup-text">
+          {{
+            t('备份时间：{time}', {
+              time: new Date(inspection.exportedAt).toLocaleString()
+            })
+          }}
+        </p>
         <ul class="backup-list">
           <li
             v-for="item in inspection.summary"
             :key="item.name"
           >
-            {{ t('{label}：{count} 条', { label: t(labels[item.name] || item.name), count: item.count }) }}
+            {{
+              t('{label}：{count} 条', {
+                label: t(labels[item.name] || item.name),
+                count: item.count
+              })
+            }}
           </li>
         </ul>
         <p class="backup-warning">
-          {{ t('确认后将覆盖上述数据库中的当前数据，其他数据库不会被删除。建议先导出备份，并关闭其他本站标签页。') }}
+          {{
+            t(
+              '确认后将覆盖上述数据库中的当前数据，其他数据库不会被删除。建议先导出备份，并关闭其他本站标签页。'
+            )
+          }}
         </p>
         <p class="backup-text">
-          {{ t('只包含当前浏览器的本地数据，不包含登录凭据和服务器在线数据。导入成功后页面将刷新。') }}
+          {{
+            t('只包含当前浏览器的本地数据，不包含登录凭据和服务器在线数据。导入成功后页面将刷新。')
+          }}
         </p>
       </template>
       <div
@@ -452,7 +469,9 @@ onMounted(updateRecovery);
             >{{ t('全部数据库') }}</MRadio
           >
         </div>
-        <p class="backup-text">{{ t('当前没有可确认安全删除的遗弃字段，未识别的字段不会被自动清理。') }}</p>
+        <p class="backup-text">
+          {{ t('当前没有可确认安全删除的遗弃字段，未识别的字段不会被自动清理。') }}
+        </p>
         <p
           v-if="cleanupMode === 'cache'"
           class="backup-text"
@@ -522,7 +541,9 @@ onMounted(updateRecovery);
             {{ t(labels[name] || '未识别数据库') }} · {{ name }}
           </li>
         </ul>
-        <p class="backup-text">{{ t('其他未选择的数据库、登录凭据和服务器数据不受此操作影响。') }}</p>
+        <p class="backup-text">
+          {{ t('其他未选择的数据库、登录凭据和服务器数据不受此操作影响。') }}
+        </p>
       </template>
       <p
         v-if="cleanupProgress"

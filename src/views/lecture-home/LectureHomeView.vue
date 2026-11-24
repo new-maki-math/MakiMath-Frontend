@@ -1,5 +1,4 @@
 <script setup>
-import { t } from '../../i18n.js';
 import { computed, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -15,6 +14,7 @@ import MTextarea from '../../components/form/MTextarea.vue';
 import { EditPencil, NavArrowRight, Trash } from '../../components/icons/icons.js';
 import MCollapse from '../../components/overlay/MCollapse.vue';
 import MModal from '../../components/overlay/MModal.vue';
+import { t } from '../../i18n.js';
 import { authStatus, currentUser, isSuperAdmin } from '../../utils/auth.js';
 import { portableToLocalLecture } from '../../utils/lecture-portable.js';
 import { lectureLocation, lectureNavigationOrigin } from '../../utils/lecture-route.js';
@@ -70,14 +70,15 @@ let publicCheckSequence = 0;
 const totalSectionsCount = computed(() => {
   return chapters.value.reduce((acc, c) => acc + (c.sections?.length || 0), 0);
 });
-const reviewStatusLabel = computed(
-  () =>
-    t(({
+const reviewStatusLabel = computed(() =>
+  t(
+    {
       draft: '草稿',
       pending: '审核中',
       approved: '已通过',
       rejected: '已驳回'
-    })[revisionStatus.value] || '未提供')
+    }[revisionStatus.value] || '未提供'
+  )
 );
 const updatedAt = computed(() => {
   if (!lecture.value?.updatedAt) {
@@ -704,7 +705,16 @@ onUnmounted(() => {
         @confirm="removeLecture"
       >
         <p class="cover-dialog-note">
-          {{ t(isWorkbook ? '确定删除“{title}”吗？本地题目册内容将被删除，且无法恢复。' : '确定删除“{title}”吗？本地讲义内容将被删除，且无法恢复。', { title: lecture?.title }) }}
+          {{
+            t(
+              isWorkbook
+                ? '确定删除“{title}”吗？本地题目册内容将被删除，且无法恢复。'
+                : '确定删除“{title}”吗？本地讲义内容将被删除，且无法恢复。',
+              {
+                title: lecture?.title
+              }
+            )
+          }}
         </p>
       </MModal>
       <LecturePrintDialog
@@ -719,16 +729,21 @@ onUnmounted(() => {
           <!-- 课程概览 -->
           <div class="spec-card">
             <div class="card-header">
-              <span class="card-title font-mono"
-                >{{ t('OVERVIEW // {kind}', { kind: t(isWorkbook ? '题目册概要' : '讲义概要') }) }}</span
-              >
+              <span class="card-title font-mono">{{
+                t('OVERVIEW // {kind}', {
+                  kind: t(isWorkbook ? '题目册概要' : '讲义概要')
+                })
+              }}</span>
             </div>
             <div class="spec-body">
               <div class="spec-item">
                 <span class="spec-label">{{ t('章节与小节') }}</span>
-                <span class="spec-value font-mono"
-                  >{{ t('{chapters} 章 · {sections} 节', { chapters: chapters.length, sections: totalSectionsCount }) }}</span
-                >
+                <span class="spec-value font-mono">{{
+                  t('{chapters} 章 · {sections} 节', {
+                    chapters: chapters.length,
+                    sections: totalSectionsCount
+                  })
+                }}</span>
               </div>
               <div class="spec-item">
                 <span class="spec-label">{{ t(isWorkbook ? '题目册版本' : '讲义版本') }}</span>
@@ -818,11 +833,18 @@ onUnmounted(() => {
             <span class="section-kicker font-mono">{{
               isWorkbook ? 'CONTENTS & QUESTIONS' : 'SYLLABUS & LECTURES'
             }}</span>
-            <h2 class="section-heading">{{ t(isWorkbook ? '题目册目录' : '讲义大纲与章节目录') }}</h2>
+            <h2 class="section-heading">
+              {{ t(isWorkbook ? '题目册目录' : '讲义大纲与章节目录') }}
+            </h2>
           </div>
           <div class="curriculum-actions font-mono">
             <span class="curriculum-stats">
-              {{ t(isWorkbook ? '{chapters} 章 · {sections} 节' : '{chapters} 编 · {sections} 讲', { chapters: chapters.length, sections: totalSectionsCount }) }}
+              {{
+                t(isWorkbook ? '{chapters} 章 · {sections} 节' : '{chapters} 编 · {sections} 讲', {
+                  chapters: chapters.length,
+                  sections: totalSectionsCount
+                })
+              }}
             </span>
             <div class="toggle-group">
               <button
@@ -874,9 +896,11 @@ onUnmounted(() => {
               </div>
 
               <div class="chapter-aside">
-                <span class="section-count font-mono"
-                  >{{ t(isWorkbook ? '{count} 节' : '{count} 讲', { count: chap.sections?.length || 0 }) }}</span
-                >
+                <span class="section-count font-mono">{{
+                  t(isWorkbook ? '{count} 节' : '{count} 讲', {
+                    count: chap.sections?.length || 0
+                  })
+                }}</span>
                 <span
                   class="arrow-icon"
                   :class="{

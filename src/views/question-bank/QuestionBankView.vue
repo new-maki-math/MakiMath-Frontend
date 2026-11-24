@@ -1,5 +1,4 @@
 <script setup>
-import { t } from '../../i18n.js';
 import { ref } from 'vue';
 
 import MFileTypeIcon from '../../components/display/MFileTypeIcon.vue';
@@ -9,6 +8,7 @@ import MEmpty from '../../components/feedback/MEmpty.vue';
 import MButton from '../../components/form/MButton.vue';
 import MInput from '../../components/form/MInput.vue';
 import { ArrowLeft, NavArrowRight, Page } from '../../components/icons/icons.js';
+import { t } from '../../i18n.js';
 import QuestionDetailDialog from './QuestionDetailDialog.vue';
 import { useQuestionBrowser } from './useQuestionBrowser.js';
 
@@ -141,7 +141,11 @@ function goUp() {
               ><strong>{{ item.source_number || item.slug }}</strong
               ><span>{{ item.stem_summary || item.slug }}</span></span
             >
-            <span class="difficulty">{{ t('难度 {value} / 5', { value: item.difficulty }) }}</span>
+            <span class="difficulty">{{
+              t('难度 {value} / 5', {
+                value: item.difficulty
+              })
+            }}</span>
           </button>
         </div>
         <MEmpty v-if="!data.children.length && !data.items.length" />

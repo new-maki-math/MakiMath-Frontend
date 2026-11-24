@@ -39,7 +39,8 @@ const paths = {
   LogOut:
     'M5 3h8a2 2 0 0 1 2 2v3h-2V5H5v14h8v-3h2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2m12 5 4 4-4 4-1.4-1.4 1.6-1.6H9v-2h8.2l-1.6-1.6z',
   Menu: 'M3 5h18v2H3zm0 6h18v2H3zm0 6h18v2H3z',
-  Calendar: 'M7 2h2v2h6V2h2v2h2a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2zm12 7H5v10h14zM7 11h3v3H7zm5 0h3v3h-3zm-5 5h3v2H7zm5 0h3v2h-3z',
+  Calendar:
+    'M7 2h2v2h6V2h2v2h2a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2zm12 7H5v10h14zM7 11h3v3H7zm5 0h3v3h-3zm-5 5h3v2H7zm5 0h3v2h-3z',
   NavArrowDown: 'M5.6 8.6 12 15l6.4-6.4-1.4-1.4-5 5-5-5z',
   NavArrowLeft: 'M14.6 4.6 7.2 12l7.4 7.4 1.4-1.4-6-6 6-6z',
   NavArrowRight: 'M9.4 4.6 8 6l6 6-6 6 1.4 1.4 7.4-7.4z',

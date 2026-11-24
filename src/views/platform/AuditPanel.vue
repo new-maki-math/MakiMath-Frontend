@@ -1,5 +1,4 @@
 <script setup>
-import { t } from '../../i18n.js';
 // 全站审计日志面板组件
 import { onMounted, onUnmounted, ref } from 'vue';
 
@@ -10,6 +9,7 @@ import MTag from '../../components/display/MTag.vue';
 import { notify } from '../../components/feedback/MNotice.vue';
 import MButton from '../../components/form/MButton.vue';
 import { Refresh } from '../../components/icons/icons.js';
+import { t } from '../../i18n.js';
 import { formatDate } from './utils.js';
 
 const auditLogs = ref([]);
@@ -26,9 +26,14 @@ const loadAuditLogs = async (page = 1, limit = auditLimit.value) => {
   auditPage.value = page;
   auditLimit.value = limit;
   try {
-    const params = new URLSearchParams({ limit: String(limit), offset: String((page - 1) * limit) });
+    const params = new URLSearchParams({
+      limit: String(limit),
+      offset: String((page - 1) * limit)
+    });
     const res = await request(`/api/audit-logs?${params}`);
-    if (current !== auditSequence) return;
+    if (current !== auditSequence) {
+      return;
+    }
     if (!Array.isArray(res?.items) || !Number.isSafeInteger(res.total) || res.total < 0) {
       throw new Error('审计日志分页数据格式不正确');
     }
@@ -40,9 +45,13 @@ const loadAuditLogs = async (page = 1, limit = auditLimit.value) => {
     auditLogs.value = res.items;
     auditTotal.value = res.total;
   } catch (err) {
-    if (current === auditSequence) notify(err.message || t('加载全站日志失败'), 'error');
+    if (current === auditSequence) {
+      notify(err.message || t('加载全站日志失败'), 'error');
+    }
   } finally {
-    if (current === auditSequence) isLoadingAudit.value = false;
+    if (current === auditSequence) {
+      isLoadingAudit.value = false;
+    }
   }
 };
 

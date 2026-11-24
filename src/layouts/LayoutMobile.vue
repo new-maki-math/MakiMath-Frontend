@@ -1,5 +1,4 @@
 <script setup>
-import { t } from '../i18n.js';
 import { inject, ref, watch } from 'vue';
 import { RouterView } from 'vue-router';
 
@@ -20,6 +19,7 @@ import {
   Xmark
 } from '../components/icons/icons.js';
 import MDrawer from '../components/overlay/MDrawer.vue';
+import { t } from '../i18n.js';
 import NavigationIcon from './NavigationIcon.vue';
 import { useLayoutState } from './useLayoutState.js';
 
@@ -325,7 +325,13 @@ watch(
         >
           <span class="desktop-only-label font-mono">DESKTOP ONLY</span>
           <h2>{{ t('请在电脑端使用') }}</h2>
-          <p>{{ t('移动端不支持', { name: currentItem.label }) }}</p>
+          <p>
+            {{
+              t('移动端不支持', {
+                name: currentItem.label
+              })
+            }}
+          </p>
           <MButton
             size="sm"
             @click="handleNavClick('/my-lecture')"

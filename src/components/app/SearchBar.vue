@@ -3,12 +3,12 @@ import { inject, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import { fetchSearchRecommendations } from '../../api/courses.js';
-import { t } from '../../i18n.js';
 import {
   getBrightTagVariant,
   getSectionTags,
   useLectureSearch
 } from '../../composables/useLectureSearch.js';
+import { t } from '../../i18n.js';
 import { lectureLocation } from '../../utils/lecture-route.js';
 import MTag from '../display/MTag.vue';
 import { notify } from '../feedback/MNotice.vue';
@@ -339,7 +339,11 @@ defineExpose({
         <!-- 结果列表头部统计 -->
         <div class="dropdown-header">
           <span>{{ t(query ? '匹配知识点与图书' : '推荐图书') }}</span>
-          <span class="count-tag font-mono">{{ t('{count} 节点', { count: displayResults.length }) }}</span>
+          <span class="count-tag font-mono">{{
+            t('{count} 节点', {
+              count: displayResults.length
+            })
+          }}</span>
         </div>
 
         <!-- 滚动列表 -->
@@ -366,11 +370,13 @@ defineExpose({
                 :mono="false"
               >
                 {{
-                  t(item.type === 'knowledge'
-                    ? '知识点'
-                    : (item.book_kind ?? item.kind) === 'workbook'
-                      ? '题目册'
-                      : '讲义')
+                  t(
+                    item.type === 'knowledge'
+                      ? '知识点'
+                      : (item.book_kind ?? item.kind) === 'workbook'
+                        ? '题目册'
+                        : '讲义'
+                  )
                 }}
               </MTag>
               <MTag
@@ -426,7 +432,13 @@ defineExpose({
           v-else
           class="empty-state"
         >
-          <span>{{ query ? t('未找到与「{query}」相关的内容', { query }) : t('暂无推荐图书') }}</span>
+          <span>{{
+            query
+              ? t('未找到与「{query}」相关的内容', {
+                  query
+                })
+              : t('暂无推荐图书')
+          }}</span>
         </div>
 
         <!-- 底部快捷键指南 -->

@@ -1,9 +1,9 @@
 <script setup>
-import { t } from '../../i18n.js';
 import { select, zoom, zoomIdentity } from 'd3';
 import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 
 import MButton from '../../components/form/MButton.vue';
+import { t } from '../../i18n.js';
 import {
   clearCanvasTextCache,
   drawKnowledgeCanvas,
@@ -514,7 +514,12 @@ onUnmounted(() => {
           v-for="tile in layout.tiles"
           :key="tile.node.id"
           type="button"
-          :aria-label="t('{title}，{status}，激活打开阅读', { title: tile.node.title, status: t(mastered.has(tile.node.slug) ? '已掌握' : '未掌握') })"
+          :aria-label="
+            t('{title}，{status}，激活打开阅读', {
+              title: tile.node.title,
+              status: t(mastered.has(tile.node.slug) ? '已掌握' : '未掌握')
+            })
+          "
           @focus="
             focusTile(tile);
             emit('focus', tile.node);

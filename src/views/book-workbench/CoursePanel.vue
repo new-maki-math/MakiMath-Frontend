@@ -1,5 +1,4 @@
 <script setup>
-import { t } from '../../i18n.js';
 import { computed, onUnmounted, ref, watch } from 'vue';
 
 import { bookApi } from '../../api/books.js';
@@ -11,6 +10,7 @@ import MInput from '../../components/form/MInput.vue';
 import MSelect from '../../components/form/MSelect.vue';
 import MTextarea from '../../components/form/MTextarea.vue';
 import WorkbenchPanel from '../../components/workbench/WorkbenchPanel.vue';
+import { t } from '../../i18n.js';
 import { readAnimationFiles } from '../../utils/animation-package.js';
 
 const revision = defineModel('revision', {
@@ -46,7 +46,7 @@ const props = defineProps({
 });
 const emit = defineEmits(['save', 'reset', 'cover-change']);
 const bookKind = computed(() => lecture.value.kind ?? 'lecture');
-const kindLabel = computed(() => (t(bookKind.value === 'workbook' ? '题目册' : '讲义')));
+const kindLabel = computed(() => t(bookKind.value === 'workbook' ? '题目册' : '讲义'));
 const selectedCategory = computed({
   get: () => (revision.value.category_id == null ? '' : String(revision.value.category_id)),
   set: (value) => {
@@ -339,19 +339,31 @@ function removeCover() {
           <MInput
             v-if="lecture.isLocal"
             v-model="lecture.slug"
-            :label="t('{kind}标识', { kind: kindLabel })"
+            :label="
+              t('{kind}标识', {
+                kind: kindLabel
+              })
+            "
             :hint="t('修改后图书地址会改变')"
             required
           />
           <MInput
             v-else
             :model-value="lecture.slug"
-            :label="t('{kind}标识', { kind: kindLabel })"
+            :label="
+              t('{kind}标识', {
+                kind: kindLabel
+              })
+            "
             disabled
           />
           <MSelect
             v-model="selectedCategory"
-            :label="t('{kind}分类', { kind: kindLabel })"
+            :label="
+              t('{kind}分类', {
+                kind: kindLabel
+              })
+            "
             :options="[
               {
                 value: '',
@@ -384,7 +396,9 @@ function removeCover() {
       class="wb-block animation-base"
       :inert="!editable"
     >
-      <div class="wb-block-head"><span class="wb-block-title">{{ t('图书动画基础资源') }}</span></div>
+      <div class="wb-block-head">
+        <span class="wb-block-title">{{ t('图书动画基础资源') }}</span>
+      </div>
       <p class="animation-base-hint">
         {{ t('在这里配置所有小节共用的脚本、字体和图片；播放器和数学公式依赖由平台提供。') }}
       </p>
@@ -406,7 +420,13 @@ function removeCover() {
         v-if="animationBase.files"
         class="animation-base-files"
       >
-        <summary>{{ t('已导入 {count} 个基础文件', { count: Object.keys(animationBase.files).length }) }}</summary>
+        <summary>
+          {{
+            t('已导入 {count} 个基础文件', {
+              count: Object.keys(animationBase.files).length
+            })
+          }}
+        </summary>
         <ul>
           <li
             v-for="path in Object.keys(animationBase.files).sort()"

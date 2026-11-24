@@ -6,7 +6,10 @@ function openDatabase() {
   if (!database) {
     database = new Promise((resolve, reject) => {
       const request = indexedDB.open('MakiMath_Schedule', 1);
-      request.onupgradeneeded = () => request.result.createObjectStore('events', { keyPath: 'id' });
+      request.onupgradeneeded = () =>
+        request.result.createObjectStore('events', {
+          keyPath: 'id'
+        });
       request.onsuccess = () => {
         request.result.onversionchange = () => {
           request.result.close();

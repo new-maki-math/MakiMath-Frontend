@@ -1,5 +1,4 @@
 <script setup>
-import { t } from '../../i18n.js';
 import { onBeforeUnmount, ref, watch } from 'vue';
 
 import { questionApi } from '../../api/questions.js';
@@ -8,6 +7,7 @@ import MDataView from '../../components/feedback/MDataView.vue';
 import MEmpty from '../../components/feedback/MEmpty.vue';
 import MButton from '../../components/form/MButton.vue';
 import { ArrowLeft, NavArrowRight } from '../../components/icons/icons.js';
+import { t } from '../../i18n.js';
 
 const props = defineProps({
   open: Boolean,

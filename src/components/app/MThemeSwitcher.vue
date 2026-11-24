@@ -2,8 +2,8 @@
 import { computed } from 'vue';
 
 import { t } from '../../i18n.js';
-import MSelect from '../form/MSelect.vue';
 import { HalfMoon, SeasonAutumn, SeasonSpring, SeasonWinter, SunLight } from '../../theme/icons.js';
+import MSelect from '../form/MSelect.vue';
 
 const props = defineProps({
   modelValue: {
@@ -12,18 +12,20 @@ const props = defineProps({
   }
 });
 const emit = defineEmits(['update:modelValue']);
-const themes = computed(() => [
-  ['dark', '深色', HalfMoon],
-  ['light', '浅色', SunLight],
-  ['spring', '春', SeasonSpring],
-  ['summer', '夏', SunLight],
-  ['autumn', '秋', SeasonAutumn],
-  ['winter', '冬', SeasonWinter]
-].map(([value, label, icon]) => ({
-  value,
-  label: t(label),
-  icon
-})));
+const themes = computed(() =>
+  [
+    ['dark', '深色', HalfMoon],
+    ['light', '浅色', SunLight],
+    ['spring', '春', SeasonSpring],
+    ['summer', '夏', SunLight],
+    ['autumn', '秋', SeasonAutumn],
+    ['winter', '冬', SeasonWinter]
+  ].map(([value, label, icon]) => ({
+    value,
+    label: t(label),
+    icon
+  }))
+);
 const selectedTheme = computed(
   () => themes.value.find((theme) => theme.value === props.modelValue) || themes.value[0]
 );
@@ -35,7 +37,11 @@ const selectedTheme = computed(
     :model-value="modelValue"
     :options="themes"
     icon-only
-    :title="t('主题：{name}', { name: selectedTheme.label })"
+    :title="
+      t('主题：{name}', {
+        name: selectedTheme.label
+      })
+    "
     :aria-label="t('选择主题')"
     variant="ghost"
     @update:model-value="emit('update:modelValue', $event)"

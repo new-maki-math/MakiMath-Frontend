@@ -1,5 +1,4 @@
 <script setup>
-import { t } from '../../i18n.js';
 import { onBeforeUnmount, ref, watch } from 'vue';
 
 import { questionApi } from '../../api/questions.js';
@@ -9,6 +8,7 @@ import MDataView from '../../components/feedback/MDataView.vue';
 import MEmpty from '../../components/feedback/MEmpty.vue';
 import MButton from '../../components/form/MButton.vue';
 import { ArrowLeft, NavArrowRight, Page } from '../../components/icons/icons.js';
+import { t } from '../../i18n.js';
 
 const props = defineProps({
   open: Boolean,
@@ -122,7 +122,8 @@ onBeforeUnmount(() => {
 <template>
   <div class="picker">
     <div class="selected">
-      <span>{{ t('已选择') }}</span><strong>{{ modelValue || t('请选择题目') }}</strong>
+      <span>{{ t('已选择') }}</span
+      ><strong>{{ modelValue || t('请选择题目') }}</strong>
     </div>
     <span class="label">{{ t('选择题目') }}</span>
     <div class="container">

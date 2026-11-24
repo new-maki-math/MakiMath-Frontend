@@ -1,5 +1,4 @@
 <script setup>
-import { t } from '../../i18n.js';
 import { ref, watch } from 'vue';
 
 import { resourceApi } from '../../api/resources.js';
@@ -8,6 +7,7 @@ import MSpinner from '../../components/feedback/MSpinner.vue';
 import MButton from '../../components/form/MButton.vue';
 import { ArrowRight } from '../../components/icons/icons.js';
 import MModal from '../../components/overlay/MModal.vue';
+import { t } from '../../i18n.js';
 import { authStatus, currentUser } from '../../utils/auth.js';
 import {
   fileCacheScope,
@@ -272,10 +272,15 @@ watch(
     >
       <p>{{ error }}</p>
       <p v-if="quota">
-        {{ t('剩余额度 {amount} MiB', { amount: (quota.remaining_bytes / 1024 / 1024).toFixed(1) }) }}<span
-          v-if="quota.next_available_at"
-          >{{ t('，最早释放时间 {time}', { time: new Date(quota.next_available_at).toLocaleString() }) }}</span
-        >
+        {{
+          t('剩余额度 {amount} MiB', {
+            amount: (quota.remaining_bytes / 1024 / 1024).toFixed(1)
+          })
+        }}<span v-if="quota.next_available_at">{{
+          t('，最早释放时间 {time}', {
+            time: new Date(quota.next_available_at).toLocaleString()
+          })
+        }}</span>
       </p>
     </div>
     <div
@@ -330,7 +335,11 @@ watch(
         <div class="pdf-large-copy">
           <p class="pdf-large-title">{{ t('文件过大，无法预览') }}</p>
           <p class="pdf-large-detail">
-            {{ t('{size} · 预览上限 5 MiB，请下载后查看', { size: formatFileSize(resource?.size_bytes) }) }}
+            {{
+              t('{size} · 预览上限 5 MiB，请下载后查看', {
+                size: formatFileSize(resource?.size_bytes)
+              })
+            }}
           </p>
         </div>
       </div>

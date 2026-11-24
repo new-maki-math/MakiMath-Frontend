@@ -1,5 +1,4 @@
 <script setup>
-import { t } from '../../i18n.js';
 import { hierarchy, treemap, treemapBinary, treemapSquarify } from 'd3';
 import { computed, inject, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
@@ -14,6 +13,7 @@ import MSelect from '../../components/form/MSelect.vue';
 import KnowledgePointContent from '../../components/knowledge/KnowledgePointContent.vue';
 import KnowledgePointOverlay from '../../components/knowledge/KnowledgePointOverlay.vue';
 import MCollapse from '../../components/overlay/MCollapse.vue';
+import { t } from '../../i18n.js';
 import {
   getMasteredIds,
   setMastered,
@@ -1055,7 +1055,11 @@ function closeReading(sessionId) {
               class="search-results"
             >
               <div class="search-result-head">
-                <span>{{ t('{count} 条结果', { count: searchResults.length }) }}</span
+                <span>{{
+                  t('{count} 条结果', {
+                    count: searchResults.length
+                  })
+                }}</span
                 ><button
                   type="button"
                   @click="searchQuery = ''"
@@ -1131,7 +1135,13 @@ function closeReading(sessionId) {
           v-if="showingRelations && selected"
           class="relation-info"
         >
-          <p>{{ t('正在查看：{title}', { title: selected.title }) }}</p>
+          <p>
+            {{
+              t('正在查看：{title}', {
+                title: selected.title
+              })
+            }}
+          </p>
           <p>
             <span class="relation-label before">{{ t('前置') }}</span
             ><span class="relation-label after">{{ t('后续') }}</span>
@@ -1168,7 +1178,8 @@ function closeReading(sessionId) {
         class="floating-legend"
         :inert="reading"
       >
-        <span><i class="swatch" />{{ t('未掌握') }}</span><span><i class="swatch mastered" />{{ t('已掌握') }}</span
+        <span><i class="swatch" />{{ t('未掌握') }}</span
+        ><span><i class="swatch mastered" />{{ t('已掌握') }}</span
         ><span><i class="boundary-key domain" />{{ t('分区') }}</span
         ><span><i class="boundary-key topic" />{{ t('子分区') }}</span
         ><span>{{ totalStats.done }} / {{ totalStats.total }}</span>

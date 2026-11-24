@@ -1,5 +1,4 @@
 <script setup>
-import { t } from '../../i18n.js';
 import '../../components/workbench/workbench.css';
 
 import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue';
@@ -17,6 +16,7 @@ import TypstEditorPreview from '../../components/typst/TypstEditorPreview.vue';
 import WorkbenchPanel from '../../components/workbench/WorkbenchPanel.vue';
 import WorkbenchTree from '../../components/workbench/WorkbenchTree.vue';
 import { useWorkbenchGuard } from '../../composables/useWorkbenchGuard.js';
+import { t } from '../../i18n.js';
 import { authStatus, currentUser, initAuth } from '../../utils/auth.js';
 
 const treeRef = ref(null);
@@ -898,7 +898,9 @@ onUnmounted(() => {
           </div>
         </div>
         <div class="wb-block">
-          <div class="wb-block-head"><span class="wb-block-title">{{ t('知识点内容') }}</span></div>
+          <div class="wb-block-head">
+            <span class="wb-block-title">{{ t('知识点内容') }}</span>
+          </div>
           <TypstEditorPreview
             :key="point.id"
             v-model="point.source"
@@ -1032,12 +1034,26 @@ onUnmounted(() => {
       @close="closeDelete"
     >
       <div class="delete-fields">
-        <p>{{ t('确定永久删除“{name}”吗？此操作不可撤销。', { name: deleteTarget?.label }) }}</p>
+        <p>
+          {{
+            t('确定永久删除“{name}”吗？此操作不可撤销。', {
+              name: deleteTarget?.label
+            })
+          }}
+        </p>
         <p v-if="deleteTarget?.type === 'group'">
-          {{ t('将删除此分类及全部子分类，并删除仅属于这些分类的知识点。还关联范围外分类的知识点会保留，仅移除范围内的分类关联。涉及被删除知识点的前置关系也会清理，讲义中的相关引用可能显示缺失占位。本地掌握记录和批注不会自动清理。') }}
+          {{
+            t(
+              '将删除此分类及全部子分类，并删除仅属于这些分类的知识点。还关联范围外分类的知识点会保留，仅移除范围内的分类关联。涉及被删除知识点的前置关系也会清理，讲义中的相关引用可能显示缺失占位。本地掌握记录和批注不会自动清理。'
+            )
+          }}
         </p>
         <p v-else>
-          {{ t('删除将同时清理此知识点的分类关联和前置、后续关系，其他知识点保留。讲义源码不会修改，引用处将显示缺失占位；本地掌握记录和批注不会自动清理。') }}
+          {{
+            t(
+              '删除将同时清理此知识点的分类关联和前置、后续关系，其他知识点保留。讲义源码不会修改，引用处将显示缺失占位；本地掌握记录和批注不会自动清理。'
+            )
+          }}
         </p>
         <p
           v-if="deleteError"

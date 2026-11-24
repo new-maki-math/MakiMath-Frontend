@@ -1,9 +1,9 @@
 <script setup>
-import { t } from '../../i18n.js';
 import { ref, watch } from 'vue';
 
 import MButton from '../../components/form/MButton.vue';
 import MModal from '../../components/overlay/MModal.vue';
+import { t } from '../../i18n.js';
 
 const props = defineProps({
   open: {

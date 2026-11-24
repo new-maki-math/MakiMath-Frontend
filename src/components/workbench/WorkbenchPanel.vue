@@ -1,7 +1,7 @@
 <script setup>
-import { locale, t } from '../../i18n.js';
 import { computed } from 'vue';
 
+import { locale, t } from '../../i18n.js';
 import MButton from '../form/MButton.vue';
 
 const props = defineProps({
@@ -141,16 +141,35 @@ const reviewedDate = computed(() => formatDate(props.reviewedAt));
           <strong>{{ t('课程讲义正在审核中...') }}</strong>
           <p>{{ readOnlyMessage }}</p>
           <div class="notice-details">
-            <span>{{ t('提交日期：{date}', { date: submittedDate }) }}</span
+            <span>{{
+              t('提交日期：{date}', {
+                date: submittedDate
+              })
+            }}</span
             ><span>{{ t('提交用户：未提供') }}</span>
           </div>
         </template>
         <template v-else-if="reviewStatus === 'rejected'">
           <strong>{{ t('课程讲义被驳回了！') }}</strong>
-          <p>{{ t('驳回原因：未提供；{message}', { message: readOnlyMessage }) }}</p>
+          <p>
+            {{
+              t('驳回原因：未提供；{message}', {
+                message: readOnlyMessage
+              })
+            }}
+          </p>
           <div class="notice-details">
-            <span>{{ t('提交日期：{date}', { date: submittedDate }) }}</span
-            ><span>{{ t('提交用户：未提供') }}</span><span>{{ t('驳回时间：{date}', { date: reviewedDate }) }}</span>
+            <span>{{
+              t('提交日期：{date}', {
+                date: submittedDate
+              })
+            }}</span
+            ><span>{{ t('提交用户：未提供') }}</span
+            ><span>{{
+              t('驳回时间：{date}', {
+                date: reviewedDate
+              })
+            }}</span>
           </div>
         </template>
         <template v-else-if="reviewStatus === 'approved'">

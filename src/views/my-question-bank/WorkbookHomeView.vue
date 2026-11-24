@@ -1,5 +1,4 @@
 <script setup>
-import { t } from '../../i18n.js';
 import { computed, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -15,6 +14,7 @@ import MTextarea from '../../components/form/MTextarea.vue';
 import { NavArrowRight } from '../../components/icons/icons.js';
 import MCollapse from '../../components/overlay/MCollapse.vue';
 import MModal from '../../components/overlay/MModal.vue';
+import { t } from '../../i18n.js';
 import { authStatus, currentUser, isSuperAdmin } from '../../utils/auth.js';
 import { portableToLocalLecture } from '../../utils/lecture-portable.js';
 import { lectureLocation, lectureNavigationOrigin } from '../../utils/lecture-route.js';
@@ -349,7 +349,9 @@ async function submitReview() {
   } catch (failure) {
     if (current === sequence) {
       notify(
-        failure.status === 409 ? t('审核状态已变化，请刷新后重新核对') : failure.message || t('审核失败'),
+        failure.status === 409
+          ? t('审核状态已变化，请刷新后重新核对')
+          : failure.message || t('审核失败'),
         'error'
       );
     }
@@ -472,7 +474,12 @@ async function submitReview() {
             <span class="card-title">{{ t('OVERVIEW // 题目册概要') }}</span>
             <div class="spec-item">
               <span>{{ t('章节与小节') }}</span
-              ><strong>{{ t('{chapters} 章 · {sections} 节', { chapters: chapters.length, sections: sectionCount }) }}</strong>
+              ><strong>{{
+                t('{chapters} 章 · {sections} 节', {
+                  chapters: chapters.length,
+                  sections: sectionCount
+                })
+              }}</strong>
             </div>
             <div class="spec-item">
               <span>{{ t('题目册版本') }}</span
@@ -489,19 +496,22 @@ async function submitReview() {
               ><strong>{{
                 source === 'local'
                   ? t('本地编辑')
-                  : t({
-                      draft: '草稿',
-                      pending: '审核中',
-                      approved: '已通过',
-                      rejected: '已驳回'
-                    }[reviewStatus] || '未提供')
+                  : t(
+                      {
+                        draft: '草稿',
+                        pending: '审核中',
+                        approved: '已通过',
+                        rejected: '已驳回'
+                      }[reviewStatus] || '未提供'
+                    )
               }}</strong>
             </div>
             <div
               v-if="updatedAt"
               class="spec-item"
             >
-              <span>{{ t('更新时间') }}</span><strong>{{ updatedAt }}</strong>
+              <span>{{ t('更新时间') }}</span
+              ><strong>{{ updatedAt }}</strong>
             </div>
           </div>
           <div class="spec-card">
@@ -520,7 +530,12 @@ async function submitReview() {
               <h2>{{ t('题目册目录') }}</h2>
             </div>
             <div class="catalog-actions">
-              <span>{{ t('{chapters} 章 · {sections} 节', { chapters: chapters.length, sections: sectionCount }) }}</span
+              <span>{{
+                t('{chapters} 章 · {sections} 节', {
+                  chapters: chapters.length,
+                  sections: sectionCount
+                })
+              }}</span
               ><button
                 type="button"
                 @click="openChapters = new Set(chapters.map((chapter) => chapter.id))"
@@ -552,7 +567,11 @@ async function submitReview() {
               >
                 <strong>{{ chapter.title }}</strong
                 ><span class="chapter-meta"
-                  >{{ t('{count} 节', { count: chapter.sections.length }) }}
+                  >{{
+                    t('{count} 节', {
+                      count: chapter.sections.length
+                    })
+                  }}
                   <NavArrowRight
                     :class="{
                       rotated: openChapters.has(chapter.id)
@@ -617,7 +636,11 @@ async function submitReview() {
       @close="!busy && (deleteOpen = false)"
       @confirm="removeBook"
       ><p class="guide">
-        {{ t('确定删除“{title}”吗？本地题目册内容将被删除，且无法恢复。', { title: book?.title }) }}
+        {{
+          t('确定删除“{title}”吗？本地题目册内容将被删除，且无法恢复。', {
+            title: book?.title
+          })
+        }}
       </p></MModal
     >
     <MModal

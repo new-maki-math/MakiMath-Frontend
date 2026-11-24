@@ -1,5 +1,4 @@
 <script setup>
-import { t } from '../i18n.js';
 import { inject, ref } from 'vue';
 import { RouterView } from 'vue-router';
 
@@ -18,6 +17,7 @@ import {
   UserCircle
 } from '../components/icons/icons.js';
 import MCollapse from '../components/overlay/MCollapse.vue';
+import { t } from '../i18n.js';
 import NavigationIcon from './NavigationIcon.vue';
 import { useLayoutState } from './useLayoutState.js';
 

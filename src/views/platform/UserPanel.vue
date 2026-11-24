@@ -1,5 +1,4 @@
 <script setup>
-import { t } from '../../i18n.js';
 import { onMounted, ref } from 'vue';
 
 import { request } from '../../api/client.js';
@@ -8,6 +7,7 @@ import MTag from '../../components/display/MTag.vue';
 import { notify } from '../../components/feedback/MNotice.vue';
 import MButton from '../../components/form/MButton.vue';
 import { Refresh } from '../../components/icons/icons.js';
+import { t } from '../../i18n.js';
 import { currentUser } from '../../utils/auth.js';
 import { formatDate } from './utils.js';
 

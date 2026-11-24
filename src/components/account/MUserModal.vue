@@ -1,9 +1,9 @@
 <script setup>
-import { t } from '../../i18n.js';
 // 用户中心模态窗口组件
 import { computed, ref, watch } from 'vue';
 
 import { request } from '../../api/client.js';
+import { t } from '../../i18n.js';
 import { invalidateSession, setAuth } from '../../utils/auth.js';
 import { getAuthToken } from '../../utils/auth-storage.js';
 import MTag from '../display/MTag.vue';

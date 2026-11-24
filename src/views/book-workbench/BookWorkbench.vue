@@ -1,5 +1,4 @@
 <script setup>
-import { t } from '../../i18n.js';
 import '../../components/workbench/workbench.css';
 
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
@@ -13,6 +12,7 @@ import MInput from '../../components/form/MInput.vue';
 import MSelect from '../../components/form/MSelect.vue';
 import MModal from '../../components/overlay/MModal.vue';
 import { useWorkbenchGuard } from '../../composables/useWorkbenchGuard.js';
+import { t } from '../../i18n.js';
 import { authStatus, currentUser, initAuth } from '../../utils/auth.js';
 import {
   checkExportMetadata,
@@ -2666,7 +2666,13 @@ onUnmounted(() => {
             :mono="true"
             :disabled="saving || dirty || !!pendingSnapshotId || onlineConflict"
             :title="
-              t(dirty ? '请先保存所有修改' : pendingSnapshotId ? '已有待审核快照' : '提交已保存的草稿')
+              t(
+                dirty
+                  ? '请先保存所有修改'
+                  : pendingSnapshotId
+                    ? '已有待审核快照'
+                    : '提交已保存的草稿'
+              )
             "
             @click="openSubmit"
             >{{ t(pendingSnapshotId ? '审核中' : '提交审核') }}</MButton
@@ -2711,7 +2717,13 @@ onUnmounted(() => {
             :mono="true"
             :disabled="saving || dirty || !!pendingSnapshotId || onlineConflict"
             :title="
-              t(dirty ? '请先保存所有修改' : pendingSnapshotId ? '已有待审核快照' : '提交已保存的草稿')
+              t(
+                dirty
+                  ? '请先保存所有修改'
+                  : pendingSnapshotId
+                    ? '已有待审核快照'
+                    : '提交已保存的草稿'
+              )
             "
             @click="openSubmit"
             >{{ t(pendingSnapshotId ? '审核中' : '提交审核') }}</MButton
@@ -2756,7 +2768,13 @@ onUnmounted(() => {
             :mono="true"
             :disabled="saving || dirty || !!pendingSnapshotId || onlineConflict"
             :title="
-              t(dirty ? '请先保存所有修改' : pendingSnapshotId ? '已有待审核快照' : '提交已保存的草稿')
+              t(
+                dirty
+                  ? '请先保存所有修改'
+                  : pendingSnapshotId
+                    ? '已有待审核快照'
+                    : '提交已保存的草稿'
+              )
             "
             @click="openSubmit"
             >{{ t(pendingSnapshotId ? '审核中' : '提交审核') }}</MButton

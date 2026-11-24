@@ -1,5 +1,4 @@
 <script setup>
-import { t } from '../../i18n.js';
 import '../../components/workbench/workbench.css';
 
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
@@ -17,6 +16,7 @@ import TypstEditorPreview from '../../components/typst/TypstEditorPreview.vue';
 import WorkbenchPanel from '../../components/workbench/WorkbenchPanel.vue';
 import WorkbenchTree from '../../components/workbench/WorkbenchTree.vue';
 import { useWorkbenchGuard } from '../../composables/useWorkbenchGuard.js';
+import { t } from '../../i18n.js';
 import { authStatus, currentUser, initAuth } from '../../utils/auth.js';
 import QuestionCategoryPicker from './QuestionCategoryPicker.vue';
 import QuestionPicker from './QuestionPicker.vue';
@@ -998,7 +998,11 @@ onBeforeUnmount(() => {
               >{{ slug }}
               <button
                 type="button"
-                :aria-label="t('移除 {name}', { name: slug })"
+                :aria-label="
+                  t('移除 {name}', {
+                    name: slug
+                  })
+                "
                 @click="form.knowledge_slugs = form.knowledge_slugs.filter((item) => item !== slug)"
               >
                 ×
@@ -1071,7 +1075,13 @@ onBeforeUnmount(() => {
         addTarget = null;
       "
     >
-      <p class="muted">{{ t('在“{name}”下新建', { name: addTarget?.name }) }}</p>
+      <p class="muted">
+        {{
+          t('在“{name}”下新建', {
+            name: addTarget?.name
+          })
+        }}
+      </p>
       <div class="add-choices">
         <MButton @click="chooseAdd('category')">{{ t('新建子分类') }}</MButton>
         <MButton @click="chooseAdd('question')">{{ t('新建题目') }}</MButton>
@@ -1100,7 +1110,10 @@ onBeforeUnmount(() => {
         <p class="muted">
           {{
             modalForm.parent_id
-              ? t('父分类：{name}', { name: categories.find((item) => String(item.id) === modalForm.parent_id)?.name || '' })
+              ? t('父分类：{name}', {
+                  name:
+                    categories.find((item) => String(item.id) === modalForm.parent_id)?.name || ''
+                })
               : t('顶级分类')
           }}
         </p>
@@ -1109,7 +1122,13 @@ onBeforeUnmount(() => {
     <MModal
       :open="modal === 'entry' || modal === 'edit-entry'"
       :title="
-        t(modalForm.fixed_category ? '关联题目' : modal === 'entry' ? '添加题目来源' : '编辑题目来源')
+        t(
+          modalForm.fixed_category
+            ? '关联题目'
+            : modal === 'entry'
+              ? '添加题目来源'
+              : '编辑题目来源'
+        )
       "
       :height="modal === 'entry' ? 'min(600px, calc(100vh - 96px))' : ''"
       :busy="saving"
@@ -1179,16 +1198,35 @@ onBeforeUnmount(() => {
     <MModal
       :open="modal === 'clear-orphaned'"
       :title="t('清空无来源题目')"
-      :confirm-text="clearStage === 2 ? t('确认永久清空') : t('继续确认 {step} / 3', { step: clearStage + 1 })"
+      :confirm-text="
+        clearStage === 2
+          ? t('确认永久清空')
+          : t('继续确认 {step} / 3', {
+              step: clearStage + 1
+            })
+      "
       confirm-variant="danger"
       :busy="saving"
       @close="closeClearOrphaned"
       @confirm="confirmClearOrphaned"
     >
       <p>
-        {{ t('当前有 {count} 个无来源题目。数量可能变化，执行时所有仍无来源的题目及其知识点关联都会被永久删除，无法撤销。知识点本身不会删除，图书中的相关引用会显示缺失。', { count: clearImpact?.count }) }}
+        {{
+          t(
+            '当前有 {count} 个无来源题目。数量可能变化，执行时所有仍无来源的题目及其知识点关联都会被永久删除，无法撤销。知识点本身不会删除，图书中的相关引用会显示缺失。',
+            {
+              count: clearImpact?.count
+            }
+          )
+        }}
       </p>
-      <p>{{ t('第 {step} 次确认，共 3 次。', { step: clearStage + 1 }) }}</p>
+      <p>
+        {{
+          t('第 {step} 次确认，共 3 次。', {
+            step: clearStage + 1
+          })
+        }}
+      </p>
     </MModal>
     <MModal
       :open="modal === 'delete-category' || modal === 'delete-question' || modal === 'delete-entry'"
@@ -1200,7 +1238,12 @@ onBeforeUnmount(() => {
       @confirm="confirmModal"
     >
       <p v-if="modal === 'delete-category'">
-        {{ t('将删除 {categories} 个分类和 {entries} 个来源，题目本身会保留。', { categories: impact?.result?.categories, entries: impact?.result?.entries }) }}
+        {{
+          t('将删除 {categories} 个分类和 {entries} 个来源，题目本身会保留。', {
+            categories: impact?.result?.categories,
+            entries: impact?.result?.entries
+          })
+        }}
       </p>
       <p v-else-if="modal === 'delete-question'">
         {{ t('将永久删除题目及其所有来源和知识点关联，已有图书引用将无法显示该题目。') }}

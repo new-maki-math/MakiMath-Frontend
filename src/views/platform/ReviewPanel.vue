@@ -1,5 +1,4 @@
 <script setup>
-import { t } from '../../i18n.js';
 import { ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -7,6 +6,7 @@ import { reviewApi } from '../../api/reviews.js';
 import MTable from '../../components/display/MTable.vue';
 import { notify } from '../../components/feedback/MNotice.vue';
 import MButton from '../../components/form/MButton.vue';
+import { t } from '../../i18n.js';
 import { lectureLocation } from '../../utils/lecture-route.js';
 
 const router = useRouter();

@@ -1,7 +1,7 @@
 <script setup>
-import { t } from '../../i18n.js';
 import MTag from '../../components/display/MTag.vue';
 import { NavArrowLeft, NavArrowRight } from '../../components/icons/icons.js';
+import { t } from '../../i18n.js';
 
 defineProps({
   prevSection: {

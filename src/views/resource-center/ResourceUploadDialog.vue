@@ -1,5 +1,4 @@
 <script setup>
-import { t } from '../../i18n.js';
 import { computed, onUnmounted, ref, watch } from 'vue';
 
 import { resourceApi } from '../../api/resources.js';
@@ -9,6 +8,7 @@ import MButton from '../../components/form/MButton.vue';
 import MFilePicker from '../../components/form/MFilePicker.vue';
 import { Xmark } from '../../components/icons/icons.js';
 import MModal from '../../components/overlay/MModal.vue';
+import { t } from '../../i18n.js';
 import { authStatus, currentUser, isSuperAdmin } from '../../utils/auth.js';
 import { formatFileSize } from '../../utils/file-size.js';
 
@@ -162,7 +162,11 @@ onUnmounted(() => {
     />
     <template v-if="entries.length">
       <div class="upload-list-heading">
-        <span>{{ t('已选择 {count} 个文件', { count: entries.length }) }}</span>
+        <span>{{
+          t('已选择 {count} 个文件', {
+            count: entries.length
+          })
+        }}</span>
         <span v-if="busy">{{ t('逐个上传') }}</span>
       </div>
       <div class="upload-list">
@@ -214,8 +218,16 @@ onUnmounted(() => {
                 size="sm"
                 variant="ghost"
                 icon-only
-                :title="t('移除 {name}', { name: entry.file.name })"
-                :aria-label="t('移除 {name}', { name: entry.file.name })"
+                :title="
+                  t('移除 {name}', {
+                    name: entry.file.name
+                  })
+                "
+                :aria-label="
+                  t('移除 {name}', {
+                    name: entry.file.name
+                  })
+                "
                 @click="entries = entries.filter((item) => item.id !== entry.id)"
               >
                 <Xmark
@@ -230,7 +242,11 @@ onUnmounted(() => {
             v-if="entry.status === 'uploading' || entry.status === 'success'"
             class="upload-progress"
             :value="entry.progress"
-            :label="t('{name} 上传进度', { name: entry.file.name })"
+            :label="
+              t('{name} 上传进度', {
+                name: entry.file.name
+              })
+            "
           />
           <p
             v-if="entry.message"
@@ -259,7 +275,15 @@ onUnmounted(() => {
         variant="primary"
         :disabled="busy || !pendingCount"
         @click="uploadEntries(entries.filter((entry) => entry.status === 'pending'))"
-        >{{ busy ? t('上传中…') : pendingCount ? t('上传 {count} 个文件', { count: pendingCount }) : t('上传') }}</MButton
+        >{{
+          busy
+            ? t('上传中…')
+            : pendingCount
+              ? t('上传 {count} 个文件', {
+                  count: pendingCount
+                })
+              : t('上传')
+        }}</MButton
       >
     </div>
   </MModal>

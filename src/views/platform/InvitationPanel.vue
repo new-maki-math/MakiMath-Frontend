@@ -1,5 +1,4 @@
 <script setup>
-import { t } from '../../i18n.js';
 // 邀请码管理面板组件
 import { onMounted, ref } from 'vue';
 
@@ -11,6 +10,7 @@ import MButton from '../../components/form/MButton.vue';
 import MInput from '../../components/form/MInput.vue';
 import { Copy, Plus, Refresh } from '../../components/icons/icons.js';
 import MModal from '../../components/overlay/MModal.vue';
+import { t } from '../../i18n.js';
 import { formatDate } from './utils.js';
 
 const invitations = ref([]);
@@ -83,7 +83,13 @@ const handleCreateInvite = async () => {
 
 // 作废指定邀请码
 const handleRevokeInvite = async (inv) => {
-  if (!window.confirm(t('确定要作废邀请码 {code} 吗？', { code: inv.code }))) {
+  if (
+    !window.confirm(
+      t('确定要作废邀请码 {code} 吗？', {
+        code: inv.code
+      })
+    )
+  ) {
     return;
   }
   try {
@@ -196,7 +202,13 @@ onMounted(() => {
               }"
             >
               {{
-                t(inv.status === 'active' ? '有效' : inv.status === 'exhausted' ? '已耗尽' : '已作废')
+                t(
+                  inv.status === 'active'
+                    ? '有效'
+                    : inv.status === 'exhausted'
+                      ? '已耗尽'
+                      : '已作废'
+                )
               }}
             </span>
           </td>

@@ -1,7 +1,7 @@
 <script setup>
-import { t } from '../../i18n.js';
 import MButton from '../../components/form/MButton.vue';
 import WorkbenchPanel from '../../components/workbench/WorkbenchPanel.vue';
+import { t } from '../../i18n.js';
 
 defineProps({
   item: Object,
@@ -41,9 +41,12 @@ function revisionLabel(revision) {
     {
       working_draft: '草稿版本',
       snapshot: '快照版本'
-    }[revision.kind] || '版本类型未知');
+    }[revision.kind] || '版本类型未知'
+  );
   return revision.revision_no == null
-    ? t('{kind} · 版本号未提供', { kind })
+    ? t('{kind} · 版本号未提供', {
+        kind
+      })
     : `${kind} · V${revision.revision_no}`;
 }
 </script>
@@ -78,16 +81,20 @@ function revisionLabel(revision) {
       class="summary-fields"
     >
       <div>
-        <span>{{ t('所有者') }}</span><strong>{{ item.owner_username || t('未提供') }}</strong>
+        <span>{{ t('所有者') }}</span
+        ><strong>{{ item.owner_username || t('未提供') }}</strong>
       </div>
       <div>
-        <span>{{ t('图书状态') }}</span><strong>{{ publicationStatus(item.publication_status) }}</strong>
+        <span>{{ t('图书状态') }}</span
+        ><strong>{{ publicationStatus(item.publication_status) }}</strong>
       </div>
       <div>
-        <span>{{ t('最新版本') }}</span><strong>{{ revisionLabel(item.latest_revision) }}</strong>
+        <span>{{ t('最新版本') }}</span
+        ><strong>{{ revisionLabel(item.latest_revision) }}</strong>
       </div>
       <div v-if="item.latest_revision">
-        <span>{{ t('版本审核状态') }}</span><strong>{{ revisionStatus(item.latest_revision.status) }}</strong>
+        <span>{{ t('版本审核状态') }}</span
+        ><strong>{{ revisionStatus(item.latest_revision.status) }}</strong>
       </div>
       <MButton
         v-if="item.latest_revision"

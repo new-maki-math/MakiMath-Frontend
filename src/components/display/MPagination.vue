@@ -88,7 +88,9 @@ const goToPage = (p) => {
 const pageSizeChoices = computed(() =>
   props.pageSizeOptions.map((value) => ({
     value,
-    label: t('{count} 条/页', { count: value })
+    label: t('{count} 条/页', {
+      count: value
+    })
   }))
 );
 
@@ -135,7 +137,11 @@ const handlePageSizeChange = (value) => {
     }"
   >
     <div class="pagination-info">
-      <span class="info-muted">{{ t('共 {count} 条', { count: total }) }}</span>
+      <span class="info-muted">{{
+        t('共 {count} 条', {
+          count: total
+        })
+      }}</span>
     </div>
 
     <div class="pagination-controls">

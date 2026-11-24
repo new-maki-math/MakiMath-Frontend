@@ -1,9 +1,9 @@
 <script setup>
-import { t } from '../../i18n.js';
 // 登录与邀请注册组件
 import { ref } from 'vue';
 
 import { request } from '../../api/client.js';
+import { t } from '../../i18n.js';
 import { authenticate } from '../../utils/auth.js';
 import MTabs from '../display/MTabs.vue';
 import { notify } from '../feedback/MNotice.vue';

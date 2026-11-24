@@ -1,9 +1,9 @@
 <script setup>
-import { t } from '../../i18n.js';
 import { computed, ref } from 'vue';
 
 import MButton from '../../components/form/MButton.vue';
 import { Archive, Folder, Page } from '../../components/icons/icons.js';
+import { t } from '../../i18n.js';
 
 const sections = [
   {
@@ -146,7 +146,8 @@ function goToLevel(index) {
           class="list-heading"
           aria-hidden="true"
         >
-          <span>{{ t('名称') }}</span><span>{{ t('类型') }}</span>
+          <span>{{ t('名称') }}</span
+          ><span>{{ t('类型') }}</span>
         </div>
         <component
           :is="item.children ? 'button' : 'div'"

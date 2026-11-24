@@ -1,8 +1,8 @@
 <script setup>
-import { t } from '../../i18n.js';
 import MInput from '../../components/form/MInput.vue';
 import MTextarea from '../../components/form/MTextarea.vue';
 import WorkbenchPanel from '../../components/workbench/WorkbenchPanel.vue';
+import { t } from '../../i18n.js';
 import SectionImport from './SectionImport.vue';
 
 const chapter = defineModel('chapter', {

@@ -1,5 +1,4 @@
 <script setup>
-import { t } from '../../i18n.js';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -10,6 +9,7 @@ import MDataView from '../../components/feedback/MDataView.vue';
 import MEmpty from '../../components/feedback/MEmpty.vue';
 import { notify } from '../../components/feedback/MNotice.vue';
 import MButton from '../../components/form/MButton.vue';
+import { t } from '../../i18n.js';
 import { lectureLocation } from '../../utils/lecture-route.js';
 
 const router = useRouter();

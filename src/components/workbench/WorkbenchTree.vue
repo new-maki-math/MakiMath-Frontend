@@ -1,7 +1,7 @@
 <script setup>
-import { t } from '../../i18n.js';
 import { ref } from 'vue';
 
+import { t } from '../../i18n.js';
 import MSpinner from '../feedback/MSpinner.vue';
 import { Plus, Refresh } from '../icons/icons.js';
 import WorkbenchTreeNode from './WorkbenchTreeNode.vue';

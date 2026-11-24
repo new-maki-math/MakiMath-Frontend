@@ -1,7 +1,7 @@
 <script setup>
-import { t } from '../../i18n.js';
 import { computed, nextTick, onMounted, onUnmounted, ref, useAttrs, useId, watch } from 'vue';
 
+import { t } from '../../i18n.js';
 import { CheckCircleSolid, NavArrowDown } from '../icons/icons.js';
 
 defineOptions({
@@ -259,7 +259,9 @@ function onScroll(event) {
 watch(
   () => props.disabled,
   (disabled) => {
-    if (disabled) close();
+    if (disabled) {
+      close();
+    }
   }
 );
 watch(

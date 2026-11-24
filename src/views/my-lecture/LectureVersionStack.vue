@@ -1,9 +1,9 @@
 <script setup>
-import { t } from '../../i18n.js';
 import { computed, ref, watch } from 'vue';
 
 import MLectureCover from '../../components/book/MLectureCover.vue';
 import { NavArrowRight, Xmark } from '../../components/icons/icons.js';
+import { t } from '../../i18n.js';
 
 const props = defineProps({
   lecture: {

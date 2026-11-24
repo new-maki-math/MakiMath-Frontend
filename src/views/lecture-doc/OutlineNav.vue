@@ -1,6 +1,7 @@
 <script setup>
-import { t } from '../../i18n.js';
 import { computed, nextTick, onBeforeUpdate, onMounted, ref, watch } from 'vue';
+
+import { t } from '../../i18n.js';
 
 const props = defineProps({
   items: {

@@ -1,5 +1,4 @@
 <script setup>
-import { t } from '../../i18n.js';
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -7,6 +6,7 @@ import MLectureCover from '../../components/book/MLectureCover.vue';
 import MButton from '../../components/form/MButton.vue';
 import { NavArrowRight } from '../../components/icons/icons.js';
 import MCollapse from '../../components/overlay/MCollapse.vue';
+import { t } from '../../i18n.js';
 
 const router = useRouter();
 const title = '考研数学真题 · 原始套卷';

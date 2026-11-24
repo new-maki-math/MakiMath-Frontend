@@ -1,8 +1,8 @@
 <script setup>
-import { t } from '../../i18n.js';
 import { onBeforeUnmount, ref, watch } from 'vue';
 
 import { questionApi } from '../../api/questions.js';
+import { t } from '../../i18n.js';
 import MInput from '../form/MInput.vue';
 import MModal from '../overlay/MModal.vue';
 

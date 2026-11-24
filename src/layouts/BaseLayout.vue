@@ -1,5 +1,4 @@
 <script setup>
-import { t } from '../i18n.js';
 import { provide, ref } from 'vue';
 
 import MAuthForm from '../components/account/MAuthForm.vue';
@@ -11,6 +10,7 @@ import MButton from '../components/form/MButton.vue';
 import MInput from '../components/form/MInput.vue';
 import KnowledgeSearchOverlay from '../components/knowledge/KnowledgeSearchOverlay.vue';
 import MModal from '../components/overlay/MModal.vue';
+import { t } from '../i18n.js';
 import { authenticate, authStatus } from '../utils/auth.js';
 import LayoutDesktop from './LayoutDesktop.vue';
 import LayoutMobile from './LayoutMobile.vue';

@@ -1,5 +1,4 @@
 <script setup>
-import { t } from '../../i18n.js';
 import { computed, ref } from 'vue';
 
 import MFilePicker from '../../components/form/MFilePicker.vue';
@@ -7,6 +6,7 @@ import MInput from '../../components/form/MInput.vue';
 import MTextarea from '../../components/form/MTextarea.vue';
 import TypstEditorPreview from '../../components/typst/TypstEditorPreview.vue';
 import WorkbenchPanel from '../../components/workbench/WorkbenchPanel.vue';
+import { t } from '../../i18n.js';
 import {
   createAnimationPackage,
   parseAnimationAssets,
@@ -130,7 +130,9 @@ async function chooseAnimation(event) {
       class="wb-block"
       :inert="!editable"
     >
-      <div class="wb-block-head"><span class="wb-block-title">{{ t('分步动画') }}</span></div>
+      <div class="wb-block-head">
+        <span class="wb-block-title">{{ t('分步动画') }}</span>
+      </div>
       <MFilePicker
         :title="t(animationLoading ? '正在检查动画文件…' : '小节动画资源')"
         :detail="t('包含 animation.json 和场景资源，最大 22 MB')"
@@ -147,7 +149,13 @@ async function chooseAnimation(event) {
       </p>
       <template v-if="animationPackage">
         <details class="animation-files">
-          <summary>{{ t('已导入 {count} 个文件', { count: Object.keys(animationPackage.files).length }) }}</summary>
+          <summary>
+            {{
+              t('已导入 {count} 个文件', {
+                count: Object.keys(animationPackage.files).length
+              })
+            }}
+          </summary>
           <ul>
             <li
               v-for="path in Object.keys(animationPackage.files).sort()"
@@ -173,7 +181,9 @@ async function chooseAnimation(event) {
       </p>
     </div>
     <div class="wb-block">
-      <div class="wb-block-head"><span class="wb-block-title">{{ t('小节内容') }}</span></div>
+      <div class="wb-block-head">
+        <span class="wb-block-title">{{ t('小节内容') }}</span>
+      </div>
       <TypstEditorPreview
         :key="section.occurrence_id"
         v-model="section.source"

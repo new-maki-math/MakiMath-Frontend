@@ -111,9 +111,12 @@ export function useLayoutState() {
   let removeAfterHook;
   const progressBarRef = ref(null);
   const navigationGroups = computed(() => {
-    const visible = navItems.filter(
-      (item) => !item.sidebarHidden && (!item.adminOnly || isSuperAdmin.value)
-    ).map((item) => ({ ...item, label: t(item.label) }));
+    const visible = navItems
+      .filter((item) => !item.sidebarHidden && (!item.adminOnly || isSuperAdmin.value))
+      .map((item) => ({
+        ...item,
+        label: t(item.label)
+      }));
     return ['primary', 'reader', 'library', 'management', 'platform']
       .map((group) => visible.filter((item) => item.group === group))
       .filter((group) => group.length);
@@ -152,7 +155,8 @@ export function useLayoutState() {
     } else {
       document.documentElement.removeAttribute('data-season');
     }
-    const isAppleMobile = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+    const isAppleMobile =
+      /iPhone|iPad|iPod/.test(navigator.userAgent) ||
       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     if (!isAppleMobile) {
       let themeColor = document.querySelector('meta[name="theme-color"]');
@@ -161,8 +165,12 @@ export function useLayoutState() {
         themeColor.setAttribute('name', 'theme-color');
         document.head.appendChild(themeColor);
       }
-      const topbarColor = getComputedStyle(document.documentElement).getPropertyValue('--bg-topbar').trim();
-      if (topbarColor) themeColor.setAttribute('content', topbarColor);
+      const topbarColor = getComputedStyle(document.documentElement)
+        .getPropertyValue('--bg-topbar')
+        .trim();
+      if (topbarColor) {
+        themeColor.setAttribute('content', topbarColor);
+      }
     }
   };
 
@@ -249,7 +257,10 @@ export function useLayoutState() {
   const currentItem = computed(() => {
     const match = navItems.find((item) => item.path === route.path);
     if (match) {
-      return { ...match, label: t(match.label) };
+      return {
+        ...match,
+        label: t(match.label)
+      };
     }
 
     return {

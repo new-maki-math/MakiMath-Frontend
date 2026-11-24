@@ -1,7 +1,7 @@
 <script setup>
-import { t } from '../../i18n.js';
 import { computed, ref, watch } from 'vue';
 
+import { t } from '../../i18n.js';
 import {
   Archive,
   Book,
@@ -98,7 +98,12 @@ const canMoveDown = computed(() =>
         }"
         type="button"
         :title="t(node.expanded ? '收起' : '展开')"
-        :aria-label="t('{action}{name}', { action: t(node.expanded ? '收起' : '展开'), name: node.label })"
+        :aria-label="
+          t('{action}{name}', {
+            action: t(node.expanded ? '收起' : '展开'),
+            name: node.label
+          })
+        "
         :aria-expanded="Boolean(node.expanded)"
         @click.stop="emit('toggle', node)"
       >
@@ -203,7 +208,11 @@ const canMoveDown = computed(() =>
           class="node-action"
           type="button"
           :title="t('归档讲义')"
-          :aria-label="t('归档讲义 {name}', { name: node.label })"
+          :aria-label="
+            t('归档讲义 {name}', {
+              name: node.label
+            })
+          "
           @click.stop="emit('archive', node)"
         >
           <Archive

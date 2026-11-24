@@ -1,11 +1,11 @@
 <script setup>
-import { t } from '../../i18n.js';
 // 平台管理超级管理员登录组件
 import { ref } from 'vue';
 
 import { notify } from '../../components/feedback/MNotice.vue';
 import MButton from '../../components/form/MButton.vue';
 import MInput from '../../components/form/MInput.vue';
+import { t } from '../../i18n.js';
 import { authenticate } from '../../utils/auth.js';
 
 // 声明登录成功事件

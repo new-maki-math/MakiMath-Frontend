@@ -1,13 +1,16 @@
 <script setup>
-import { locale, t } from '../../i18n.js';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 
+import { locale, t } from '../../i18n.js';
 import { getCachedFile, hashCacheValue, putCachedFile } from '../../utils/file-cache.js';
 import { deleteSchedule, listSchedule, saveSchedule } from '../../utils/schedule.js';
 import { EditPencil, NavArrowLeft, NavArrowRight, Plus, Trash } from '../icons/icons.js';
 
 const props = defineProps({
-  mode: { type: String, default: 'all' }
+  mode: {
+    type: String,
+    default: 'all'
+  }
 });
 const today = ref(new Date());
 const hitokoto = ref(null);
@@ -18,12 +21,21 @@ const editingId = ref(null);
 const draft = ref('');
 const error = ref('');
 const showEditor = ref(false);
-const dateKey = (year, month, day) => `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-const selectedDate = computed(() => dateKey(displayedMonth.value.getFullYear(), displayedMonth.value.getMonth(), selectedDay.value));
-const selectedWeekday = computed(() =>
-  new Intl.DateTimeFormat(locale.value, { weekday: 'long' }).format(new Date(displayedMonth.value.getFullYear(), displayedMonth.value.getMonth(), selectedDay.value))
+const dateKey = (year, month, day) =>
+  `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+const selectedDate = computed(() =>
+  dateKey(displayedMonth.value.getFullYear(), displayedMonth.value.getMonth(), selectedDay.value)
 );
-const selectedEvents = computed(() => events.value.filter((event) => event.date === selectedDate.value));
+const selectedWeekday = computed(() =>
+  new Intl.DateTimeFormat(locale.value, {
+    weekday: 'long'
+  }).format(
+    new Date(displayedMonth.value.getFullYear(), displayedMonth.value.getMonth(), selectedDay.value)
+  )
+);
+const selectedEvents = computed(() =>
+  events.value.filter((event) => event.date === selectedDate.value)
+);
 const eventDays = computed(() => new Set(events.value.map((event) => event.date)));
 
 function changeMonth(delta) {
@@ -62,10 +74,17 @@ function editEvent(event) {
 
 async function submitEvent() {
   const title = draft.value.trim();
-  if (!title) return;
+  if (!title) {
+    return;
+  }
   const existing = events.value.find((event) => event.id === editingId.value);
   try {
-    await saveSchedule({ id: editingId.value || crypto.randomUUID(), date: selectedDate.value, title, completed: existing?.completed || false });
+    await saveSchedule({
+      id: editingId.value || crypto.randomUUID(),
+      date: selectedDate.value,
+      title,
+      completed: existing?.completed || false
+    });
     window.dispatchEvent(new Event('maki-schedule-changed'));
     showEditor.value = false;
     await reloadEvents();
@@ -76,7 +95,10 @@ async function submitEvent() {
 
 async function toggleEvent(event) {
   try {
-    await saveSchedule({ ...event, completed: !event.completed });
+    await saveSchedule({
+      ...event,
+      completed: !event.completed
+    });
     window.dispatchEvent(new Event('maki-schedule-changed'));
     await reloadEvents();
   } catch {
@@ -88,13 +110,25 @@ async function removeEvent(id) {
   try {
     await deleteSchedule(id);
     window.dispatchEvent(new Event('maki-schedule-changed'));
-    if (editingId.value === id) showEditor.value = false;
+    if (editingId.value === id) {
+      showEditor.value = false;
+    }
     await reloadEvents();
   } catch {
     error.value = t('删除日程失败，请重试。');
   }
 }
-const weekdays = computed(() => Array.from({ length: 7 }, (_, index) => new Intl.DateTimeFormat(locale.value, { weekday: 'narrow' }).format(new Date(2024, 0, 1 + index))));
+const weekdays = computed(() =>
+  Array.from(
+    {
+      length: 7
+    },
+    (_, index) =>
+      new Intl.DateTimeFormat(locale.value, {
+        weekday: 'narrow'
+      }).format(new Date(2024, 0, 1 + index))
+  )
+);
 const solarFestivals = {
   '1-1': '元旦',
   '3-8': '妇女节',
@@ -120,9 +154,30 @@ const lunarFormatter = new Intl.DateTimeFormat('zh-CN-u-ca-chinese', {
   day: 'numeric'
 });
 const solarTerms = [
-  '小寒', '大寒', '立春', '雨水', '惊蛰', '春分', '清明', '谷雨',
-  '立夏', '小满', '芒种', '夏至', '小暑', '大暑', '立秋', '处暑',
-  '白露', '秋分', '寒露', '霜降', '立冬', '小雪', '大雪', '冬至'
+  '小寒',
+  '大寒',
+  '立春',
+  '雨水',
+  '惊蛰',
+  '春分',
+  '清明',
+  '谷雨',
+  '立夏',
+  '小满',
+  '芒种',
+  '夏至',
+  '小暑',
+  '大暑',
+  '立秋',
+  '处暑',
+  '白露',
+  '秋分',
+  '寒露',
+  '霜降',
+  '立冬',
+  '小雪',
+  '大雪',
+  '冬至'
 ];
 const chinaDayFormatter = new Intl.DateTimeFormat('zh-CN', {
   timeZone: 'Asia/Shanghai',
@@ -145,7 +200,9 @@ function solarTermDay(year, month, index) {
     const difference = ((((longitude - target) % 360) + 540) % 360) - 180;
     time -= (difference / 0.98564736) * 86400000;
   }
-  return Number(chinaDayFormatter.formatToParts(new Date(time)).find((part) => part.type === 'day')?.value);
+  return Number(
+    chinaDayFormatter.formatToParts(new Date(time)).find((part) => part.type === 'day')?.value
+  );
 }
 const sayings = [
   '每一次理解，都是新的起点。',
@@ -156,13 +213,26 @@ const sayings = [
   '留下思考，也为下一次出发铺路。',
   '知识因分享而生长。'
 ];
-const monthLabel = computed(() => new Intl.DateTimeFormat(locale.value, { year: 'numeric', month: 'long' }).format(displayedMonth.value));
+const monthLabel = computed(() =>
+  new Intl.DateTimeFormat(locale.value, {
+    year: 'numeric',
+    month: 'long'
+  }).format(displayedMonth.value)
+);
 const days = computed(() => {
   const year = displayedMonth.value.getFullYear();
   const month = displayedMonth.value.getMonth();
   const offset = (new Date(year, month, 1).getDay() + 6) % 7;
   const count = new Date(year, month + 1, 0).getDate();
-  return [...Array(offset).fill(null), ...Array.from({ length: count }, (_, index) => index + 1)];
+  return [
+    ...Array(offset).fill(null),
+    ...Array.from(
+      {
+        length: count
+      },
+      (_, index) => index + 1
+    )
+  ];
 });
 const festivals = computed(() => {
   const year = displayedMonth.value.getFullYear();
@@ -183,11 +253,16 @@ const festivals = computed(() => {
       lunarFestivals[`${lunarMonth}-${lunarDay}`],
       ...terms.filter((term) => term.day === day).map((term) => term.name)
     ].filter(Boolean);
-    if (names.length) result[day] = names.join('、');
+    if (names.length) {
+      result[day] = names.join('、');
+    }
   }
   return result;
 });
-const saying = computed(() => hitokoto.value?.text || sayings[Math.floor(today.value.getTime() / 86400000) % sayings.length]);
+const saying = computed(
+  () =>
+    hitokoto.value?.text || sayings[Math.floor(today.value.getTime() / 86400000) % sayings.length]
+);
 const sayingUrl = computed(() =>
   /^[0-9a-f-]{36}$/i.test(hitokoto.value?.uuid || '')
     ? `https://hitokoto.cn/?uuid=${encodeURIComponent(hitokoto.value.uuid)}`
@@ -198,7 +273,9 @@ let quoteController;
 
 async function loadSaying() {
   const day = dateKey(today.value.getFullYear(), today.value.getMonth(), today.value.getDate());
-  const cached = await getCachedFile('hitokoto:literature-philosophy', { maxAge: 86400000 });
+  const cached = await getCachedFile('hitokoto:literature-philosophy', {
+    maxAge: 86400000
+  });
   if (cached?.value?.day === day && cached.value.text) {
     hitokoto.value = cached.value;
     return;
@@ -208,10 +285,16 @@ async function loadSaying() {
   quoteController = controller;
   const timeout = setTimeout(() => controller.abort(), 8000);
   try {
-    const response = await fetch('https://v1.hitokoto.cn/?c=d&c=k&max_length=24', { signal: controller.signal });
-    if (!response.ok) throw new Error('一言请求失败');
+    const response = await fetch('https://v1.hitokoto.cn/?c=d&c=k&max_length=24', {
+      signal: controller.signal
+    });
+    if (!response.ok) {
+      throw new Error('一言请求失败');
+    }
     const result = await response.json();
-    if (typeof result.hitokoto !== 'string' || !result.hitokoto.trim()) throw new Error('一言内容为空');
+    if (typeof result.hitokoto !== 'string' || !result.hitokoto.trim()) {
+      throw new Error('一言内容为空');
+    }
     const value = {
       day,
       text: result.hitokoto.trim(),
@@ -221,7 +304,12 @@ async function loadSaying() {
     };
     hitokoto.value = value;
     const hash = await hashCacheValue(value);
-    await putCachedFile({ key: 'hitokoto:literature-philosophy', name: '一言.json', hash, value });
+    await putCachedFile({
+      key: 'hitokoto:literature-philosophy',
+      name: '一言.json',
+      hash,
+      value
+    });
   } catch {
     hitokoto.value = null;
   } finally {
@@ -231,8 +319,14 @@ async function loadSaying() {
 
 function scheduleNextDay() {
   today.value = new Date();
-  if (props.mode !== 'calendar') loadSaying();
-  const next = new Date(today.value.getFullYear(), today.value.getMonth(), today.value.getDate() + 1);
+  if (props.mode !== 'calendar') {
+    loadSaying();
+  }
+  const next = new Date(
+    today.value.getFullYear(),
+    today.value.getMonth(),
+    today.value.getDate() + 1
+  );
   timer = setTimeout(scheduleNextDay, next.getTime() - today.value.getTime() + 100);
 }
 
@@ -249,83 +343,335 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <aside class="shelf-companion" :aria-label="t('日历和一言')">
-    <section v-if="mode !== 'saying'" class="companion-card calendar" :class="{ 'desk-calendar': mode === 'calendar' }" :aria-label="t('本月日历')">
-      <div v-if="mode === 'calendar'" class="calendar-binding" aria-hidden="true"><span></span><span></span></div>
-      <div v-if="mode === 'calendar'" class="desk-heading">
+  <aside
+    class="shelf-companion"
+    :aria-label="t('日历和一言')"
+  >
+    <section
+      v-if="mode !== 'saying'"
+      class="companion-card calendar"
+      :class="{
+        'desk-calendar': mode === 'calendar'
+      }"
+      :aria-label="t('本月日历')"
+    >
+      <div
+        v-if="mode === 'calendar'"
+        class="calendar-binding"
+        aria-hidden="true"
+      >
+        <span></span><span></span>
+      </div>
+      <div
+        v-if="mode === 'calendar'"
+        class="desk-heading"
+      >
         <div class="date-switcher">
-          <button class="icon-button" type="button" :aria-label="t('上一年')" @click="changeYear(-1)"><NavArrowLeft width="14" height="14" /></button>
-          <span>{{ new Intl.DateTimeFormat(locale, { year: 'numeric' }).format(displayedMonth) }}</span>
-          <button class="icon-button" type="button" :aria-label="t('下一年')" @click="changeYear(1)"><NavArrowRight width="14" height="14" /></button>
+          <button
+            class="icon-button"
+            type="button"
+            :aria-label="t('上一年')"
+            @click="changeYear(-1)"
+          >
+            <NavArrowLeft
+              width="14"
+              height="14"
+            />
+          </button>
+          <span>{{
+            new Intl.DateTimeFormat(locale, {
+              year: 'numeric'
+            }).format(displayedMonth)
+          }}</span>
+          <button
+            class="icon-button"
+            type="button"
+            :aria-label="t('下一年')"
+            @click="changeYear(1)"
+          >
+            <NavArrowRight
+              width="14"
+              height="14"
+            />
+          </button>
         </div>
         <div class="date-switcher">
-          <button class="icon-button" type="button" :aria-label="t('上个月')" @click="changeMonth(-1)"><NavArrowLeft width="14" height="14" /></button>
-          <span>{{ new Intl.DateTimeFormat(locale, { month: 'long' }).format(displayedMonth) }}</span>
-          <button class="icon-button" type="button" :aria-label="t('下个月')" @click="changeMonth(1)"><NavArrowRight width="14" height="14" /></button>
+          <button
+            class="icon-button"
+            type="button"
+            :aria-label="t('上个月')"
+            @click="changeMonth(-1)"
+          >
+            <NavArrowLeft
+              width="14"
+              height="14"
+            />
+          </button>
+          <span>{{
+            new Intl.DateTimeFormat(locale, {
+              month: 'long'
+            }).format(displayedMonth)
+          }}</span>
+          <button
+            class="icon-button"
+            type="button"
+            :aria-label="t('下个月')"
+            @click="changeMonth(1)"
+          >
+            <NavArrowRight
+              width="14"
+              height="14"
+            />
+          </button>
         </div>
         <div class="selected-date">
           <span class="selected-date-number">{{ selectedDay }}</span>
           <span class="selected-date-weekday">{{ selectedWeekday }}</span>
-          <span v-if="festivals[selectedDay]" class="selected-date-festival">{{ festivals[selectedDay] }}</span>
+          <span
+            v-if="festivals[selectedDay]"
+            class="selected-date-festival"
+            >{{ festivals[selectedDay] }}</span
+          >
         </div>
       </div>
-      <div v-else class="card-heading">
+      <div
+        v-else
+        class="card-heading"
+      >
         <h2>{{ monthLabel }}</h2>
         <div class="month-actions">
-          <button class="icon-button" type="button" :aria-label="t('上个月')" @click="changeMonth(-1)"><NavArrowLeft width="16" height="16" /></button>
-          <button class="icon-button" type="button" :aria-label="t('下个月')" @click="changeMonth(1)"><NavArrowRight width="16" height="16" /></button>
+          <button
+            class="icon-button"
+            type="button"
+            :aria-label="t('上个月')"
+            @click="changeMonth(-1)"
+          >
+            <NavArrowLeft
+              width="16"
+              height="16"
+            />
+          </button>
+          <button
+            class="icon-button"
+            type="button"
+            :aria-label="t('下个月')"
+            @click="changeMonth(1)"
+          >
+            <NavArrowRight
+              width="16"
+              height="16"
+            />
+          </button>
         </div>
       </div>
       <div class="calendar-grid">
-        <span v-for="weekday in weekdays" :key="weekday" class="weekday">{{ weekday }}</span>
-        <template v-for="(day, index) in days" :key="index">
-        <button v-if="day"
-          type="button"
-          class="calendar-day"
-          :class="{ 'is-today': dateKey(displayedMonth.getFullYear(), displayedMonth.getMonth(), day) === dateKey(today.getFullYear(), today.getMonth(), today.getDate()), 'is-selected': day === selectedDay, 'has-event': eventDays.has(dateKey(displayedMonth.getFullYear(), displayedMonth.getMonth(), day)) }"
-          :aria-pressed="day === selectedDay"
-          :title="festivals[day] || undefined"
-          :aria-label="day ? `${day}日${festivals[day] ? `，${festivals[day]}` : ''}` : undefined"
-          @click="selectDay(day)"
+        <span
+          v-for="weekday in weekdays"
+          :key="weekday"
+          class="weekday"
+          >{{ weekday }}</span
         >
-          <span class="day-number">
-            <svg v-if="dateKey(displayedMonth.getFullYear(), displayedMonth.getMonth(), day) === dateKey(today.getFullYear(), today.getMonth(), today.getDate())" class="today-mark" viewBox="0 0 28 28" aria-hidden="true">
-              <path d="M19.7 5.5c-3.3-2-8.3-1.8-11.9.6C4.2 8.5 3 12.2 4 16.1c.7 3.3 3.4 6.7 7.9 7.6 4.6 1 8.8-.9 10.9-4.5 1.9-3.2 1.6-7.7-.8-10.9-2-2.6-5.7-4.4-10-3.3-2.2.5-4 1.4-5.4 2.7" />
-              <path class="today-mark-accent" d="M6.9 6.3C4 8.7 3 12.6 4.1 16.4m1.3 2.3c2.8 4.7 8 6.1 12.7 4.6m.5-19.1c2.1.8 4.3 2.7 5.4 5.4" />
-            </svg>
-            {{ day }}
-          </span>
-        </button>
-        <span v-else aria-hidden="true"></span>
+        <template
+          v-for="(day, index) in days"
+          :key="index"
+        >
+          <button
+            v-if="day"
+            type="button"
+            class="calendar-day"
+            :class="{
+              'is-today':
+                dateKey(displayedMonth.getFullYear(), displayedMonth.getMonth(), day) ===
+                dateKey(today.getFullYear(), today.getMonth(), today.getDate()),
+              'is-selected': day === selectedDay,
+              'has-event': eventDays.has(
+                dateKey(displayedMonth.getFullYear(), displayedMonth.getMonth(), day)
+              )
+            }"
+            :aria-pressed="day === selectedDay"
+            :title="festivals[day] || undefined"
+            :aria-label="day ? `${day}日${festivals[day] ? `，${festivals[day]}` : ''}` : undefined"
+            @click="selectDay(day)"
+          >
+            <span class="day-number">
+              <svg
+                v-if="
+                  dateKey(displayedMonth.getFullYear(), displayedMonth.getMonth(), day) ===
+                  dateKey(today.getFullYear(), today.getMonth(), today.getDate())
+                "
+                class="today-mark"
+                viewBox="0 0 28 28"
+                aria-hidden="true"
+              >
+                <path
+                  d="M19.7 5.5c-3.3-2-8.3-1.8-11.9.6C4.2 8.5 3 12.2 4 16.1c.7 3.3 3.4 6.7 7.9 7.6 4.6 1 8.8-.9 10.9-4.5 1.9-3.2 1.6-7.7-.8-10.9-2-2.6-5.7-4.4-10-3.3-2.2.5-4 1.4-5.4 2.7"
+                />
+                <path
+                  class="today-mark-accent"
+                  d="M6.9 6.3C4 8.7 3 12.6 4.1 16.4m1.3 2.3c2.8 4.7 8 6.1 12.7 4.6m.5-19.1c2.1.8 4.3 2.7 5.4 5.4"
+                />
+              </svg>
+              {{ day }}
+            </span>
+          </button>
+          <span
+            v-else
+            aria-hidden="true"
+          ></span>
         </template>
       </div>
     </section>
-    <section v-if="mode === 'all'" class="schedule">
+    <section
+      v-if="mode === 'all'"
+      class="schedule"
+    >
       <div class="schedule-heading">
-        <h2>{{ t('{date}的日程', { date: new Intl.DateTimeFormat(locale, { month: 'long', day: 'numeric' }).format(new Date(displayedMonth.getFullYear(), displayedMonth.getMonth(), selectedDay)) }) }}</h2>
-        <button class="icon-button" type="button" :title="t('添加日程')" :aria-label="t('添加日程')" @click="editEvent(null)"><Plus width="16" height="16" /></button>
+        <h2>
+          {{
+            t('{date}的日程', {
+              date: new Intl.DateTimeFormat(locale, {
+                month: 'long',
+                day: 'numeric'
+              }).format(
+                new Date(displayedMonth.getFullYear(), displayedMonth.getMonth(), selectedDay)
+              )
+            })
+          }}
+        </h2>
+        <button
+          class="icon-button"
+          type="button"
+          :title="t('添加日程')"
+          :aria-label="t('添加日程')"
+          @click="editEvent(null)"
+        >
+          <Plus
+            width="16"
+            height="16"
+          />
+        </button>
       </div>
-      <p v-if="error" class="schedule-error" role="alert">{{ error }}</p>
-      <p v-if="!selectedEvents.length && !showEditor" class="schedule-empty">{{ t('这一天还没有日程') }}</p>
-      <ul v-if="selectedEvents.length" class="schedule-list">
-        <li v-for="event in selectedEvents" :key="event.id" class="schedule-item">
-          <input type="checkbox" :checked="event.completed" :aria-label="t('完成{name}', { name: event.title })" @change="toggleEvent(event)" />
-          <span :class="{ completed: event.completed }">{{ event.title }}</span>
-          <button class="icon-button" type="button" :aria-label="t('编辑{name}', { name: event.title })" @click="editEvent(event)"><EditPencil width="15" height="15" /></button>
-          <button class="icon-button" type="button" :aria-label="t('删除{name}', { name: event.title })" @click="removeEvent(event.id)"><Trash width="15" height="15" /></button>
+      <p
+        v-if="error"
+        class="schedule-error"
+        role="alert"
+      >
+        {{ error }}
+      </p>
+      <p
+        v-if="!selectedEvents.length && !showEditor"
+        class="schedule-empty"
+      >
+        {{ t('这一天还没有日程') }}
+      </p>
+      <ul
+        v-if="selectedEvents.length"
+        class="schedule-list"
+      >
+        <li
+          v-for="event in selectedEvents"
+          :key="event.id"
+          class="schedule-item"
+        >
+          <input
+            type="checkbox"
+            :checked="event.completed"
+            :aria-label="
+              t('完成{name}', {
+                name: event.title
+              })
+            "
+            @change="toggleEvent(event)"
+          />
+          <span
+            :class="{
+              completed: event.completed
+            }"
+            >{{ event.title }}</span
+          >
+          <button
+            class="icon-button"
+            type="button"
+            :aria-label="
+              t('编辑{name}', {
+                name: event.title
+              })
+            "
+            @click="editEvent(event)"
+          >
+            <EditPencil
+              width="15"
+              height="15"
+            />
+          </button>
+          <button
+            class="icon-button"
+            type="button"
+            :aria-label="
+              t('删除{name}', {
+                name: event.title
+              })
+            "
+            @click="removeEvent(event.id)"
+          >
+            <Trash
+              width="15"
+              height="15"
+            />
+          </button>
         </li>
       </ul>
-      <form v-if="showEditor" class="schedule-editor" @submit.prevent="submitEvent">
-        <input v-model="draft" maxlength="120" :aria-label="t('日程内容')" :placeholder="t('输入日程内容')" required />
-        <div class="editor-actions"><button type="button" @click="showEditor = false">{{ t('取消') }}</button><button type="submit">{{ t('保存') }}</button></div>
+      <form
+        v-if="showEditor"
+        class="schedule-editor"
+        @submit.prevent="submitEvent"
+      >
+        <input
+          v-model="draft"
+          maxlength="120"
+          :aria-label="t('日程内容')"
+          :placeholder="t('输入日程内容')"
+          required
+        />
+        <div class="editor-actions">
+          <button
+            type="button"
+            @click="showEditor = false"
+          >
+            {{ t('取消') }}</button
+          ><button type="submit">{{ t('保存') }}</button>
+        </div>
       </form>
     </section>
-    <section v-if="mode !== 'calendar'" class="companion-card saying">
-      <Transition name="saying-enter" mode="out-in" appear>
-        <p :key="saying"><a v-if="sayingUrl" :href="sayingUrl" target="_blank" rel="noopener noreferrer">{{ saying }}</a><template v-else>{{ saying }}</template></p>
+    <section
+      v-if="mode !== 'calendar'"
+      class="companion-card saying"
+    >
+      <Transition
+        name="saying-enter"
+        mode="out-in"
+        appear
+      >
+        <p :key="saying">
+          <a
+            v-if="sayingUrl"
+            :href="sayingUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            >{{ saying }}</a
+          ><template v-else>{{ saying }}</template>
+        </p>
       </Transition>
-      <span v-if="hitokoto?.author || hitokoto?.source" class="saying-source">{{ [hitokoto.author, hitokoto.source].filter(Boolean).join(' · ') }}</span>
-      <span class="saying-mark" aria-hidden="true">✳</span>
+      <span
+        v-if="hitokoto?.author || hitokoto?.source"
+        class="saying-source"
+        >{{ [hitokoto.author, hitokoto.source].filter(Boolean).join(' · ') }}</span
+      >
+      <span
+        class="saying-mark"
+        aria-hidden="true"
+        >✳</span
+      >
     </section>
   </aside>
 </template>
@@ -407,7 +753,9 @@ onUnmounted(() => {
   height: 26px;
   color: var(--text-muted);
   opacity: 0;
-  transition: opacity 160ms ease, color 160ms ease;
+  transition:
+    opacity 160ms ease,
+    color 160ms ease;
 }
 .date-switcher:hover .icon-button,
 .date-switcher:focus-within .icon-button {
@@ -480,7 +828,8 @@ onUnmounted(() => {
   font-size: var(--font-size-larger);
   font-weight: var(--font-weight-semibold);
 }
-.card-heading span, .weekday {
+.card-heading span,
+.weekday {
   color: var(--text-muted);
   font-size: var(--font-size-smallest);
 }
@@ -490,7 +839,8 @@ onUnmounted(() => {
   gap: 4px 0;
   text-align: center;
 }
-.weekday, .calendar-day {
+.weekday,
+.calendar-day {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -508,7 +858,8 @@ onUnmounted(() => {
   font-size: var(--font-size);
   cursor: pointer;
 }
-.calendar-day:hover, .calendar-day.is-selected {
+.calendar-day:hover,
+.calendar-day.is-selected {
   background: var(--bg-hover);
 }
 .desk-calendar .calendar-day:hover,
@@ -564,7 +915,10 @@ onUnmounted(() => {
   opacity: 0.7;
   stroke-width: 1.9;
 }
-.month-actions, .schedule-heading, .schedule-item, .editor-actions {
+.month-actions,
+.schedule-heading,
+.schedule-item,
+.editor-actions {
   display: flex;
   align-items: center;
 }
@@ -597,12 +951,15 @@ onUnmounted(() => {
   background: var(--bg-hover);
   color: var(--text-primary);
 }
-.schedule-empty, .schedule-error {
+.schedule-empty,
+.schedule-error {
   margin: 0;
   color: var(--text-muted);
   font-size: var(--font-size-smaller);
 }
-.schedule-error { color: var(--tag-red); }
+.schedule-error {
+  color: var(--tag-red);
+}
 .schedule-list {
   display: grid;
   gap: 6px;
@@ -610,8 +967,12 @@ onUnmounted(() => {
   padding: 0;
   list-style: none;
 }
-.schedule-item { gap: 6px; }
-.schedule-item input { accent-color: var(--accent-primary); }
+.schedule-item {
+  gap: 6px;
+}
+.schedule-item input {
+  accent-color: var(--accent-primary);
+}
 .schedule-item span {
   flex: 1;
   min-width: 0;
@@ -623,7 +984,9 @@ onUnmounted(() => {
   color: var(--text-muted);
   text-decoration: line-through;
 }
-.schedule-editor { margin-top: 12px; }
+.schedule-editor {
+  margin-top: 12px;
+}
 .schedule-editor input {
   box-sizing: border-box;
   width: 100%;
@@ -634,7 +997,11 @@ onUnmounted(() => {
   color: var(--text-primary);
   font: inherit;
 }
-.editor-actions { justify-content: flex-end; gap: 8px; margin-top: 8px; }
+.editor-actions {
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
 .editor-actions button {
   padding: 5px 10px;
   border: 0;
@@ -669,7 +1036,9 @@ onUnmounted(() => {
 }
 .saying-enter-enter-active,
 .saying-enter-leave-active {
-  transition: opacity 280ms ease, transform 280ms ease;
+  transition:
+    opacity 280ms ease,
+    transform 280ms ease;
 }
 .saying-enter-enter-from,
 .saying-enter-leave-to {

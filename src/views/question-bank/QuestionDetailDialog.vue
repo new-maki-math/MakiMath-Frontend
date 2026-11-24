@@ -1,5 +1,4 @@
 <script setup>
-import { t } from '../../i18n.js';
 import { nextTick, onBeforeUnmount, ref, watch } from 'vue';
 
 import { questionApi } from '../../api/questions.js';
@@ -8,6 +7,7 @@ import MButton from '../../components/form/MButton.vue';
 import { NavArrowLeft, NavArrowRight } from '../../components/icons/icons.js';
 import MModal from '../../components/overlay/MModal.vue';
 import QuestionCard from '../../components/typst-renderer/mm/QuestionCard.vue';
+import { t } from '../../i18n.js';
 import { authStatus, currentUser } from '../../utils/auth.js';
 
 const props = defineProps({
@@ -138,7 +138,13 @@ onBeforeUnmount(() => {
 <template>
   <MModal
     :open="questionId !== null"
-    :title="questionTitle ? t('题目详情 · {title}', { title: questionTitle }) : t('题目详情')"
+    :title="
+      questionTitle
+        ? t('题目详情 · {title}', {
+            title: questionTitle
+          })
+        : t('题目详情')
+    "
     width="760px"
     hide-scrollbar
     show-close

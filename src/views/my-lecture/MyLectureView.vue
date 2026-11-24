@@ -3,7 +3,6 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { bookApi } from '../../api/books.js';
-import { t } from '../../i18n.js';
 import ShelfCompanion from '../../components/app/ShelfCompanion.vue';
 import MLectureCover from '../../components/book/MLectureCover.vue';
 import MHorizontalShelf from '../../components/display/MHorizontalShelf.vue';
@@ -11,6 +10,7 @@ import MDataView from '../../components/feedback/MDataView.vue';
 import MEmpty from '../../components/feedback/MEmpty.vue';
 import { notify } from '../../components/feedback/MNotice.vue';
 import MButton from '../../components/form/MButton.vue';
+import { t } from '../../i18n.js';
 import { authStatus, currentUser, initAuth } from '../../utils/auth.js';
 import { lectureLocation } from '../../utils/lecture-route.js';
 import { listLocalLectures, validateLocalLectureSlug } from '../../utils/local-lectures.js';
@@ -28,7 +28,8 @@ function updateGuideArrow() {
   const guide = guideRef.value;
   const target = document.querySelector('[data-navigation-id="recom-lecture"]');
   const shelf = guide?.closest('.my-lecture');
-  guideVisible.value = window.innerWidth < 768 || !shelf || (shelf.scrollTop < 1 && window.scrollY < 1);
+  guideVisible.value =
+    window.innerWidth < 768 || !shelf || (shelf.scrollTop < 1 && window.scrollY < 1);
   if (!guide || !target || window.innerWidth < 768) {
     arrowPath.value = '';
     guidePosition.value = null;
@@ -82,14 +83,24 @@ const onlineLectureItems = computed(() => onlineBooks('lecture'));
 const onlineWorkbookItems = computed(() => onlineBooks('workbook'));
 const shelfBookHeight = ref(0);
 const shelfHeightLeader = computed(() => {
-  if (localLectureItems.value.length) return 'local-lecture';
-  if (onlineLectureItems.value.length) return 'online-lecture';
-  if (localWorkbookItems.value.length) return 'local-workbook';
-  if (onlineWorkbookItems.value.length) return 'online-workbook';
+  if (localLectureItems.value.length) {
+    return 'local-lecture';
+  }
+  if (onlineLectureItems.value.length) {
+    return 'online-lecture';
+  }
+  if (localWorkbookItems.value.length) {
+    return 'local-workbook';
+  }
+  if (onlineWorkbookItems.value.length) {
+    return 'online-workbook';
+  }
   return '';
 });
 function updateShelfBookHeight(shelf, height) {
-  if (shelf === shelfHeightLeader.value) shelfBookHeight.value = height;
+  if (shelf === shelfHeightLeader.value) {
+    shelfBookHeight.value = height;
+  }
 }
 const localLoading = ref(true);
 const onlineLoading = ref(false);
@@ -256,176 +267,230 @@ onUnmounted(() => {
 <template>
   <main class="my-lecture">
     <div class="shelf-content">
-    <section class="shelf-section has-companion">
-      <div class="shelf-heading">
-        <h1>{{ t('本地讲义') }}</h1>
-        <span v-if="!localLoading && !localError" class="shelf-count">{{ t('{count} 本', { count: localLectureItems.length }) }}</span>
-      </div>
-      <MDataView
-        :loading="localLoading"
-        :text="t('正在加载本地讲义…')"
-        :animate="!!localLectureItems.length && !localError"
-      >
-        <p
-          v-if="localError"
-          class="shelf-message error"
-        >
-          {{ t(localError) }}
-          <MButton
-            size="sm"
-            variant="ghost"
-            @click="loadLocal"
-            >{{ t('重试') }}</MButton
+      <section class="shelf-section has-companion">
+        <div class="shelf-heading">
+          <h1>{{ t('本地讲义') }}</h1>
+          <span
+            v-if="!localLoading && !localError"
+            class="shelf-count"
+            >{{
+              t('{count} 本', {
+                count: localLectureItems.length
+              })
+            }}</span
           >
-        </p>
-        <MEmpty
-          v-else-if="!localLectureItems.length"
-          class="shelf-empty"
+        </div>
+        <MDataView
+          :loading="localLoading"
+          :text="t('正在加载本地讲义…')"
+          :animate="!!localLectureItems.length && !localError"
         >
-          <div
-            ref="guideRef"
-            class="shelf-guide"
-            :class="{
-              'is-positioned': guidePosition,
-              'is-hidden': !guideVisible
-            }"
-            :style="guidePosition"
-            :aria-hidden="!guideVisible"
+          <p
+            v-if="localError"
+            class="shelf-message error"
           >
-            <svg
-              v-if="arrowPath"
-              class="shelf-guide-arrow"
-              fill="none"
-              aria-hidden="true"
-            >
-              <path :d="arrowPath" />
-            </svg>
+            {{ t(localError) }}
             <MButton
+              size="sm"
               variant="ghost"
-              :tabindex="guideVisible ? undefined : -1"
-              @click="router.push('/recom-lecture')"
-              >{{ t('去图书推荐，添加一本讲义到本地') }}</MButton
+              @click="loadLocal"
+              >{{ t('重试') }}</MButton
             >
-          </div>
-        </MEmpty>
-        <MHorizontalShelf v-else :book-height="shelfHeightLeader === 'local-lecture' ? 0 : shelfBookHeight" @book-height-change="updateShelfBookHeight('local-lecture', $event)">
-          <MLectureCover
-            v-for="lecture in localLectureItems"
-            :key="lecture.id"
-            :title="lecture.revision?.title || t('未命名讲义')"
-            :subtitle="lecture.revision?.subtitle || ''"
-            :image="lecture.cover || ''"
-            @click="openLecture('local', lecture)"
-          />
-        </MHorizontalShelf>
-      </MDataView>
-      <ShelfCompanion class="shelf-widget calendar-widget" mode="calendar" />
-      <ShelfCompanion class="saying-note" mode="saying" />
-    </section>
-    <section
-      v-if="authStatus === 'authenticated'"
-      class="shelf-section"
-    >
-      <div class="shelf-heading">
-        <h2>{{ t('我创作的讲义') }}</h2>
-        <span v-if="!onlineLoading && !onlineError" class="shelf-count">{{ t('{count} 本', { count: onlineLectureItems.length }) }}</span>
-      </div>
-      <MDataView
-        :loading="onlineLoading"
-        :text="t('正在加载我创作的讲义…')"
-        :animate="!!onlineLectureItems.length && !onlineError"
-      >
-        <p
-          v-if="onlineError"
-          class="shelf-message error"
-        >
-          {{ t(onlineError) }}
-          <MButton
-            size="sm"
-            variant="ghost"
-            @click="loadOnline"
-            >{{ t('重试') }}</MButton
+          </p>
+          <MEmpty
+            v-else-if="!localLectureItems.length"
+            class="shelf-empty"
           >
-        </p>
-        <MEmpty
-          v-else-if="!onlineLectureItems.length"
-          class="shelf-empty"
+            <div
+              ref="guideRef"
+              class="shelf-guide"
+              :class="{
+                'is-positioned': guidePosition,
+                'is-hidden': !guideVisible
+              }"
+              :style="guidePosition"
+              :aria-hidden="!guideVisible"
+            >
+              <svg
+                v-if="arrowPath"
+                class="shelf-guide-arrow"
+                fill="none"
+                aria-hidden="true"
+              >
+                <path :d="arrowPath" />
+              </svg>
+              <MButton
+                variant="ghost"
+                :tabindex="guideVisible ? undefined : -1"
+                @click="router.push('/recom-lecture')"
+                >{{ t('去图书推荐，添加一本讲义到本地') }}</MButton
+              >
+            </div>
+          </MEmpty>
+          <MHorizontalShelf
+            v-else
+            :book-height="shelfHeightLeader === 'local-lecture' ? 0 : shelfBookHeight"
+            @book-height-change="updateShelfBookHeight('local-lecture', $event)"
+          >
+            <MLectureCover
+              v-for="lecture in localLectureItems"
+              :key="lecture.id"
+              :title="lecture.revision?.title || t('未命名讲义')"
+              :subtitle="lecture.revision?.subtitle || ''"
+              :image="lecture.cover || ''"
+              @click="openLecture('local', lecture)"
+            />
+          </MHorizontalShelf>
+        </MDataView>
+        <ShelfCompanion
+          class="shelf-widget calendar-widget"
+          mode="calendar"
         />
-        <MHorizontalShelf v-else :book-height="shelfHeightLeader === 'online-lecture' ? 0 : shelfBookHeight" @book-height-change="updateShelfBookHeight('online-lecture', $event)">
-          <LectureVersionStack
-            v-for="lecture in onlineLectureItems"
-            :key="lecture.id"
-            :lecture="lecture"
-            @open="openVersion"
-            @retry="loadOnline"
-          />
-        </MHorizontalShelf>
-      </MDataView>
-    </section>
-    <section class="shelf-section">
-      <div class="shelf-heading">
-        <h2>{{ t('本地题目册') }}</h2>
-        <span v-if="!localLoading && !localError" class="shelf-count">{{ t('{count} 本', { count: localWorkbookItems.length }) }}</span>
-      </div>
-      <MDataView
-        :loading="localLoading"
-        :text="t('正在加载本地题目册…')"
+        <ShelfCompanion
+          class="saying-note"
+          mode="saying"
+        />
+      </section>
+      <section
+        v-if="authStatus === 'authenticated'"
+        class="shelf-section"
       >
-        <p
-          v-if="localError"
-          class="shelf-message error"
+        <div class="shelf-heading">
+          <h2>{{ t('我创作的讲义') }}</h2>
+          <span
+            v-if="!onlineLoading && !onlineError"
+            class="shelf-count"
+            >{{
+              t('{count} 本', {
+                count: onlineLectureItems.length
+              })
+            }}</span
+          >
+        </div>
+        <MDataView
+          :loading="onlineLoading"
+          :text="t('正在加载我创作的讲义…')"
+          :animate="!!onlineLectureItems.length && !onlineError"
         >
-          {{ t(localError) }}
-        </p>
-        <MEmpty
-          v-else-if="!localWorkbookItems.length"
-          class="shelf-empty"
-        />
-        <MHorizontalShelf v-else :book-height="shelfHeightLeader === 'local-workbook' ? 0 : shelfBookHeight" @book-height-change="updateShelfBookHeight('local-workbook', $event)">
-          <MLectureCover
-            v-for="book in localWorkbookItems"
-            :key="book.id"
-            :title="book.revision?.title || t('未命名题目册')"
-            :subtitle="book.revision?.subtitle || ''"
-            :image="book.cover || ''"
-            @click="openLecture('local', book)"
+          <p
+            v-if="onlineError"
+            class="shelf-message error"
+          >
+            {{ t(onlineError) }}
+            <MButton
+              size="sm"
+              variant="ghost"
+              @click="loadOnline"
+              >{{ t('重试') }}</MButton
+            >
+          </p>
+          <MEmpty
+            v-else-if="!onlineLectureItems.length"
+            class="shelf-empty"
           />
-        </MHorizontalShelf>
-      </MDataView>
-    </section>
-    <section
-      v-if="authStatus === 'authenticated'"
-      class="shelf-section"
-    >
-      <div class="shelf-heading">
-        <h2>{{ t('我创作的题目册') }}</h2>
-        <span v-if="!onlineLoading && !onlineError" class="shelf-count">{{ t('{count} 本', { count: onlineWorkbookItems.length }) }}</span>
-      </div>
-      <MDataView
-        :loading="onlineLoading"
-        :text="t('正在加载我创作的题目册…')"
+          <MHorizontalShelf
+            v-else
+            :book-height="shelfHeightLeader === 'online-lecture' ? 0 : shelfBookHeight"
+            @book-height-change="updateShelfBookHeight('online-lecture', $event)"
+          >
+            <LectureVersionStack
+              v-for="lecture in onlineLectureItems"
+              :key="lecture.id"
+              :lecture="lecture"
+              @open="openVersion"
+              @retry="loadOnline"
+            />
+          </MHorizontalShelf>
+        </MDataView>
+      </section>
+      <section class="shelf-section">
+        <div class="shelf-heading">
+          <h2>{{ t('本地题目册') }}</h2>
+          <span
+            v-if="!localLoading && !localError"
+            class="shelf-count"
+            >{{
+              t('{count} 本', {
+                count: localWorkbookItems.length
+              })
+            }}</span
+          >
+        </div>
+        <MDataView
+          :loading="localLoading"
+          :text="t('正在加载本地题目册…')"
+        >
+          <p
+            v-if="localError"
+            class="shelf-message error"
+          >
+            {{ t(localError) }}
+          </p>
+          <MEmpty
+            v-else-if="!localWorkbookItems.length"
+            class="shelf-empty"
+          />
+          <MHorizontalShelf
+            v-else
+            :book-height="shelfHeightLeader === 'local-workbook' ? 0 : shelfBookHeight"
+            @book-height-change="updateShelfBookHeight('local-workbook', $event)"
+          >
+            <MLectureCover
+              v-for="book in localWorkbookItems"
+              :key="book.id"
+              :title="book.revision?.title || t('未命名题目册')"
+              :subtitle="book.revision?.subtitle || ''"
+              :image="book.cover || ''"
+              @click="openLecture('local', book)"
+            />
+          </MHorizontalShelf>
+        </MDataView>
+      </section>
+      <section
+        v-if="authStatus === 'authenticated'"
+        class="shelf-section"
       >
-        <p
-          v-if="onlineError"
-          class="shelf-message error"
+        <div class="shelf-heading">
+          <h2>{{ t('我创作的题目册') }}</h2>
+          <span
+            v-if="!onlineLoading && !onlineError"
+            class="shelf-count"
+            >{{
+              t('{count} 本', {
+                count: onlineWorkbookItems.length
+              })
+            }}</span
+          >
+        </div>
+        <MDataView
+          :loading="onlineLoading"
+          :text="t('正在加载我创作的题目册…')"
         >
-          {{ t(onlineError) }}
-        </p>
-        <MEmpty
-          v-else-if="!onlineWorkbookItems.length"
-          class="shelf-empty"
-        />
-        <MHorizontalShelf v-else :book-height="shelfHeightLeader === 'online-workbook' ? 0 : shelfBookHeight" @book-height-change="updateShelfBookHeight('online-workbook', $event)">
-          <LectureVersionStack
-            v-for="book in onlineWorkbookItems"
-            :key="book.id"
-            :lecture="book"
-            @open="openVersion"
-            @retry="loadOnline"
+          <p
+            v-if="onlineError"
+            class="shelf-message error"
+          >
+            {{ t(onlineError) }}
+          </p>
+          <MEmpty
+            v-else-if="!onlineWorkbookItems.length"
+            class="shelf-empty"
           />
-        </MHorizontalShelf>
-      </MDataView>
-    </section>
+          <MHorizontalShelf
+            v-else
+            :book-height="shelfHeightLeader === 'online-workbook' ? 0 : shelfBookHeight"
+            @book-height-change="updateShelfBookHeight('online-workbook', $event)"
+          >
+            <LectureVersionStack
+              v-for="book in onlineWorkbookItems"
+              :key="book.id"
+              :lecture="book"
+              @open="openVersion"
+              @retry="loadOnline"
+            />
+          </MHorizontalShelf>
+        </MDataView>
+      </section>
     </div>
   </main>
 </template>
@@ -515,8 +580,12 @@ onUnmounted(() => {
   height: 24px;
   background: var(--shelf-edge);
 }
-.saying-note::before { left: 24%; }
-.saying-note::after { right: 24%; }
+.saying-note::before {
+  left: 24%;
+}
+.saying-note::after {
+  right: 24%;
+}
 .saying-note :deep(.saying) {
   min-height: 0;
   box-sizing: border-box;
@@ -539,8 +608,12 @@ onUnmounted(() => {
   border-radius: var(--radius-full);
   background: var(--shelf-edge);
 }
-.saying-note :deep(.saying)::before { left: calc(24% - 3px); }
-.saying-note :deep(.saying)::after { right: calc(24% - 3px); }
+.saying-note :deep(.saying)::before {
+  left: calc(24% - 3px);
+}
+.saying-note :deep(.saying)::after {
+  right: calc(24% - 3px);
+}
 .saying-note :deep(.saying p) {
   margin: 0;
   font-size: var(--font-size);

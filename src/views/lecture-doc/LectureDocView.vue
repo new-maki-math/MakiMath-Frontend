@@ -1,5 +1,4 @@
 <script setup>
-import { t } from '../../i18n.js';
 import { computed, onUnmounted, provide, ref, shallowRef, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -9,6 +8,7 @@ import MButton from '../../components/form/MButton.vue';
 import { List } from '../../components/icons/icons.js';
 import MDrawer from '../../components/overlay/MDrawer.vue';
 import TypstDoc from '../../components/typst-renderer/TypstDoc.vue';
+import { t } from '../../i18n.js';
 import { authStatus, currentUser } from '../../utils/auth.js';
 import { lectureLocation, lectureNavigationOrigin } from '../../utils/lecture-route.js';
 import { fetchShelfLectureTree } from '../../utils/shelf-lecture.js';
