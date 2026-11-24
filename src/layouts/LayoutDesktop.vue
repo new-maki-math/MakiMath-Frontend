@@ -1,5 +1,5 @@
 <script setup>
-import { inject, ref } from 'vue';
+import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { RouterView } from 'vue-router';
 
 import UserDataBackup from '../components/account/UserDataBackup.vue';
@@ -16,7 +16,6 @@ import {
   Terminal,
   UserCircle
 } from '../components/icons/icons.js';
-import MCollapse from '../components/overlay/MCollapse.vue';
 import { t } from '../i18n.js';
 import NavigationIcon from './NavigationIcon.vue';
 import { useLayoutState } from './useLayoutState.js';
@@ -48,20 +47,42 @@ const {
 
 // 桌面端侧边栏折叠状态
 const isSidebarCollapsed = ref(localStorage.getItem('maki_sidebar_collapsed') === 'true');
+const sidebarNav = ref(null);
+const activeIndicator = ref(null);
+const activeNavigationId = computed(
+  () => navigationGroups.value.flat().find((item) => isItemActive(item))?.id
+);
+let sidebarObserver;
+
+function updateActiveIndicator() {
+  const active = sidebarNav.value?.querySelector('.nav-button.active');
+  activeIndicator.value = active
+    ? {
+        top: active.offsetTop,
+        height: active.offsetHeight
+      }
+    : null;
+}
+
+watch([activeNavigationId, navigationGroups], updateActiveIndicator, { flush: 'post' });
+
+onMounted(() => {
+  updateActiveIndicator();
+  if (typeof ResizeObserver !== 'undefined') {
+    sidebarObserver = new ResizeObserver(updateActiveIndicator);
+    sidebarObserver.observe(sidebarNav.value);
+  }
+});
+
+onBeforeUnmount(() => {
+  sidebarObserver?.disconnect();
+});
 
 const toggleSidebar = () => {
   isSidebarCollapsed.value = !isSidebarCollapsed.value;
   localStorage.setItem('maki_sidebar_collapsed', String(isSidebarCollapsed.value));
 };
 
-const handleNavClick = (item) => {
-  if (isSidebarCollapsed.value) {
-    isSidebarCollapsed.value = false;
-    localStorage.setItem('maki_sidebar_collapsed', 'false');
-    return;
-  }
-  navigateTo(item.path);
-};
 </script>
 
 <template>
@@ -158,32 +179,36 @@ const handleNavClick = (item) => {
           'is-collapsed': isSidebarCollapsed
         }"
       >
-        <div
-          class="sidebar-header"
-          :class="{
-            'is-collapsed': isSidebarCollapsed
-          }"
-        >
-          <MCollapse
-            horizontal
-            :open="!isSidebarCollapsed"
-          >
-            <span class="sidebar-section-title font-mono">NAVIGATION</span>
-          </MCollapse>
+        <div class="sidebar-header">
           <button
             class="sidebar-collapse-btn"
             :title="t(isSidebarCollapsed ? '展开导航栏' : '收起导航栏')"
+            :aria-label="t(isSidebarCollapsed ? '展开导航栏' : '收起导航栏')"
+            :aria-expanded="!isSidebarCollapsed"
             @click="toggleSidebar"
           >
             <component
               :is="isSidebarCollapsed ? NavArrowRight : NavArrowLeft"
-              width="13"
-              height="13"
+              width="18"
+              height="18"
             />
           </button>
+          <span class="sidebar-section-title font-mono">NAVIGATION</span>
         </div>
 
-        <nav class="sidebar-nav">
+        <nav
+          ref="sidebarNav"
+          class="sidebar-nav"
+        >
+          <div
+            v-if="activeIndicator"
+            class="sidebar-active-indicator"
+            :style="{
+              height: `${activeIndicator.height}px`,
+              transform: `translateY(${activeIndicator.top}px)`
+            }"
+            aria-hidden="true"
+          ></div>
           <template
             v-for="(group, index) in navigationGroups"
             :key="index"
@@ -202,7 +227,7 @@ const handleNavClick = (item) => {
                 active: isItemActive(item)
               }"
               :title="isSidebarCollapsed ? item.label : undefined"
-              @click="handleNavClick(item)"
+              @click="navigateTo(item.path)"
             >
               <div class="nav-icon-wrap">
                 <NavigationIcon
@@ -212,13 +237,7 @@ const handleNavClick = (item) => {
                   class="nav-icon"
                 />
               </div>
-              <MCollapse
-                horizontal
-                :open="!isSidebarCollapsed"
-                class="nav-label-collapse"
-              >
-                <span class="nav-label">{{ item.label }}</span>
-              </MCollapse>
+              <span class="nav-label">{{ item.label }}</span>
             </button>
           </template>
         </nav>
@@ -311,8 +330,8 @@ const handleNavClick = (item) => {
   max-width: 500px;
   margin: 0 20px;
   transition:
-    opacity 240ms cubic-bezier(0.16, 1, 0.3, 1),
-    transform 240ms cubic-bezier(0.16, 1, 0.3, 1);
+    opacity 240ms var(--ease-emphasized),
+    transform 240ms var(--ease-emphasized);
   opacity: 1;
   transform: translateY(0);
 }
@@ -375,9 +394,7 @@ const handleNavClick = (item) => {
 
 /* 侧边栏容器 */
 .maki-sidebar {
-  width: var(--sidebar-width, max-content);
-  min-width: var(--sidebar-min-width);
-  max-width: var(--sidebar-max-width);
+  width: var(--sidebar-min-width);
   background-color: var(--bg-sidebar);
   border-right: 1px solid var(--border-subtle);
   display: flex;
@@ -385,38 +402,21 @@ const handleNavClick = (item) => {
   flex-shrink: 0;
   position: relative;
   z-index: 40;
-  transition:
-    width 160ms cubic-bezier(0.2, 0, 0, 1),
-    min-width 160ms cubic-bezier(0.2, 0, 0, 1),
-    max-width 160ms cubic-bezier(0.2, 0, 0, 1);
+  transition: width 220ms var(--ease-layout);
   overflow: hidden;
 }
 
 .maki-sidebar.is-collapsed {
   width: 52px;
-  min-width: 52px;
-  max-width: 52px;
 }
 
 .sidebar-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 12px 10px 8px 16px;
+  padding: 12px 12px 8px;
   min-height: 42px;
   gap: 8px;
   flex-shrink: 0;
-}
-
-.sidebar-header.is-collapsed {
-  justify-content: center;
-  padding: 12px 0 8px;
-  gap: 0;
-  width: 100%;
-}
-
-.sidebar-header.is-collapsed .m-collapse {
-  display: none;
 }
 
 .sidebar-section-title {
@@ -425,6 +425,8 @@ const handleNavClick = (item) => {
   letter-spacing: 1px;
   color: var(--text-muted);
   white-space: nowrap;
+  overflow: hidden;
+  transition: opacity 160ms var(--ease-standard);
 }
 
 .sidebar-collapse-btn {
@@ -436,16 +438,12 @@ const handleNavClick = (item) => {
   border-radius: var(--radius);
   background: transparent;
   border: 0;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   cursor: pointer;
   flex-shrink: 0;
   transition:
     background-color 120ms ease,
     color 120ms ease;
-}
-
-.sidebar-header.is-collapsed .sidebar-collapse-btn {
-  margin: 0 auto;
 }
 
 .sidebar-collapse-btn:hover {
@@ -459,6 +457,7 @@ const handleNavClick = (item) => {
 }
 
 .sidebar-nav {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -466,6 +465,28 @@ const handleNavClick = (item) => {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
+}
+
+.sidebar-active-indicator {
+  position: absolute;
+  top: 0;
+  left: 8px;
+  right: 8px;
+  border-radius: var(--radius);
+  background: var(--bg-hover);
+  pointer-events: none;
+  transition: transform 240ms var(--ease-emphasized);
+}
+
+.sidebar-active-indicator::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  background: var(--accent-primary);
+  border-radius: var(--radius-none) var(--radius) var(--radius) var(--radius-none);
 }
 
 .sidebar-divider {
@@ -476,25 +497,13 @@ const handleNavClick = (item) => {
   background: var(--border-subtle);
 }
 
-.maki-sidebar.is-collapsed .sidebar-divider {
-  width: 24px;
-  align-self: center;
-  margin: 6px 0;
-}
-
-.maki-sidebar.is-collapsed .sidebar-nav {
-  padding: 0;
-  width: 100%;
-  align-items: center;
-}
-
 .nav-button {
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: flex-start;
   width: 100%;
   height: 36px;
-  padding: 0 10px;
+  padding: 0 6px;
   border-radius: var(--radius);
   background: transparent;
   color: var(--text-secondary);
@@ -505,53 +514,24 @@ const handleNavClick = (item) => {
     background-color 140ms ease,
     color 140ms ease;
   position: relative;
+  z-index: 1;
   flex-shrink: 0;
+  overflow: hidden;
 }
 
-.maki-sidebar.is-collapsed .nav-button {
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  margin: 0 auto;
-  justify-content: center;
-  gap: 0;
+.maki-sidebar.is-collapsed .nav-label,
+.maki-sidebar.is-collapsed .sidebar-section-title {
+  opacity: 0;
 }
 
-.maki-sidebar.is-collapsed .nav-label-collapse {
-  display: none;
-}
-
-.maki-sidebar.is-collapsed .nav-icon-wrap {
-  margin: 0 auto;
-}
-
-.nav-button:hover {
+.nav-button:not(.active):hover {
   background-color: var(--bg-hover);
   color: var(--text-primary);
 }
 
 .nav-button.active {
-  background-color: var(--bg-hover);
   color: var(--text-primary);
   font-weight: var(--font-weight-medium);
-}
-
-/* 激活指示条 */
-.nav-button.active::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 6px;
-  bottom: 6px;
-  width: 3px;
-  background-color: var(--accent-primary);
-  border-radius: var(--radius-none) var(--radius) var(--radius) var(--radius-none);
-}
-
-.maki-sidebar.is-collapsed .nav-button.active::before {
-  left: 0;
-  top: 8px;
-  bottom: 8px;
 }
 
 .nav-icon-wrap {
@@ -565,14 +545,14 @@ const handleNavClick = (item) => {
 }
 
 .nav-label {
+  position: absolute;
+  left: 38px;
+  right: 8px;
   font-size: var(--font-size);
-  flex: 1 1 auto;
   white-space: nowrap;
-}
-
-.nav-label-collapse {
-  flex: 1 1 auto;
-  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: opacity 160ms var(--ease-standard);
 }
 
 .sidebar-footer {
@@ -581,10 +561,7 @@ const handleNavClick = (item) => {
   display: flex;
 }
 
-.maki-sidebar.is-collapsed .sidebar-footer {
-  justify-content: center;
-}
-.maki-sidebar.is-collapsed .sidebar-footer :deep(.backup-actions) {
+.sidebar-footer :deep(.backup-actions) {
   flex-direction: column;
 }
 
@@ -601,5 +578,14 @@ const handleNavClick = (item) => {
 /* 锁定外层滚动 */
 .maki-viewport.is-locked {
   overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .maki-sidebar,
+  .sidebar-active-indicator,
+  .sidebar-section-title,
+  .nav-label {
+    transition: none;
+  }
 }
 </style>
