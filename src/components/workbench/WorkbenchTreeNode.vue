@@ -366,7 +366,7 @@ const canMoveDown = computed(() =>
 }
 
 .node-caret svg {
-  transition: transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 160ms var(--ease-emphasized);
 }
 
 .node-caret.is-open svg {

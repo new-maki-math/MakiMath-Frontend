@@ -63,9 +63,9 @@ button {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition:
-    background-color 140ms ease,
-    color 140ms ease,
-    border-color 140ms ease;
+    background-color 140ms var(--ease-standard),
+    color 140ms var(--ease-standard),
+    border-color 140ms var(--ease-standard);
 }
 
 button:focus-visible {
@@ -81,7 +81,7 @@ textarea::placeholder {
 a {
   color: var(--accent-primary);
   text-decoration: none;
-  transition: color 140ms ease;
+  transition: color 140ms var(--ease-standard);
 }
 
 a:hover {

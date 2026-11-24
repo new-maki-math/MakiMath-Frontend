@@ -516,8 +516,8 @@ const handleSavePassword = async () => {
 .modal-pop-enter-active,
 .modal-pop-leave-active {
   transition:
-    opacity 160ms cubic-bezier(0.16, 1, 0.3, 1),
-    transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
+    opacity 160ms var(--ease-emphasized),
+    transform 160ms var(--ease-emphasized);
 }
 
 .modal-pop-enter-from,

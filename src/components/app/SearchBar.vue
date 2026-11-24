@@ -587,7 +587,7 @@ defineExpose({
 .placeholder-roll-enter-active,
 .placeholder-roll-leave-active {
   transition:
-    transform 260ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 260ms var(--ease-emphasized),
     opacity 240ms ease;
 }
 
@@ -779,7 +779,7 @@ defineExpose({
 .dropdown-anim-leave-active {
   transition:
     opacity 160ms ease,
-    transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
+    transform 160ms var(--ease-emphasized);
 }
 
 .dropdown-anim-enter-from,

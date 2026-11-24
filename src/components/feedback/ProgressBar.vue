@@ -144,7 +144,7 @@ defineExpose({
   z-index: 9999;
   pointer-events: none;
   /* 轨道透明度过渡 */
-  transition: opacity 240ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition: opacity 240ms var(--ease-smooth);
 }
 
 .top-progress-bar {
@@ -152,7 +152,7 @@ defineExpose({
   background-color: var(--accent-primary);
   /* 进度条宽度过渡 */
   transition:
-    width 260ms cubic-bezier(0.16, 1, 0.3, 1),
+    width 260ms var(--ease-emphasized),
     background-color 200ms ease;
   will-change: width, opacity;
 }

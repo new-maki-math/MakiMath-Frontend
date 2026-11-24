@@ -313,7 +313,7 @@ onBeforeUnmount(() => {
 .drawer-slide-left-enter-active,
 .drawer-slide-left-leave-active {
   transition:
-    transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 220ms var(--ease-emphasized),
     opacity 180ms ease;
 }
 
@@ -327,7 +327,7 @@ onBeforeUnmount(() => {
 .drawer-slide-right-enter-active,
 .drawer-slide-right-leave-active {
   transition:
-    transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 220ms var(--ease-emphasized),
     opacity 180ms ease;
 }
 

@@ -198,7 +198,7 @@ const handleClose = notify.clear;
 .notice-fade-leave-active {
   transition:
     opacity 180ms ease,
-    transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+    transform 180ms var(--ease-emphasized);
 }
 
 .notice-fade-enter-from,

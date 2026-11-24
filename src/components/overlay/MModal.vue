@@ -234,7 +234,7 @@ onUnmounted(() => {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius);
   overflow: hidden;
-  transition: height 220ms cubic-bezier(0.2, 0, 0, 1);
+  transition: height 220ms var(--ease-layout);
 }
 
 .modal-head {
@@ -329,9 +329,9 @@ onUnmounted(() => {
 .modal-pop-enter-active,
 .modal-pop-leave-active {
   transition:
-    opacity 160ms cubic-bezier(0.16, 1, 0.3, 1),
-    transform 160ms cubic-bezier(0.16, 1, 0.3, 1),
-    height 220ms cubic-bezier(0.2, 0, 0, 1);
+    opacity 160ms var(--ease-emphasized),
+    transform 160ms var(--ease-emphasized),
+    height 220ms var(--ease-layout);
 }
 
 .modal-pop-enter-from,

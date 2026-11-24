@@ -129,7 +129,7 @@ onUnmounted(() => {
   opacity: 0;
   pointer-events: none;
   transition:
-    opacity 190ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 190ms var(--ease-emphasized),
     visibility 190ms;
   visibility: hidden;
   will-change: opacity;
@@ -160,7 +160,7 @@ onUnmounted(() => {
   @media (max-width: 767px) {
     .m-backdrop.is-fixed {
       transition:
-        opacity 190ms cubic-bezier(0.16, 1, 0.3, 1),
+        opacity 190ms var(--ease-emphasized),
         visibility 190ms,
         display 190ms allow-discrete;
     }

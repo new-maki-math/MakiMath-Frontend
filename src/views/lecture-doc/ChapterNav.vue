@@ -262,7 +262,7 @@ const handleSelect = (section) => {
 }
 
 .chapter-chevron {
-  transition: transform 160ms cubic-bezier(0.2, 0, 0, 1);
+  transition: transform 160ms var(--ease-layout);
 }
 
 .chapter-chevron.is-open {

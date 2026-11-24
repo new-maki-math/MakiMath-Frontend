@@ -1346,7 +1346,7 @@ onUnmounted(() => {
 .arrow-icon {
   display: flex;
   align-items: center;
-  transition: transform 160ms cubic-bezier(0.2, 0, 0, 1);
+  transition: transform 160ms var(--ease-layout);
 }
 
 .arrow-icon.is-rotated {

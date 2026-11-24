@@ -116,7 +116,7 @@ const progressPercent = computed(() => {
 .loading-bar-fill {
   height: 100%;
   background: var(--accent-primary);
-  transition: width 160ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: width 160ms var(--ease-emphasized);
 }
 
 .loading-bar-num {

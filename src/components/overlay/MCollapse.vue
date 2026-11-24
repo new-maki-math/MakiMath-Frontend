@@ -56,7 +56,7 @@ const opacityDurationMs = computed(() => {
 
 <style scoped>
 .m-collapse {
-  --collapse-easing: cubic-bezier(0.16, 1, 0.3, 1);
+  --collapse-easing: var(--ease-emphasized);
 }
 
 .m-collapse {

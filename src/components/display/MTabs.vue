@@ -108,6 +108,6 @@ const lineTransform = computed(() => {
   width: 50%;
   height: 2px;
   background-color: var(--accent-primary);
-  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 200ms var(--ease-emphasized);
 }
 </style>
