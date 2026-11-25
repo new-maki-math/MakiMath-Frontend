@@ -34,6 +34,7 @@ const selected = ref(null);
 const form = ref(null);
 const baseline = ref('');
 const treeRef = ref(null);
+const sourceEditor = ref(null);
 const modal = ref('');
 const modalForm = ref({});
 const addTarget = ref(null);
@@ -70,7 +71,10 @@ const fields = [
   }
 ];
 const dirty = computed(() =>
-  Boolean(form.value && baseline.value && JSON.stringify(form.value) !== baseline.value)
+  Boolean(
+    sourceEditor.value?.hasUnconvertedChanges ||
+    (form.value && baseline.value && JSON.stringify(form.value) !== baseline.value)
+  )
 );
 const { leaveOpen, confirmLeave, finishLeave } = useWorkbenchGuard({
   dirty,
@@ -83,6 +87,16 @@ const categoryOptions = computed(() =>
     label: category.name
   }))
 );
+
+async function selectSourceField(field) {
+  if (field === activeSource.value) {
+    return;
+  }
+  if (sourceEditor.value?.hasUnconvertedChanges && !(await confirmLeave())) {
+    return;
+  }
+  activeSource.value = field;
+}
 const treeNodes = computed(() => {
   const nodes = new Map(
     categories.value.map((category) => [
@@ -468,6 +482,7 @@ async function newQuestion(category) {
   saveUncertain.value = false;
 }
 function reset() {
+  sourceEditor.value?.resetLatexDraft();
   if (selected.value?.type === 'new-question') {
     selected.value = null;
     form.value = null;
@@ -478,6 +493,9 @@ function reset() {
 }
 async function save() {
   if (!authorized.value || saving.value || saveUncertain.value || !form.value || !selected.value) {
+    return;
+  }
+  if (sourceEditor.value?.validateForSave() === false) {
     return;
   }
   const type = selected.value.type;
@@ -1041,11 +1059,12 @@ onBeforeUnmount(() => {
               :key="field.key"
               size="sm"
               :variant="activeSource === field.key ? 'primary' : 'ghost'"
-              @click="activeSource = field.key"
+              @click="selectSourceField(field.key)"
               >{{ t(field.label) }}</MButton
             >
           </div>
           <TypstEditorPreview
+            ref="sourceEditor"
             :key="activeSource"
             v-model="form[activeSource]"
             :editable="true"

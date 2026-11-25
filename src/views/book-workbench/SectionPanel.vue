@@ -53,6 +53,12 @@ const props = defineProps({
   }
 });
 const emit = defineEmits(['save', 'reset']);
+const sourceEditor = ref(null);
+defineExpose({
+  hasUnconvertedChanges: computed(() => sourceEditor.value?.hasUnconvertedChanges),
+  validateForSave: () => sourceEditor.value?.validateForSave(),
+  resetLatexDraft: () => sourceEditor.value?.resetLatexDraft()
+});
 const animationPackage = computed(() => parseAnimationAssets(section.value.animation_source || ''));
 const animationError = ref('');
 const animationLoading = ref(false);
@@ -185,6 +191,7 @@ async function chooseAnimation(event) {
         <span class="wb-block-title">{{ t('小节内容') }}</span>
       </div>
       <TypstEditorPreview
+        ref="sourceEditor"
         :key="section.occurrence_id"
         v-model="section.source"
         :editable="editable"

@@ -51,6 +51,7 @@ const listErrors = ref({
   online: ''
 });
 const treeRef = ref(null);
+const sectionPanel = ref(null);
 const localLectures = ref([]);
 const lectureTrees = ref(new Map());
 const lectureVersions = ref(new Map());
@@ -113,7 +114,10 @@ const snapshot = () =>
     slug: lecture.value?.isLocal ? lecture.value.slug : null
   });
 const dirty = computed(() =>
-  Boolean(revision.value && baseline.value && snapshot() !== baseline.value)
+  Boolean(
+    sectionPanel.value?.hasUnconvertedChanges ||
+    (revision.value && baseline.value && snapshot() !== baseline.value)
+  )
 );
 const ownsContext = computed(() =>
   Boolean(
@@ -1346,6 +1350,9 @@ async function save() {
   if (!canEdit.value || saving.value || !dirty.value) {
     return;
   }
+  if (sectionPanel.value?.validateForSave() === false) {
+    return;
+  }
   if (!lecture.value.isLocal && selected.value.type === 'section') {
     await saveCurrentSection();
     return;
@@ -1642,6 +1649,7 @@ async function reloadConflictedLecture() {
 }
 
 function discard() {
+  sectionPanel.value?.resetLatexDraft();
   if (!baseline.value) {
     return;
   }
@@ -2732,6 +2740,7 @@ onUnmounted(() => {
       </ChapterPanel>
       <SectionPanel
         v-else-if="revision && lecture && selected.type === 'section' && selectedSection"
+        ref="sectionPanel"
         v-model:section="selectedSection"
         :animation-base="revision.metadata?.animation_base || null"
         :dirty="dirty"

@@ -102,8 +102,8 @@ async function initializeEditor() {
       },
       lineNumbers: 'on',
       lineNumbersMinChars: 3,
-      lineHeight: 24,
-      fontSize: 15,
+      lineHeight: 22,
+      fontSize: 14,
       fontFamily:
         'var(--font-mono, "Cascadia Code", Consolas, Menlo, Monaco, "Courier New", monospace)',
       renderLineHighlight: 'all',
@@ -303,15 +303,19 @@ onBeforeUnmount(() => {
   <div class="m-code">
     <div class="code-head">
       <div class="code-head-left">
-        <span
-          v-if="label"
-          class="code-label"
-          >{{ label }}</span
-        >
+        <slot name="label">
+          <span
+            v-if="label"
+            class="code-label"
+            >{{ label }}</span
+          >
+        </slot>
         <span class="code-meta font-mono"> {{ lineCount }} 行 · {{ charCount }} 字符 </span>
       </div>
+      <slot name="actions" />
     </div>
 
+    <slot name="notice" />
     <div
       class="code-monaco-wrap"
       :style="{

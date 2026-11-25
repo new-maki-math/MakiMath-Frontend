@@ -20,6 +20,7 @@ import { t } from '../../i18n.js';
 import { authStatus, currentUser, initAuth } from '../../utils/auth.js';
 
 const treeRef = ref(null);
+const sourceEditor = ref(null);
 const points = ref([]);
 const categories = ref([]);
 const categoryError = ref('');
@@ -83,7 +84,10 @@ const snapshot = () =>
     source: point.value?.source || ''
   });
 const dirty = computed(() =>
-  Boolean(point.value && baseline.value && snapshot() !== baseline.value)
+  Boolean(
+    sourceEditor.value?.hasUnconvertedChanges ||
+    (point.value && baseline.value && snapshot() !== baseline.value)
+  )
 );
 const categoryLinksMissing = computed(() => {
   const ids = new Set(categories.value.map((item) => item.id));
@@ -550,12 +554,16 @@ async function selectNode(node) {
   }
 }
 function discard() {
+  sourceEditor.value?.resetLatexDraft();
   if (baseline.value && point.value) {
     Object.assign(point.value, JSON.parse(baseline.value));
   }
 }
 async function save() {
   if (!editable.value || !point.value || !dirty.value) {
+    return;
+  }
+  if (sourceEditor.value?.validateForSave() === false) {
     return;
   }
   const body = {
@@ -902,6 +910,7 @@ onUnmounted(() => {
             <span class="wb-block-title">{{ t('知识点内容') }}</span>
           </div>
           <TypstEditorPreview
+            ref="sourceEditor"
             :key="point.id"
             v-model="point.source"
             :editable="editable"
