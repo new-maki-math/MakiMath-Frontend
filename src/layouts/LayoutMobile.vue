@@ -2,6 +2,7 @@
 import { inject, ref, watch } from 'vue';
 import { RouterView } from 'vue-router';
 
+import UserDataBackup from '../components/account/UserDataBackup.vue';
 import MLanguageSwitcher from '../components/app/MLanguageSwitcher.vue';
 import MThemeSwitcher from '../components/app/MThemeSwitcher.vue';
 import MUpdateLog from '../components/app/MUpdateLog.vue';
@@ -45,8 +46,8 @@ const {
 const isDrawerOpen = ref(false);
 const isSearchOpen = ref(false);
 
-const openDrawer = () => {
-  isDrawerOpen.value = true;
+const toggleDrawer = () => {
+  isDrawerOpen.value = !isDrawerOpen.value;
 };
 
 const closeDrawer = () => {
@@ -83,11 +84,14 @@ watch(
       <button
         type="button"
         class="mobile-icon-btn"
-        :title="t('打开导航目录')"
-        :aria-label="t('打开导航目录')"
-        @click="openDrawer"
+        :title="t(isDrawerOpen ? '收起导航栏' : '打开导航目录')"
+        :aria-label="t(isDrawerOpen ? '收起导航栏' : '打开导航目录')"
+        :aria-expanded="isDrawerOpen"
+        aria-controls="mobile-navigation-drawer"
+        @click="toggleDrawer"
       >
-        <Menu
+        <component
+          :is="isDrawerOpen ? Xmark : Menu"
           width="20"
           height="20"
         />
@@ -161,82 +165,86 @@ watch(
     </header>
 
     <!-- 移动端侧滑导航抽屉 -->
-    <MDrawer
-      :open="isDrawerOpen"
-      class="mobile-nav-drawer"
-      placement="left"
-      fixed
-      title="MAKI MATH // 导航"
-      width="300px"
-      @close="closeDrawer"
-    >
-      <div class="drawer-nav-container">
-        <!-- 基础导航分组 -->
-        <nav class="drawer-nav-list">
-          <template
-            v-for="(group, index) in navigationGroups"
-            :key="index"
+    <div class="mobile-navigation-layer">
+      <MDrawer
+        id="mobile-navigation-drawer"
+        :open="isDrawerOpen"
+        placement="left"
+        :show-close="false"
+        width="300px"
+        @close="closeDrawer"
+      >
+        <div class="drawer-nav-container">
+          <!-- 基础导航分组 -->
+          <nav class="drawer-nav-list">
+            <template
+              v-for="(group, index) in navigationGroups"
+              :key="index"
+            >
+              <div
+                v-if="index"
+                class="drawer-divider"
+                aria-hidden="true"
+              ></div>
+              <button
+                v-for="item in group"
+                :key="item.id"
+                class="drawer-nav-item"
+                :class="{
+                  active: isItemActive(item)
+                }"
+                @click="handleNavClick(item.path)"
+              >
+                <NavigationIcon
+                  :name="item.id"
+                  width="18"
+                  height="18"
+                  class="item-icon"
+                />
+                <span class="item-text">{{ item.label }}</span>
+                <MTag
+                  v-if="item.desktopOnly"
+                  variant="muted"
+                  size="sm"
+                  >{{ t('电脑端') }}</MTag
+                >
+              </button>
+            </template>
+          </nav>
+
+          <!-- 抽屉底部用户账户栏 -->
+          <div
+            v-if="isLoggedIn"
+            class="drawer-user-footer"
           >
             <div
-              v-if="index"
-              class="drawer-divider"
-              aria-hidden="true"
-            ></div>
-            <button
-              v-for="item in group"
-              :key="item.id"
-              class="drawer-nav-item"
-              :class="{
-                active: isItemActive(item)
-              }"
-              @click="handleNavClick(item.path)"
+              class="user-info font-mono"
+              @click="openUserModal"
             >
-              <NavigationIcon
-                :name="item.id"
+              <UserCircle
                 width="18"
                 height="18"
-                class="item-icon"
+                class="user-avatar"
               />
-              <span class="item-text">{{ item.label }}</span>
-              <MTag
-                v-if="item.desktopOnly"
-                variant="muted"
-                size="sm"
-                >{{ t('电脑端') }}</MTag
-              >
+              <span class="user-label">{{ t('个人中心') }}</span>
+            </div>
+            <button
+              class="mobile-icon-btn logout-btn"
+              :title="t('退出登录')"
+              @click="handleLogout"
+            >
+              <LogOut
+                width="16"
+                height="16"
+              />
             </button>
-          </template>
-        </nav>
-
-        <!-- 抽屉底部用户账户栏 -->
-        <div
-          v-if="isLoggedIn"
-          class="drawer-user-footer"
-        >
-          <div
-            class="user-info font-mono"
-            @click="openUserModal"
-          >
-            <UserCircle
-              width="18"
-              height="18"
-              class="user-avatar"
-            />
-            <span class="user-label">{{ t('个人中心') }}</span>
           </div>
-          <button
-            class="mobile-icon-btn logout-btn"
-            :title="t('退出登录')"
-            @click="handleLogout"
-          >
-            <LogOut
-              width="16"
-              height="16"
-            />
-          </button>
         </div>
-      </div>
-    </MDrawer>
+        <template #footer>
+          <UserDataBackup />
+        </template>
+      </MDrawer>
+    </div>
 
     <!-- 移动端全屏搜索舱浮层 -->
     <Transition name="search-overlay">
@@ -340,6 +348,13 @@ watch(
   color: var(--text-primary);
   overflow: hidden;
   position: relative;
+}
+
+.mobile-navigation-layer {
+  position: absolute;
+  inset: var(--layout-mobile-topbar-height) 0 0;
+  z-index: 50;
+  pointer-events: none;
 }
 
 /* 移动端顶栏 */
