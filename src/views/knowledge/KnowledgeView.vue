@@ -3,8 +3,8 @@ import { onUnmounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
 import { knowledgeApi } from '../../api/knowledge.js';
+import MPageStatus from '../../components/feedback/MPageStatus.vue';
 import MButton from '../../components/form/MButton.vue';
-import { t } from '../../i18n.js';
 
 const route = useRoute();
 const point = ref(null);
@@ -43,7 +43,10 @@ onUnmounted(() => {
 
 <template>
   <div class="knowledge-view">
-    <p v-if="loading">{{ t('正在加载知识点') }}</p>
+    <MPageStatus
+      v-if="loading"
+      text="正在加载知识点"
+    />
     <div v-else-if="error">
       <p>{{ error }}</p>
       <MButton

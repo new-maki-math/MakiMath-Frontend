@@ -893,7 +893,7 @@ onBeforeUnmount(() => {
       class="question-tree"
       title="QUESTION WORKBENCH"
       :nodes="authorized ? treeNodes : []"
-      :loading="loading"
+      :loading="loading || authStatus === 'initializing'"
       :selected-key="selectedKey"
       :add-label="authorized ? t('新建顶级分类') : ''"
       :show-refresh="authorized"

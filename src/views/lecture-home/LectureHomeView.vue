@@ -8,6 +8,7 @@ import { reviewApi } from '../../api/reviews.js';
 import MLectureCover from '../../components/book/MLectureCover.vue';
 import MTag from '../../components/display/MTag.vue';
 import { notify } from '../../components/feedback/MNotice.vue';
+import MPageStatus from '../../components/feedback/MPageStatus.vue';
 import MButton from '../../components/form/MButton.vue';
 import MInput from '../../components/form/MInput.vue';
 import MTextarea from '../../components/form/MTextarea.vue';
@@ -500,13 +501,7 @@ onUnmounted(() => {
 
 <template>
   <div class="view-container">
-    <!-- 加载占位 -->
-    <div
-      v-if="isLoading"
-      class="lecture-loading font-mono"
-    >
-      LOADING LECTURE DATA // {{ lectureId }}...
-    </div>
+    <MPageStatus v-if="isLoading" />
 
     <!-- 课程详情 -->
     <div
@@ -1005,7 +1000,6 @@ onUnmounted(() => {
   width: 100%;
 }
 
-.lecture-loading,
 .lecture-not-found {
   font-size: var(--font-size-smaller);
   color: var(--text-muted);

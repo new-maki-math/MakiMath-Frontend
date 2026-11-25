@@ -15,6 +15,7 @@ import { useRouter } from 'vue-router';
 import { knowledgeApi } from '../../api/knowledge.js';
 import { questionApi } from '../../api/questions.js';
 import { notify } from '../../components/feedback/MNotice.vue';
+import MPageStatus from '../../components/feedback/MPageStatus.vue';
 import MButton from '../../components/form/MButton.vue';
 import { BookmarkSolid, Copy, NavArrowDown } from '../../components/icons/icons.js';
 import MModal from '../../components/overlay/MModal.vue';
@@ -897,8 +898,9 @@ onBeforeUnmount(() => {
         @pointerdown="followStreaming = false"
         @keydown="onContentKey"
       >
+        <MPageStatus v-if="storageLoading || credentialLoading" />
         <div
-          v-if="!activeConversation?.messages.length"
+          v-else-if="!activeConversation?.messages.length"
           class="ai-lab-empty"
         >
           <h1>AI Lab</h1>

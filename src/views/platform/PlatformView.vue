@@ -3,6 +3,7 @@
 import { onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
+import MPageStatus from '../../components/feedback/MPageStatus.vue';
 import MButton from '../../components/form/MButton.vue';
 import { BookmarkSolid, Group, Key, Page } from '../../components/icons/icons.js';
 import { t } from '../../i18n.js';
@@ -71,12 +72,10 @@ onMounted(() => {
 </script>
 
 <template>
-  <div
+  <MPageStatus
     v-if="authStatus === 'initializing'"
-    class="platform-content"
-  >
-    {{ t('正在验证登录状态') }}
-  </div>
+    text="正在验证登录状态"
+  />
   <div
     v-else-if="authStatus === 'error'"
     class="platform-content"
@@ -85,7 +84,7 @@ onMounted(() => {
     <MButton @click="initAuth">重试</MButton>
   </div>
   <PlatformAuth
-    v-else-if="!isSuperAdmin"
+    v-else-if="authStatus !== 'authenticated' || !isSuperAdmin"
     @success="handleAuthSuccess"
   />
 

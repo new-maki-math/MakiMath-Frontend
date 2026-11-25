@@ -834,7 +834,7 @@ onUnmounted(() => {
       :add-label="authorized ? t('新建分类') : ''"
       :nodes="treeNodes"
       :selected-key="selectedKey"
-      :loading="loading"
+      :loading="loading || authStatus === 'initializing'"
       @select="selectNode"
       @refresh="authorized && loadList()"
       @add-root="categoryOpen = true"

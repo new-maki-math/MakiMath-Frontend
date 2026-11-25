@@ -1,26 +1,48 @@
-import { watch } from 'vue';
+import { defineAsyncComponent, defineComponent, h, watch } from 'vue';
 import { createRouter, createWebHistory } from 'vue-router';
 
+import MPageStatus from '../components/feedback/MPageStatus.vue';
 import { aiFeaturesEnabled, canUseAi } from '../utils/ai-access.js';
-import { initAuth } from '../utils/auth.js';
+import { authStatus, initAuth } from '../utils/auth.js';
+
+function loadPage(loader) {
+  const Page = defineAsyncComponent({
+    loader,
+    loadingComponent: MPageStatus,
+    errorComponent: MPageStatus,
+    delay: 0,
+    suspensible: false
+  });
+  return defineComponent({
+    setup: () => () => h(Page)
+  });
+}
 
 // 页面视图
-const RecomLectureView = () => import('../views/recom-lecture/RecomLectureView.vue');
-const AiLabView = () => import('../views/ai-lab/AiLabView.vue');
-const ResourceCenterView = () => import('../views/resource-center/ResourceCenterPage.vue');
-const MyLectureView = () => import('../views/my-lecture/MyLectureView.vue');
-const LectureHomeView = () => import('../views/lecture-home/LectureHomeView.vue');
-const LectureDocView = () => import('../views/lecture-doc/LectureDocView.vue');
-const KnowledgeView = () => import('../views/knowledge/KnowledgeView.vue');
-const QuestionBankView = () => import('../views/question-bank/QuestionBankView.vue');
-const QuestionBankDemoView = () => import('../views/my-question-bank/QuestionBankDemoView.vue');
-const WorkbookHomeView = () => import('../views/my-question-bank/WorkbookHomeView.vue');
-const MistakeBookView = () => import('../views/mistake-book/MistakeBookView.vue');
-const KnowledgeLibrary = () => import('../views/knowledge/KnowledgeLibrary.vue');
-const BookWorkbenchView = () => import('../views/book-workbench/BookWorkbench.vue');
-const KnowledgeWorkbenchView = () => import('../views/knowledge-workbench/KnowledgeWorkbench.vue');
-const QuestionWorkbenchView = () => import('../views/question-workbench/QuestionWorkbench.vue');
-const PlatformView = () => import('../views/platform/PlatformView.vue');
+const RecomLectureView = loadPage(() => import('../views/recom-lecture/RecomLectureView.vue'));
+const AiLabView = loadPage(() => import('../views/ai-lab/AiLabView.vue'));
+const ResourceCenterView = loadPage(
+  () => import('../views/resource-center/ResourceCenterPage.vue')
+);
+const MyLectureView = loadPage(() => import('../views/my-lecture/MyLectureView.vue'));
+const LectureHomeView = loadPage(() => import('../views/lecture-home/LectureHomeView.vue'));
+const LectureDocView = loadPage(() => import('../views/lecture-doc/LectureDocView.vue'));
+const KnowledgeView = loadPage(() => import('../views/knowledge/KnowledgeView.vue'));
+const QuestionBankView = loadPage(() => import('../views/question-bank/QuestionBankView.vue'));
+const QuestionBankDemoView = loadPage(
+  () => import('../views/my-question-bank/QuestionBankDemoView.vue')
+);
+const WorkbookHomeView = loadPage(() => import('../views/my-question-bank/WorkbookHomeView.vue'));
+const MistakeBookView = loadPage(() => import('../views/mistake-book/MistakeBookView.vue'));
+const KnowledgeLibrary = loadPage(() => import('../views/knowledge/KnowledgeLibrary.vue'));
+const BookWorkbenchView = loadPage(() => import('../views/book-workbench/BookWorkbench.vue'));
+const KnowledgeWorkbenchView = loadPage(
+  () => import('../views/knowledge-workbench/KnowledgeWorkbench.vue')
+);
+const QuestionWorkbenchView = loadPage(
+  () => import('../views/question-workbench/QuestionWorkbench.vue')
+);
+const PlatformView = loadPage(() => import('../views/platform/PlatformView.vue'));
 
 export const routes = [
   {
@@ -213,21 +235,28 @@ const router = createRouter({
   routes
 });
 
-// 路由守卫加载认证状态
-router.beforeEach(async (to) => {
-  if (to.name === 'ai-lab') {
-    if (aiFeaturesEnabled) {
-      await initAuth();
-    }
-    return canUseAi.value
-      ? true
-      : {
-          name: 'my-lecture',
-          replace: true
-        };
+router.beforeEach((to) => {
+  if (
+    to.name === 'ai-lab' &&
+    (!aiFeaturesEnabled ||
+      (!canUseAi.value && !['initializing', 'error'].includes(authStatus.value)))
+  ) {
+    return {
+      name: 'my-lecture',
+      replace: true
+    };
   }
-  if (to.name === 'platform' || to.path === '/platform') {
-    await initAuth();
+});
+
+router.afterEach(async (to, _from, failure) => {
+  if (failure || to.name !== 'ai-lab' || canUseAi.value) {
+    return;
+  }
+  await initAuth();
+  if (router.currentRoute.value === to && !canUseAi.value) {
+    router.replace({
+      name: 'my-lecture'
+    });
   }
 });
 watch(canUseAi, (allowed) => {

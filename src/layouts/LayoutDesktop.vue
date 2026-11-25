@@ -8,6 +8,7 @@ import MThemeSwitcher from '../components/app/MThemeSwitcher.vue';
 import MUpdateLog from '../components/app/MUpdateLog.vue';
 import SearchBar from '../components/app/SearchBar.vue';
 import ViewportHeader from '../components/app/ViewportHeader.vue';
+import MPageStatus from '../components/feedback/MPageStatus.vue';
 import {
   HelpCircle,
   LogOut,
@@ -271,6 +272,10 @@ const toggleSidebar = () => {
                 v-if="viewRoute.name === 'ai-lab'"
               />
             </KeepAlive>
+            <MPageStatus
+              v-if="viewRoute.name === 'ai-lab' && !canUseAi"
+              text="正在验证登录状态"
+            />
             <component
               :is="Component"
               v-if="viewRoute.name !== 'ai-lab'"

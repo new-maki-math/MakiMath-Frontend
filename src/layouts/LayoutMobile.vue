@@ -8,6 +8,7 @@ import MUpdateLog from '../components/app/MUpdateLog.vue';
 import SearchBar from '../components/app/SearchBar.vue';
 import ViewportHeader from '../components/app/ViewportHeader.vue';
 import MTag from '../components/display/MTag.vue';
+import MPageStatus from '../components/feedback/MPageStatus.vue';
 import MButton from '../components/form/MButton.vue';
 import {
   HelpCircle,
@@ -347,6 +348,10 @@ watch(
                 v-if="viewRoute.name === 'ai-lab' && !currentItem.desktopOnly"
               />
             </KeepAlive>
+            <MPageStatus
+              v-if="viewRoute.name === 'ai-lab' && !canUseAi"
+              text="正在验证登录状态"
+            />
             <component
               :is="Component"
               v-if="viewRoute.name !== 'ai-lab' && !currentItem.desktopOnly"
