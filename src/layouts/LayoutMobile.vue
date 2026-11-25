@@ -18,6 +18,10 @@ import { canUseAi } from '../utils/ai-access.js';
 import NavigationIcon from './NavigationIcon.vue';
 import { useLayoutState } from './useLayoutState.js';
 
+defineProps({
+  documentScroll: Boolean
+});
+
 // 注入共享布局状态
 const state = inject('layoutState', null) || useLayoutState();
 
@@ -78,7 +82,12 @@ watch(
 </script>
 
 <template>
-  <div class="maki-mobile-layout">
+  <div
+    class="maki-mobile-layout"
+    :class="{
+      'uses-document-scroll': documentScroll
+    }"
+  >
     <!-- 移动端顶部轻量工具栏 -->
     <header class="mobile-topbar">
       <button
@@ -350,11 +359,30 @@ watch(
   position: relative;
 }
 
+.maki-mobile-layout.uses-document-scroll {
+  height: auto;
+  min-height: inherit;
+  overflow: visible;
+}
+
 .mobile-navigation-layer {
   position: absolute;
   inset: var(--layout-mobile-topbar-height) 0 0;
   z-index: 50;
   pointer-events: none;
+}
+
+.uses-document-scroll .mobile-navigation-layer {
+  position: fixed;
+}
+
+.uses-document-scroll .mobile-navigation-layer :deep(.m-backdrop) {
+  touch-action: none;
+}
+
+.uses-document-scroll .mobile-topbar {
+  position: sticky;
+  top: 0;
 }
 
 /* 移动端顶栏 */
@@ -422,6 +450,7 @@ watch(
   height: 100%;
   padding: 12px 0 20px;
   overflow-y: auto;
+  overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -602,6 +631,14 @@ watch(
   flex-direction: column;
   min-height: 100%;
   position: relative;
+}
+
+.uses-document-scroll .mobile-viewport,
+.uses-document-scroll .mobile-viewport .mobile-content-container,
+.uses-document-scroll :deep(.lecture-doc-view),
+.uses-document-scroll :deep(.reading-viewport),
+.uses-document-scroll :deep(.my-lecture) {
+  overflow: visible;
 }
 
 .desktop-only-notice {

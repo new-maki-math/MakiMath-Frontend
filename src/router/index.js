@@ -232,7 +232,19 @@ export const routes = [
 
 const router = createRouter({
   history: createWebHistory(),
-  routes
+  routes,
+  scrollBehavior(to, from, savedPosition) {
+    if (!document.querySelector('.uses-mobile-document-scroll')) {
+      return false;
+    }
+    if (savedPosition || to.path === from.path) {
+      return savedPosition || false;
+    }
+    return {
+      left: 0,
+      top: 0
+    };
+  }
 });
 
 router.beforeEach((to) => {

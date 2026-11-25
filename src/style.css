@@ -32,6 +32,17 @@ body {
   touch-action: pan-x pan-y;
   -webkit-text-size-adjust: 100%;
 }
+
+html:has(.uses-mobile-document-scroll) {
+  scroll-padding-block-start: var(--layout-mobile-topbar-height);
+}
+
+html:has(.uses-mobile-document-scroll),
+html:has(.uses-mobile-document-scroll) body {
+  height: auto;
+  overflow: visible;
+}
+
 @supports (-webkit-touch-callout: none) {
   @media (max-width: 767px) {
     html,

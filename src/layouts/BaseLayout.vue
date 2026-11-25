@@ -20,6 +20,7 @@ import { useLayoutState } from './useLayoutState.js';
 const layoutState = useLayoutState();
 
 const {
+  route,
   isMobile,
   currentTheme,
   isSeasonalTheme,
@@ -34,6 +35,9 @@ const {
 
 const bannerTransitionMs = 260;
 const hasLayoutBanner = computed(() => isSeasonalTheme.value && !isMobile.value);
+const usesMobileDocumentScroll = computed(
+  () => isMobile.value && !['ai-lab', 'knowledge-library', 'platform'].includes(route.name)
+);
 const isBannerCollapsed = ref(true);
 let bannerCollapseEndsAt = 0;
 let bannerTouchStart;
@@ -156,7 +160,8 @@ provide('openKnowledgeSearch', (node, focusTarget) =>
     class="maki-base-layout-root"
     :class="{
       'has-layout-banner': hasLayoutBanner,
-      'is-banner-collapsed': hasLayoutBanner && isBannerCollapsed
+      'is-banner-collapsed': hasLayoutBanner && isBannerCollapsed,
+      'uses-mobile-document-scroll': usesMobileDocumentScroll
     }"
   >
     <!-- 全局进度条 (两端共享，切端不重新实例化) -->
@@ -227,7 +232,10 @@ provide('openKnowledgeSearch', (node, focusTarget) =>
     <KnowledgeSearchOverlay ref="knowledgeSearchOverlay" />
 
     <!-- 根据当前视口设备渲染对应布局组件 -->
-    <LayoutMobile v-if="isMobile">
+    <LayoutMobile
+      v-if="isMobile"
+      :document-scroll="usesMobileDocumentScroll"
+    >
       <template #default="slotProps">
         <slot v-bind="slotProps" />
       </template>
@@ -325,6 +333,12 @@ provide('openKnowledgeSearch', (node, focusTarget) =>
     height: 100dvh;
     background-color: var(--bg-app);
   }
+}
+
+.maki-base-layout-root.uses-mobile-document-scroll {
+  height: auto;
+  min-height: 100dvh;
+  overflow: clip;
 }
 
 @media (prefers-reduced-motion: reduce) {
