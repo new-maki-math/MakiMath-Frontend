@@ -10,6 +10,14 @@ const props = defineProps({
     type: [String, Number, Boolean, Object],
     default: undefined
   },
+  ariaLabel: {
+    type: String,
+    default: undefined
+  },
+  indeterminate: {
+    type: Boolean,
+    default: false
+  },
   disabled: {
     type: Boolean,
     default: false
@@ -33,9 +41,11 @@ const checked = computed({
       v-model="checked"
       type="checkbox"
       :value="value"
+      :aria-label="ariaLabel"
+      :indeterminate="indeterminate"
       :disabled="disabled"
     />
-    <span><slot /></span>
+    <span v-if="$slots.default"><slot /></span>
   </label>
 </template>
 

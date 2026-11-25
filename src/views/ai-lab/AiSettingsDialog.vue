@@ -4,6 +4,8 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import MEmpty from '../../components/feedback/MEmpty.vue';
 import { notify } from '../../components/feedback/MNotice.vue';
 import MButton from '../../components/form/MButton.vue';
+import MCheckbox from '../../components/form/MCheckbox.vue';
+import MRadio from '../../components/form/MRadio.vue';
 import MSelect from '../../components/form/MSelect.vue';
 import MModal from '../../components/overlay/MModal.vue';
 import { canUseAi } from '../../utils/ai-access.js';
@@ -46,8 +48,8 @@ const allModelsSelected = computed(
   () => models.value.length > 0 && selectedModelIds.value.length === models.value.length
 );
 
-function toggleAllModels(event) {
-  selectedModelIds.value = event.target.checked ? models.value.map((item) => item.id) : [];
+function toggleAllModels(checked) {
+  selectedModelIds.value = checked ? models.value.map((item) => item.id) : [];
   persistModels();
 }
 
@@ -529,12 +531,11 @@ onBeforeUnmount(() => {
             v-if="models.length"
             class="ai-model-columns"
           >
-            <input
-              type="checkbox"
-              :checked="allModelsSelected"
+            <MCheckbox
+              :model-value="allModelsSelected"
               :indeterminate="selectedModelIds.length > 0 && !allModelsSelected"
               aria-label="全选模型"
-              @change="toggleAllModels"
+              @update:model-value="toggleAllModels"
             />
             <span>自定义名称</span>
             <span>模型 ID</span>
@@ -548,12 +549,11 @@ onBeforeUnmount(() => {
               :key="item.id"
               class="ai-model-row"
             >
-              <input
+              <MCheckbox
                 v-model="selectedModelIds"
-                type="checkbox"
                 :value="item.id"
                 :aria-label="`选择模型 ${item.id}`"
-                @change="persistModels"
+                @update:model-value="persistModels"
               />
               <input
                 v-model="item.name"
@@ -575,24 +575,22 @@ onBeforeUnmount(() => {
       </div>
       <fieldset class="ai-settings-storage">
         <legend class="ai-settings-label">凭证保存方式</legend>
-        <label
-          ><input
-            type="radio"
-            name="ai-credential-mode"
-            :checked="storageMode === 'session'"
-            @change="chooseSession"
-          />
-          仅本次会话有效</label
+        <MRadio
+          :model-value="storageMode"
+          value="session"
+          name="ai-credential-mode"
+          @update:model-value="chooseSession"
         >
-        <label
-          ><input
-            type="radio"
-            name="ai-credential-mode"
-            :checked="storageMode === 'encrypted'"
-            @click.prevent="beginWarning"
-          />
-          加密保存在此浏览器</label
+          仅本次会话有效
+        </MRadio>
+        <MRadio
+          :model-value="storageMode"
+          value="encrypted"
+          name="ai-credential-mode"
+          @click.prevent="storageMode !== 'encrypted' && beginWarning()"
         >
+          加密保存在此浏览器
+        </MRadio>
       </fieldset>
       <div class="ai-settings-actions">
         <MButton
@@ -835,13 +833,6 @@ onBeforeUnmount(() => {
 .ai-model-name {
   padding: 6px 8px;
 }
-.ai-model-columns input[type='checkbox'],
-.ai-model-row input[type='checkbox'] {
-  width: 16px;
-  height: 16px;
-  accent-color: var(--accent-primary);
-  cursor: pointer;
-}
 .ai-model-id {
   display: block;
   min-width: 0;
@@ -859,10 +850,8 @@ onBeforeUnmount(() => {
   padding: 0;
   border: 0;
 }
-.ai-settings-storage label {
-  display: flex;
+.ai-settings-storage .m-choice {
   align-items: center;
-  gap: 8px;
 }
 .ai-settings-note,
 .ai-settings-prompt p {

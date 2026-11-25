@@ -25,6 +25,10 @@
   background: var(--bg-hover);
 }
 
+.m-choice input:only-child {
+  margin: 0;
+}
+
 .m-choice input::after {
   content: '';
   opacity: 0;
@@ -50,6 +54,14 @@
 
 .m-choice input:checked::after {
   opacity: 1;
+}
+
+.m-choice input[type='checkbox']:indeterminate::after {
+  width: 10px;
+  height: 2px;
+  border-radius: 1px;
+  opacity: 1;
+  mask: none;
 }
 
 .m-choice input:focus-visible {
