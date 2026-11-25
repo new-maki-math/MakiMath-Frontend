@@ -65,6 +65,12 @@ const messages = {
   秋: ['秋', '秋', '秋', 'Autumn'],
   冬: ['冬', '冬', '冬', 'Winter'],
   选择主题: ['选择主题', '選擇主題', 'テーマを選択', 'Choose theme'],
+  展开或收起季节背景: [
+    '展开或收起季节背景',
+    '展開或收起季節背景',
+    '季節の背景を展開または折りたたむ',
+    'Expand or collapse the seasonal background'
+  ],
   '主题：{name}': ['主题：{name}', '主題：{name}', 'テーマ：{name}', 'Theme: {name}'],
   确定: ['确定', '確定', '確認', 'Confirm'],
   取消: ['取消', '取消', 'キャンセル', 'Cancel'],

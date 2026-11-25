@@ -89,6 +89,11 @@ watch(
   <div class="maki-mobile-layout">
     <!-- 移动端顶部轻量工具栏 -->
     <header class="mobile-topbar">
+      <button
+        type="button"
+        class="layout-banner-toggle"
+        :aria-label="t('展开或收起季节背景')"
+      ></button>
       <div class="topbar-left">
         <!-- 汉堡包侧边栏呼出按钮 (44px 舒适触控区) -->
         <button
@@ -308,6 +313,7 @@ watch(
     <!-- 移动端主内容视口 (全屏单列，原生平滑滚动) -->
     <main
       class="mobile-viewport"
+      data-layout-viewport
       :class="{
         'is-lecture-shelf': route.name === 'my-lecture' || route.name === 'ai-lab',
         'is-reading': route.name === 'lecture-doc' || route.name === 'local-lecture-doc'
@@ -371,7 +377,6 @@ watch(
   width: 100vw;
   height: 100vh;
   height: 100dvh;
-  background-color: var(--bg-app);
   color: var(--text-primary);
   overflow: hidden;
   position: relative;
@@ -379,15 +384,23 @@ watch(
 
 /* 移动端顶栏 */
 .mobile-topbar {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: calc(48px + env(safe-area-inset-top, 0px));
+  height: var(--layout-current-topbar-height);
   padding: env(safe-area-inset-top, 0px) 10px 0;
-  background-color: var(--bg-topbar);
+  background-color: var(--layout-mobile-topbar-bg, var(--bg-topbar));
   border-bottom: 1px solid var(--border-subtle);
   flex-shrink: 0;
   z-index: 60;
+  transition: height var(--layout-banner-transition);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-topbar {
+    transition: none;
+  }
 }
 
 .topbar-left,
@@ -440,6 +453,10 @@ watch(
   flex-shrink: 0;
 }
 
+.mobile-icon-btn.hamburger-btn {
+  background-color: var(--layout-topbar-controls-bg, transparent);
+}
+
 .mobile-icon-btn:hover,
 .mobile-icon-btn:active {
   background-color: var(--bg-hover);
@@ -456,28 +473,28 @@ watch(
   gap: 6px;
   cursor: pointer;
   padding: 4px 6px;
-  border-radius: var(--radius);
+  color: var(--layout-brand-text, var(--text-primary));
+  text-shadow: var(--layout-brand-shadow, none);
   user-select: none;
 }
 
 .brand-icon {
-  color: var(--text-primary);
+  filter: var(--layout-brand-icon-filter, none);
 }
 
 .brand-name {
   font-size: var(--font-size);
   font-weight: var(--font-weight-bold);
-  color: var(--text-primary);
   letter-spacing: 0.5px;
 }
 
 .brand-sep {
-  color: var(--text-muted);
+  color: var(--layout-brand-text, var(--text-muted));
   font-size: var(--font-size-smaller);
 }
 
 .brand-sub {
-  color: var(--accent-primary);
+  color: var(--layout-brand-text, var(--accent-primary));
   font-size: var(--font-size);
   font-weight: var(--font-weight-semibold);
 }
@@ -649,13 +666,13 @@ watch(
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   min-width: 0;
-  height: calc(100vh - 48px);
+  min-height: 0;
+  background-color: var(--layout-mobile-viewport-bg, transparent);
 }
 
 .mobile-viewport.is-lecture-shelf,
 .mobile-viewport.is-reading {
   overflow: hidden;
-  min-height: 0;
 }
 .mobile-viewport.is-lecture-shelf .mobile-content-container,
 .mobile-viewport.is-reading .mobile-content-container {

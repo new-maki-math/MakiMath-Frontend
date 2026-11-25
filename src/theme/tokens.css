@@ -36,6 +36,10 @@
 
   /* 布局 */
   --topbar-height: 54px;
+  --layout-panel-gap: 6px;
+  --layout-panel-inset: 12px;
+  --layout-panel-radius: calc(var(--radius) * 2);
+  --layout-canvas-bg: color-mix(in srgb, var(--bg-app) 58%, var(--bg-topbar));
   --sidebar-width: max-content;
   --sidebar-min-width: 220px;
   --sidebar-max-width: 420px;
@@ -81,6 +85,25 @@
   --animation-stage-bg: #f4eee0;
   --typst-highlight-default: #fffd11a1;
   --print-difficulty-color: #92610b;
+}
+
+:root[data-season] {
+  --layout-canvas-gradient: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--layout-artwork-base-tint) 65%, var(--bg-app)),
+    color-mix(in srgb, var(--layout-artwork-light-tint) 55%, var(--bg-app)) 42%,
+    var(--bg-app)
+  );
+  --layout-artwork-fade: clamp(80px, 9vw, 156px);
+  --layout-banner-height: clamp(132px, 15vw, 240px);
+  --layout-mobile-banner-height: 108px;
+  --layout-mobile-topbar-bg: transparent;
+  --layout-mobile-viewport-bg: var(--bg-app);
+  --layout-topbar-controls-bg: var(--bg-elevated);
+  --layout-topbar-control-padding: 4px;
+  --layout-brand-text: #fff;
+  --layout-brand-shadow: 0 1px 2px rgb(43 24 12 / 90%), 0 0 6px rgb(43 24 12 / 48%);
+  --layout-brand-icon-filter: drop-shadow(0 1px 2px rgb(43 24 12 / 85%));
 }
 
 :root,

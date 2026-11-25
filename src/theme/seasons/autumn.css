@@ -5,6 +5,10 @@
   --bg-surface: #f5e8d5;
   --bg-elevated: #fffdf8;
   --bg-hover: #ecdbc1;
+  --layout-canvas-image: url('./autumn-background.jpg');
+  --layout-artwork-base-tint: #a87241;
+  --layout-artwork-light-tint: #fdc09c;
+  --layout-artwork-mobile-position: 44%;
   --text-primary: #3b3027;
   --text-secondary: #6f5c4c;
   --text-muted: #998474;

@@ -154,7 +154,9 @@ export function useLayoutState() {
 
   // 切换主题
   const currentTheme = ref('dark');
-  const themes = new Set(['dark', 'light', 'spring', 'summer', 'autumn', 'winter']);
+  const seasonalThemes = new Set(['spring', 'summer', 'autumn', 'winter']);
+  const themes = new Set(['dark', 'light', ...seasonalThemes]);
+  const isSeasonalTheme = computed(() => seasonalThemes.has(currentTheme.value));
   const isDark = computed(() => ['dark', 'winter'].includes(currentTheme.value));
 
   const applyTheme = (value) => {
@@ -164,7 +166,7 @@ export function useLayoutState() {
       'data-theme',
       ['dark', 'winter'].includes(selected) ? 'dark' : 'light'
     );
-    if (['spring', 'summer', 'autumn', 'winter'].includes(selected)) {
+    if (seasonalThemes.has(selected)) {
       document.documentElement.setAttribute('data-season', selected);
     } else {
       document.documentElement.removeAttribute('data-season');
@@ -554,6 +556,7 @@ export function useLayoutState() {
     isMobile,
     progressBarRef,
     isDark,
+    isSeasonalTheme,
     currentTheme,
     setTheme,
     currentUser,

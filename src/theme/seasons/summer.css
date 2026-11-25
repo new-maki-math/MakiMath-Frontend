@@ -1,4 +1,8 @@
 :root[data-season='summer'] {
+  --layout-canvas-image: url('./summer-background.jpg');
+  --layout-artwork-base-tint: #1f9297;
+  --layout-artwork-light-tint: #8fc6e0;
+  --layout-artwork-mobile-position: 60%;
   --bg-topbar: #cbe9f3;
   --bg-sidebar: #d9f0ef;
   --bg-app: #edf8fc;

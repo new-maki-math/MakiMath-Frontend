@@ -290,8 +290,13 @@ onUnmounted(() => {
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
-  scrollbar-width: thin;
-  scrollbar-color: var(--border-hover) transparent;
+}
+
+@supports not selector(::-webkit-scrollbar) {
+  .modal-body {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-hover) transparent;
+  }
 }
 
 .modal-body::-webkit-scrollbar {

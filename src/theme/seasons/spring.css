@@ -1,4 +1,9 @@
 :root[data-season='spring'] {
+  --layout-canvas-image: url('./spring-background.jpg');
+  --layout-artwork-base-tint: #778865;
+  --layout-artwork-light-tint: #d3c1af;
+  --layout-artwork-align: 0.8;
+  --layout-artwork-mobile-offset: -32px;
   --bg-topbar: #dcebe0;
   --bg-sidebar: #e8f2e7;
   --bg-app: #f2f8f0;

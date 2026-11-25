@@ -92,6 +92,11 @@ const toggleSidebar = () => {
   <div class="maki-layout">
     <!-- 顶部全局工具栏 -->
     <header class="maki-topbar">
+      <button
+        type="button"
+        class="layout-banner-toggle"
+        :aria-label="t('展开或收起季节背景')"
+      ></button>
       <div class="topbar-left">
         <div
           class="brand-badge"
@@ -253,6 +258,7 @@ const toggleSidebar = () => {
       <!-- 工作视口 -->
       <main
         class="maki-viewport"
+        data-layout-viewport
         :class="{
           'is-locked': isViewportLocked
         }"
@@ -294,7 +300,6 @@ const toggleSidebar = () => {
   flex-direction: column;
   width: 100vw;
   height: 100vh;
-  background-color: var(--bg-app);
   color: var(--text-primary);
   overflow: hidden;
 }
@@ -304,26 +309,27 @@ const toggleSidebar = () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: var(--topbar-height);
-  padding: 0 16px;
-  background-color: var(--bg-topbar);
-  border-bottom: 1px solid var(--border-subtle);
+  height: var(--layout-current-topbar-height);
+  padding: 0 calc(var(--layout-panel-inset) + 4px);
   flex-shrink: 0;
   position: relative;
   z-index: 90;
+  transition: height var(--layout-banner-transition);
 }
 
 .topbar-left {
   display: flex;
   align-items: center;
   gap: 16px;
+  padding: var(--layout-topbar-control-padding, 0);
 }
 
 .brand-badge {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--text-primary);
+  color: var(--layout-brand-text, var(--text-primary));
+  text-shadow: var(--layout-brand-shadow, none);
   font-weight: var(--font-weight-semibold);
   font-size: var(--font-size-larger);
   letter-spacing: 0.5px;
@@ -331,16 +337,16 @@ const toggleSidebar = () => {
   user-select: none;
 }
 
-.brand-text {
-  color: var(--text-primary);
+.brand-badge > svg {
+  filter: var(--layout-brand-icon-filter, none);
 }
 
 .brand-sep {
-  color: var(--text-muted);
+  color: var(--layout-brand-text, var(--text-muted));
 }
 
 .brand-sub {
-  color: var(--accent-primary);
+  color: var(--layout-brand-text, var(--accent-primary));
 }
 
 /* 顶栏搜索栏淡入淡出 */
@@ -359,6 +365,7 @@ const toggleSidebar = () => {
   display: flex;
   align-items: center;
   gap: 12px;
+  padding: var(--layout-topbar-control-padding, 0);
 }
 
 .user-profile-anchor {
@@ -407,15 +414,21 @@ const toggleSidebar = () => {
 .maki-main {
   display: flex;
   flex: 1;
-  height: calc(100vh - var(--topbar-height));
-  overflow: hidden;
+  min-height: 0;
+  gap: var(--layout-panel-gap);
+  padding: 4px var(--layout-panel-inset) var(--layout-panel-inset);
+}
+
+.maki-sidebar,
+.maki-viewport {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--layout-panel-radius);
 }
 
 /* 侧边栏容器 */
 .maki-sidebar {
   width: var(--sidebar-min-width);
   background-color: var(--bg-sidebar);
-  border-right: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -597,6 +610,7 @@ const toggleSidebar = () => {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .maki-topbar,
   .maki-sidebar,
   .sidebar-active-indicator,
   .sidebar-section-title,

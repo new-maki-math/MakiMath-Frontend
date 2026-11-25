@@ -8,10 +8,12 @@
   background: var(--selection-bg) !important;
 }
 
-:root[data-theme='light'] *,
-[data-theme='light'] *,
-.theme-light * {
-  scrollbar-color: var(--border-subtle) transparent;
+@supports not selector(::-webkit-scrollbar) {
+  :root[data-theme='light'] *,
+  [data-theme='light'] *,
+  .theme-light * {
+    scrollbar-color: var(--border-subtle) transparent;
+  }
 }
 
 :root[data-theme='light'] *::-webkit-scrollbar-thumb,
