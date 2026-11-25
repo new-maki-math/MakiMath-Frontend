@@ -424,6 +424,17 @@ onBeforeUnmount(() => {
 }
 
 .monaco-mount {
+  /* 右键菜单的 Shadow DOM 从编辑器挂载点继承主题变量。 */
+  --vscode-menu-background: var(--bg-elevated);
+  --vscode-menu-foreground: var(--text-primary);
+  --vscode-menu-border: var(--border-subtle);
+  --vscode-menu-selectionBorder: var(--border-focus);
+  --vscode-menu-separatorBackground: var(--border-subtle);
+  --vscode-list-hoverBackground: var(--bg-hover);
+  --vscode-list-hoverForeground: var(--text-primary);
+  --vscode-cornerRadius-large: var(--radius);
+  --vscode-strokeThickness: 1px;
+  --vscode-shadow-lg: 0 8px 24px var(--shadow-color-strong);
   width: 100%;
   height: 100%;
 }
