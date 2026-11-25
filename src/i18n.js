@@ -2201,6 +2201,7 @@ const messages = {
     'バージョンデータに問題があります',
     'Invalid version data'
   ],
+  '构建 {version}': ['构建 {version}', '建置 {version}', 'ビルド {version}', 'Build {version}'],
   版本号未提供: [
     '版本号未提供',
     '未提供版本號',

@@ -6,6 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
 
 concurrency:
@@ -29,7 +30,23 @@ jobs:
         run: npm install --global pnpm@12.14.0
       - name: 📦 Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: 🕒 Get workflow start time
+        id: build-info
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          if ! started_at="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/attempts/$GITHUB_RUN_ATTEMPT" --jq '.run_started_at // empty')" ||
+             [[ -z "$started_at" ]] ||
+             ! version="$(TZ=CST-8 date --date="$started_at" +%y%m%d%H%M%S)"; then
+            echo '::warning::Unable to read the workflow start time. The build number will be hidden.'
+            exit 0
+          fi
+          printf 'version=%s\n' "$version" >> "$GITHUB_OUTPUT"
       - name: ✅ Check and build
+        env:
+          VITE_BUILD_VERSION: ${{ steps.build-info.outputs.version }}
+          VITE_BUILD_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }}
         run: pnpm check
       - name: 🔐 Configure SSH
         env:

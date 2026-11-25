@@ -17,6 +17,8 @@ import { listLocalLectures, validateLocalLectureSlug } from '../../utils/local-l
 import LectureVersionStack from './LectureVersionStack.vue';
 
 const router = useRouter();
+const buildVersion = import.meta.env.VITE_BUILD_VERSION;
+const buildRunUrl = import.meta.env.VITE_BUILD_RUN_URL;
 const localLectures = ref([]);
 const guideRef = ref(null);
 const arrowPath = ref('');
@@ -514,6 +516,17 @@ onUnmounted(() => {
           >AGPL-3.0</a
         >
       </div>
+      <a
+        v-if="buildVersion && buildRunUrl"
+        :href="buildRunUrl"
+        target="_blank"
+        rel="noopener noreferrer"
+        >{{
+          t('构建 {version}', {
+            version: buildVersion
+          })
+        }}</a
+      >
     </footer>
   </main>
 </template>
