@@ -1,6 +1,5 @@
 <script setup>
-import { onBeforeUnmount, onDeactivated, onMounted, ref, watch } from 'vue';
-
+import MSelect from '../../components/form/MSelect.vue';
 import {
   Copy,
   EditPencil,
@@ -10,7 +9,7 @@ import {
   Trash
 } from '../../components/icons/icons.js';
 
-const props = defineProps({
+defineProps({
   conversations: {
     type: Array,
     default: () => []
@@ -25,57 +24,25 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['select', 'new', 'update:collapsed', 'rename', 'copy', 'delete']);
-const menuId = ref('');
-const menuPosition = ref({});
-const menu = ref(null);
-let trigger;
-function toggleMenu(event, id) {
-  if (menuId.value === id) {
-    menuId.value = '';
-    return;
+defineEmits(['select', 'new', 'update:collapsed', 'rename', 'copy', 'delete']);
+const actions = [
+  {
+    value: 'rename',
+    label: '重命名',
+    icon: EditPencil
+  },
+  {
+    value: 'copy',
+    label: '复制对话',
+    icon: Copy
+  },
+  {
+    value: 'delete',
+    label: '删除',
+    icon: Trash,
+    danger: true
   }
-  trigger = event.currentTarget;
-  const rect = trigger.getBoundingClientRect();
-  menuPosition.value = {
-    left: `${Math.max(8, Math.min(rect.right - 150, window.innerWidth - 158))}px`,
-    top: `${Math.min(rect.bottom + 4, window.innerHeight - 140)}px`
-  };
-  menuId.value = id;
-}
-function choose(action) {
-  emit(action, menuId.value);
-  menuId.value = '';
-}
-function onPointer(event) {
-  if (menuId.value && !menu.value?.contains(event.target) && !trigger?.contains(event.target)) {
-    menuId.value = '';
-  }
-}
-function onKey(event) {
-  if (event.key === 'Escape' && menuId.value) {
-    event.stopPropagation();
-    menuId.value = '';
-    trigger?.focus();
-  }
-}
-function closeMenu() {
-  menuId.value = '';
-}
-onDeactivated(closeMenu);
-watch(() => props.collapsed, closeMenu);
-onMounted(() => {
-  document.addEventListener('pointerdown', onPointer, true);
-  document.addEventListener('keydown', onKey, true);
-  window.addEventListener('resize', closeMenu);
-  window.addEventListener('scroll', closeMenu, true);
-});
-onBeforeUnmount(() => {
-  document.removeEventListener('pointerdown', onPointer, true);
-  document.removeEventListener('keydown', onKey, true);
-  window.removeEventListener('resize', closeMenu);
-  window.removeEventListener('scroll', closeMenu, true);
-});
+];
 </script>
 
 <template>
@@ -153,61 +120,22 @@ onBeforeUnmount(() => {
           >
             {{ conversation.title }}
           </button>
-          <button
-            type="button"
+          <MSelect
             class="conversation-menu-trigger"
+            :options="actions"
             :aria-label="`${conversation.title} 的菜单`"
-            aria-haspopup="menu"
-            :aria-expanded="menuId === conversation.id"
-            @click="toggleMenu($event, conversation.id)"
+            :disabled="collapsed"
+            variant="ghost"
+            icon-only
+            action-menu
+            @update:model-value="$emit($event, conversation.id)"
           >
-            ⋯
-          </button>
+            <template #icon>⋯</template>
+          </MSelect>
         </div>
       </nav>
     </div>
   </aside>
-  <Teleport to="body">
-    <div
-      v-if="menuId"
-      ref="menu"
-      class="conversation-menu"
-      :style="menuPosition"
-      role="menu"
-    >
-      <button
-        type="button"
-        role="menuitem"
-        @click="choose('rename')"
-      >
-        <EditPencil
-          width="16"
-          height="16"
-        />重命名
-      </button>
-      <button
-        type="button"
-        role="menuitem"
-        @click="choose('copy')"
-      >
-        <Copy
-          width="16"
-          height="16"
-        />复制对话
-      </button>
-      <button
-        type="button"
-        role="menuitem"
-        class="is-danger"
-        @click="choose('delete')"
-      >
-        <Trash
-          width="16"
-          height="16"
-        />删除
-      </button>
-    </div>
-  </Teleport>
 </template>
 
 <style scoped>
@@ -352,7 +280,10 @@ onBeforeUnmount(() => {
 }
 .conversation-menu-trigger {
   flex: none;
+}
+.conversation-menu-trigger :deep(.select-trigger.is-icon-only) {
   width: 30px;
+  min-width: 30px;
   height: 32px;
   border: 0;
   border-radius: var(--radius);
@@ -361,46 +292,17 @@ onBeforeUnmount(() => {
   font-size: 20px;
   opacity: 0;
 }
-.conversation-row:hover .conversation-menu-trigger,
-.conversation-row:focus-within .conversation-menu-trigger,
-.conversation-menu-trigger[aria-expanded='true'] {
+.conversation-row:hover .conversation-menu-trigger :deep(.select-trigger),
+.conversation-row:focus-within .conversation-menu-trigger :deep(.select-trigger),
+.conversation-menu-trigger :deep(.select-trigger[aria-expanded='true']) {
   opacity: 1;
 }
-.conversation-menu-trigger:hover {
+.conversation-menu-trigger :deep(.select-trigger:hover) {
   background: var(--bg-elevated);
   color: var(--text-primary);
-}
-.conversation-menu {
-  position: fixed;
-  z-index: 150;
-  width: 150px;
-  padding: 4px;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius);
-  background: var(--bg-elevated);
-  box-shadow: 0 6px 20px var(--shadow-color-strong);
-}
-.conversation-menu button {
-  display: flex;
-  justify-content: flex-start;
-  gap: 8px;
-  width: 100%;
-  padding: 8px;
-  border: 0;
-  border-radius: var(--radius);
-  background: transparent;
-  color: var(--text-primary);
-  text-align: left;
-}
-.conversation-menu button:hover,
-.conversation-menu button:focus-visible {
-  background: var(--bg-hover);
-}
-.conversation-menu .is-danger {
-  color: var(--color-danger, #df6262);
 }
 @media (hover: none) {
-  .conversation-menu-trigger {
+  .conversation-menu-trigger :deep(.select-trigger) {
     opacity: 1;
   }
 }

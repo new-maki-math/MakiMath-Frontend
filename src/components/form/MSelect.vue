@@ -1,5 +1,15 @@
 <script setup>
-import { computed, nextTick, onMounted, onUnmounted, ref, useAttrs, useId, watch } from 'vue';
+import {
+  computed,
+  nextTick,
+  onDeactivated,
+  onMounted,
+  onUnmounted,
+  ref,
+  useAttrs,
+  useId,
+  watch
+} from 'vue';
 
 import { t } from '../../i18n.js';
 import { CheckCircleSolid, NavArrowDown } from '../icons/icons.js';
@@ -43,6 +53,7 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
+  actionMenu: Boolean,
   disabled: {
     type: Boolean,
     default: false
@@ -122,7 +133,8 @@ function updatePosition() {
   const margin = 8;
   const gap = 4;
   const width = Math.max(0, Math.min(Math.max(rect.width, 160), window.innerWidth - margin * 2));
-  const left = Math.max(margin, Math.min(rect.left, window.innerWidth - width - margin));
+  const targetLeft = props.actionMenu ? rect.right - width : rect.left;
+  const left = Math.max(margin, Math.min(targetLeft, window.innerWidth - width - margin));
   const below = Math.max(0, window.innerHeight - rect.bottom - margin - gap);
   const above = Math.max(0, rect.top - margin - gap);
   const naturalHeight = Math.min(menu.value.scrollHeight, 256);
@@ -134,7 +146,9 @@ function updatePosition() {
     left: `${left}px`,
     top: `${useAbove ? rect.top - gap - height : rect.bottom + gap}px`,
     width: `${width}px`,
-    maxHeight: `${maxHeight}px`
+    maxHeight: `${maxHeight}px`,
+    '--select-slide-offset': useAbove ? '8px' : '-8px',
+    transformOrigin: useAbove ? 'center bottom' : 'center top'
   };
 }
 async function show() {
@@ -155,10 +169,14 @@ async function show() {
   await nextTick();
   updatePosition();
   scrollActive();
+  if (props.actionMenu && open.value) {
+    menu.value?.focus({
+      preventScroll: true
+    });
+  }
 }
 function close(restoreFocus = false) {
   open.value = false;
-  position.value = null;
   searchText = '';
   clearTimeout(searchTimer);
   if (restoreFocus) {
@@ -171,7 +189,7 @@ function close(restoreFocus = false) {
 }
 function selectOption(index) {
   const option = props.options[index];
-  if (!option || option.disabled) {
+  if (!open.value || !option || option.disabled) {
     return;
   }
   if (String(option.value) !== String(props.modelValue)) {
@@ -181,6 +199,11 @@ function selectOption(index) {
 }
 function onKeydown(event) {
   if (event.key === 'Tab') {
+    if (props.actionMenu && open.value) {
+      trigger.value?.focus({
+        preventScroll: true
+      });
+    }
     close();
     return;
   }
@@ -282,6 +305,7 @@ onMounted(() => {
   window.addEventListener('resize', updatePosition);
   window.addEventListener('scroll', onScroll, true);
 });
+onDeactivated(() => close());
 onUnmounted(() => {
   clearTimeout(searchTimer);
   document.removeEventListener('pointerdown', onOutsidePointer, true);
@@ -310,11 +334,13 @@ onUnmounted(() => {
       class="select-trigger"
       :class="[`size-${size}`, `variant-${variant}`, iconOnly ? 'is-icon-only' : '']"
       :disabled="disabled"
-      role="combobox"
-      aria-haspopup="listbox"
+      :role="actionMenu ? undefined : 'combobox'"
+      :aria-haspopup="actionMenu ? 'menu' : 'listbox'"
       :aria-expanded="open"
       :aria-controls="open ? listId : undefined"
-      :aria-activedescendant="open && activeIndex >= 0 ? optionId(activeIndex) : undefined"
+      :aria-activedescendant="
+        !actionMenu && open && activeIndex >= 0 ? optionId(activeIndex) : undefined
+      "
       :aria-label="ariaLabel || undefined"
       :aria-labelledby="!ariaLabel && label ? `${listId}-label` : undefined"
       :aria-describedby="describedBy"
@@ -355,55 +381,61 @@ onUnmounted(() => {
       >{{ hint }}</span
     >
     <Teleport to="body">
-      <div
-        v-if="open"
-        ref="menu"
-        :id="listId"
-        class="select-menu"
-        :style="position || 'visibility: hidden'"
-        role="listbox"
-        :aria-label="ariaLabel || label || t('选择选项')"
-      >
+      <Transition name="select-menu">
         <div
-          v-for="(option, index) in options"
-          :id="optionId(index)"
-          :key="`${option.value}:${index}`"
-          class="select-option"
-          :class="[
-            index === activeIndex ? 'is-active' : '',
-            index === selectedIndex ? 'is-selected' : '',
-            option.disabled ? 'is-disabled' : ''
-          ]"
-          role="option"
-          :aria-selected="index === selectedIndex"
-          :aria-disabled="option.disabled || undefined"
-          @mouseenter="!option.disabled && (activeIndex = index)"
-          @mousedown.prevent
-          @click="selectOption(index)"
+          v-if="open"
+          ref="menu"
+          :id="listId"
+          class="select-menu"
+          :style="position || 'visibility: hidden'"
+          :role="actionMenu ? 'menu' : 'listbox'"
+          :tabindex="actionMenu ? -1 : undefined"
+          :aria-activedescendant="actionMenu && activeIndex >= 0 ? optionId(activeIndex) : undefined"
+          :aria-label="ariaLabel || label || t('选择选项')"
+          @keydown="actionMenu && onKeydown($event)"
         >
-          <component
-            :is="option.icon"
-            v-if="option.icon"
-            class="option-icon"
-            width="16"
-            height="16"
-            aria-hidden="true"
-          />
-          <span class="option-label">{{ option.label }}</span>
-          <CheckCircleSolid
-            v-if="index === selectedIndex"
-            class="option-check"
-            width="15"
-            height="15"
-          />
+          <div
+            v-for="(option, index) in options"
+            :id="optionId(index)"
+            :key="`${option.value}:${index}`"
+            class="select-option"
+            :class="[
+              index === activeIndex ? 'is-active' : '',
+              index === selectedIndex ? 'is-selected' : '',
+              option.disabled ? 'is-disabled' : '',
+              option.danger ? 'is-danger' : ''
+            ]"
+            :role="actionMenu ? 'menuitem' : 'option'"
+            :aria-selected="actionMenu ? undefined : index === selectedIndex"
+            :aria-disabled="option.disabled || undefined"
+            @mouseenter="!option.disabled && (activeIndex = index)"
+            @mousedown.prevent
+            @click="selectOption(index)"
+          >
+            <component
+              :is="option.icon"
+              v-if="option.icon"
+              class="option-icon"
+              width="16"
+              height="16"
+              aria-hidden="true"
+            />
+            <span class="option-label">{{ option.label }}</span>
+            <CheckCircleSolid
+              v-if="index === selectedIndex"
+              class="option-check"
+              width="15"
+              height="15"
+            />
+          </div>
+          <div
+            v-if="!options.length"
+            class="select-empty"
+          >
+            {{ t('暂无选项') }}
+          </div>
         </div>
-        <div
-          v-if="!options.length"
-          class="select-empty"
-        >
-          {{ t('暂无选项') }}
-        </div>
-      </div>
+      </Transition>
     </Teleport>
   </div>
 </template>
@@ -463,7 +495,7 @@ onUnmounted(() => {
 .select-caret {
   flex: none;
   color: var(--text-muted);
-  transition: transform 140ms ease;
+  transition: transform 140ms var(--ease-standard);
 }
 .select-trigger[aria-expanded='true'] .select-caret {
   transform: rotate(180deg);
@@ -499,6 +531,20 @@ onUnmounted(() => {
   color: var(--text-primary);
   overscroll-behavior: contain;
 }
+.select-menu-enter-active,
+.select-menu-leave-active {
+  transition:
+    transform 180ms var(--ease-standard),
+    opacity 180ms var(--ease-standard);
+}
+.select-menu-leave-active {
+  pointer-events: none;
+}
+.select-menu-enter-from,
+.select-menu-leave-to {
+  transform: translateY(var(--select-slide-offset, 0px)) scaleY(0.94);
+  opacity: 0;
+}
 .select-option {
   display: flex;
   align-items: center;
@@ -515,6 +561,9 @@ onUnmounted(() => {
 .select-option.is-selected {
   color: var(--accent-primary);
   font-weight: var(--font-weight-medium);
+}
+.select-option.is-danger {
+  color: var(--color-danger, #df6262);
 }
 .select-option.is-disabled {
   opacity: 0.45;
@@ -542,7 +591,9 @@ onUnmounted(() => {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .select-caret {
+  .select-caret,
+  .select-menu-enter-active,
+  .select-menu-leave-active {
     transition: none;
   }
 }
