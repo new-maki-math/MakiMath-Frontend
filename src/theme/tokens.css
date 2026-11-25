@@ -36,6 +36,7 @@
 
   /* 布局 */
   --topbar-height: 54px;
+  --layout-mobile-topbar-height: calc(48px + env(safe-area-inset-top, 0px));
   --layout-panel-gap: 6px;
   --layout-panel-inset: 12px;
   --layout-panel-radius: calc(var(--radius) * 2);
@@ -96,10 +97,6 @@
   );
   --layout-artwork-fade: clamp(80px, 9vw, 156px);
   --layout-banner-height: clamp(132px, 15vw, 240px);
-  --layout-mobile-banner-height: 108px;
-  --layout-mobile-topbar-bg: transparent;
-  --layout-mobile-viewport-bg: var(--bg-app);
-  --layout-topbar-controls-bg: var(--bg-elevated);
   --layout-topbar-control-padding: 4px;
   --layout-brand-text: #fff;
   --layout-brand-shadow: 0 1px 2px rgb(43 24 12 / 90%), 0 0 6px rgb(43 24 12 / 48%);

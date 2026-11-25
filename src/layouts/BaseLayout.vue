@@ -1,5 +1,5 @@
 <script setup>
-import { provide, ref, watch } from 'vue';
+import { computed, provide, ref, watch } from 'vue';
 
 import MAuthForm from '../components/account/MAuthForm.vue';
 import MUserModal from '../components/account/MUserModal.vue';
@@ -33,12 +33,13 @@ const {
 } = layoutState;
 
 const bannerTransitionMs = 260;
+const hasLayoutBanner = computed(() => isSeasonalTheme.value && !isMobile.value);
 const isBannerCollapsed = ref(true);
 let bannerCollapseEndsAt = 0;
 let bannerTouchStart;
 let isBannerSwipe = false;
 
-watch(currentTheme, () => {
+watch([currentTheme, isMobile], () => {
   isBannerCollapsed.value = true;
   bannerCollapseEndsAt = 0;
   bannerTouchStart = undefined;
@@ -46,7 +47,7 @@ watch(currentTheme, () => {
 });
 
 function getBannerViewport(target) {
-  if (!isSeasonalTheme.value || !(target instanceof Element)) {
+  if (!hasLayoutBanner.value || !(target instanceof Element)) {
     return;
   }
   const viewport = target.closest('[data-layout-viewport]');
@@ -64,7 +65,7 @@ function collapseBanner() {
 }
 
 function handleBannerClick(event) {
-  if (!isSeasonalTheme.value || !event.target.matches('.layout-banner-toggle')) {
+  if (!hasLayoutBanner.value || !event.target.matches('.layout-banner-toggle')) {
     return;
   }
   if (isBannerCollapsed.value) {
@@ -154,13 +155,9 @@ provide('openKnowledgeSearch', (node, focusTarget) =>
   <div
     class="maki-base-layout-root"
     :class="{
-      'has-layout-banner': isSeasonalTheme,
-      'is-banner-collapsed': isSeasonalTheme && isBannerCollapsed
+      'has-layout-banner': hasLayoutBanner,
+      'is-banner-collapsed': hasLayoutBanner && isBannerCollapsed
     }"
-    @click="handleBannerClick"
-    @wheel="handleBannerWheel"
-    @touchstart.passive="startBannerTouch"
-    @touchmove="moveBannerTouch"
   >
     <!-- 全局进度条 (两端共享，切端不重新实例化) -->
     <ProgressBar ref="progressBarRef" />
@@ -235,7 +232,13 @@ provide('openKnowledgeSearch', (node, focusTarget) =>
         <slot v-bind="slotProps" />
       </template>
     </LayoutMobile>
-    <LayoutDesktop v-else>
+    <LayoutDesktop
+      v-else
+      @click="handleBannerClick"
+      @wheel="handleBannerWheel"
+      @touchstart.passive="startBannerTouch"
+      @touchmove="moveBannerTouch"
+    >
       <template #default="slotProps">
         <slot v-bind="slotProps" />
       </template>
@@ -245,8 +248,6 @@ provide('openKnowledgeSearch', (node, focusTarget) =>
 
 <style scoped>
 .maki-base-layout-root {
-  --layout-mobile-topbar-height: 48px;
-  --layout-compact-topbar-height: var(--topbar-height);
   --layout-current-topbar-height: var(--layout-banner-height, var(--topbar-height));
   --layout-banner-transition: v-bind('`${bannerTransitionMs}ms`') var(--ease-layout);
   width: 100vw;
@@ -255,10 +256,13 @@ provide('openKnowledgeSearch', (node, focusTarget) =>
   position: relative;
   isolation: isolate;
   background-color: var(--layout-canvas-bg);
+}
+
+.maki-base-layout-root.has-layout-banner {
   background-image: var(--layout-canvas-gradient, none);
 }
 
-.maki-base-layout-root::before {
+.maki-base-layout-root.has-layout-banner::before {
   --layout-artwork-expanded-height: calc(
     var(--layout-banner-height, var(--topbar-height)) + var(--layout-artwork-fade, 0px)
   );
@@ -278,7 +282,7 @@ provide('openKnowledgeSearch', (node, focusTarget) =>
 }
 
 .maki-base-layout-root.is-banner-collapsed {
-  --layout-current-topbar-height: var(--layout-compact-topbar-height);
+  --layout-current-topbar-height: var(--topbar-height);
 }
 
 .maki-base-layout-root :deep(.layout-banner-toggle) {
@@ -302,8 +306,7 @@ provide('openKnowledgeSearch', (node, focusTarget) =>
   outline-offset: -2px;
 }
 
-.maki-base-layout-root.has-layout-banner
-  :deep(.topbar-right :is(.user-name, .mobile-user-name, button)) {
+.maki-base-layout-root.has-layout-banner :deep(.topbar-right :is(.user-name, button)) {
   color: var(--layout-brand-text);
   text-shadow: var(--layout-brand-shadow);
 }
@@ -319,26 +322,13 @@ provide('openKnowledgeSearch', (node, focusTarget) =>
 
 @media (max-width: 767px) {
   .maki-base-layout-root {
-    --layout-compact-topbar-height: calc(
-      var(--layout-mobile-topbar-height) + env(safe-area-inset-top, 0px)
-    );
-    --layout-current-topbar-height: calc(
-      var(--layout-mobile-banner-height, var(--layout-mobile-topbar-height)) +
-        env(safe-area-inset-top, 0px)
-    );
     height: 100dvh;
     background-color: var(--bg-app);
-  }
-
-  .maki-base-layout-root::before {
-    background-position: var(--layout-artwork-mobile-position, 50%)
-      var(--layout-artwork-mobile-offset, -16px);
-    background-size: max(100%, 570px) auto;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .maki-base-layout-root::before {
+  .maki-base-layout-root.has-layout-banner::before {
     transition: none;
   }
 }

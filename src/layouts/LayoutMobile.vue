@@ -10,15 +10,7 @@ import ViewportHeader from '../components/app/ViewportHeader.vue';
 import MTag from '../components/display/MTag.vue';
 import MPageStatus from '../components/feedback/MPageStatus.vue';
 import MButton from '../components/form/MButton.vue';
-import {
-  HelpCircle,
-  LogOut,
-  Menu,
-  Search,
-  Terminal,
-  UserCircle,
-  Xmark
-} from '../components/icons/icons.js';
+import { HelpCircle, LogOut, Menu, Search, UserCircle, Xmark } from '../components/icons/icons.js';
 import MDrawer from '../components/overlay/MDrawer.vue';
 import { t } from '../i18n.js';
 import { canUseAi } from '../utils/ai-access.js';
@@ -33,7 +25,6 @@ const {
   currentTheme,
   setTheme,
   isLoggedIn,
-  userDisplayName,
   isUserModalOpen,
   isHelpModalOpen,
   openHelpModal,
@@ -91,39 +82,16 @@ watch(
     <header class="mobile-topbar">
       <button
         type="button"
-        class="layout-banner-toggle"
-        :aria-label="t('展开或收起季节背景')"
-      ></button>
-      <div class="topbar-left">
-        <!-- 汉堡包侧边栏呼出按钮 (44px 舒适触控区) -->
-        <button
-          type="button"
-          class="mobile-icon-btn hamburger-btn"
-          :title="t('打开导航目录')"
-          :aria-label="t('打开导航目录')"
-          @click="openDrawer"
-        >
-          <Menu
-            width="20"
-            height="20"
-          />
-        </button>
-
-        <!-- 品牌标识 -->
-        <div
-          class="mobile-brand"
-          @click="handleNavClick('/my-lecture')"
-        >
-          <Terminal
-            width="16"
-            height="16"
-            class="brand-icon"
-          />
-          <span class="brand-name">MAKI</span>
-          <span class="brand-sep">//</span>
-          <span class="brand-sub">MATH</span>
-        </div>
-      </div>
+        class="mobile-icon-btn"
+        :title="t('打开导航目录')"
+        :aria-label="t('打开导航目录')"
+        @click="openDrawer"
+      >
+        <Menu
+          width="20"
+          height="20"
+        />
+      </button>
 
       <div class="topbar-right">
         <!-- 搜索呼出按钮 -->
@@ -140,12 +108,6 @@ watch(
           />
         </button>
 
-        <span
-          v-if="isLoggedIn"
-          class="mobile-user-name font-mono"
-          :title="userDisplayName"
-          >{{ userDisplayName }}</span
-        >
         <button
           type="button"
           class="mobile-icon-btn user-btn"
@@ -260,7 +222,7 @@ watch(
               height="18"
               class="user-avatar"
             />
-            <span class="user-label">{{ userDisplayName }}</span>
+            <span class="user-label">{{ t('个人中心') }}</span>
           </div>
           <button
             class="mobile-icon-btn logout-btn"
@@ -313,7 +275,6 @@ watch(
     <!-- 移动端主内容视口 (全屏单列，原生平滑滚动) -->
     <main
       class="mobile-viewport"
-      data-layout-viewport
       :class="{
         'is-lecture-shelf': route.name === 'my-lecture' || route.name === 'ai-lab',
         'is-reading': route.name === 'lecture-doc' || route.name === 'local-lecture-doc'
@@ -375,8 +336,7 @@ watch(
   display: flex;
   flex-direction: column;
   width: 100vw;
-  height: 100vh;
-  height: 100dvh;
+  height: 100%;
   color: var(--text-primary);
   overflow: hidden;
   position: relative;
@@ -388,32 +348,19 @@ watch(
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: var(--layout-current-topbar-height);
+  height: var(--layout-mobile-topbar-height);
   padding: env(safe-area-inset-top, 0px) 10px 0;
-  background-color: var(--layout-mobile-topbar-bg, var(--bg-topbar));
+  background-color: var(--bg-topbar);
   border-bottom: 1px solid var(--border-subtle);
   flex-shrink: 0;
   z-index: 60;
-  transition: height var(--layout-banner-transition);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .mobile-topbar {
-    transition: none;
-  }
-}
-
-.topbar-left,
 .topbar-right {
   display: flex;
   align-items: center;
   gap: 4px;
-}
-.topbar-left {
-  flex: none;
-}
-.topbar-right {
-  flex: 1 1 0;
+  flex: 0 1 auto;
   min-width: 0;
   overflow-x: auto;
   overscroll-behavior-x: contain;
@@ -426,16 +373,6 @@ watch(
 .topbar-right::-webkit-scrollbar {
   display: none;
 }
-.mobile-user-name {
-  flex: none;
-  max-width: 80px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--text-secondary);
-  font-size: var(--font-size-smaller);
-}
-
 .mobile-icon-btn {
   display: inline-flex;
   align-items: center;
@@ -453,10 +390,6 @@ watch(
   flex-shrink: 0;
 }
 
-.mobile-icon-btn.hamburger-btn {
-  background-color: var(--layout-topbar-controls-bg, transparent);
-}
-
 .mobile-icon-btn:hover,
 .mobile-icon-btn:active {
   background-color: var(--bg-hover);
@@ -465,38 +398,6 @@ watch(
 
 .mobile-icon-btn.active {
   color: var(--accent-primary);
-}
-
-.mobile-brand {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  padding: 4px 6px;
-  color: var(--layout-brand-text, var(--text-primary));
-  text-shadow: var(--layout-brand-shadow, none);
-  user-select: none;
-}
-
-.brand-icon {
-  filter: var(--layout-brand-icon-filter, none);
-}
-
-.brand-name {
-  font-size: var(--font-size);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: 0.5px;
-}
-
-.brand-sep {
-  color: var(--layout-brand-text, var(--text-muted));
-  font-size: var(--font-size-smaller);
-}
-
-.brand-sub {
-  color: var(--layout-brand-text, var(--accent-primary));
-  font-size: var(--font-size);
-  font-weight: var(--font-weight-semibold);
 }
 
 /* 抽屉导航内容结构 */
@@ -667,7 +568,6 @@ watch(
   -webkit-overflow-scrolling: touch;
   min-width: 0;
   min-height: 0;
-  background-color: var(--layout-mobile-viewport-bg, transparent);
 }
 
 .mobile-viewport.is-lecture-shelf,
