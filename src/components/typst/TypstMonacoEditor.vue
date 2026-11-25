@@ -42,26 +42,30 @@ function currentEditorTheme() {
   const root = document.documentElement;
   const base = root.getAttribute('data-theme') === 'light' ? 'vs' : 'vs-dark';
   const season = root.getAttribute('data-season');
-  if (!monaco || !['spring', 'summer', 'autumn', 'winter'].includes(season)) {
-    return base;
-  }
-  const styles = getComputedStyle(root);
+  const isSeasonal = ['spring', 'summer', 'autumn', 'winter'].includes(season);
+  const styles = getComputedStyle(editorMountRef.value);
   const token = (name) => styles.getPropertyValue(name).trim();
-  const name = `maki-${season}`;
-  monaco.editor.defineTheme(name, {
-    base,
-    inherit: true,
-    rules: [],
-    colors: {
-      'editor.background': token('--bg-surface'),
+  const name = `maki-${isSeasonal ? season : base}`;
+  const background = token('--bg-surface');
+  const colors = {
+    'editor.background': background,
+    'editorGutter.background': background
+  };
+  if (isSeasonal) {
+    Object.assign(colors, {
       'editor.foreground': token('--text-primary'),
       'editorLineNumber.foreground': token('--text-muted'),
       'editorCursor.foreground': token('--accent-primary'),
       'editor.lineHighlightBackground': token('--bg-hover'),
-      'editorGutter.background': token('--bg-surface'),
       'editorWidget.background': token('--bg-elevated'),
       'editorWidget.foreground': token('--text-primary')
-    }
+    });
+  }
+  monaco.editor.defineTheme(name, {
+    base,
+    inherit: true,
+    rules: [],
+    colors
   });
   return name;
 }
@@ -92,10 +96,14 @@ async function initializeEditor() {
       readOnly: props.readonly,
       tabSize: 2,
       automaticLayout: true,
+      padding: {
+        top: 8,
+        bottom: 8
+      },
       lineNumbers: 'on',
       lineNumbersMinChars: 3,
-      lineHeight: 21,
-      fontSize: 13,
+      lineHeight: 24,
+      fontSize: 15,
       fontFamily:
         'var(--font-mono, "Cascadia Code", Consolas, Menlo, Monaco, "Courier New", monospace)',
       renderLineHighlight: 'all',
@@ -119,7 +127,7 @@ async function initializeEditor() {
         bracketPairs: false
       },
       fixedOverflowWidgets: true,
-      wordWrap: 'off'
+      wordWrap: 'on'
     });
 
     // 双向绑定输入监听
@@ -377,6 +385,7 @@ onBeforeUnmount(() => {
 .code-monaco-wrap {
   position: relative;
   width: 100%;
+  padding-inline: 6px;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius);
   overflow: hidden;
