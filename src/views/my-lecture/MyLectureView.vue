@@ -492,6 +492,29 @@ onUnmounted(() => {
         </MDataView>
       </section>
     </div>
+    <footer class="shelf-footer">
+      <a
+        href="https://beian.miit.gov.cn/"
+        target="_blank"
+        rel="noopener noreferrer"
+        >沪ICP备2022010774号</a
+      >
+      <div class="shelf-footer-links">
+        <a
+          href="https://github.com/new-maki-math/MakiMath-Frontend"
+          target="_blank"
+          rel="noopener noreferrer"
+          >GitHub</a
+        >
+        <span aria-hidden="true">·</span>
+        <a
+          href="https://github.com/new-maki-math/MakiMath-Frontend/blob/main/LICENSE"
+          target="_blank"
+          rel="noopener noreferrer"
+          >AGPL-3.0</a
+        >
+      </div>
+    </footer>
   </main>
 </template>
 
@@ -514,6 +537,29 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 24px;
   min-width: 0;
+}
+.shelf-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 24px;
+  color: var(--text-muted);
+  font-size: var(--font-size-smaller);
+  text-align: center;
+}
+.shelf-footer a {
+  color: inherit;
+}
+.shelf-footer-links {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.shelf-footer a:hover {
+  color: var(--text-primary);
+  text-decoration: underline;
 }
 .shelf-section {
   display: flex;
