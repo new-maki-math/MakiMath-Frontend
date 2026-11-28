@@ -1,3 +1,26 @@
+= v1.3.3-beta
+Kayson 2026-11-28 10:14
+
+== 功能改进
+
+- 界面支持简体中文、繁体中文、日语和英语，可跟随系统语言（#link("https://github.com/new-maki-math/MakiMath-Frontend/commit/9f29e1096c718cecc0289fce5f35d55039b69fc0", "9f29e10")）。
+- AI Lab 开始灰度测试，支持模型配置、会话管理、图片和内容引用（#link("https://github.com/new-maki-math/MakiMath-Frontend/commit/146c99306688371272f804e068ac1e7331f84fa9", "146c993")、#link("https://github.com/new-maki-math/MakiMath-Frontend/commit/e5041590274d9cefb1beecc988f8841302c2f576", "e504159")）。
+- 编辑器支持 LaTeX 与 Typst 公式实时互转，并调整了编辑区排版（#link("https://github.com/new-maki-math/MakiMath-Frontend/commit/26ee75cac6aac722857e3863dafa92e6532ad913", "26ee75c")、#link("https://github.com/new-maki-math/MakiMath-Frontend/commit/8950652308841bbd39ebc8686cace1acbada9c9b", "8950652")）。
+- 讲义动画新增页码选择，可直接跳到任意一页（#link("https://github.com/new-maki-math/MakiMath-Frontend/commit/155352bafba0f863772153e0aae8d9691ffa2437", "155352b")）。
+- 四季主题新增插画横幅和面板式布局，切换页面时先呈现目标页，再加载内容（#link("https://github.com/new-maki-math/MakiMath-Frontend/commit/ce640de5da36b87ce160e680cd1506d9eceabf43", "ce640de")、#link("https://github.com/new-maki-math/MakiMath-Frontend/commit/3b32e904ac1eda77f94ee1fb2f51451914bdb307", "3b32e90")）。
+- 精简移动端顶栏，调整导航抽屉并加入数据管理入口（#link("https://github.com/new-maki-math/MakiMath-Frontend/commit/792081b2b4ab51231a2744366f1094ca9d451dd6", "792081b")、#link("https://github.com/new-maki-math/MakiMath-Frontend/commit/18aa4de90ee66821a8ff0282a37430bca590d337", "18aa4de")）。
+- 书架页脚新增备案和开源入口，构建时间可点击查看部署记录（#link("https://github.com/new-maki-math/MakiMath-Frontend/commit/e57f008045912d2a332f96d1f85e1addd1d00a4e", "e57f008")、#link("https://github.com/new-maki-math/MakiMath-Frontend/commit/cd186a31876af099960ec80e857c53a193c59211", "cd186a3")）。
+- 移除书架上引导去「图书推荐」添加讲义的提示（#link("https://github.com/new-maki-math/MakiMath-Frontend/commit/6b0b5d0b762c277c8e28a30d7d6d9769a1d8b763", "6b0b5d0")）。
+
+== 问题修复
+
+- 调整桌面顶部搜索的遮罩层级，让搜索框和结果显示在遮罩上方（#link("https://github.com/new-maki-math/MakiMath-Frontend/commit/200d63a7aee91172bc4a18d63aad698ea8d9d8b6", "200d63a")）。
+- 恢复移动端原生页面滚动，并修复 Safari 上的视口和遮罩问题（#link("https://github.com/new-maki-math/MakiMath-Frontend/commit/540482a23fedbb49a7bb6ecc6c3627c01dbbc9d8", "540482a")、#link("https://github.com/new-maki-math/MakiMath-Frontend/commit/675835f9e17544a5fe23c7bc4e1920cd539b4087", "675835f")）。
+- 修复进入子页面后侧栏丢失选中状态的问题（#link("https://github.com/new-maki-math/MakiMath-Frontend/commit/a9cf1b10f3e42f733b50ddf7f6c68c2b2e8fd4bb", "a9cf1b1")）。
+- 修复题目选项公式被裁切、编辑器右键菜单未跟随主题的问题（#link("https://github.com/new-maki-math/MakiMath-Frontend/commit/789d118912a2f93f918efcbb05f7e70b78c9de1b", "789d118")、#link("https://github.com/new-maki-math/MakiMath-Frontend/commit/da76c115ca750df405bc5bd032abd6b5ab1fd727", "da76c11")）。
+- 修复备份恢复范围，只恢复备份中实际存在且受支持的数据库（#link("https://github.com/new-maki-math/MakiMath-Frontend/commit/45c64e5227ea750a183508ea8c01a014d0f56d9d", "45c64e5")）。
+- 审计日志改用服务端分页，修复历史记录翻页问题（#link("https://github.com/new-maki-math/MakiMath-Frontend/commit/0810ea73369d9c166dfa708a69de64d749baf5b9", "0810ea7")）。
+
 = v1.3.2-beta
 Kayson 2026-11-11 02:45
 
