@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { bookApi } from '../../api/books.js';
@@ -20,55 +20,6 @@ const router = useRouter();
 const buildVersion = import.meta.env.VITE_BUILD_VERSION;
 const buildRunUrl = import.meta.env.VITE_BUILD_RUN_URL;
 const localLectures = ref([]);
-const guideRef = ref(null);
-const arrowPath = ref('');
-const guidePosition = ref(null);
-const guideVisible = ref(true);
-let guideObserver;
-
-function updateGuideArrow() {
-  const guide = guideRef.value;
-  const target = document.querySelector('[data-navigation-id="recom-lecture"]');
-  const shelf = guide?.closest('.my-lecture');
-  guideVisible.value =
-    window.innerWidth < 768 || !shelf || (shelf.scrollTop < 1 && window.scrollY < 1);
-  if (!guide || !target || window.innerWidth < 768) {
-    arrowPath.value = '';
-    guidePosition.value = null;
-    return;
-  }
-  const to = target.getBoundingClientRect();
-  const x = to.right + 24;
-  const y = to.top + to.height / 2;
-  const startX = x + 100;
-  const startY = y + 18;
-  guidePosition.value = {
-    left: `${startX + 12}px`,
-    top: `${startY - 18}px`
-  };
-  arrowPath.value = `M ${startX} ${startY} C ${startX - 65} ${startY}, ${x + 75} ${y}, ${x} ${y} M ${x + 12} ${y - 6} L ${x} ${y} L ${x + 12} ${y + 6}`;
-}
-
-watch(guideRef, async (guide) => {
-  guideObserver?.disconnect();
-  await nextTick();
-  if (!guide) {
-    arrowPath.value = '';
-    guidePosition.value = null;
-    return;
-  }
-  const target = document.querySelector('[data-navigation-id="recom-lecture"]');
-  guideObserver = new ResizeObserver(updateGuideArrow);
-  guideObserver.observe(guide);
-  const shelf = guide.closest('.shelf-section');
-  if (shelf) {
-    guideObserver.observe(shelf);
-  }
-  if (target) {
-    guideObserver.observe(target);
-  }
-  updateGuideArrow();
-});
 const onlineLectures = ref([]);
 const localLectureItems = computed(() =>
   localLectures.value.filter(
@@ -252,15 +203,10 @@ watch([authStatus, () => currentUser.value?.id], loadOnline, {
   immediate: true
 });
 onMounted(() => {
-  window.addEventListener('resize', updateGuideArrow);
-  window.addEventListener('scroll', updateGuideArrow, true);
   loadLocal();
   initAuth();
 });
 onUnmounted(() => {
-  window.removeEventListener('resize', updateGuideArrow);
-  window.removeEventListener('scroll', updateGuideArrow, true);
-  guideObserver?.disconnect();
   localSequence++;
   onlineSequence++;
 });
@@ -302,33 +248,7 @@ onUnmounted(() => {
           <MEmpty
             v-else-if="!localLectureItems.length"
             class="shelf-empty"
-          >
-            <div
-              ref="guideRef"
-              class="shelf-guide"
-              :class="{
-                'is-positioned': guidePosition,
-                'is-hidden': !guideVisible
-              }"
-              :style="guidePosition"
-              :aria-hidden="!guideVisible"
-            >
-              <svg
-                v-if="arrowPath"
-                class="shelf-guide-arrow"
-                fill="none"
-                aria-hidden="true"
-              >
-                <path :d="arrowPath" />
-              </svg>
-              <MButton
-                variant="ghost"
-                :tabindex="guideVisible ? undefined : -1"
-                @click="router.push('/recom-lecture')"
-                >{{ t('去图书推荐，添加一本讲义到本地') }}</MButton
-              >
-            </div>
-          </MEmpty>
+          />
           <MHorizontalShelf
             v-else
             :book-height="shelfHeightLeader === 'local-lecture' ? 0 : shelfBookHeight"
@@ -741,32 +661,6 @@ onUnmounted(() => {
 .shelf-empty {
   flex: 1;
 }
-.shelf-guide {
-  position: relative;
-  opacity: 1;
-  transition: opacity 180ms ease;
-}
-.shelf-guide.is-hidden {
-  opacity: 0;
-  pointer-events: none;
-}
-.shelf-guide.is-positioned {
-  position: fixed;
-  z-index: 21;
-}
-.shelf-guide-arrow {
-  position: fixed;
-  inset: 0;
-  z-index: 20;
-  width: 100vw;
-  height: 100vh;
-  color: var(--text-muted);
-  stroke: currentColor;
-  stroke-width: 1.4;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  pointer-events: none;
-}
 h1,
 h2 {
   flex: none;
@@ -800,14 +694,6 @@ h2 {
   .shelf-section :deep(.horizontal-shelf .lecture-cover),
   .shelf-section :deep(.horizontal-shelf .version-stack) {
     max-height: 255px;
-  }
-  .shelf-guide-arrow {
-    display: none;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .shelf-guide {
-    transition: none;
   }
 }
 </style>
