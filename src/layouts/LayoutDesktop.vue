@@ -349,16 +349,10 @@ const toggleSidebar = () => {
   color: var(--layout-brand-text, var(--accent-primary));
 }
 
-/* 顶栏搜索栏淡入淡出 */
 .topbar-center {
   flex: 1;
   max-width: 500px;
   margin: 0 20px;
-  transition:
-    opacity 240ms var(--ease-emphasized),
-    transform 240ms var(--ease-emphasized);
-  opacity: 1;
-  transform: translateY(0);
 }
 
 .topbar-right {

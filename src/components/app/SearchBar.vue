@@ -259,7 +259,7 @@ defineExpose({
     <!-- 全屏半透明遮罩 (topbar 紧凑模式专用) -->
     <MBackdrop
       v-if="variant === 'topbar'"
-      teleport="body"
+      fixed
       :open="isOpen"
       :z-index="80"
       @close="closeSearch"
@@ -502,6 +502,8 @@ defineExpose({
 }
 
 .search-bar-unified.is-topbar .search-input-inner {
+  position: relative;
+  z-index: 81;
   height: 34px;
   background-color: var(--bg-surface);
   border: 1px solid var(--border-subtle);
